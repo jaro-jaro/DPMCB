@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.data.database
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import cz.jaro.dpmcb.data.entities.Spoj
@@ -91,6 +90,4 @@ interface ZastavkySpojeDao {
     @Insert
     suspend fun insertAll(vararg zastavkySpoje: ZastavkaSpoje)
 
-    @Delete
-    suspend fun delete(vararg zastavkySpoje: ZastavkaSpoje)
 }

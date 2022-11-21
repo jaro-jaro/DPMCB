@@ -12,7 +12,6 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
@@ -97,14 +96,12 @@ class SpojeRepository(ctx: Application) {
     suspend fun zapsat(zastavkySpoju: Array<ZastavkaSpoje>, spoje: Array<Spoj>, ostatni: VsechnoOstatni) {
         this.ostatni = ostatni
 
-        db.runInTransaction {
-            coroutineScope.launch(Dispatchers.IO) {
-                spojeDao.delete(*spojeDao.getAll().toTypedArray())
-                spojeDao.insertAll(*spoje)
-                zastavkySpojeDao.delete(*zastavkySpojeDao.getAll().toTypedArray())
-                zastavkySpojeDao.insertAll(*zastavkySpoju)
-            }
-        }
+        spojeDao.insertAll(*spoje)
+        zastavkySpojeDao.insertAll(*zastavkySpoju)
+    }
+
+    fun odstranitSpojeAJejichZastavky() {
+        db.clearAllTables()
     }
 
     fun upravitDatum(noveDatum: Datum) {

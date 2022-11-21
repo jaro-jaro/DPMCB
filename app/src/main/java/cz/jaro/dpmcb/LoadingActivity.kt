@@ -67,7 +67,9 @@ class LoadingActivity : AppCompatActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     Column(
-                        Modifier.fillMaxSize().padding(all = 16.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(all = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -79,9 +81,13 @@ class LoadingActivity : AppCompatActivity() {
                         )
                         Text(infoText, textAlign = TextAlign.Center)
                         if (progress == null) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                            LinearProgressIndicator(modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp))
                         } else {
-                            LinearProgressIndicator(progress = progress ?: 0F, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                            LinearProgressIndicator(progress = progress ?: 0F, modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp))
                         }
                     }
                 }
@@ -127,12 +133,17 @@ class LoadingActivity : AppCompatActivity() {
     }
 
     private suspend fun stahnoutNoveJizdniRady() {
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování..."
 
         if (!jeOnline()) {
             Toast.makeText(this, "Na stažení jizdních řádů je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
             exitProcess(-1)
         }
+
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat..."
+
+        repo.odstranitSpojeAJejichZastavky()
+
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování..."
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val referenceData = database.getReference("data")
