@@ -1,17 +1,17 @@
 package cz.jaro.dpmcb.data
 
-import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.emptyGraphZastavek
 
 @kotlinx.serialization.Serializable
 data class VsechnoOstatni(
     val verze: Int = -1,
-    val datum: Datum = Datum.dnes,
+    val typDne: VDP = VDP.DNY,
 
     val linkyAJejichZastavky: Map<Int, List<String>> = emptyMap(),
     val zastavky: List<String> = emptyList(),
 
-    val graphZastavek: GraphZastavek = emptyGraphZastavek()
+    val graphZastavek: GraphZastavek = emptyGraphZastavek(),
 )
 
 //@kotlinx.serialization.Serializable

@@ -15,7 +15,7 @@ object UtilFunctions {
 
     fun emptyGraphZastavek(): GraphZastavek = mapOf()
 
-    enum class VDP { VIKENDY, DNY, PRAZDNINY }
+    enum class VDP { DNY, VIKENDY, PRAZDNINY }
 
     fun VDP.toChar() = when (this) {
         VDP.VIKENDY -> 'V'

@@ -26,7 +26,7 @@ class JizdniRadyViewModel(
             delay(500)
             state = state.copy(nacitaSe = true)
 
-            val spoje = repo.spojeLinkyJedouciVDatumSeZastavkamiSpoju(cisloLinky, repo.datum).also { println(it) }
+            val spoje = repo.spojeLinkyJedouciVTypDneSeZastavkamiSpoju(cisloLinky, repo.typDne).also { println(it) }
 
             val zastavky = spoje.flatMap { (spoj, zastavkySpoje) ->
 

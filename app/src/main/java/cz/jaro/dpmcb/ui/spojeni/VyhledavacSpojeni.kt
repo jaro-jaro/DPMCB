@@ -153,7 +153,7 @@ object VyhledavacSpojeni {
                 else zastavkyMinulyhoSpoje.vsechnyIndexy(soused)
                     .map { Triple(tabulka[nazev]!!.minulejSpoj, null, zastavkyMinulyhoSpoje[it]) }
                     .find { it.third.cas >= aktualniCas && it.third.cas != Cas.nikdy })
-                    ?: repo.spojeJedouciVDatumSeZastavkySpoju(repo.datum)
+                    ?: repo.spojeJedouciVTypDneSeZastavkySpoju(repo.typDne)
                         .map { (spoj, zastavky) ->
                             Triple(spoj, zastavky, zastavky.vsechnyIndexy(nazev))
                         }

@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:title="TODO">
         <menu>
-            <group android:checkableBehavior="single" >
+            <group android:checkableBehavior="single">
                 <item
                     android:id="@+id/spojeniFragment"
                     android:title="@string/vyhledat_spojeni"
@@ -31,7 +29,7 @@
             <group android:checkableBehavior="none" >
                 <item
                     android:id="@+id/actionDatum"
-                    android:title="@string/zmena_data"
+                    android:title="@string/typ_dne"
                     android:icon="@drawable/ic_baseline_today_24" />
                 <item
                     android:id="@+id/actionSettings"

@@ -12,7 +12,7 @@
     <string name="vyberte_zastavku">Vyberte zastávku:</string>
     <string name="vyberte_linku">Vyberte linku:</string>
     <string name="vyberte_dalsi_zastávku">Vyberte příští zastávku:</string>
-    <string name="zmena_data">Změna data</string>
+    <string name="typ_dne">Typ dne:</string>
     <string name="detail_kurzu">Detail kurzu</string>
     <string name="detail_spoje">Detail spoje</string>
     <string name="zastavkove_jizdni_rady">Zastávkové jizdní řády</string>

@@ -2,10 +2,15 @@ package cz.jaro.dpmcb
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -15,6 +20,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -25,14 +31,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updateMargins
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ramcosta.composedestinations.DestinationsNavHost
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
+import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
 
@@ -92,19 +109,86 @@ class MainActivity : AppCompatActivity() {
                         ModalNavigationDrawer(
                             drawerContent = {
                                 ModalDrawerSheet {
-                                    SuplikAkce.values().forEach {
-                                        NavigationDrawerItem(
+                                    SuplikAkce.values().forEach { akce ->
+                                        if (akce == SuplikAkce.Datum) Row(
+                                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                                            verticalAlignment = CenterVertically
+                                        ) {
+                                            var typDne by remember { mutableStateOf(VDP.DNY) }
+
+                                            Text(
+                                                text = "Typ dne:",
+                                                modifier = Modifier.padding(all = 16.dp)
+                                            )
+
+                                            VDP.values().forEach { vdp ->
+                                                OutlinedIconToggleButton(
+                                                    checked = typDne == vdp,
+                                                    onCheckedChange = {
+                                                        typDne = vdp
+                                                        scope.launch {
+                                                            repo.upravitTypDne(vdp)
+                                                        }
+                                                    },
+                                                    modifier = Modifier
+                                                ) {
+                                                    Text(vdp.toChar().toString())
+                                                }
+                                            }
+
+                                            Spacer(
+                                                modifier = Modifier.weight(1F)
+                                            )
+
+                                            IconButton(
+                                                onClick = {
+                                                    scope.launch {
+                                                        MaterialAlertDialogBuilder(this@MainActivity).apply {
+                                                            setTitle("Vybrat typ dne podle data")
+
+                                                            val ll = LinearLayout(context)
+
+                                                            val dp = android.widget.DatePicker(context)
+                                                            //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
+                                                            dp.layoutParams = LinearLayout.LayoutParams(
+                                                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                                                ViewGroup.LayoutParams.WRAP_CONTENT
+                                                            )
+                                                            dp.updateLayoutParams<LinearLayout.LayoutParams> {
+                                                                updateMargins(top = 16)
+                                                            }
+
+                                                            ll.addView(dp)
+
+                                                            setView(ll)
+
+                                                            setPositiveButton("Zvolit") { dialog, _ ->
+                                                                dialog.cancel()
+
+                                                                val typ = Datum(dp.dayOfMonth, dp.month + 1, dp.year).typDne
+                                                                typDne = typ
+                                                                repo.upravitTypDne(typ)
+                                                            }
+                                                            show()
+                                                        }
+                                                    }
+                                                },
+                                            ) {
+                                                Icon(Icons.Default.CalendarMonth, "Vybrat podle data")
+                                            }
+                                        }
+                                        else NavigationDrawerItem(
                                             label = {
-                                                Text(stringResource(it.jmeno))
+                                                Text(stringResource(akce.jmeno))
                                             },
                                             icon = {
-                                                Icon(it.icon, stringResource(it.jmeno))
+                                                Icon(akce.icon, stringResource(akce.jmeno))
                                             },
-                                            selected = vybrano == it,
+                                            selected = vybrano == akce,
                                             onClick = {
-                                                if (it.multiselect)
-                                                    vybrano = it
-                                                it.onClick(navController, { scope.launch { drawerState.close() } }, this@MainActivity)
+                                                if (akce.multiselect)
+                                                    vybrano = akce
+                                                akce.onClick(navController, { scope.launch { drawerState.close() } }, this@MainActivity)
                                             },
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                                         )
@@ -114,8 +198,10 @@ class MainActivity : AppCompatActivity() {
                             drawerState = drawerState,
                             gesturesEnabled = vybrano != SuplikAkce.Mapa
                         ) {
-                            // Screen content
-                            Navigation(navController)
+                            DestinationsNavHost(
+                                navController = navController,
+                                navGraph = NavGraphs.root
+                            )
                         }
                     }
                 }

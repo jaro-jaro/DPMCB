@@ -125,11 +125,10 @@ class OdjezdyViewModel(
                     (state.value.konec.toInt() / (24 * 60)) -> (state.value.konec.toInt() % (24 * 60)).toCas()
                     else -> 23 cas 59
                 }
-                val d = repo.datum + i
-                funguj(z, k, d)
+                funguj(z, k, repo.typDne)
 
                 repo
-                    .spojeJedouciVDatumZastavujiciNaZastavceSeZastavkySpoje(d, state.value.zastavka).also { funguj(it) }
+                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(repo.typDne, state.value.zastavka).also { funguj(it) }
                     .map { (spoj, zastavkySpoje) ->
                         (spoj to zastavkySpoje) to zastavkySpoje.vsechnyIndexy(state.value.zastavka)
                     }.also { funguj(it) }
