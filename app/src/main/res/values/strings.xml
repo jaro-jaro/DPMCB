@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name" translatable="false">DPMCB</string>
+    <string name="otevrit">Otevřít</string>
+    <string name="zavrit">Zavřít</string>
+    <string name="vypnout_aplikaci">Vypnout aplikaci</string>
+    <string name="zpetna_vazba">Zpětná vazba</string>
+    <string name="nastaveni">Nastavení</string>
+    <string name="mapa_linek">Mapa linek</string>
+    <string name="odjezdy">Odjezdy</string>
+    <string name="jizdni_rady">Jízdní řády</string>
+    <string name="vyhledat_spojeni">Vyhledat spojení</string>
+    <string name="vyberte_zastavku">Vyberte zastávku:</string>
+    <string name="vyberte_linku">Vyberte linku:</string>
+    <string name="vyberte_dalsi_zastávku">Vyberte příští zastávku:</string>
+    <string name="zmena_data">Změna data</string>
+    <string name="detail_kurzu">Detail kurzu</string>
+    <string name="detail_spoje">Detail spoje</string>
+    <string name="zastavkove_jizdni_rady">Zastávkové jizdní řády</string>
+    <string name="vysledky_vyhledavani">Výsledky vyhledávání</string>
+    <!-- Halo?? Jak vypadaj ty šipky???!!!! -->
+    <string name="loading">Načítání dat</string>
+    <string name="stahovani_nevypinejte">Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.</string>
+    <string name="aktualizace_jr">Aktualizace JŘ</string>
+    <string name="chcete_aktualizovat">Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?</string>
+    <string name="ne">Ne</string>
+    <string name="ano">Ano</string>
+    <string name="aktualizovat_data">Aktualizovat data</string>
+    <string name="linka_tato">Linka %s</string>
+    <string name="kurz_tento">Kurz %s</string>
+    <string name="odjezdy_linky_z_tam">%1$s -> %2$s</string>
+    <string name="uz_jsi_vybral">%1$s: %2$s -> %3$s</string>
+    <string name="dalsi_spoje_linky">Další spoje linky</string>
+    <string name="nacist_dalsi">Načíst další</string>
+    <string name="pouzivane_datum">Používané datum:</string>
+    <string name="zjr">Zastávkové jizdní řády</string>
+</resources>

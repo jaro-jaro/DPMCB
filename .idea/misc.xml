@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/java/cz/jaro/dpmcb/ui/odjezdy/OdjezdyScreen.kt" value="0.325" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/java/cz/jaro/dpmcb/ui/vybirator/VybiratorScreen.kt" value="0.29259259259259257" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable-v26/logo.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable-v26/ro_studios.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable-v26/splash_screen.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/ic_launcher_background.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo_foreground.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo_transparent.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo_transparent_foreground.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo_white.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/logo_white_foreground.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/drawable/splash_screen.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout-land/fragment_odjezdy.xml" value="0.2838541666666667" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/activity_main.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/activity_nastaveni.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/adapter_row.xml" value="0.2421875" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_adapter.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_detail_kurzu.xml" value="0.2359375" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_detail_spoje.xml" value="0.264" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_jizdni_rady.xml" value="0.2359375" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_mapa.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_odjezdy.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_spojeni.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/fragment_vysledky_spojeni.xml" value="0.2359375" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/header_navigation.xml" value="0.24895833333333334" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/loading.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/odjezd.xml" value="0.3572916666666667" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/settings_activity.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/layout/spoj.xml" value="0.264" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/menu/menu_drawer.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/menu/menu_main.xml" value="0.25" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi-v26/logo_white.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi-v26/logo_white_round.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/ic_launcher.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/logo.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/logo_round.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/ro_studios.xml" value="0.187" />
+        <entry key="..\:/Users/jaro5/OneDrive/JARObus/DPMCB/app/src/main/res/mipmap-anydpi/ro_studios_round.xml" value="0.187" />
+      </map>
+    </option>
+  </component>
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17_PREVIEW" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>
