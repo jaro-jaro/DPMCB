@@ -1,26 +1,40 @@
 package cz.jaro.dpmcb.ui.detail.spoje
 
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.WheelchairPickup
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.updateLayoutParams
+import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.entities.Spoj
+import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.zastavkySpoje
-import cz.jaro.dpmcb.databinding.FragmentDetailSpojeBinding
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
-import kotlinx.coroutines.runBlocking
+import kotlin.random.Random
 
 @Destination
 @Composable
@@ -31,63 +45,84 @@ fun DetailSpojeScreen(
 
     App.title = R.string.detail_spoje
 
-    val spoj = runBlocking { repo.spoj(spojId) }
+    val a by produceState(null as Pair<Spoj, List<ZastavkaSpoje>>?) {
+        value = repo.spojSeZastavkySpojeNaKterychStavi(spojId)
+    }
+    val spoj by produceState(null as Spoj?, a) { value = a?.first }
+    val zastavky by produceState(emptyList<ZastavkaSpoje>(), a) { value = a?.second ?: emptyList() }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            val binding = FragmentDetailSpojeBinding.inflate(LayoutInflater.from(context))
-
-            binding.tvInfo.text = context.getString(R.string.linka_tato, spoj.cisloLinky.toString())
-
-            binding.btn3.setOnClickListener {
-
-                navigator.navigate(
-                    DetailKurzuScreenDestination(
-                        kurz = spoj.nazevKurzu
-                    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+    ) {
+        if (spoj == null) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
+        else {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Linka ${spoj!!.cisloLinky}")
+                Icon(
+                    when {
+                        Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                        spoj!!.nizkopodlaznost -> Icons.Default.Accessible
+                        Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
+                        else -> Icons.Default.NotAccessible
+                    }, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
-
-            }
-            val odjezdy = { z: String, cas: String ->
-
-                navigator.navigate(
-                    OdjezdyScreenDestination(
-                        cas = cas,
-                        zastavka = z,
+                Spacer(Modifier.weight(1F))
+                Button(onClick = {
+                    navigator.navigate(
+                        DetailKurzuScreenDestination(
+                            kurz = spoj!!.nazevKurzu
+                        )
                     )
-                )
+                }) {
+                    Text("Detail kurzu")
+                }
             }
-
-            when (spoj.smer) {
-                Smer.POZITIVNI -> runBlocking { spoj.zastavkySpoje() }
-                Smer.NEGATIVNI -> runBlocking { spoj.zastavkySpoje().reversed() }
-            }.filter { it.cas != Cas.nikdy }.forEach { zastavkaSCasem ->
-                val z = zastavkaSCasem.nazevZastavky
-                val cas = zastavkaSCasem.cas
-
-                binding.included.llZastavky.addView(TextView(context).apply {
-                    text = z
-                    setOnClickListener { odjezdy(z, cas.toString()) }
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                    updateLayoutParams<LinearLayout.LayoutParams> {
-                        minHeight = 48
-                        minWidth = 48
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            zastavky.reversedIf { spoj!!.smer == Smer.NEGATIVNI }.forEach {
+                                Text(
+                                    text = it.nazevZastavky,
+                                    modifier = Modifier
+                                        .clickable {
+                                            navigator.navigate(
+                                                OdjezdyScreenDestination(
+                                                    cas = it.cas.toString(),
+                                                    zastavka = it.nazevZastavky,
+                                                )
+                                            )
+                                        }
+                                )
+                            }
+                        }
+                        Column(Modifier.padding(start = 8.dp)) {
+                            zastavky.reversedIf { spoj!!.smer == Smer.NEGATIVNI }.forEach {
+                                Text(
+                                    text = it.cas.toString(),
+                                    modifier = Modifier
+                                        .clickable {
+                                            navigator.navigate(
+                                                OdjezdyScreenDestination(
+                                                    cas = it.cas.toString(),
+                                                    zastavka = it.nazevZastavky,
+                                                )
+                                            )
+                                        }
+                                )
+                            }
+                        }
                     }
-                })
-
-                binding.included.llCasy.addView(TextView(context).apply {
-                    text = cas.toString()
-                    setOnClickListener { odjezdy(z, cas.toString()) }
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                    updateLayoutParams<LinearLayout.LayoutParams> {
-                        minHeight = 48
-                        minWidth = 48
-                    }
-                })
+                }
             }
-
-            binding.root
-        },
-    )
+        }
+    }
 }

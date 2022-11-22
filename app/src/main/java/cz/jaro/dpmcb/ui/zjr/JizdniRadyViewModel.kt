@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import kotlinx.coroutines.Dispatchers
@@ -14,19 +15,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class JizdniRadyViewModel(
-    cisloLinky: Int,
-    zastavka: String,
-    pristiZastavka: String,
+    private val cisloLinky: Int,
+    private val zastavka: String,
+    private val pristiZastavka: String,
 ) : ViewModel() {
 
     var state by mutableStateOf(JizdniRadyState())
 
-    init {
+    fun nacistJR(typDne: VDP) {
         viewModelScope.launch(Dispatchers.IO) {
             delay(500)
             state = state.copy(nacitaSe = true)
 
-            val spoje = repo.spojeLinkyJedouciVTypDneSeZastavkamiSpoju(cisloLinky, repo.typDne).also { println(it) }
+            val spoje = repo.spojeLinkyJedouciVTypDneSeZastavkamiSpoju(cisloLinky, typDne).also { println(it) }
 
             val zastavky = spoje.flatMap { (spoj, zastavkySpoje) ->
 

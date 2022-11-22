@@ -15,6 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -40,6 +45,12 @@ fun JizdniRadyScreen(
     navigator: DestinationsNavigator,
 ) {
 //    val viewModel = remember { JizdniRadyViewModel(cisloLinky, zastavka, pristiZastavka, repo) }
+
+    val typDne by repo.typDne.collectAsState(VDP.DNY)
+
+    LaunchedEffect(typDne) {
+        viewModel.nacistJR(typDne)
+    }
 
     Column(
         modifier = Modifier

@@ -23,6 +23,13 @@ object UtilFunctions {
         VDP.PRAZDNINY -> 'P'
     }
 
+    fun Char.toVDP() = when (this) {
+        'V' -> VDP.VIKENDY
+        'D' -> VDP.DNY
+        'P' -> VDP.PRAZDNINY
+        else -> throw IllegalArgumentException("$this není V ani D ani P!")
+    }
+
     fun Smer.toInt(): Int = when (this) {
         Smer.POZITIVNI -> 1
         Smer.NEGATIVNI -> -1

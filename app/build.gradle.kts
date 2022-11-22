@@ -158,4 +158,6 @@ dependencies {
 
 
     implementation("com.google.code.gson:gson:2.9.1")
+
+    implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
 }

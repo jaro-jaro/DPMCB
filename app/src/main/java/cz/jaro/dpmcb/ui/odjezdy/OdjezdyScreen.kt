@@ -23,6 +23,8 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
@@ -52,16 +54,21 @@ fun OdjezdyScreen(
                 is UiEvent.Navigovat -> {
                     navigator.navigate(event.kam)
                 }
+
                 else -> {}
             }
         }
     }
 
-    LaunchedEffect(state.konec, state.zacatek) {
+    val typDne by repo.typDne.collectAsState(VDP.DNY)
+
+    LaunchedEffect(state.konec, state.zacatek, typDne) {
         withContext(Dispatchers.IO) {
-            viewModel.nacistDalsi()
+            viewModel.nacistVsechny(typDne)
         }
     }
+
+    if (state.nacitaSe) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
     Column(
         modifier = Modifier

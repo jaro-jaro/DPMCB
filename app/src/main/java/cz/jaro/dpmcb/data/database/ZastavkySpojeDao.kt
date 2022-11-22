@@ -31,6 +31,16 @@ interface ZastavkySpojeDao {
         """
             SELECT * FROM zastavkaspoje 
             JOIN spoj ON zastavkaspoje.idSpoje = spoj.id 
+            WHERE zastavkaspoje.nazevKurzu=:kurz
+            AND zastavkaspoje.cas != :cas
+        """
+    )
+    suspend fun findByKurzAndNotCasJoinSpoj(kurz: String, cas: Cas): Map<ZastavkaSpoje, Spoj>
+
+    @Query(
+        """
+            SELECT * FROM zastavkaspoje 
+            JOIN spoj ON zastavkaspoje.idSpoje = spoj.id 
             WHERE zastavkaspoje.cisloLinky=:linka 
             AND zastavkaspoje.nazevKurzu LIKE :kurzLike 
             ORDER BY zastavkaspoje.indexNaLince
@@ -57,6 +67,17 @@ interface ZastavkySpojeDao {
         """
     )
     suspend fun findBySpojIdJoinSpoj(spojId: Long): Map<ZastavkaSpoje, Spoj>
+
+    @Query(
+        """
+            SELECT * FROM zastavkaspoje 
+            JOIN spoj ON zastavkaspoje.idSpoje = spoj.id 
+            WHERE zastavkaspoje.idSpoje = :spojId
+            AND zastavkaspoje.cas != :cas
+            ORDER BY zastavkaspoje.indexNaLince
+        """
+    )
+    suspend fun findBySpojIdAndNotCasJoinSpoj(spojId: Long, cas: Cas): Map<ZastavkaSpoje, Spoj>
 
     @Query(
         """

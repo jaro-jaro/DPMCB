@@ -11,7 +11,10 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -52,7 +55,17 @@ class SpojeRepository(ctx: Application) {
     private val zastavkySpojeDao get() = db.zastavkySpojeDao()
 
     val verze get() = ostatni.verze
-    val typDne get() = ostatni.typDne
+    val typDne = flow {
+        var posledniVdp = ostatni.typDne
+        emit(posledniVdp)
+
+        while (true) {
+            while (posledniVdp == ostatni.typDne) Unit
+
+            posledniVdp = ostatni.typDne
+            emit(posledniVdp)
+        }
+    }.flowOn(Dispatchers.IO)
     val graphZastavek get() = ostatni.graphZastavek
 
     suspend fun spoje() = spojeDao.getAll()
@@ -75,7 +88,16 @@ class SpojeRepository(ctx: Application) {
         zastavkySpojeDao.findBySpojIdJoinSpoj(spojId)
             .let { it.values.first() to it.keys.toList() }
 
+    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: Long) =
+        zastavkySpojeDao.findBySpojIdAndNotCasJoinSpoj(spojId, Cas.nikdy)
+            .let { it.values.first() to it.keys.toList() }
+
     suspend fun spojeKurzu(kurz: String) = spojeDao.findByKurz(kurz)
+    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String) =
+        zastavkySpojeDao.findByKurzAndNotCasJoinSpoj(kurz, Cas.nikdy)
+            .toList()
+            .groupBy({ it.second }, { it.first })
+
     suspend fun spojeLinky(cisloLinky: Int) = spojeDao.findByLinka(cisloLinky)
     suspend fun spojeLinkyZastavujiciVZastavceSeZastavkamiSpoju(cisloLinky: Int, indexZastavky: Int) =
         zastavkySpojeDao.findByLinkaAndIndexAndNotCasJoinSpoj(cisloLinky, indexZastavky, Cas.nikdy)
@@ -103,6 +125,7 @@ class SpojeRepository(ctx: Application) {
     }
 
     fun odstranitSpojeAJejichZastavky() {
+        while (!::db.isInitialized) Unit
         db.clearAllTables()
     }
 

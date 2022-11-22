@@ -57,7 +57,7 @@ class VybiratorViewModel(
                 is VybiratorEvent.KliklEnter -> hotovo(state.seznam.first())
                 is VybiratorEvent.KliklNaSeznam -> hotovo(event.vec)
                 is VybiratorEvent.NapsalNeco -> {
-                    state = state.copy(hledani = event.co)
+                    state = state.copy(hledani = event.co.replace("\n", ""))
                     if (state.seznam.count() == 1) hotovo(state.seznam.first())
                 }
             }

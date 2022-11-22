@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
@@ -84,13 +85,13 @@ class OdjezdyViewModel(
 
             is OdjezdyEvent.NacistDalsi -> {
                 _state.update {
-                    it.copy(nacitaSe = true, konec = it.konec + 30)
+                    it.copy(konec = it.konec + 24)
                 }
             }
 
             is OdjezdyEvent.NacistPredchozi -> {
                 _state.update {
-                    it.copy(nacitaSe = true, zacatek = it.zacatek - 30)
+                    it.copy(zacatek = it.zacatek - 24)
                 }
             }
         }
@@ -113,7 +114,10 @@ class OdjezdyViewModel(
         val nacitaSe: Boolean = false,
     )
 
-    suspend fun nacistDalsi() = supervisorScope {
+    suspend fun nacistVsechny(typDne: UtilFunctions.VDP) = supervisorScope {
+        _state.update {
+            it.copy(nacitaSe = true)
+        }
 
         launch(Dispatchers.IO) {
             val spojeAZastavky = List(state.value.konec.toInt() / (24 * 60) + 1) { i ->
@@ -125,10 +129,10 @@ class OdjezdyViewModel(
                     (state.value.konec.toInt() / (24 * 60)) -> (state.value.konec.toInt() % (24 * 60)).toCas()
                     else -> 23 cas 59
                 }
-                funguj(z, k, repo.typDne)
+                funguj(z, k)
 
                 repo
-                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(repo.typDne, state.value.zastavka).also { funguj(it) }
+                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.value.zastavka).also { funguj(it) }
                     .map { (spoj, zastavkySpoje) ->
                         (spoj to zastavkySpoje) to zastavkySpoje.vsechnyIndexy(state.value.zastavka)
                     }.also { funguj(it) }

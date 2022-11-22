@@ -96,10 +96,8 @@ class LoadingActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
 
-            val mistniVerze = repo.verze
-
             try {
-                if (intent.getBooleanExtra("update", false) || mistniVerze == -1) {
+                if (intent.getBooleanExtra("update", false) || repo.verze == -1) {
                     launch {
                         stahnoutNoveJizdniRady()
                     }.join()
@@ -117,6 +115,8 @@ class LoadingActivity : AppCompatActivity() {
                 startActivity(intent)
                 return@launch
             }
+
+            val mistniVerze = repo.verze
 
             infoText = "Kontrola dostupnosti aktualizací"
 

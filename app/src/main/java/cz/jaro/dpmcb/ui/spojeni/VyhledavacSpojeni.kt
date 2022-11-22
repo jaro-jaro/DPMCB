@@ -4,12 +4,14 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.Spojeni
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toInt
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlin.system.measureTimeMillis
 
@@ -40,7 +42,7 @@ object VyhledavacSpojeni {
 
                 repeat(n) {
 
-                    val tabulkaNejSpojeni = najdiNejSpojeni(start, cas, mozneCesty)
+                    val tabulkaNejSpojeni = najdiNejSpojeni(start, cas, mozneCesty, repo.typDne.first())
                     funguj(tabulkaNejSpojeni)
 
                     val nejSpojeni = upravitVysledek(tabulkaNejSpojeni, start, cil)
@@ -73,7 +75,7 @@ object VyhledavacSpojeni {
 
     private val slepyUlicky: MutableList<String> = mutableListOf()
 
-    private suspend fun cestaRekurze(
+    private fun cestaRekurze(
         ja: String,
         cil: String,
         minule: List<String> = emptyList(),
@@ -107,6 +109,7 @@ object VyhledavacSpojeni {
         start: String,
         vyhledavaciCas: Cas,
         seznamCest: List<CestaDoCile>,
+        typDne: VDP,
     ): MutableMap<String, RadekTabulky> {
         val vsechnyZastavky = seznamCest.flatten().distinct()
         val tabulka = mutableMapOf(
@@ -153,7 +156,7 @@ object VyhledavacSpojeni {
                 else zastavkyMinulyhoSpoje.vsechnyIndexy(soused)
                     .map { Triple(tabulka[nazev]!!.minulejSpoj, null, zastavkyMinulyhoSpoje[it]) }
                     .find { it.third.cas >= aktualniCas && it.third.cas != Cas.nikdy })
-                    ?: repo.spojeJedouciVTypDneSeZastavkySpoju(repo.typDne)
+                    ?: repo.spojeJedouciVTypDneSeZastavkySpoju(typDne)
                         .map { (spoj, zastavky) ->
                             Triple(spoj, zastavky, zastavky.vsechnyIndexy(nazev))
                         }

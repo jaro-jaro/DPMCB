@@ -8,13 +8,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,13 +38,14 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.UiEvent
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
 @JvmInline
 value class Vysledek(val v: Pair<String, Boolean>) : java.io.Serializable
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Destination
 @Composable
 fun VybiratorScreen(
@@ -78,7 +89,13 @@ fun VybiratorScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(all = 16.dp)
-                .focusRequester(focusNaTextField),
+                .focusRequester(focusNaTextField)
+                .onKeyEvent {
+                    if (it.key == Key.Enter) {
+                        viewModel.poslatEvent(VybiratorEvent.KliklEnter)
+                    }
+                    return@onKeyEvent it.key == Key.Enter
+                },
             label = { Text("Vyhledávání") },
             keyboardOptions = KeyboardOptions.Default.copy(
                 autoCorrect = false,
@@ -104,10 +121,17 @@ fun VybiratorScreen(
                 onAny = {
                     viewModel.poslatEvent(VybiratorEvent.KliklEnter)
                 }
-            )
+            ),
+            singleLine = true,
+            maxLines = 1,
         )
+
+        val keyboard = LocalSoftwareKeyboardController.current
+
         LaunchedEffect(Unit) {
             focusNaTextField.requestFocus()
+            delay(100)
+            keyboard!!.show()
         }
 
         LazyColumn(

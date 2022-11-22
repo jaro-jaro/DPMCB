@@ -3,6 +3,7 @@ package cz.jaro.dpmcb
 import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.LinearLayout
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -58,6 +59,7 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
