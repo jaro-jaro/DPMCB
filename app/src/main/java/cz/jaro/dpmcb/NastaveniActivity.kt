@@ -23,9 +23,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import cz.jaro.dpmcb.BuildConfig.DEBUG
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 
 class NastaveniActivity : AppCompatActivity() {
 
@@ -35,52 +37,55 @@ class NastaveniActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            Surface {
-                Scaffold(
-                    topBar = {
-                        TopAppBar(
-                            title = {
-                                Text("Nastavení")
-                            },
-                            navigationIcon = {
-                                IconButton(
+            DPMCBTheme {
+                Surface {
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text("Nastavení")
+                                },
+                                navigationIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            val intent = Intent(this, MainActivity::class.java)
+                                            intent.addFlags(FLAG_ACTIVITY_CLEAR_TOP)
+                                            startActivity(intent)
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.ArrowBack, "Zpět")
+                                    }
+                                }
+                            )
+                        }
+                    ) { paddingValues ->
+                        Column(
+                            modifier = Modifier
+                                .padding(paddingValues)
+                                .fillMaxSize()
+                        ) {
+                            Switch(checked = false, onCheckedChange = {})
+                            Switch(checked = false, onCheckedChange = {})
+                            Switch(checked = false, onCheckedChange = {})
+                            Switch(checked = false, onCheckedChange = {})
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Button(
                                     onClick = {
-                                        val intent = Intent(this, MainActivity::class.java)
-                                        intent.addFlags(FLAG_ACTIVITY_CLEAR_TOP)
+                                        val intent = Intent(this@NastaveniActivity, LoadingActivity::class.java)
+                                        intent.flags = FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+                                        intent.putExtra("update", true)
                                         startActivity(intent)
                                     }
                                 ) {
-                                    Icon(Icons.Default.ArrowBack, "Zpět")
+                                    Text("Aktualizovat data")
                                 }
+                                if (DEBUG) Text("Aktuální verze dat: ${repo.verze}")
                             }
-                        )
-                    }
-                ) { paddingValues ->
-                    Column(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                    ) {
-                        Switch(checked = false, onCheckedChange = {})
-                        Switch(checked = false, onCheckedChange = {})
-                        Switch(checked = false, onCheckedChange = {})
-                        Switch(checked = false, onCheckedChange = {})
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Button(
-                                onClick = {
-                                    val intent = Intent(this@NastaveniActivity, LoadingActivity::class.java)
-                                    intent.flags = FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                                    intent.putExtra("update", true)
-                                    startActivity(intent)
-                                }
-                            ) {
-                                Text("Aktualizovat data")
-                            }
-                            if (DEBUG) Text("Aktuální verze dat: ${repo.verze}")
                         }
                     }
                 }

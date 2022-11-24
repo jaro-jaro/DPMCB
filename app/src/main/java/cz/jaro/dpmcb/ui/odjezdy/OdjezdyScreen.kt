@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,17 +17,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updateMargins
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -98,9 +105,45 @@ fun OdjezdyScreen(
                     contentDescription = ""
                 )
             }
-            Text(
-                text = state.zacatek.toString()
-            )
+            val ctx = LocalContext.current
+            TextButton(
+                onClick = {
+                    MaterialAlertDialogBuilder(ctx).apply {
+                        setTitle("Vybrat čas")
+
+                        val ll = LinearLayout(context)
+
+                        val tp = android.widget.TimePicker(context)
+                        //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
+                        tp.layoutParams = LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                        tp.updateLayoutParams<LinearLayout.LayoutParams> {
+                            updateMargins(top = 16)
+                        }
+
+                        tp.setIs24HourView(true)
+
+                        tp.hour = state.zacatek.h
+                        tp.minute = state.zacatek.min
+
+                        ll.addView(tp)
+
+                        setView(ll)
+
+                        setPositiveButton("Zvolit") { dialog, _ ->
+                            dialog.cancel()
+
+                            val novejCas = Cas(tp.hour, tp.minute)
+                            viewModel.poslatEvent(OdjezdyEvent.ZmenitCas(novejCas))
+                        }
+                        show()
+                    }
+                }
+            ) {
+                Text(text = state.zacatek.toString())
+            }
             IconButton(
                 onClick = {
                     viewModel.poslatEvent(OdjezdyEvent.ZvetsitCas)
@@ -218,7 +261,8 @@ private fun Karticka(
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     when {

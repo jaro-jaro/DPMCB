@@ -51,12 +51,19 @@ class SpojeniViewModel : ViewModel() {
                     }
                 }
             }
+
             is SpojeniEvent.VybralZastavku -> {
                 _state.update {
                     if (event.start)
                         it.copy(start = event.zastavka)
                     else
                         it.copy(cil = event.zastavka)
+                }
+            }
+
+            is SpojeniEvent.ZmenitNizkopodlaznost -> {
+                _state.update {
+                    it.copy(nizkopodlaznost = !it.nizkopodlaznost)
                 }
             }
         }
@@ -66,5 +73,6 @@ class SpojeniViewModel : ViewModel() {
         val start: String = "",
         val cil: String = "",
         val cas: Cas = Cas.ted,
+        val nizkopodlaznost: Boolean = false,
     )
 }

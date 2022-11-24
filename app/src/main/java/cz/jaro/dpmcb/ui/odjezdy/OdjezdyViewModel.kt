@@ -28,7 +28,7 @@ import kotlinx.coroutines.supervisorScope
 class OdjezdyViewModel(
     zastavka: String,
     cas: String? = null,
-    doba: Int = 30,
+    private val doba: Int = 20,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -54,6 +54,12 @@ class OdjezdyViewModel(
             is OdjezdyEvent.ZvetsitCas -> {
                 _state.update {
                     it.copy(zacatek = it.zacatek + 5)
+                }
+            }
+
+            is OdjezdyEvent.ZmenitCas -> {
+                _state.update {
+                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba)
                 }
             }
 
@@ -85,13 +91,13 @@ class OdjezdyViewModel(
 
             is OdjezdyEvent.NacistDalsi -> {
                 _state.update {
-                    it.copy(konec = it.konec + 24)
+                    it.copy(konec = it.konec + doba)
                 }
             }
 
             is OdjezdyEvent.NacistPredchozi -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek - 24)
+                    it.copy(zacatek = it.zacatek - doba)
                 }
             }
         }

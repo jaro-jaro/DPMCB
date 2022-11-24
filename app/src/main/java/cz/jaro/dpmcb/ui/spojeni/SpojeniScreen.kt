@@ -1,10 +1,21 @@
 package cz.jaro.dpmcb.ui.spojeni
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.NoTransfer
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -18,7 +29,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -57,9 +67,11 @@ fun SpojeniScreen(
                 is UiEvent.Navigovat -> {
                     navigator.navigate(event.kam)
                 }
+
                 is UiEvent.Zkopirovat -> {
                     clipboardManager.setText(AnnotatedString(event.text))
                 }
+
                 else -> {}
             }
         }
@@ -69,8 +81,6 @@ fun SpojeniScreen(
 
     App.title = R.string.vyhledat_spojeni
 
-    val controller = rememberNavController()
-
     Column(
         modifier = Modifier
             .fillMaxSize(),
@@ -78,24 +88,62 @@ fun SpojeniScreen(
     ) {
 
         val focusRequester = LocalFocusManager.current
-        TextField(value = state.start, onValueChange = {}, Modifier.onFocusEvent {
-            if (!it.hasFocus) return@onFocusEvent
-            viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(true))
-            focusRequester.clearFocus()
-        })
-        TextField(value = state.cil, onValueChange = {}, Modifier.onFocusEvent {
-            if (!it.hasFocus) return@onFocusEvent
-            viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(false))
-            focusRequester.clearFocus()
-        })
-
-        Button(
-            modifier = Modifier.padding(16.dp),
-            onClick = {
-                viewModel.poslatEvent(SpojeniEvent.Vyhledat)
+        TextField(
+            value = state.start,
+            onValueChange = {},
+            Modifier.onFocusEvent {
+                if (!it.hasFocus) return@onFocusEvent
+                viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(true))
+                focusRequester.clearFocus()
             },
+            label = {
+                Text("Odkud")
+            }
+        )
+        IconButton(onClick = { /*TODO*/ }, Modifier.padding(top = 8.dp, bottom = 4.dp)) {
+            Icon(Icons.Default.SwapVert, null)
+        }
+        TextField(
+            value = state.cil,
+            onValueChange = {},
+            Modifier
+                .onFocusEvent {
+                    if (!it.hasFocus) return@onFocusEvent
+                    viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(false))
+                    focusRequester.clearFocus()
+                },
+            label = {
+                Text("Kam")
+            }
+        )
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Text("Vyhledat Spojení")
+            OutlinedIconToggleButton(
+                checked = state.nizkopodlaznost,
+                onCheckedChange = {
+                    viewModel.poslatEvent(SpojeniEvent.ZmenitNizkopodlaznost)
+                }
+            ) {
+                Icon(Icons.Default.Accessible, "MuzeNajetDoBusu")
+            }
+            Button(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                onClick = {
+                    viewModel.poslatEvent(SpojeniEvent.Vyhledat)
+                },
+            ) {
+                Text("Vyhledat Spojení")
+            }
+            OutlinedIconButton(onClick = {
+                viewModel.poslatEvent(SpojeniEvent.ProhazujeZastavky)
+            }) {
+                Icon(Icons.Default.NoTransfer, null)
+            }
         }
     }
 }

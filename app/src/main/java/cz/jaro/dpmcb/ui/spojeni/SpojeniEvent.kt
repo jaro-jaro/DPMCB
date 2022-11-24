@@ -5,4 +5,5 @@ sealed class SpojeniEvent {
     data class VybralZastavku(val zastavka: String, val start: Boolean) : SpojeniEvent()
     object Vyhledat : SpojeniEvent()
     object ProhazujeZastavky : SpojeniEvent()
+    object ZmenitNizkopodlaznost : SpojeniEvent()
 }
