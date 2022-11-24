@@ -104,6 +104,7 @@ class OdjezdyViewModel(
         val cas: String,
         val JePosledniZastavka: Boolean,
         val idSpoje: Long,
+        val nizkopodlaznost: Boolean,
     )
 
     data class OdjezdyState(
@@ -165,7 +166,8 @@ class OdjezdyViewModel(
                         cas = zastavka.cas.toString(),
                         JePosledniZastavka = zastavky.indexOf(poslZast) == index,
                         pristiZastavka = spoj.pristiZastavka(index)?.nazevZastavky ?: poslZast.nazevZastavky,
-                        idSpoje = spoj.id
+                        idSpoje = spoj.id,
+                        nizkopodlaznost = spoj.nizkopodlaznost,
                     )
                 }, nacitaSe = false)
             }

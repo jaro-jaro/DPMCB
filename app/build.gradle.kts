@@ -19,7 +19,7 @@ android {
         minSdk = 24
         targetSdk = 33
         versionCode = 1
-        versionName = "0.5.1"
+        versionName = "0.5.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,7 +71,7 @@ dependencies {
     implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.5.1")
-    implementation("com.google.android.material:material:1.8.0-alpha02")
+    implementation("com.google.android.material:material:1.8.0-alpha03")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
@@ -85,8 +85,8 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 
     // Coroutines
-    implementation("com.google.code.gson:gson:2.9.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    implementation("com.google.code.gson:gson:2.10")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
 
@@ -98,10 +98,11 @@ dependencies {
     androidTestImplementation("androidx.navigation:navigation-testing:2.5.3")
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:29.2.1"))
-    implementation("com.google.firebase:firebase-core")
+    implementation(platform("com.google.firebase:firebase-bom:31.1.0"))
+    //implementation("com.google.firebase:firebase-core")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-common-ktx:20.2.0")
 
     // Compose
     implementation("androidx.activity:activity-compose:1.6.1")
@@ -135,10 +136,10 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")*/
 
     // Koin
-    implementation("io.insert-koin:koin-android:3.2.0")
-    implementation("io.insert-koin:koin-androidx-navigation:3.2.0")
-    implementation("io.insert-koin:koin-androidx-compose:3.2.0")
-    testImplementation("io.insert-koin:koin-test-junit4:3.2.0")
+    implementation("io.insert-koin:koin-android:3.3.0")
+    implementation("io.insert-koin:koin-androidx-navigation:3.3.0")
+    implementation("io.insert-koin:koin-androidx-compose:3.3.0")
+    testImplementation("io.insert-koin:koin-test-junit4:3.2.2")
 
     // Dagger
     /*implementation("com.google.dagger:dagger:2.40.1")
@@ -147,17 +148,17 @@ dependencies {
     annotationProcessor("com.google.dagger:dagger-android-processor:2.11")*/
 
     // Compose Destinations
-    implementation("io.github.raamcosta.compose-destinations:core:1.7.21-beta")
-    ksp("io.github.raamcosta.compose-destinations:ksp:1.7.21-beta")
+    implementation("io.github.raamcosta.compose-destinations:core:1.7.27-beta")
+    ksp("io.github.raamcosta.compose-destinations:ksp:1.7.27-beta")
 
     // Datastore
     implementation("androidx.datastore:datastore-core:1.0.0")
     implementation("androidx.datastore:datastore:1.0.0")
     //implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 
 
-    implementation("com.google.code.gson:gson:2.9.1")
+    implementation("com.google.code.gson:gson:2.10")
 
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
 }

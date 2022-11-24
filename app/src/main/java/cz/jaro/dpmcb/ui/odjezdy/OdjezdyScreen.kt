@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -62,8 +65,11 @@ fun OdjezdyScreen(
 
     val typDne by repo.typDne.collectAsState(VDP.DNY)
 
+    var job: Job? = null
+
     LaunchedEffect(state.konec, state.zacatek, typDne) {
-        withContext(Dispatchers.IO) {
+        job?.cancel()
+        job = withContext(Dispatchers.IO) {
             viewModel.nacistVsechny(typDne)
         }
     }
@@ -135,18 +141,20 @@ fun KartickaPreview() {
             Karticka(OdjezdyViewModel.KartickaState(
                 konecna = "Ahoj",
                 pristiZastavka = "Čau",
-                9,
-                "12:38",
-                false,
-                612L
+                cisloLinky = 9,
+                cas = "12:38",
+                JePosledniZastavka = false,
+                idSpoje = 612L,
+                nizkopodlaznost = true
             )) {}
             Karticka(OdjezdyViewModel.KartickaState(
                 konecna = "Ne",
                 pristiZastavka = "Nechci se zdravit",
-                29,
-                "14:88",
-                true,
-                1415926535L
+                cisloLinky = 29,
+                cas = "14:88",
+                JePosledniZastavka = true,
+                idSpoje = 1415926535L,
+                nizkopodlaznost = false
             )) {}
         }
     }
@@ -207,11 +215,17 @@ private fun Karticka(
                     text = kartickaState.cas
                 )
             }
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                Icon(
+                    when {
+                        kartickaState.nizkopodlaznost -> Icons.Default.Accessible
+                        else -> Icons.Default.NotAccessible
+                    }, "Invalidní vozík"
+                )
                 TextButton(
                     onClick = {
                         poslatEvent(OdjezdyEvent.KliklNaZjr(kartickaState))

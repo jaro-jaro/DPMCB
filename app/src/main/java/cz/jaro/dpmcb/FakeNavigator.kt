@@ -11,7 +11,7 @@ object FakeNavigator : DestinationsNavigator, ResultBackNavigator<Vysledek> {
     override fun navigateUp() = false
     override fun popBackStack() = false
     override fun popBackStack(route: String, inclusive: Boolean, saveState: Boolean) = false
-    override fun navigateBack() = Unit
     override fun setResult(result: Vysledek) = Unit
-    override fun navigateBack(result: Vysledek) = Unit
+    override fun navigateBack(result: Vysledek, onlyIfResumed: Boolean) = Unit
+    override fun navigateBack(onlyIfResumed: Boolean) = Unit
 }
