@@ -47,7 +47,9 @@ class SpojeniViewModel : ViewModel() {
                         start = state.value.start,
                         cil = state.value.cil
                     ).also {
-                        _uiEvent.send(UiEvent.Zkopirovat(it.toString()))
+                        it.collect {
+                            _uiEvent.send(UiEvent.Zkopirovat(it.toString()))
+                        }
                     }
                 }
             }

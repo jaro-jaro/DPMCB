@@ -68,11 +68,9 @@ android {
 
 dependencies {
 
-    implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.5.1")
     implementation("com.google.android.material:material:1.8.0-alpha03")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.5.1")
@@ -80,9 +78,14 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
     implementation("androidx.preference:preference:1.2.0")
+
+    // Tests
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
+
+    // PDF Viewer
+    implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
 
     // Coroutines
     implementation("com.google.code.gson:gson:2.10")
@@ -156,7 +159,6 @@ dependencies {
     implementation("androidx.datastore:datastore:1.0.0")
     //implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-
 
     implementation("com.google.code.gson:gson:2.10")
 

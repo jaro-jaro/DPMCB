@@ -7,17 +7,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.NoTransfer
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
-import androidx.compose.material3.OutlinedIconToggleButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -88,34 +88,53 @@ fun SpojeniScreen(
     ) {
 
         val focusRequester = LocalFocusManager.current
-        TextField(
-            value = state.start,
-            onValueChange = {},
-            Modifier.onFocusEvent {
-                if (!it.hasFocus) return@onFocusEvent
-                viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(true))
-                focusRequester.clearFocus()
-            },
-            label = {
-                Text("Odkud")
-            }
-        )
-        IconButton(onClick = { /*TODO*/ }, Modifier.padding(top = 8.dp, bottom = 4.dp)) {
-            Icon(Icons.Default.SwapVert, null)
-        }
-        TextField(
-            value = state.cil,
-            onValueChange = {},
-            Modifier
-                .onFocusEvent {
-                    if (!it.hasFocus) return@onFocusEvent
-                    viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(false))
-                    focusRequester.clearFocus()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    viewModel.poslatEvent(SpojeniEvent.ProhazujeZastavky)
                 },
-            label = {
-                Text("Kam")
+                //Modifier.padding(all = 4.dp)
+            ) {
+                Icon(Icons.Default.SwapVert, null)
             }
-        )
+            Column {
+                OutlinedTextField(
+                    value = state.start,
+                    onValueChange = {},
+                    Modifier.onFocusEvent {
+                        if (!it.hasFocus) return@onFocusEvent
+                        viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(true))
+                        focusRequester.clearFocus()
+                    },
+                    label = {
+                        Text("Odkud")
+                    }
+                )
+                OutlinedTextField(
+                    value = state.cil,
+                    onValueChange = {},
+                    Modifier
+                        .onFocusEvent {
+                            if (!it.hasFocus) return@onFocusEvent
+                            viewModel.poslatEvent(SpojeniEvent.ChceVybratZastavku(false))
+                            focusRequester.clearFocus()
+                        },
+                    label = {
+                        Text("Kam")
+                    }
+                )
+            }
+            IconButton(
+                onClick = {},
+                //Modifier.padding(all = 4.dp)
+            ) {
+                Icon(Icons.Default.SwapVert, null, tint = MaterialTheme.colorScheme.surface)
+            }
+        }
 
         Row(
             Modifier
@@ -123,13 +142,11 @@ fun SpojeniScreen(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            OutlinedIconToggleButton(
-                checked = state.nizkopodlaznost,
-                onCheckedChange = {
-                    viewModel.poslatEvent(SpojeniEvent.ZmenitNizkopodlaznost)
+            OutlinedIconButton(
+                onClick = {
                 }
             ) {
-                Icon(Icons.Default.Accessible, "MuzeNajetDoBusu")
+                Icon(Icons.Default.Settings, "Nstavení")
             }
             Button(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -139,10 +156,11 @@ fun SpojeniScreen(
             ) {
                 Text("Vyhledat Spojení")
             }
-            OutlinedIconButton(onClick = {
-                viewModel.poslatEvent(SpojeniEvent.ProhazujeZastavky)
-            }) {
-                Icon(Icons.Default.NoTransfer, null)
+            OutlinedIconButton(
+                onClick = {
+                }
+            ) {
+                Icon(Icons.Default.Schedule, null)
             }
         }
     }

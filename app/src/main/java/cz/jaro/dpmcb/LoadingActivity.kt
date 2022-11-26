@@ -43,7 +43,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.emptyGraphZastavek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toGraphZastavek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toMutableGraphZastavek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.zastavkySpoje
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -81,13 +80,17 @@ class LoadingActivity : AppCompatActivity() {
                         )
                         Text(infoText, textAlign = TextAlign.Center)
                         if (progress == null) {
-                            LinearProgressIndicator(modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp))
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            )
                         } else {
-                            LinearProgressIndicator(progress = progress ?: 0F, modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp))
+                            LinearProgressIndicator(
+                                progress = progress ?: 0F, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            )
                         }
                     }
                 }
@@ -256,12 +259,13 @@ class LoadingActivity : AppCompatActivity() {
 
         val verze = referenceVerze.get().await().getValue<Int>() ?: -1
 
-        val graphZastavek = vytvoritGraf(spoje)
+        val graphZastavek = vytvoritGraf(zastavkySpoju.groupBy({ zs -> spoje.find { it.id == zs.idSpoje }!! }, { it }))
 
         println(spoje)
         println(linky)
         println(zastavky)
         println(zastavkySpoju)
+        println(graphZastavek)
 
         coroutineScope {
             launch {
@@ -294,12 +298,13 @@ class LoadingActivity : AppCompatActivity() {
         )
     }
 
-    private suspend fun vytvoritGraf(spoje: List<Spoj>): GraphZastavek {
+    private suspend fun vytvoritGraf(spoje: Map<Spoj, List<ZastavkaSpoje>>): GraphZastavek {
 
         val graphZastavek = emptyGraphZastavek().toMutableGraphZastavek()
 
-        spoje.forEach { spoj ->
-            spoj.zastavkySpoje()
+        spoje.forEach { (spoj, zastavkySpoje) ->
+            zastavkySpoje
+                .sortedBy { it.indexNaLince }
                 .reversedIf { spoj.smer == NEGATIVNI }
                 .filter { it.cas != Cas.nikdy }
                 .map { it.nazevZastavky }
@@ -315,17 +320,16 @@ class LoadingActivity : AppCompatActivity() {
         //    println(it)
         //}
 
-        //println(graphZastavek
-        //    .flatMap { (k, v) ->
-        //        v.map { k to it }
-        //    }
-        //    .joinToString("\n") {
-        //        it.toList().joinToString("&&&")
-        //    }
-        //    .replace(" ", "")
-        //    .replace("&&&", " ")
-        //)
-
+        println(graphZastavek
+            .flatMap { (k, v) ->
+                v.map { k to it }
+            }
+            .joinToString("\n") {
+                it.toList().joinToString("&&&")
+            }
+            .replace(" ", "")
+            .replace("&&&", " ")
+        )
 
         return graphZastavek.toGraphZastavek()
     }

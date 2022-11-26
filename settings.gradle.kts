@@ -12,7 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
-        gradlePluginPortal()
+        maven { url = uri("https://jcenter.bintray.com") }
     }
 }
 rootProject.name = "DPMCB"
