@@ -12,4 +12,6 @@ data class VsechnoOstatni(
     val graphZastavek: GraphZastavek = emptyGraphZastavek(),
 
     val historieVyhledavani: List<Pair<String, String>> = listOf(),
+
+    val idSpoju: Map<Long, String> = mapOf(),
 )

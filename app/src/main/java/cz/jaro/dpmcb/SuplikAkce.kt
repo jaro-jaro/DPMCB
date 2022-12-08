@@ -8,15 +8,14 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
-import cz.jaro.dpmcb.ui.destinations.SpojeniScreenDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 
 enum class SuplikAkce(
@@ -25,7 +24,7 @@ enum class SuplikAkce(
     val multiselect: Boolean,
     val onClick: (navController: NavHostController, zavrit: () -> Unit, activity: MainActivity) -> Unit,
 ) {
-    Spojeni(
+    /*Spojeni(
         R.string.vyhledat_spojeni,
         Icons.Default.Timeline,
         true,
@@ -35,6 +34,12 @@ enum class SuplikAkce(
             )
             zavrit()
         }
+    ),*/
+    Oblibene(
+        jmeno = R.string.ano,
+        icon = Icons.Default.Star,
+        multiselect = true,
+        onClick = { _, _, _ -> },
     ),
     JizdniRady(
         R.string.jizdni_rady,

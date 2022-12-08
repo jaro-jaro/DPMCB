@@ -163,4 +163,6 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10")
 
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
+
+    implementation("org.jsoup:jsoup:1.15.1")
 }

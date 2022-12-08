@@ -25,7 +25,6 @@ import kotlinx.serialization.json.Json
 class SpojeRepository(ctx: Application) {
 
     private val coroutineScope = MainScope()
-
     private val sharedPref: SharedPreferences =
         ctx.getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
 
@@ -44,10 +43,11 @@ class SpojeRepository(ctx: Application) {
             ostatniField = value
         }
 
-
     private lateinit var db: AppDatabase
 
+
     private val _typDne = MutableStateFlow(Datum.dnes.typDne)
+
     val typDne = _typDne.asStateFlow()
 
     init {
@@ -57,9 +57,15 @@ class SpojeRepository(ctx: Application) {
     }
 
     private val spojeDao get() = db.spojeDao()
-    private val zastavkySpojeDao get() = db.zastavkySpojeDao()
 
+    private val zastavkySpojeDao get() = db.zastavkySpojeDao()
     val verze get() = ostatni.verze
+
+    var idSpoju
+        get() = ostatni.idSpoju
+        set(value) {
+            ostatni = ostatni.copy(idSpoju = value)
+        }
     val graphZastavek get() = ostatni.graphZastavek
 
     suspend fun spoje() = spojeDao.getAll()

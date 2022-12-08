@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 val navController = rememberNavController()
-                var vybrano by remember { mutableStateOf(SuplikAkce.Spojeni) }
+                var vybrano by remember { mutableStateOf(SuplikAkce.Oblibene) }
 
                 Scaffold(
                     topBar = {
