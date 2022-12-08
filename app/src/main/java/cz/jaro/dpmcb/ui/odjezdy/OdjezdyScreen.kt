@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
+import android.media.AudioManager
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.compose.foundation.layout.*
@@ -211,6 +212,7 @@ private fun Karticka(
     kartickaState: OdjezdyViewModel.KartickaState,
     poslatEvent: (OdjezdyEvent) -> Unit,
 ) {
+
     OutlinedCard(
         onClick = {
             poslatEvent(OdjezdyEvent.KliklNaDetailSpoje(kartickaState.idSpoje))
