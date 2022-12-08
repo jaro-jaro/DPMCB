@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                                             verticalAlignment = CenterVertically
                                         ) {
-                                            var typDne by remember { mutableStateOf(VDP.DNY) }
+                                            var typDne by remember { mutableStateOf(repo.typDne.value) }
 
                                             Text(
                                                 text = "Typ dne:",

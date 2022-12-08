@@ -316,20 +316,20 @@ class LoadingActivity : AppCompatActivity() {
                 }
         }
 
-        //graphZastavek.toList().sortedBy { it.first }.toMap().forEach {
-        //    println(it)
-        //}
+        graphZastavek.toList().sortedBy { it.first }.toMap().forEach {
+            println(it)
+        }
 
-        println(graphZastavek
-            .flatMap { (k, v) ->
-                v.map { k to it }
-            }
-            .joinToString("\n") {
-                it.toList().joinToString("&&&")
-            }
-            .replace(" ", "")
-            .replace("&&&", " ")
-        )
+        //println(graphZastavek
+        //    .flatMap { (k, v) ->
+        //        v.map { k to it }
+        //    }
+        //    .joinToString("\n") {
+        //        it.toList().joinToString("&&&")
+        //    }
+        //    .replace(" ", "")
+        //    .replace("&&&", " ")
+        //)
 
         return graphZastavek.toGraphZastavek()
     }

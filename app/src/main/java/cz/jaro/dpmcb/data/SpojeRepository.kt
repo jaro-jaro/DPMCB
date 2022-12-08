@@ -9,12 +9,14 @@ import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
-import kotlinx.coroutines.Dispatchers
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -45,6 +47,9 @@ class SpojeRepository(ctx: Application) {
 
     private lateinit var db: AppDatabase
 
+    private val _typDne = MutableStateFlow(Datum.dnes.typDne)
+    val typDne = _typDne.asStateFlow()
+
     init {
         coroutineScope.launch {
             db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").build()
@@ -55,21 +60,11 @@ class SpojeRepository(ctx: Application) {
     private val zastavkySpojeDao get() = db.zastavkySpojeDao()
 
     val verze get() = ostatni.verze
-    val typDne = flow {
-        var posledniVdp = ostatni.typDne
-        emit(posledniVdp)
-
-        while (true) {
-            while (posledniVdp == ostatni.typDne) Unit
-
-            posledniVdp = ostatni.typDne
-            emit(posledniVdp)
-        }
-    }.flowOn(Dispatchers.IO)
     val graphZastavek get() = ostatni.graphZastavek
 
     suspend fun spoje() = spojeDao.getAll()
     val zastavky get() = ostatni.zastavky
+    val historieVyhledavani get() = ostatni.historieVyhledavani
     val cislaLinek get() = ostatni.linkyAJejichZastavky.keys.toList()
     suspend fun zastavkySpoju() = zastavkySpojeDao.getAll()
     suspend fun spojeJedouciVTypDne(typDne: VDP) = spojeDao.findByKurzInExact("${typDne.toChar()}%")
@@ -130,7 +125,12 @@ class SpojeRepository(ctx: Application) {
     }
 
     fun upravitTypDne(typ: VDP) {
-        val novyOstatni = ostatni.copy(typDne = typ)
-        ostatni = novyOstatni
+        _typDne.update { typ }
+    }
+
+    fun pridatDoHistorieVyhledavani(start: String, cil: String) {
+        val historie = ostatni.historieVyhledavani.reversed().toMutableList()
+        historie += (start to cil)
+        ostatni = ostatni.copy(historieVyhledavani = historie.reversed().distinct().take(17))
     }
 }

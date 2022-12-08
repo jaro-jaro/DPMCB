@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
 import cz.jaro.dpmcb.ui.spojeni.SpojeniViewModel
 import cz.jaro.dpmcb.ui.spojeni.VyhledavacSpojeni
+import cz.jaro.dpmcb.ui.spojeni.VysledkySpojeniViewModel
 import cz.jaro.dpmcb.ui.vybirator.VybiratorViewModel
 import cz.jaro.dpmcb.ui.zjr.JizdniRadyViewModel
 import org.koin.android.ext.koin.androidContext
@@ -56,6 +57,9 @@ class App : Application() {
                 }
                 viewModel {
                     SpojeniViewModel()
+                }
+                viewModel {
+                    VysledkySpojeniViewModel(it.component1())
                 }
             })
         }

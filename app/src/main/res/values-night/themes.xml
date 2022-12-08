@@ -1,6 +1,6 @@
 <resources>
 
     <style name="Theme.DPMCB" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#FF4BB6E8</item>
+        <item name="colorPrimary">#FFcdcd00</item>
     </style>
 </resources>

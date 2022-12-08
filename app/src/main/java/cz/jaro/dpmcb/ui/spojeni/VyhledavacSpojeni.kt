@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.spojeni
 
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.Spojeni
+import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
@@ -10,61 +11,68 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toInt
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.zastavkySpoje
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlin.math.abs
 import kotlin.system.measureTimeMillis
 
 private typealias CestaDoCile = List<String>
 
-object VyhledavacSpojeni {
+class VyhledavacSpojeni {
 
     data class CastSpojeni(
         val minulaZastavka: String,
         val odjezd: Cas,
-        val spojId: Long,
+        val spoj: Spoj,
         val prijezd: Cas,
         val pristiZastavka: String,
     )
 
-    suspend fun vyhledatSpojeni(
-        start: String,
-        cil: String,
-        cas: Cas = Cas.ted,
+    fun vyhledatSpojeni(
+        nastaveniVyhledavani: NastaveniVyhledavani,
         n: Int = 10,
-    ): Flow<List<Spojeni>> {
-//        funguj("Vyhledávám", start, cil, cas)
+    ): Flow<Spojeni> {
+        println("Vyhledávám")
+        funguj("Vyhledávám", nastaveniVyhledavani.start, nastaveniVyhledavani.cil, nastaveniVyhledavani.cas)
         return flow {
             funguj("Nalezeno všech $n spojení za " + measureTimeMillis {
 
-                val mozneCesty = najitMozneCesty(start, cil)
-//                funguj(mozneCesty)
+                val mozneCesty = najitMozneCesty(nastaveniVyhledavani.start, nastaveniVyhledavani.cil)
+//                funguj(slepyUlicky.sorted().joinToString("\n"))
+                funguj(mozneCesty.joinToString("\n"))
+                funguj(mozneCesty.size)
 
                 val seznam = mutableListOf<Spojeni>()
-                repeat(n) {
-                    funguj("Spojení č. $it nalezeno za " + measureTimeMillis {
-
+                repeat(n) { i ->
+                    funguj(i)
+                    funguj("Spojení č. $i nalezeno za " + measureTimeMillis {
+//                        funguj(i, repo.typDne.value)
                         val tabulkaNejSpojeni = najdiNejSpojeni(
-                            start = start,
-                            vyhledavaciCas = cas,
-                            ignorovatPrvnichSpoju = it,
+                            start = nastaveniVyhledavani.start,
+                            vyhledavaciCas = nastaveniVyhledavani.cas,
+                            jenNizkopodlazni = nastaveniVyhledavani.jenNizkopodlazni,
+                            jenPrima = nastaveniVyhledavani.jenPrima,
+                            ignorovatPrvnichSpoju = i,
                             seznamCest = mozneCesty,
-                            typDne = repo.typDne.first()
+                            typDne = repo.typDne.value
                         )
-//                    funguj(tabulkaNejSpojeni)
+//                        funguj(tabulkaNejSpojeni)
+                        if (tabulkaNejSpojeni[nastaveniVyhledavani.cil]!!.casPrijezdu == Cas.nikdy) {
+                            return@repeat
+                        }
 
                         val nejSpojeni = upravitVysledek(
                             tabulka = tabulkaNejSpojeni,
-                            start = start,
-                            cil = cil
+                            start = nastaveniVyhledavani.start,
+                            cil = nastaveniVyhledavani.cil
                         )
                         funguj(nejSpojeni.map {
-                            val spoj = repo.spoj(it.spojId)
-                            listOf(it.minulaZastavka, it.odjezd.toString(), "${spoj.cisloLinky} (${it.spojId})", it.prijezd.toString(), it.pristiZastavka)
+                            listOf(it.minulaZastavka, it.odjezd.toString(), "${it.spoj.cisloLinky} (${it.spoj.id})", it.prijezd.toString(), it.pristiZastavka)
                         })
                         seznam += nejSpojeni
 
-                        emit(seznam)
+                        emit(nejSpojeni)
 
                     } + " ms")
                 }
@@ -72,20 +80,39 @@ object VyhledavacSpojeni {
         }
     }
 
-    private suspend fun najitMozneCesty(
+    private fun najitMozneCesty(
         start: String,
         cil: String,
     ): List<CestaDoCile> {
         slepyUlicky.clear()
 
-        return cestaRekurze(start, cil).sortedBy { it.size }
-        /*.flatMap { it.windowed(2) }
-        .map { it.toPair() }
-        .groupBy { it.first }
-        .map { (od, odDoMoznosti) ->
-            od to odDoMoznosti.map { it.second }.toSet()
-        }
-        .toMap()*/
+        return cestaRekurze(start, cil).sortedBy { it.size }.let { moznosti ->
+            moznosti.takeWhile { abs(it.size - moznosti.first().size) <= 5 }
+        }/*.also { cesty ->
+            cesty
+                .flatMap { cesta ->
+                    cesta.windowed(2)
+                }
+                .map {
+                    it[0] to it[1]
+                }
+                .groupBy({ it.first }, { it.second })
+                .map { (od, doMoznosti) ->
+                    od to doMoznosti.toSet()
+                }
+                .toMap()
+                .flatMap { (k, v) ->
+                    v.map { k to it }
+                }
+                .joinToString("\n") {
+                    it.toList().joinToString("&&&")
+                }
+                .replace(" ", "")
+                .replace("&&&", " ")
+                .also {
+                    funguj(it)
+                }
+        }*/
     }
 
     private val slepyUlicky: MutableList<String> = mutableListOf()
@@ -95,21 +122,30 @@ object VyhledavacSpojeni {
         cil: String,
         minule: List<String> = emptyList(),
     ): List<CestaDoCile> {
-//        funguj("Rekurzuju z", minule, "přes", ja, "do", cil)
+//        funguj(ja, "přes", minule.reversed())
         if (ja in slepyUlicky)
             return emptyList()
 
         if (ja == cil) return listOf(listOf(cil))
 
-        val moznosti = repo.graphZastavek[ja]!!.filter { it !in minule }.flatMap { soused ->
-            cestaRekurze(soused, cil, minule + listOf(ja))
-                .filter { cesta -> ja !in cesta }
-        }.map { cesta -> listOf(ja) + cesta }
+        val vsechynSmery = repo.graphZastavek[ja]!!.filter { minule.firstOrNull() != it } // Vsechny smery krome zpet
 
-        if (moznosti.isEmpty())
+        val smery = vsechynSmery.filterNot { minule.contains(it) } // Vsechny smery kde jsem jeste nebyl
+
+        val moznosti = smery.flatMap { soused ->
+            cestaRekurze(soused, cil, minule + listOf(ja))/*.also {
+                if (ja in listOf("U Koníčka", "Senovážné nám. - pošta", "Poliklinika Sever"))
+                    funguj("$ja -> $soused", it.joinToString())
+            }*/
+        }
+
+//        if (ja in listOf("U Koníčka", "Senovážné nám. - pošta", "Poliklinika Sever"))
+//            funguj(ja, moznosti)
+
+        if (moznosti.isEmpty() && vsechynSmery.size == smery.size)
             slepyUlicky += ja
 //        funguj(ja, moznosti)
-        return moznosti
+        return moznosti.map { cesta -> listOf(ja) + cesta }
     }
 
     data class RadekTabulky(
@@ -123,10 +159,13 @@ object VyhledavacSpojeni {
     private suspend fun najdiNejSpojeni(
         start: String,
         vyhledavaciCas: Cas,
+        jenNizkopodlazni: Boolean,
+        jenPrima: Boolean,
         ignorovatPrvnichSpoju: Int,
         seznamCest: List<CestaDoCile>,
         typDne: VDP,
     ): MutableMap<String, RadekTabulky> {
+//        funguj(seznamCest)
         val vsechnyZastavky = seznamCest.flatten().distinct()
         val tabulka = mutableMapOf(
             *arrayOf(
@@ -148,9 +187,12 @@ object VyhledavacSpojeni {
             }
         )
 
+//        funguj(vsechnyZastavky)
         val queue: MutableList<Triple<Cas, CestaDoCile, Int>> = mutableListOf()
 
+//        funguj(queue)
         queue.addAll(seznamCest.map { Triple(vyhledavaciCas, it, Int.MAX_VALUE) })
+//        funguj(queue)
 
         while (queue.isNotEmpty()) {
             val (aktualniCas, cesta) = queue.first()
@@ -162,19 +204,31 @@ object VyhledavacSpojeni {
             }
 
             val soused = cesta[1]
+//            funguj("rekurzuju", nazev, soused, aktualniCas, cil, cesta)
             val zastavkyMinulyhoSpoje = if (tabulka[nazev]!!.minulejSpoj != -1L) repo.zastavkySpoje(tabulka[nazev]!!.minulejSpoj) else null
             val nazvyZastavekMinulyhoSpoje = zastavkyMinulyhoSpoje?.map { it.nazevZastavky }
 
-//            funguj("rekurzuju", nazev, soused, aktualniCas, cil, cesta)
-            val preskocit = if (nazev == start) ignorovatPrvnichSpoju else 0
+            val preskocit = if (nazev === start) ignorovatPrvnichSpoju else 0
             var pocetPreskocenych = -1
+            funguj(nazev, preskocit)
+
+            val a = if (nazvyZastavekMinulyhoSpoje != null && (nazvyZastavekMinulyhoSpoje.contains(soused) || jenPrima)) {
+                val b = zastavkyMinulyhoSpoje.vsechnyIndexy(soused) // Najdeme zastávku v minulým spoji
+                    .map { Triple(tabulka[nazev]!!.minulejSpoj, null, zastavkyMinulyhoSpoje[it]) }
+                    .find { it.third.cas >= aktualniCas && it.third.cas != Cas.nikdy }
+                if (jenPrima && (b == null)) {
+                    queue.removeAt(0)
+                    continue
+                }
+                b
+            } else null
 
             val (prvniSpojId, tahleZast, pristiZast) =
-                (if (nazvyZastavekMinulyhoSpoje?.contains(soused) != true) null
-                else zastavkyMinulyhoSpoje.vsechnyIndexy(soused)
-                    .map { Triple(tabulka[nazev]!!.minulejSpoj, null, zastavkyMinulyhoSpoje[it]) }
-                    .find { it.third.cas >= aktualniCas && it.third.cas != Cas.nikdy })
+                a // Najdeme zastávku všude
                     ?: repo.spojeJedouciVTypDneSeZastavkySpoju(typDne)
+                        .filter { (spoj, _) ->
+                            !jenNizkopodlazni || spoj.nizkopodlaznost
+                        }
                         .map { (spoj, zastavky) ->
                             Triple(spoj, zastavky, zastavky.vsechnyIndexy(nazev))
                         }
@@ -188,7 +242,7 @@ object VyhledavacSpojeni {
                             Triple(spoj.id, zastavky[index], zastavky[index + spoj.smer.toInt()])
                         }
                         .find { (_, zast, pristiZast) ->
-//                            funguj(_, zast, pristiZast)
+////                            funguj(_, zast, pristiZast)
                             val zastavkaBySla = zast.run { cas != Cas.nikdy && aktualniCas <= cas }
                                     && pristiZast.run { cas != Cas.nikdy && aktualniCas <= cas }
                             zastavkaBySla && run {
@@ -208,7 +262,7 @@ object VyhledavacSpojeni {
             val minulaVzdalenostOdStartu = tabulka[nazev]!!.nejVzdalenostOdStartu
             val novaVzdalenostOdStartu = if (minulaVzdalenostOdStartu == Int.MAX_VALUE) zlost else minulaVzdalenostOdStartu + zlost
 
-//            if (!tabulka.containsKey(soused) || tabulka[soused]!!.nejVzdalenostOdStartu > novaVzdalenostOdStartu) funguj(nazev, aktualniCas, tahleZast, pristiZast)
+////            if (!tabulka.containsKey(soused) || tabulka[soused]!!.nejVzdalenostOdStartu > novaVzdalenostOdStartu) funguj(nazev, aktualniCas, tahleZast, pristiZast)
 
             if (!tabulka.containsKey(soused) || tabulka[soused]!!.nejVzdalenostOdStartu > novaVzdalenostOdStartu) tabulka[soused] = RadekTabulky(
                 nejVzdalenostOdStartu = novaVzdalenostOdStartu,
@@ -228,6 +282,7 @@ object VyhledavacSpojeni {
             queue.sortBy { it.third }
         }
 
+//        funguj(tabulka)
         return tabulka
     }
 
@@ -239,13 +294,13 @@ object VyhledavacSpojeni {
         nazev = cil,
         cil = start,
         tabulka = tabulka
-    ).groupBy { it.spojId }.map { (spojId, castiSpojeni) ->
+    ).groupBy { it.spoj }.map { (spoj, castiSpojeni) ->
         val prvni = castiSpojeni.first()
         val posledni = castiSpojeni.last()
         CastSpojeni(
             minulaZastavka = prvni.minulaZastavka,
             odjezd = prvni.odjezd,
-            spojId = spojId,
+            spoj = spoj,
             prijezd = posledni.prijezd,
             pristiZastavka = posledni.pristiZastavka,
         )
@@ -258,7 +313,8 @@ object VyhledavacSpojeni {
                 docasnejSeznam.forEachIndexed { i, castSpojeni ->
                     if (i == docasnejSeznam.lastIndex) return@run true
                     val minulaCastSpojeni = docasnejSeznam[i + 1]
-                    val (spoj, zastavkySpoje) = repo.spojSeZastavkySpoje(castSpojeni.spojId)
+                    val spoj = castSpojeni.spoj
+                    val zastavkySpoje = spoj.zastavkySpoje()
 
                     val zastavkaVyjezduMinulyCastiNaTomtoSpoji = zastavkySpoje
                         .reversedIf { spoj.smer == Smer.NEGATIVNI }
@@ -282,7 +338,7 @@ object VyhledavacSpojeni {
         novejSeznam
     }
 
-    private fun upravitRekurze(
+    private suspend fun upravitRekurze(
         nazev: String,
         cil: String,
         tabulka: Map<String, RadekTabulky>,
@@ -292,7 +348,7 @@ object VyhledavacSpojeni {
         return upravitRekurze(radekTabulky.minulaZastavka, cil, tabulka) + CastSpojeni(
             minulaZastavka = radekTabulky.minulaZastavka,
             odjezd = radekTabulky.casOdjezduZMinulyZastvky,
-            spojId = radekTabulky.minulejSpoj,
+            spoj = repo.spoj(radekTabulky.minulejSpoj),
             prijezd = radekTabulky.casPrijezdu,
             pristiZastavka = nazev
         )
