@@ -57,7 +57,6 @@ import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
-@RootNavGraph(start = true)
 @Destination
 @Composable
 fun SpojeniScreen(

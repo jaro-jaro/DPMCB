@@ -111,6 +111,7 @@ class OdjezdyViewModel(
         val JePosledniZastavka: Boolean,
         val idSpoje: Long,
         val nizkopodlaznost: Boolean,
+        val zpozdeni: Int?,
     )
 
     data class OdjezdyState(
@@ -174,6 +175,7 @@ class OdjezdyViewModel(
                         pristiZastavka = spoj.pristiZastavka(index)?.nazevZastavky ?: poslZast.nazevZastavky,
                         idSpoje = spoj.id,
                         nizkopodlaznost = spoj.nizkopodlaznost,
+                        zpozdeni = null
                     )
                 }, nacitaSe = false)
             }

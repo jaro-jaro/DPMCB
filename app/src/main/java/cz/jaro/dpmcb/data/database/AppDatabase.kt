@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 
-@Database(entities = [Spoj::class, ZastavkaSpoje::class], version = 1)
+@Database(entities = [Spoj::class, ZastavkaSpoje::class], version = 3)
 @TypeConverters(CasConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun spojeDao(): SpojeDao

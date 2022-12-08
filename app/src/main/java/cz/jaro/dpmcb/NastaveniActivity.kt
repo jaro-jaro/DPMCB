@@ -25,7 +25,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import cz.jaro.dpmcb.BuildConfig.DEBUG
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 
@@ -84,7 +83,7 @@ class NastaveniActivity : AppCompatActivity() {
                                 ) {
                                     Text("Aktualizovat data")
                                 }
-                                if (DEBUG) Text("Aktuální verze dat: ${repo.verze}")
+                                //if (BuildConfig.DEBUG) Text("Aktuální verze dat: ${repo.verze}")
                             }
                         }
                     }

@@ -13,12 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,15 +71,27 @@ fun JizdniRadyScreen(
             Text(
                 text = cisloLinky.toString(),
                 fontSize = 30.sp,
-                color = Color.White,
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "$zastavka -> $pristiZastavka",
                 fontSize = 20.sp,
-                color = Color.White,
             )
         }
+
+        var zobrazitNizkopodlaznosti by remember { mutableStateOf(false) }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = zobrazitNizkopodlaznosti, onCheckedChange = {
+                zobrazitNizkopodlaznosti = it
+            })
+            Text("Zobrazit nízkopodlažnost", Modifier.clickable {
+                zobrazitNizkopodlaznosti = !zobrazitNizkopodlaznosti
+            })
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
 
         if (viewModel.state.nacitaSe) Box(
@@ -100,7 +117,6 @@ fun JizdniRadyScreen(
                         text = h.toString(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = Color.White
                     )
 
                 }
@@ -111,7 +127,7 @@ fun JizdniRadyScreen(
                     .fillMaxWidth()
             ) {
                 repeat(24) { h ->
-                    RadekOdjezdu(navigator, viewModel.dataProHodinu(h))
+                    RadekOdjezdu(navigator, viewModel.dataProHodinu(h), zobrazitNizkopodlaznosti)
                 }
             }
         }
@@ -122,7 +138,8 @@ fun JizdniRadyScreen(
 @Composable
 fun RadekOdjezdu(
     navigator: DestinationsNavigator,
-    vysledek: List<Pair<ZastavkaSpoje, Long>>
+    vysledek: List<Pair<ZastavkaSpoje, Long>>,
+    zobrazitNizkopodlaznost: Boolean
 ) {
 
     Row(
@@ -138,11 +155,10 @@ fun RadekOdjezdu(
                     }
                     //.width(32.dp)
                     .padding(4.dp),
-                color = Color.White,
-                fontSize = 20.sp
+                color =  if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                fontSize = 20.sp,
+                fontWeight = if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
             )
         }
-
     }
-
 }

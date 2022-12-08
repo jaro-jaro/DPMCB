@@ -13,6 +13,7 @@ data class ZastavkaSpoje(
     val idSpoje: Long,
     val cisloLinky: Int,
     val nazevKurzu: String,
+    val nizkopodlaznost: Boolean,
 
     val cas: Cas,
     val indexNaLince: Int,

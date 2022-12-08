@@ -6,12 +6,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.annotation.RootNavGraph
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import java.io.InputStream
 
 @Destination
 @Composable
+@RootNavGraph(start = true)
 fun MapaScreen(
 
 ) {

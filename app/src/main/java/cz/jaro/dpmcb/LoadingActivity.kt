@@ -239,7 +239,8 @@ class LoadingActivity : AppCompatActivity() {
                             cisloLinky = cisloLinky,
                             nazevKurzu = spoj[2],
                             cas = cas,
-                            indexNaLince = indexZastavkyNaLince
+                            indexNaLince = indexZastavkyNaLince,
+                            nizkopodlaznost = spoj[1].toBooleanStrict()
                         )
 
                         zastavky += zastavka

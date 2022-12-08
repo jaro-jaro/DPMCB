@@ -52,7 +52,7 @@ class SpojeRepository(ctx: Application) {
 
     init {
         coroutineScope.launch {
-            db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").build()
+            db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
         }
     }
 
