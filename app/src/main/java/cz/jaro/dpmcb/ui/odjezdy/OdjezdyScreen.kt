@@ -188,7 +188,8 @@ fun KartickaPreview() {
                 cas = "12:38",
                 JePosledniZastavka = false,
                 idSpoje = 612L,
-                nizkopodlaznost = true
+                nizkopodlaznost = true,
+                null
             )) {}
             Karticka(OdjezdyViewModel.KartickaState(
                 konecna = "Ne",
@@ -197,7 +198,8 @@ fun KartickaPreview() {
                 cas = "14:88",
                 JePosledniZastavka = true,
                 idSpoje = 1415926535L,
-                nizkopodlaznost = false
+                nizkopodlaznost = false,
+                null
             )) {}
         }
     }
