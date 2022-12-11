@@ -34,14 +34,14 @@ class App : Application() {
         lateinit var prefs: SharedPreferences
 
         lateinit var repo: SpojeRepository
-        lateinit var dopravaRepo: SpojeRepository
+        lateinit var dopravaRepo: DopravaRepository
     }
 
     override fun onCreate() {
         super.onCreate()
         prefs = getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
         repo = SpojeRepository(this)
-        dopravaRepo = SpojeRepository(this)
+        dopravaRepo = DopravaRepository(this)
 
         startKoin {
             androidLogger()

@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.odjezdy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
@@ -18,8 +19,10 @@ import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,7 +31,7 @@ import kotlinx.coroutines.supervisorScope
 class OdjezdyViewModel(
     zastavka: String,
     cas: String? = null,
-    private val doba: Int = 20,
+    private val doba: Int = 5,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -111,7 +114,7 @@ class OdjezdyViewModel(
         val JePosledniZastavka: Boolean,
         val idSpoje: Long,
         val nizkopodlaznost: Boolean,
-        val zpozdeni: Int?,
+        val zpozdeni: Flow<Int?>,
     )
 
     data class OdjezdyState(
@@ -166,16 +169,17 @@ class OdjezdyViewModel(
                     val index = zastavka.indexNaLince
                     val zastavky = spoj.zastavkySpoje()
                     val poslZast = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
+                    val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky)
 
                     KartickaState(
                         konecna = poslZast.nazevZastavky,
                         cisloLinky = spoj.cisloLinky,
                         cas = zastavka.cas.toString(),
                         JePosledniZastavka = zastavky.indexOf(poslZast) == index,
-                        pristiZastavka = spoj.pristiZastavka(index)?.nazevZastavky ?: poslZast.nazevZastavky,
+                        pristiZastavka = zastavky.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
                         idSpoje = spoj.id,
                         nizkopodlaznost = spoj.nizkopodlaznost,
-                        zpozdeni = null
+                        zpozdeni = spojNaMape.map { it?.delay }
                     )
                 }, nacitaSe = false)
             }

@@ -27,7 +27,6 @@ class SpojeRepository(ctx: Application) {
     private val coroutineScope = MainScope()
     private val sharedPref: SharedPreferences =
         ctx.getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-
     private lateinit var ostatniField: VsechnoOstatni
 
     private var ostatni: VsechnoOstatni
@@ -45,10 +44,12 @@ class SpojeRepository(ctx: Application) {
 
     private lateinit var db: AppDatabase
 
-
     private val _typDne = MutableStateFlow(Datum.dnes.typDne)
 
     val typDne = _typDne.asStateFlow()
+
+    private val _onlineMod = MutableStateFlow(true)
+    val onlineMod = _onlineMod.asStateFlow()
 
     init {
         coroutineScope.launch {
@@ -132,6 +133,10 @@ class SpojeRepository(ctx: Application) {
 
     fun upravitTypDne(typ: VDP) {
         _typDne.update { typ }
+    }
+
+    fun upravitOnlineMod(mod: Boolean) {
+        _onlineMod.update { mod }
     }
 
     fun pridatDoHistorieVyhledavani(start: String, cil: String) {

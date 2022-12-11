@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import android.media.AudioManager
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.compose.foundation.layout.*
@@ -18,10 +17,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,10 +32,12 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -48,7 +47,7 @@ import org.koin.core.parameter.ParametersHolder
 fun OdjezdyScreen(
     zastavka: String,
     cas: String? = null,
-    doba: Int = 30,
+    doba: Int = 5,
     viewModel: OdjezdyViewModel = koinViewModel {
         ParametersHolder(mutableListOf(zastavka, cas, doba))
     },
@@ -182,26 +181,30 @@ fun OdjezdyScreen(
 fun KartickaPreview() {
     DPMCBTheme {
         Column {
-            Karticka(OdjezdyViewModel.KartickaState(
-                konecna = "Ahoj",
-                pristiZastavka = "Čau",
-                cisloLinky = 9,
-                cas = "12:38",
-                JePosledniZastavka = false,
-                idSpoje = 612L,
-                nizkopodlaznost = true,
-                null
-            )) {}
-            Karticka(OdjezdyViewModel.KartickaState(
-                konecna = "Ne",
-                pristiZastavka = "Nechci se zdravit",
-                cisloLinky = 29,
-                cas = "14:88",
-                JePosledniZastavka = true,
-                idSpoje = 1415926535L,
-                nizkopodlaznost = false,
-                null
-            )) {}
+            Karticka(
+                OdjezdyViewModel.KartickaState(
+                    konecna = "Ahoj",
+                    pristiZastavka = "Čau",
+                    cisloLinky = 9,
+                    cas = "12:38",
+                    JePosledniZastavka = false,
+                    idSpoje = 612L,
+                    nizkopodlaznost = true,
+                    zpozdeni = flowOf(null),
+                )
+            ) {}
+            Karticka(
+                OdjezdyViewModel.KartickaState(
+                    konecna = "Ne",
+                    pristiZastavka = "Nechci se zdravit",
+                    cisloLinky = 29,
+                    cas = "14:88",
+                    JePosledniZastavka = true,
+                    idSpoje = 1415926535L,
+                    nizkopodlaznost = false,
+                    zpozdeni = flowOf(null),
+                )
+            ) {}
         }
     }
 }
@@ -229,37 +232,30 @@ private fun Karticka(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
+                    modifier = Modifier,
+                    text = kartickaState.cisloLinky.toString(),
+                    fontSize = 30.sp
+                )
+                Text(
+                    modifier = Modifier,
+                    text = " -> ",
+                    fontSize = 20.sp
+                )
+                Text(
                     modifier = Modifier
                         .weight(1F),
-                    text = buildAnnotatedString {
-                        append(
-                            AnnotatedString(
-                                text = kartickaState.cisloLinky.toString(),
-                                spanStyle = SpanStyle(
-                                    fontSize = 30.sp
-                                )
-                            )
-                        )
-                        append(
-                            AnnotatedString(
-                                text = " -> ",
-                                spanStyle = SpanStyle(
-                                    fontSize = 20.sp
-                                )
-                            )
-                        )
-                        append(
-                            AnnotatedString(
-                                text = kartickaState.konecna,
-                                spanStyle = SpanStyle(
-                                    fontSize = 20.sp
-                                )
-                            )
-                        )
-                    }
+                    text = kartickaState.konecna,
+                    fontSize = 20.sp
                 )
                 Text(
                     text = kartickaState.cas
+                )
+                val zpozdeni by kartickaState.zpozdeni.collectAsState(initial = null)
+                if (zpozdeni != null) Text(
+                    text = zpozdeni!!.run {
+                        "${toSign()}$this"
+                    },
+                    color = if (zpozdeni!! > 0) Color.Red else Color.Green
                 )
             }
             Row(

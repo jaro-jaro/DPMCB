@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.MutableGraphZastavek
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import java.util.Calendar
+import kotlin.math.sign
 
 object UtilFunctions {
 
@@ -85,4 +86,10 @@ object UtilFunctions {
         }
 
     fun <R> funguj(vararg msg: R?): Unit = run { Log.d("funguj", msg.joinToString()) }
+
+    fun Int.toSign() = when (sign) {
+        -1 -> "-"
+        1 -> "+"
+        else -> ""
+    }
 }
