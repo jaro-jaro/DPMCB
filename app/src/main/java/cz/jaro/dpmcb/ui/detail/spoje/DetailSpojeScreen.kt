@@ -1,22 +1,28 @@
 package cz.jaro.dpmcb.ui.detail.spoje
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WheelchairPickup
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +48,7 @@ import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
 import kotlin.random.Random
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Destination
 @Composable
 fun DetailSpojeScreen(
@@ -81,15 +88,26 @@ fun DetailSpojeScreen(
                         else -> Icons.Default.NotAccessible
                     }, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
-                if (spojNaMape != null) Text(
-                    text = spojNaMape.delay.run {
-                        "${toSign()}$this"
-                    },
-                    color = if (spojNaMape.delay > 0) Color.Red else Color.Green
-                )
+                if (spojNaMape != null) Badge(
+                    containerColor = if (spojNaMape.delay > 0) MaterialTheme.colorScheme.errorContainer else Color(0xFF015140),
+                    contentColor = if (spojNaMape.delay > 0) MaterialTheme.colorScheme.onErrorContainer else Color(0xFFADF0D8)
+                ) {
+                    Text(
+                        text = spojNaMape.delay.run {
+                            "${toSign()}$this min"
+                        },
+                    )
+                }
                 Spacer(Modifier.weight(1F))
-                FilledIconToggleButton(checked = false, onCheckedChange = {}) {
-                    Icon(Icons.Default.Favorite, "Oblíbené")
+                val oblibene by repo.oblibene.collectAsState()
+                FilledIconToggleButton(checked = spojId in oblibene, onCheckedChange = {
+                    if (it) {
+                        repo.pridatOblibeny(spojId)
+                    } else {
+                        repo.odebratOblibeny(spojId)
+                    }
+                }) {
+                    Icon(Icons.Default.Star, "Oblíbené")
                 }
                 Button(onClick = {
                     navigator.navigate(
@@ -101,7 +119,11 @@ fun DetailSpojeScreen(
                     Text("Detail kurzu")
                 }
             }
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(ScrollState(0))
+            ) {
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
@@ -141,6 +163,12 @@ fun DetailSpojeScreen(
                             }
                         }
                     }
+                }
+                if (repo.idSpoju.containsKey(spojId) || spojNaMape != null) Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text("id: ${repo.idSpoju.getOrElse(spojId) { spojNaMape!!.id }}")
                 }
             }
         }

@@ -14,4 +14,6 @@ data class VsechnoOstatni(
     val historieVyhledavani: List<Pair<String, String>> = listOf(),
 
     val idSpoju: Map<Long, String> = mapOf(),
+
+    val oblibene: List<Long> = emptyList(),
 )

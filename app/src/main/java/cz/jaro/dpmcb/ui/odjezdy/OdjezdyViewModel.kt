@@ -110,7 +110,7 @@ class OdjezdyViewModel(
         val konecna: String,
         val pristiZastavka: String,
         val cisloLinky: Int,
-        val cas: String,
+        val cas: Cas,
         val JePosledniZastavka: Boolean,
         val idSpoje: Long,
         val nizkopodlaznost: Boolean,
@@ -125,7 +125,7 @@ class OdjezdyViewModel(
         val nacitaSe: Boolean = false,
     )
 
-    suspend fun nacistVsechny(typDne: UtilFunctions.VDP) = supervisorScope {
+    suspend fun nacistDalsi(typDne: UtilFunctions.VDP) = supervisorScope {
         _state.update {
             it.copy(nacitaSe = true)
         }
@@ -174,7 +174,7 @@ class OdjezdyViewModel(
                     KartickaState(
                         konecna = poslZast.nazevZastavky,
                         cisloLinky = spoj.cisloLinky,
-                        cas = zastavka.cas.toString(),
+                        cas = zastavka.cas,
                         JePosledniZastavka = zastavky.indexOf(poslZast) == index,
                         pristiZastavka = zastavky.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
                         idSpoje = spoj.id,

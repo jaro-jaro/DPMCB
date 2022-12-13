@@ -18,6 +18,7 @@ import androidx.navigation.NavHostController
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
+import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 
 
@@ -42,7 +43,13 @@ enum class SuplikAkce(
         jmeno = R.string.ano,
         icon = Icons.Default.Star,
         multiselect = true,
-        onClick = { _, _, _ -> },
+        onClick = { navController, zavrit, _ ->
+
+            navController.navigate(
+                OblibeneScreenDestination()
+            )
+            zavrit()
+        }
     ),
     JizdniRady(
         R.string.jizdni_rady,
@@ -51,7 +58,7 @@ enum class SuplikAkce(
         onClick = { navController, zavrit, _ ->
 
             navController.navigate(
-                cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination(
+                VybiratorScreenDestination(
                     typ = TypAdapteru.LINKY,
                     cisloLinky = -1,
                     zastavka = null,

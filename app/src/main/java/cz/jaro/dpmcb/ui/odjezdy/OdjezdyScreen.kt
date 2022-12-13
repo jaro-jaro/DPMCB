@@ -31,8 +31,8 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +77,7 @@ fun OdjezdyScreen(
     LaunchedEffect(state.konec, state.zacatek, typDne) {
         job?.cancel()
         job = withContext(Dispatchers.IO) {
-            viewModel.nacistVsechny(typDne)
+            viewModel.nacistDalsi(typDne)
         }
     }
 
@@ -186,7 +186,7 @@ fun KartickaPreview() {
                     konecna = "Ahoj",
                     pristiZastavka = "Čau",
                     cisloLinky = 9,
-                    cas = "12:38",
+                    cas = 12 cas 38,
                     JePosledniZastavka = false,
                     idSpoje = 612L,
                     nizkopodlaznost = true,
@@ -198,11 +198,11 @@ fun KartickaPreview() {
                     konecna = "Ne",
                     pristiZastavka = "Nechci se zdravit",
                     cisloLinky = 29,
-                    cas = "14:88",
+                    cas = 14 cas 88,
                     JePosledniZastavka = true,
                     idSpoje = 1415926535L,
                     nizkopodlaznost = false,
-                    zpozdeni = flowOf(null),
+                    zpozdeni = flowOf(2),
                 )
             ) {}
         }
@@ -248,14 +248,13 @@ private fun Karticka(
                     fontSize = 20.sp
                 )
                 Text(
-                    text = kartickaState.cas
+                    text = "${kartickaState.cas}"
                 )
                 val zpozdeni by kartickaState.zpozdeni.collectAsState(initial = null)
                 if (zpozdeni != null) Text(
-                    text = zpozdeni!!.run {
-                        "${toSign()}$this"
-                    },
-                    color = if (zpozdeni!! > 0) Color.Red else Color.Green
+                    text = "${kartickaState.cas + zpozdeni!!}",
+                    color = if (zpozdeni!! > 0) Color.Red else Color.Green,
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
             Row(

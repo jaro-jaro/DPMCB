@@ -12,13 +12,17 @@ import cz.jaro.dpmcb.data.naJihu.DetailZastavky
 import cz.jaro.dpmcb.data.naJihu.OdjezdSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
@@ -26,22 +30,25 @@ class DopravaRepository(
     ctx: Context,
 ) {
 
+    private val scope = MainScope()
+
     private val api = DopravaApi(
         ctx = ctx,
         baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
     )
 
-    lateinit var spojeFlow: Flow<List<SpojNaMape>>
+    private var spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
+        while (currentCoroutineContext().isActive) {
+            emit(api.ziskatData("/service/position") ?: emptyList())
+            delay(5000)
+        }
+    }.shareIn(
+        scope = scope,
+        started = SharingStarted.WhileSubscribed(),
+        replay = 1
+    )
 
     fun seznamSpojuKterePraveJedou(): Flow<List<SpojNaMape>> {
-        if (!::spojeFlow.isInitialized) {
-            spojeFlow = flow {
-                while (currentCoroutineContext().isActive) {
-                    emit(api.ziskatData("/service/position") ?: emptyList())
-                    delay(5000)
-                }
-            }
-        }
         return spojeFlow
     }
 

@@ -277,7 +277,8 @@ class LoadingActivity : AppCompatActivity() {
                         verze = verze,
                         linkyAJejichZastavky = linky,
                         zastavky = zastavky.toList(),
-                        graphZastavek = graphZastavek
+                        graphZastavek = graphZastavek,
+                        oblibene = emptyList()
                     )
                 )
             }.join()
