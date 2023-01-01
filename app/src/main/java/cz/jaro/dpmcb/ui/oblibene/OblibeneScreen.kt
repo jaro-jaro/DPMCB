@@ -27,6 +27,8 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 
@@ -86,8 +88,8 @@ fun OblibeneScreen(
                             .padding(start = 8.dp, end = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = zastavky.first().nazevZastavky)
-                        Text(text = zastavky.first().cas.toString())
+                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first().nazevZastavky)
+                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first().cas.toString())
                     }
                     Row(
                         modifier = Modifier
@@ -95,8 +97,8 @@ fun OblibeneScreen(
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = zastavky.last().nazevZastavky)
-                        Text(text = zastavky.last().cas.toString())
+                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().nazevZastavky)
+                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().cas.toString())
                     }
                 }
             }
