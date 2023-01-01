@@ -27,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
@@ -48,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -101,14 +103,28 @@ class LoadingActivity : AppCompatActivity() {
 
             try {
                 if (intent.getBooleanExtra("update", false) || repo.verze == -1) {
-                    launch {
-                        stahnoutNoveJizdniRady()
-                    }.join()
+                    stahnoutNoveJizdniRady()
                 }
             } catch (_: Exception) {
-                launch {
-                    stahnoutNoveJizdniRady()
-                }.join()
+                var lock = true
+                MaterialAlertDialogBuilder(this@LoadingActivity).apply {
+                    setTitle("Chyba!")
+                    setMessage("Zdá se, ža vaše jizdní řády uložené v zařízení jsou poškozené! Chcete stáhnout nové?")
+                    setNegativeButton("Ne, zavřít aplikaci") { _, _ ->
+                        exitProcess(1)
+                    }
+                    setPositiveButton("Ano") { _, _ ->
+                        launch(Dispatchers.IO) {
+                            stahnoutNoveJizdniRady()
+                            lock = false
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        show()
+                    }
+                }
+                while (lock) Unit
             }
 
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
@@ -300,7 +316,7 @@ class LoadingActivity : AppCompatActivity() {
         )
     }
 
-    private suspend fun vytvoritGraf(spoje: Map<Spoj, List<ZastavkaSpoje>>): GraphZastavek {
+    private fun vytvoritGraf(spoje: Map<Spoj, List<ZastavkaSpoje>>): GraphZastavek {
 
         val graphZastavek = emptyGraphZastavek().toMutableGraphZastavek()
 

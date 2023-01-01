@@ -40,7 +40,7 @@ enum class SuplikAkce(
         }
     ),*/
     Oblibene(
-        jmeno = R.string.ano,
+        jmeno = R.string.oblibena,
         icon = Icons.Default.Star,
         multiselect = true,
         onClick = { navController, zavrit, _ ->

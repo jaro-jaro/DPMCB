@@ -39,6 +39,10 @@ fun OblibeneScreen(
 ) {
     val oblibene by repo.oblibene.collectAsState()
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (oblibene.isEmpty()) item {
+            Text("Nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje")
+        }
+
         items(oblibene) {
 
             val a by produceState<Pair<Spoj?, List<ZastavkaSpoje>>>((null to emptyList())) {
