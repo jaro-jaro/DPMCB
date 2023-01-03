@@ -1,13 +1,17 @@
 package cz.jaro.dpmcb.ui.detail.spoje
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,7 +35,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -48,7 +54,7 @@ import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
 import kotlin.random.Random
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Destination
 @Composable
 fun DetailSpojeScreen(
@@ -161,6 +167,19 @@ fun DetailSpojeScreen(
                                         }
                                 )
                             }
+                        }
+                        val primary = MaterialTheme.colorScheme.primary
+
+                        Canvas(
+                            modifier = Modifier.height(IntrinsicSize.Max),
+                            contentDescription = "Poloha spoje"
+                        ) {
+                            drawLine(
+                                color = primary,
+                                start = Offset.Zero,
+                                end = Offset(0F, size.height),
+                                strokeWidth = Stroke.DefaultMiter,
+                            )
                         }
                     }
                 }
