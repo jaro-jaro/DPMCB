@@ -20,3 +20,9 @@ plugins {
     id("com.android.library") version "8.0.0-alpha10" apply false
     id("org.jetbrains.kotlin.android") version "1.7.20" apply false
 }
+
+task("generateVersionTxt") {
+    doLast {
+        file("./version.txt").text = android.defaultConfig.versionName
+    }
+}
