@@ -185,10 +185,11 @@ fun DetailSpojeScreen(
                             contentDescription = "Poloha spoje"
                         ) {
                             val canvasHeight = size.height
-                            val lineWidth = 18F
-                            val lineXOffset = 20F
+                            val lineWidth = 6.3.dp.toPx()
+                            val lineXOffset = 7.dp.toPx()
                             val rowHeight = canvasHeight / zastavek
-                            val circleRadius = 15F
+                            val circleRadius = 5.2.dp.toPx()
+                            val circleStrokeWidth = 3.1.dp.toPx()
                             drawLine(
                                 color = surfaceVariant,
                                 start = Offset(lineXOffset, rowHeight * .5F),
@@ -207,7 +208,7 @@ fun DetailSpojeScreen(
                                     radius = circleRadius,
                                     center = Offset(lineXOffset, (i + .5F) * rowHeight),
                                     style = Stroke(
-                                        width = 9F
+                                        width = circleStrokeWidth
                                     )
                                 )
                             }
