@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
@@ -134,6 +136,7 @@ fun DetailSpojeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
                             .padding(12.dp)
                     ) {
                         Column {
@@ -169,17 +172,45 @@ fun DetailSpojeScreen(
                             }
                         }
                         val primary = MaterialTheme.colorScheme.primary
+                        val surface = MaterialTheme.colorScheme.surface
+                        val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+                        val zastavek = zastavky.count()
+                        val prejel = detailSpoje?.stations?.map { it.passed } ?: List(zastavek) { false }
 
                         Canvas(
-                            modifier = Modifier.height(IntrinsicSize.Max),
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(1F)
+                                .padding(start = 8.dp),
                             contentDescription = "Poloha spoje"
                         ) {
+                            val canvasHeight = size.height
+                            val lineWidth = 18F
+                            val lineXOffset = 20F
+                            val rowHeight = canvasHeight / zastavek
+                            val circleRadius = 15F
                             drawLine(
-                                color = primary,
-                                start = Offset.Zero,
-                                end = Offset(0F, size.height),
-                                strokeWidth = Stroke.DefaultMiter,
+                                color = surfaceVariant,
+                                start = Offset(lineXOffset, rowHeight * .5F),
+                                end = Offset(lineXOffset, canvasHeight - rowHeight * .5F),
+                                strokeWidth = lineWidth,
                             )
+                            repeat(zastavek) { i ->
+                                drawCircle(
+                                    color = surface,
+                                    radius = circleRadius,
+                                    center = Offset(lineXOffset, (i + .5F) * rowHeight),
+                                    style = Fill
+                                )
+                                drawCircle(
+                                    color = surfaceVariant,
+                                    radius = circleRadius,
+                                    center = Offset(lineXOffset, (i + .5F) * rowHeight),
+                                    style = Stroke(
+                                        width = 9F
+                                    )
+                                )
+                            }
                         }
                     }
                 }
