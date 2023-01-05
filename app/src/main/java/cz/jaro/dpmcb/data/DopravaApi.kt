@@ -27,9 +27,10 @@ class DopravaApi(
 
     suspend inline fun <reified T : Any> ziskatData(url: String): T? = withContext(Dispatchers.IO) {
 
-        if (!isOnline) withContext(Dispatchers.Main) {
-            //Toast.makeText(ctx, "Nemáte připojení k internetu", Toast.LENGTH_LONG).show()
-        }
+        /*if (!isOnline) withContext(Dispatchers.Main) {
+            Toast.makeText(ctx, "Nemáte připojení k internetu", Toast.LENGTH_LONG).show()
+        }*/
+        if (!isOnline) return@withContext null
 
         val response = try {
             withContext(Dispatchers.IO) {
