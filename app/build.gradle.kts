@@ -19,7 +19,7 @@ android {
         minSdk = 24
         targetSdk = 33
         versionCode = 1
-        versionName = "0.5.3"
+        versionName = "0.5.3.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -165,4 +165,11 @@ dependencies {
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
 
     implementation("org.jsoup:jsoup:1.15.1")
+}
+
+
+task("generateVersionTxt") {
+    doLast {
+        file("./version.txt").writeText(android.defaultConfig.versionName ?: "Neznámá verze")
+    }
 }
