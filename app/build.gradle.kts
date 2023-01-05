@@ -166,3 +166,10 @@ dependencies {
 
     implementation("org.jsoup:jsoup:1.15.1")
 }
+
+
+task("generateVersionTxt") {
+    doLast {
+        file("./version.txt").writeText(android.defaultConfig.versionName ?: "Neznámá verze")
+    }
+}

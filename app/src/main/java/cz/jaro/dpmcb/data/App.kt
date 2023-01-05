@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,7 +27,6 @@ class App : Application() {
 
     companion object {
 
-        @delegate:StringRes
         var title by mutableStateOf(R.string.app_name)
 
         lateinit var prefs: SharedPreferences
