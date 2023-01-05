@@ -26,7 +26,7 @@ jobs:
       - name: Generate version.txt file
         run: ./gradlew generateVersionTxt
       - name: Get version name
-        run: VERSION_NAME="v$(cat ./app/version.txt)"
+        run: echo "VERSION_NAME=v$(cat ./app/version.txt)" >> $GITHUB_ENV
       - name: Create git tag
         run: git tag "v$(cat ./app/version.txt)"
       - name: push git tag
