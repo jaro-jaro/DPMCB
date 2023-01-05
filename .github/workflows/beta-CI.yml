@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - beta
+      - CI
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v1
       - name: set up JDK 11
@@ -25,7 +28,7 @@ jobs:
       - name: Get version name
         run: VERSION_NAME="v$(cat ./app/version.txt)"
       - name: Create git tag
-        run: git tag "${VERSION_NAME}"
+        run: git tag "v$(cat ./app/version.txt)"
       - name: push git tag
         run: git push origin --tags
       - name: Publish release
