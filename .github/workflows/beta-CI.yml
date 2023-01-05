@@ -30,7 +30,10 @@ jobs:
       - name: Create git tag
         run: git tag "v$(cat ./app/version.txt)"
       - name: push git tag
-        run: git push origin --tags
+        run: |
+          git config --global user.name 'jaro-jaro'
+          git config --global user.email 'jaro-jaro@users.noreply.github.com'
+          git push --tags
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
