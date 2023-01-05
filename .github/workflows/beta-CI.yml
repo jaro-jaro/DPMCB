@@ -41,4 +41,5 @@ jobs:
           commit: "beta"
           generateReleaseNotes: true
           tag: ${{ env.VERSION_NAME }}
+          makeLatest: false
           
