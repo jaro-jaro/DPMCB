@@ -29,7 +29,7 @@ jobs:
         run: echo "VERSION_NAME=v$(cat ./app/version.txt)" >> $GITHUB_ENV
       - name: Create git tag
         run: git tag "v$(cat ./app/version.txt)"
-      - name: push git tag
+      - name: Push git tag
         run: |
           git config --global user.name 'jaro-jaro'
           git config --global user.email 'jaro-jaro@users.noreply.github.com'
