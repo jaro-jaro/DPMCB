@@ -146,7 +146,7 @@ fun RadekOdjezdu(
         modifier = Modifier
             .height(32.dp)
     ) {
-        vysledek.forEach { (zastavka, id) ->
+        vysledek.sortBy { it.first().cas.toInt() }.forEach { (zastavka, id) ->
             Text(
                 text = zastavka.cas.min.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
