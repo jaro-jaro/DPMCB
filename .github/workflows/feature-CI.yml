@@ -28,5 +28,5 @@ jobs:
           git config --global user.name 'jaro-jaro'
           git config --global user.email 'jaro-jaro@users.noreply.github.com'
           git add app/build/outputs/apk/debug/app-debug.apk
-          git commit -m Generated debug APK
+          git commit -m "Generated debug APK"
           git push
