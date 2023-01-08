@@ -64,7 +64,15 @@ class DopravaRepository(
         api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
     }
 
-    private fun String.upravit() = removePrefix("České Budějovice, ").lowercase().replace("[ ,-]".toRegex(), "")
+    private fun String.upravit() = this
+        .removePrefix("České Budějovice, ")
+        .replace(Regex("[ ,-]"), "")
+        .replace("SrubecTočnaMHD", "SrubecTočna")
+        .replace("NáměstíPřemyslaOtakaraII.", "Nám.PřemyslaOtakaraII.")
+        .replace("DobráVodauČ.BudějovicTočna", "DobráVodaTočna")
+        .replace("KněžskéDv.", "KněžskéDvory")
+        .lowercase()
+
     private fun spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
             spojeNaMape
