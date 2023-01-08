@@ -7,3 +7,4 @@
 !/build/outputs/apk/debug/
 /build/outputs/apk/debug/*
 !/build/outputs/apk/debug/*-debug.apk
+/release
