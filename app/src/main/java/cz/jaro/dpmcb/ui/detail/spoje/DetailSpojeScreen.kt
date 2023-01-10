@@ -22,7 +22,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -42,6 +40,8 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
@@ -89,8 +89,8 @@ fun DetailSpojeScreen(
                     }, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
                 if (spojNaMape != null) Badge(
-                    containerColor = if (spojNaMape.delay > 0) MaterialTheme.colorScheme.errorContainer else Color(0xFF015140),
-                    contentColor = if (spojNaMape.delay > 0) MaterialTheme.colorScheme.onErrorContainer else Color(0xFFADF0D8)
+                    containerColor = barvaZpozdeniBublinyKontejner(spojNaMape.delay),
+                    contentColor = barvaZpozdeniBublinyText(spojNaMape.delay),
                 ) {
                     Text(
                         text = spojNaMape.delay.run {

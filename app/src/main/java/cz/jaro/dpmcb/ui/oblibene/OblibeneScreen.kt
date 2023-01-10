@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
@@ -31,6 +30,8 @@ import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
@@ -80,8 +81,8 @@ fun OblibeneScreen(
                     ) {
                         Text(text = "${spoj.cisloLinky}")
                         if (spojNaMape != null) Badge(
-                            containerColor = if (spojNaMape!!.delay > 0) MaterialTheme.colorScheme.errorContainer else Color(0xFF015140),
-                            contentColor = if (spojNaMape!!.delay > 0) MaterialTheme.colorScheme.onErrorContainer else Color(0xFFADF0D8),
+                            containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(spojNaMape!!.delay),
+                            contentColor = UtilFunctions.barvaZpozdeniBublinyText(spojNaMape!!.delay),
                             modifier = Modifier.padding(start = 8.dp)
                         ) {
                             Text(
@@ -115,7 +116,7 @@ fun OblibeneScreen(
                             Spacer(modifier = Modifier.weight(1F))
                             Text(
                                 text = "${z.cas + spojNaMape!!.delay}",
-                                color = if (spojNaMape!!.delay > 0) Color.Red else Color.Green,
+                                color = barvaZpozdeniTextu(spojNaMape!!.delay),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
@@ -130,7 +131,7 @@ fun OblibeneScreen(
                         Spacer(modifier = Modifier.weight(1F))
                         if (spojNaMape != null) Text(
                             text = "${z.cas + spojNaMape!!.delay}",
-                            color = if (spojNaMape!!.delay > 0) Color.Red else Color.Green,
+                            color = barvaZpozdeniTextu(spojNaMape!!.delay),
                             modifier = Modifier.padding(start = 8.dp)
                         ) else Text(text = "${z.cas}")
                     }
