@@ -19,6 +19,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
@@ -42,7 +43,12 @@ fun OblibeneScreen(
     val oblibene by repo.oblibene.collectAsState()
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (oblibene.isEmpty()) item {
-            Text("Nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje")
+            Text(
+                text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+                modifier = Modifier.padding(all = 16.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
         }
 
         items(oblibene) {
