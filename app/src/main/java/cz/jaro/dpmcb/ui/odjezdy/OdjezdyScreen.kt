@@ -17,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,6 +32,7 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
@@ -253,7 +253,7 @@ private fun Karticka(
                 val zpozdeni by kartickaState.zpozdeni.collectAsState(initial = null)
                 if (zpozdeni != null) Text(
                     text = "${kartickaState.cas + zpozdeni!!}",
-                    color = if (zpozdeni!! > 0) Color.Red else Color.Green,
+                    color = barvaZpozdeniTextu(zpozdeni!!),
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
