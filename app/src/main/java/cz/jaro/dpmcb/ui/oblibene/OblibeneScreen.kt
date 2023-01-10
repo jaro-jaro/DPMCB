@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.oblibene
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
@@ -58,7 +60,8 @@ fun OblibeneScreen(
             }
             val spoj = a.first
             val zastavky = a.second
-            val spojNaMape by App.dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky).collectAsState(initial = null)
+            val spojNaMape by dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky).collectAsState(initial = null)
+            val detailSpoje by dopravaRepo.detailSpojePodleSpojeNeboUlozenehoId(spojNaMape?.let { spoj }, zastavky).collectAsState(initial = null)
 
             OutlinedCard(
                 onClick = {
@@ -94,17 +97,42 @@ fun OblibeneScreen(
                             .padding(start = 8.dp, end = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first().nazevZastavky)
-                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first().cas.toString())
+                        val z = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first()
+                        Text(text = z.nazevZastavky)
+                        Text(text = z.cas.toString())
+                    }
+                    if (detailSpoje != null && spojNaMape != null) {
+                        val zNaMape = detailSpoje!!.stations.find { !it.passed }
+                        val z = zastavky.find {
+                            it.nazevZastavky.upravit() == zNaMape?.name?.upravit() && it.cas.toString() == zNaMape.departureTime
+                        }
+                        if (z != null) Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 8.dp),
+                        ) {
+                            Text(text = z.nazevZastavky)
+                            Spacer(modifier = Modifier.weight(1F))
+                            Text(
+                                text = "${z.cas + spojNaMape!!.delay}",
+                                color = if (spojNaMape!!.delay > 0) Color.Red else Color.Green,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().nazevZastavky)
-                        Text(text = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().cas.toString())
+                        val z = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last()
+                        Text(text = z.nazevZastavky)
+                        Spacer(modifier = Modifier.weight(1F))
+                        if (spojNaMape != null) Text(
+                            text = "${z.cas + spojNaMape!!.delay}",
+                            color = if (spojNaMape!!.delay > 0) Color.Red else Color.Green,
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) else Text(text = "${z.cas}")
                     }
                 }
             }
