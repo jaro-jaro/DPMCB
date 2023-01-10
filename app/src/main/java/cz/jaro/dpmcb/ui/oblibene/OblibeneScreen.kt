@@ -44,7 +44,7 @@ fun OblibeneScreen(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (oblibene.isEmpty()) item {
             Text(
-                text = "Nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+                text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
