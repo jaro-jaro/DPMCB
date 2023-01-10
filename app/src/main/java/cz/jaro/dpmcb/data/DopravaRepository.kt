@@ -39,7 +39,11 @@ class DopravaRepository(
 
     private var spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
-            emit(api.ziskatData("/service/position") ?: emptyList())
+            emit(
+                if (repo.onlineMod.value)
+                    api.ziskatData("/service/position") ?: emptyList()
+                else emptyList()
+            )
             delay(5000)
         }
     }.shareIn(
@@ -53,15 +57,15 @@ class DopravaRepository(
     }
 
     suspend fun detailSpoje(spojId: String): DetailSpoje? = withContext(Dispatchers.IO) {
-        api.ziskatData("/servicedetail?id=$spojId")
+        if (repo.onlineMod.value) api.ziskatData("/servicedetail?id=$spojId") else null
     }
 
     suspend fun seznamVsechZastavek(): List<DetailZastavky> = withContext(Dispatchers.IO) {
-        api.ziskatData("/station") ?: emptyList()
+        if (repo.onlineMod.value) api.ziskatData("/station") ?: emptyList() else emptyList()
     }
 
     suspend fun blizkeOdjezdyZeZastavky(zastavkaId: String): List<OdjezdSpoje> = withContext(Dispatchers.IO) {
-        api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
+        if (repo.onlineMod.value) api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList() else emptyList()
     }
 
     private fun String.upravit() = this
@@ -83,24 +87,12 @@ class DopravaRepository(
                     it.id.split("-")[1].endsWith(spoj.cisloLinky.toString())
                 }
                 .filter { spojNaMape ->
-                    println(
-                        listOf(
-                            spojNaMape.dep.upravit(), zastavkySpoje.first().nazevZastavky.upravit(),
-                            spojNaMape.dest.upravit(), zastavkySpoje.last().nazevZastavky.upravit(),
-                        )
-                    )
                     listOf(
                         spojNaMape.dep.upravit() == zastavkySpoje.first().nazevZastavky.upravit(),
                         spojNaMape.dest.upravit() == zastavkySpoje.last().nazevZastavky.upravit(),
                     ).all { it }
                 }
                 .find { spojNaMape ->
-                    println(
-                        listOf(
-                            spojNaMape.depTime.toCas(), zastavkySpoje.first().cas,
-                            spojNaMape.destTime.toCas(), zastavkySpoje.last().cas,
-                        )
-                    )
                     listOf(
                         spojNaMape.depTime.toCas() == zastavkySpoje.first().cas,
                         spojNaMape.destTime.toCas() == zastavkySpoje.last().cas,

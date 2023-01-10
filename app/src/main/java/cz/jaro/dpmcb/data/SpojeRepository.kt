@@ -3,6 +3,8 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.core.content.edit
 import androidx.room.Room
 import cz.jaro.dpmcb.data.database.AppDatabase
@@ -14,15 +16,23 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class SpojeRepository(ctx: Application) {
+
+    private val scope = MainScope()
 
     private val coroutineScope = MainScope()
     private val sharedPref: SharedPreferences =
@@ -156,4 +166,30 @@ class SpojeRepository(ctx: Application) {
         historie += (start to cil)
         ostatni = ostatni.copy(historieVyhledavani = historie.reversed().distinct().take(17))
     }
+
+    val isOnline = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(ctx.isOnline)
+            delay(5000)
+        }
+    }.shareIn(
+        scope = scope,
+        started = SharingStarted.WhileSubscribed(),
+        replay = 1
+    )
 }
+
+val Context.isOnline: Boolean
+    get() {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCapabilities = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
+
+        return activeNetwork.hasTransport(
+            NetworkCapabilities.TRANSPORT_WIFI
+        ) || activeNetwork.hasTransport(
+            NetworkCapabilities.TRANSPORT_CELLULAR
+        ) || activeNetwork.hasTransport(
+            NetworkCapabilities.TRANSPORT_ETHERNET
+        )
+    }
