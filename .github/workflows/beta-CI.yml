@@ -1,4 +1,4 @@
-name: Build & Publish Debug APK
+name: Build & Publish Signed Release APK
 
 on:
   push:
@@ -42,7 +42,7 @@ jobs:
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "app/build/outputs/apk/debug/*-debug.apk"
+          artifacts: "app/build/outputs/apk/release/app-release.apk"
           commit: "beta"
           generateReleaseNotes: true
           tag: ${{ env.VERSION_NAME }}
