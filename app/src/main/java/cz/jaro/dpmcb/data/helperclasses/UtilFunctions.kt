@@ -1,6 +1,9 @@
 package cz.jaro.dpmcb.data.helperclasses
 
 import android.util.Log
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
@@ -91,5 +94,26 @@ object UtilFunctions {
         -1 -> "-"
         1 -> "+"
         else -> ""
+    }
+
+    @Composable
+    fun barvaZpozdeniTextu(zpozdeni: Int) = when {
+        zpozdeni > 5 -> Color.Red
+        zpozdeni > 0 -> Color(0xFFCC6600)
+        else -> Color.Green
+    }
+
+    @Composable
+    fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
+        zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
+        zpozdeni > 0 -> Color(0xFFffddaf)
+        else -> Color(0xFFADF0D8)
+    }
+
+    @Composable
+    fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
+        zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
+        zpozdeni > 0 -> Color(0xFF614000)
+        else -> Color(0xFF015140)
     }
 }

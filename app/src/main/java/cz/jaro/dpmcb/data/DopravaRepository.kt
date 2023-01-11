@@ -29,6 +29,16 @@ import kotlinx.coroutines.withContext
 class DopravaRepository(
     ctx: Context,
 ) {
+    companion object {
+        fun String.upravit() = this
+            .removePrefix("České Budějovice, ")
+            .replace(Regex("[ ,-]"), "")
+            .replace("SrubecTočnaMHD", "SrubecTočna")
+            .replace("NáměstíPřemyslaOtakaraII.", "Nám.PřemyslaOtakaraII.")
+            .replace("DobráVodauČ.BudějovicTočna", "DobráVodaTočna")
+            .replace("KněžskéDv.", "KněžskéDvory")
+            .lowercase()
+    }
 
     private val scope = MainScope()
 
@@ -63,15 +73,6 @@ class DopravaRepository(
     suspend fun blizkeOdjezdyZeZastavky(zastavkaId: String): List<OdjezdSpoje> = withContext(Dispatchers.IO) {
         api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
     }
-
-    private fun String.upravit() = this
-        .removePrefix("České Budějovice, ")
-        .replace(Regex("[ ,-]"), "")
-        .replace("SrubecTočnaMHD", "SrubecTočna")
-        .replace("NáměstíPřemyslaOtakaraII.", "Nám.PřemyslaOtakaraII.")
-        .replace("DobráVodauČ.BudějovicTočna", "DobráVodaTočna")
-        .replace("KněžskéDv.", "KněžskéDvory")
-        .lowercase()
 
     private fun spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
