@@ -116,4 +116,6 @@ object UtilFunctions {
         zpozdeni > 0 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
+
+    fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
 }
