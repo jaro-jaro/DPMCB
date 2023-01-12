@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,9 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -47,7 +48,10 @@ import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
@@ -172,10 +176,12 @@ fun DetailSpojeScreen(
                             }
                         }
                         val primary = MaterialTheme.colorScheme.primary
+                        val tertiary = MaterialTheme.colorScheme.tertiary
                         val surface = MaterialTheme.colorScheme.surface
                         val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
                         val zastavek = zastavky.count()
-                        val prejel = detailSpoje?.stations?.map { it.passed } ?: List(zastavek) { false }
+                        val ted by Cas.presneTed.collectAsState(Cas.nikdy)
+                        val zpozdeni = spojNaMape?.delay
 
                         Canvas(
                             modifier = Modifier
@@ -184,33 +190,74 @@ fun DetailSpojeScreen(
                                 .padding(start = 8.dp),
                             contentDescription = "Poloha spoje"
                         ) {
+                            println(ted.toString(true))
                             val canvasHeight = size.height
                             val lineWidth = 6.3.dp.toPx()
                             val lineXOffset = 7.dp.toPx()
                             val rowHeight = canvasHeight / zastavek
                             val circleRadius = 5.2.dp.toPx()
                             val circleStrokeWidth = 3.1.dp.toPx()
-                            drawLine(
-                                color = surfaceVariant,
-                                start = Offset(lineXOffset, rowHeight * .5F),
-                                end = Offset(lineXOffset, canvasHeight - rowHeight * .5F),
-                                strokeWidth = lineWidth,
-                            )
-                            repeat(zastavek) { i ->
-                                drawCircle(
-                                    color = surface,
-                                    radius = circleRadius,
-                                    center = Offset(lineXOffset, (i + .5F) * rowHeight),
-                                    style = Fill
-                                )
-                                drawCircle(
+
+                            translate(left = lineXOffset, top = rowHeight * .5F) {
+                                drawLine(
                                     color = surfaceVariant,
-                                    radius = circleRadius,
-                                    center = Offset(lineXOffset, (i + .5F) * rowHeight),
-                                    style = Stroke(
-                                        width = circleStrokeWidth
-                                    )
+                                    start = Offset(),
+                                    end = Offset(y = canvasHeight - rowHeight),
+                                    strokeWidth = lineWidth,
                                 )
+
+                                val useku = zastavek - 1
+                                if (spojNaMape != null) repeat(useku) { i ->
+                                    zpozdeni!!
+                                    detailSpoje!!
+
+                                    translate(top = i * rowHeight) {
+                                        val posledniZastavka = detailSpoje.stations[i]
+                                        val pristiZastavka = detailSpoje.stations[i + 1]
+
+                                        if (posledniZastavka.passed && pristiZastavka.passed) {
+                                            drawLine(
+                                                color = primary,
+                                                start = Offset(),
+                                                end = Offset(y = rowHeight),
+                                                strokeWidth = lineWidth,
+                                            )
+                                        }
+
+                                        if (posledniZastavka.passed && !pristiZastavka.passed) {
+                                            val prijezd = pristiZastavka.arrivalTime.toCas() + zpozdeni
+                                            val odjezd = posledniZastavka.departureTime.toCas() + zpozdeni
+                                            val dobaJizdy = prijezd - odjezd
+                                            val ubehlo = ted - odjezd
+                                            drawLine(
+                                                color = primary,
+                                                start = Offset(),
+                                                end = Offset(y = rowHeight * (ubehlo / dobaJizdy).coerceAtMost(1)),
+                                                strokeWidth = lineWidth,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                repeat(zastavek) { i ->
+                                    translate(top = i * rowHeight) {
+                                        val projel = detailSpoje?.stations?.get(i)?.passed ?: false
+                                        drawCircle(
+                                            color = if (projel) primary else surface,
+                                            radius = circleRadius,
+                                            center = Offset(),
+                                            style = Fill
+                                        )
+                                        drawCircle(
+                                            color = if (projel) primary else surfaceVariant,
+                                            radius = circleRadius,
+                                            center = Offset(),
+                                            style = Stroke(
+                                                width = circleStrokeWidth
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
