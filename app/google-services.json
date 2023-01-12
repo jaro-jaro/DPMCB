@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "867578529394",
+    "firebase_url": "https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app",
     "project_id": "dpmcb-jaro",
     "storage_bucket": "dpmcb-jaro.appspot.com"
   },
@@ -10,6 +11,35 @@
         "mobilesdk_app_id": "1:867578529394:android:04a8b1ae3e1abfd2bba4eb",
         "android_client_info": {
           "package_name": "cz.jaro.dpmcb"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "867578529394-5g39ld61kqd77ie5ikjbr962j8jdpict.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRkihKhsi6PDpQph699AU8nj9VrDPYJXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "867578529394-5g39ld61kqd77ie5ikjbr962j8jdpict.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867578529394:android:1d0cc0213273c873bba4eb",
+        "android_client_info": {
+          "package_name": "cz.jaro.dpmcb.debug"
         }
       },
       "oauth_client": [
