@@ -1,4 +1,4 @@
-name: Build & Publish Debug APK
+name: Build & Publish Signed Release APK
 
 on:
   push:
@@ -19,16 +19,21 @@ jobs:
           java-version: 11
       - name: Make Gradle executable
         run: chmod +x ./gradlew
-      - name: Build with Gradle
-        run: ./gradlew build
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
       - name: Generate version.txt file
         run: ./gradlew generateVersionTxt
       - name: Get version name
         run: echo "VERSION_NAME=v$(cat ./app/version.txt)" >> $GITHUB_ENV
       - name: Create git tag
-        run: git tag "v$(cat ./app/version.txt)"
+        run: |
+          git fetch --tags
+          git tag "v$(cat ./app/version.txt)"
+      - name: Build Signed APK
+        uses: victorbnl/build-signed-apk@main
+        with:
+          keystore_b64: ${{ secrets.keystore }}
+          keystore_password: ${{ secrets.keystore_password }}
+          key_alias: ${{ secrets.key_alias }}
+          key_password: ${{ secrets.key_password }}
       - name: Push git tag
         run: |
           git config --global user.name 'jaro-jaro'
@@ -37,7 +42,7 @@ jobs:
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "app/build/outputs/apk/debug/*-debug.apk"
+          artifacts: "app/build/outputs/apk/release/app-release.apk"
           commit: "beta"
           generateReleaseNotes: true
           tag: ${{ env.VERSION_NAME }}
