@@ -232,7 +232,7 @@ fun DetailSpojeScreen(
                                             drawLine(
                                                 color = primary,
                                                 start = Offset(),
-                                                end = Offset(y = rowHeight * (ubehlo / dobaJizdy).coerceAtMost(1)),
+                                                end = Offset(y = rowHeight * (ubehlo.toFloat() / dobaJizdy.toFloat()).coerceAtMost(1)),
                                                 strokeWidth = lineWidth,
                                             )
                                         }
