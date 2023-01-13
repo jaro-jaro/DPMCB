@@ -1,5 +1,8 @@
 package cz.jaro.dpmcb.data.helperclasses
 
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.minus
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.plus
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +24,7 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
             return Cas(get(0), get(1), get(2))
         }
 
-        fun Int.toCas() = if (this == 362340) nikdy else Cas(
+        private fun Int.toCas() = if (this == 362340) nikdy else Cas(
             h = floorDiv(60 * 60),
             min = rem(60 * 60).floorDiv(60),
             s = rem(60 * 60).rem(60),
@@ -32,6 +35,8 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
             ?.map { it.toInt() }
             ?.toCas()
             ?: ted
+
+        fun Trvani.toCas() = sek.toCas()
 
         val ted
             get() = Calendar.getInstance().let { it[Calendar.HOUR_OF_DAY] cas it[Calendar.MINUTE] }
@@ -46,11 +51,12 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
     }
 
     override operator fun compareTo(other: Cas) = toInt().compareTo(other.toInt())
-    operator fun minus(other: Cas) = toInt().minus(other.toInt())
-    operator fun minus(other: Int) = toInt().minus(other * 60).toCas()
-    operator fun plus(other: Int) = toInt().plus(other * 60).toCas()
+    operator fun minus(other: Cas) = toInt().minus(other.toInt()).sek
+    operator fun minus(other: Trvani) = toInt().minus(other).toCas()
+    operator fun plus(other: Trvani) = toInt().plus(other).toCas()
 
-    fun toInt() = h * 60 * 60 + min * 60 + s
+    fun toTrvani() = toInt().sek
+    private fun toInt() = h * 60 * 60 + min * 60 + s
     override fun toString() = toString(drawSeconds = false)
     fun toString(drawSeconds: Boolean = false) = buildString {
         append(h)

@@ -8,6 +8,8 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.hod
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
@@ -37,7 +39,7 @@ class OdjezdyViewModel(
     private val _state = MutableStateFlow(
         OdjezdyState(
             zacatek = cas.toCas(),
-            konec = cas.toCas() + doba,
+            konec = cas.toCas() + doba.min,
             zastavka = zastavka
         )
     )
@@ -50,19 +52,19 @@ class OdjezdyViewModel(
         when (event) {
             is OdjezdyEvent.ZmensitCas -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek - 5)
+                    it.copy(zacatek = it.zacatek - 5.min)
                 }
             }
 
             is OdjezdyEvent.ZvetsitCas -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek + 5)
+                    it.copy(zacatek = it.zacatek + 5.min)
                 }
             }
 
             is OdjezdyEvent.ZmenitCas -> {
                 _state.update {
-                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba)
+                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba.min)
                 }
             }
 
@@ -94,13 +96,13 @@ class OdjezdyViewModel(
 
             is OdjezdyEvent.NacistDalsi -> {
                 _state.update {
-                    it.copy(konec = it.konec + doba)
+                    it.copy(konec = it.konec + doba.min)
                 }
             }
 
             is OdjezdyEvent.NacistPredchozi -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek - doba)
+                    it.copy(zacatek = it.zacatek - doba.min)
                 }
             }
         }
@@ -131,37 +133,37 @@ class OdjezdyViewModel(
         }
 
         launch(Dispatchers.IO) {
-            val spojeAZastavky = List(state.value.konec.toInt() / (24 * 60) + 1) { i ->
+            val spojeAZastavky = List((state.value.konec.toTrvani() / 24.hod).toInt() + 1) { i ->
                 val z = when (i) {
                     0 -> state.value.zacatek
                     else -> 0 cas 0
                 }
                 val k = when (i) {
-                    (state.value.konec.toInt() / (24 * 60)) -> (state.value.konec.toInt() % (24 * 60)).toCas()
+                    (state.value.konec.toTrvani() / 24.hod).toInt() -> (state.value.konec.toTrvani() % 24.hod).toCas()
                     else -> 23 cas 59
                 }
-                funguj(z, k)
+                funguj(state.value.zacatek, state.value.konec, z, k)
 
                 repo
-                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.value.zastavka).also { funguj(it) }
+                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.value.zastavka).also { funguj(1, it) }
                     .map { (spoj, zastavkySpoje) ->
                         (spoj to zastavkySpoje) to zastavkySpoje.vsechnyIndexy(state.value.zastavka)
-                    }.also { funguj(it) }
+                    }.also { funguj(2, it) }
                     .flatMap { (spojSeZastavkami, indexy) ->
                         indexy.map { spojSeZastavkami to it }
-                    }.also { funguj(it) }
+                    }.also { funguj(3, it) }
                     .map { (spojSeZastavkami, index) ->
                         spojSeZastavkami.first to spojSeZastavkami.second[index]
-                    }.also { funguj(it) }
+                    }.also { funguj(4, it) }
                     .filter { (_, zast) ->
-                        zast.also { funguj(it) }.run { cas != Cas.nikdy && z <= cas && cas <= k }
-                    }.also { funguj(it) }
+                        zast.run { cas != Cas.nikdy && z <= cas && cas <= k }
+                    }.also { funguj(5, it) }
                     .sortedBy { (_, zast) ->
-                        zast.cas.toInt()
-                    }.also { funguj(it) }
+                        zast.cas
+                    }.also { funguj(6, it) }
             }.flatten()
 
-            funguj(spojeAZastavky)
+            funguj(7, spojeAZastavky)
 
             _state.update { odjezdyState ->
                 odjezdyState.copy(seznam = spojeAZastavky.map { (spoj, zastavka) ->

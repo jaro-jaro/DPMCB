@@ -51,6 +51,7 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
@@ -225,14 +226,14 @@ fun DetailSpojeScreen(
                                         }
 
                                         if (posledniZastavka.passed && !pristiZastavka.passed) {
-                                            val prijezd = pristiZastavka.arrivalTime.toCas() + zpozdeni
-                                            val odjezd = posledniZastavka.departureTime.toCas() + zpozdeni
+                                            val prijezd = pristiZastavka.arrivalTime.toCas() + zpozdeni.min
+                                            val odjezd = posledniZastavka.departureTime.toCas() + zpozdeni.min
                                             val dobaJizdy = prijezd - odjezd
                                             val ubehlo = ted - odjezd
                                             drawLine(
                                                 color = primary,
                                                 start = Offset(),
-                                                end = Offset(y = rowHeight * (ubehlo.toFloat() / dobaJizdy.toFloat()).coerceAtMost(1)),
+                                                end = Offset(y = rowHeight * (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)),
                                                 strokeWidth = lineWidth,
                                             )
                                         }

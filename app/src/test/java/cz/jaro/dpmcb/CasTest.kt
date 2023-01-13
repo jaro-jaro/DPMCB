@@ -52,9 +52,16 @@ class CasTest {
     }
 
     @Test
-    fun odcitani() {
+    fun `odcitani cisel`() {
         assertEquals(9 cas 40, (10 cas 10) - 30)
         assertEquals(9 cas 10, (10 cas 10) - 60)
         assertEquals(9 cas 50, (10 cas 30) - 40)
+    }
+
+    @Test
+    fun `odcitani casu`() {
+        assertEquals(0, (10 cas 10) - (10 cas 10))
+        assertEquals(90, (11 cas 40) - (10 cas 10))
+        assertEquals(20, (10 cas 30) - (10 cas 10))
     }
 }

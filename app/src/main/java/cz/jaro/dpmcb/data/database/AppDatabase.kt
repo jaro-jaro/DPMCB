@@ -9,6 +9,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 
 @Database(entities = [Spoj::class, ZastavkaSpoje::class], version = 3)
 @TypeConverters(CasConverter::class)
@@ -19,10 +20,10 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         class CasConverter {
             @TypeConverter
-            fun toCas(value: Int) = value.toCas()
+            fun toCas(value: Int) = value.sek.toCas()
 
             @TypeConverter
-            fun fromCas(value: Cas) = value.toInt()
+            fun fromCas(value: Cas) = value.toTrvani().sek
         }
     }
 }

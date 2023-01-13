@@ -5,6 +5,8 @@ import cz.jaro.dpmcb.data.Spojeni
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
@@ -149,7 +151,7 @@ class VyhledavacSpojeni {
     }
 
     data class RadekTabulky(
-        val nejVzdalenostOdStartu: Int,
+        val nejVzdalenostOdStartu: Trvani,
         val minulaZastavka: String,
         val casPrijezdu: Cas,
         val casOdjezduZMinulyZastvky: Cas,
@@ -170,7 +172,7 @@ class VyhledavacSpojeni {
         val tabulka = mutableMapOf(
             *arrayOf(
                 start to RadekTabulky(
-                    nejVzdalenostOdStartu = 0,
+                    nejVzdalenostOdStartu = 0.sek,
                     minulaZastavka = "",
                     casPrijezdu = Cas.nikdy,
                     casOdjezduZMinulyZastvky = Cas.nikdy,
@@ -178,7 +180,7 @@ class VyhledavacSpojeni {
                 )
             ) + vsechnyZastavky.map {
                 it to RadekTabulky(
-                    nejVzdalenostOdStartu = Int.MAX_VALUE,
+                    nejVzdalenostOdStartu = Int.MAX_VALUE.sek,
                     minulaZastavka = "",
                     casPrijezdu = Cas.nikdy,
                     casOdjezduZMinulyZastvky = Cas.nikdy,
@@ -188,10 +190,10 @@ class VyhledavacSpojeni {
         )
 
 //        funguj(vsechnyZastavky)
-        val queue: MutableList<Triple<Cas, CestaDoCile, Int>> = mutableListOf()
+        val queue: MutableList<Triple<Cas, CestaDoCile, Trvani>> = mutableListOf()
 
 //        funguj(queue)
-        queue.addAll(seznamCest.map { Triple(vyhledavaciCas, it, Int.MAX_VALUE) })
+        queue.addAll(seznamCest.map { Triple(vyhledavaciCas, it, Int.MAX_VALUE.sek) })
 //        funguj(queue)
 
         while (queue.isNotEmpty()) {
@@ -260,7 +262,7 @@ class VyhledavacSpojeni {
             val zlost = (pristiZast.cas - aktualniCas)
 
             val minulaVzdalenostOdStartu = tabulka[nazev]!!.nejVzdalenostOdStartu
-            val novaVzdalenostOdStartu = if (minulaVzdalenostOdStartu == Int.MAX_VALUE) zlost else minulaVzdalenostOdStartu + zlost
+            val novaVzdalenostOdStartu = if (minulaVzdalenostOdStartu == Int.MAX_VALUE.sek) zlost else minulaVzdalenostOdStartu + zlost
 
 ////            if (!tabulka.containsKey(soused) || tabulka[soused]!!.nejVzdalenostOdStartu > novaVzdalenostOdStartu) funguj(nazev, aktualniCas, tahleZast, pristiZast)
 

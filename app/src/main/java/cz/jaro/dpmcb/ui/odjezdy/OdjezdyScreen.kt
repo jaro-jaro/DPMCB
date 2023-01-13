@@ -31,6 +31,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
@@ -252,7 +253,7 @@ private fun Karticka(
                 )
                 val zpozdeni by kartickaState.zpozdeni.collectAsState(initial = null)
                 if (zpozdeni != null) Text(
-                    text = "${kartickaState.cas + zpozdeni!!}",
+                    text = "${kartickaState.cas + zpozdeni!!.min}",
                     color = barvaZpozdeniTextu(zpozdeni!!),
                     modifier = Modifier.padding(start = 8.dp)
                 )
