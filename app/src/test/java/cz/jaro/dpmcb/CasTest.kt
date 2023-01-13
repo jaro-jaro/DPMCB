@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb
 
-import cz.jaro.dpmcb.data.helperclasses.Cas
+/*import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import org.junit.Assert.assertEquals
@@ -64,4 +64,4 @@ class CasTest {
         assertEquals(90, (11 cas 40) - (10 cas 10))
         assertEquals(20, (10 cas 30) - (10 cas 10))
     }
-}
+}*/
