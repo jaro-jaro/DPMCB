@@ -133,13 +133,13 @@ class OdjezdyViewModel(
         }
 
         launch(Dispatchers.IO) {
-            val spojeAZastavky = List((state.value.konec.toTrvani() / 24.hod).toInt() + 1) { i ->
+            val spojeAZastavky = List((state.value.konec) / 24.hod + 1) { i ->
                 val z = when (i) {
                     0 -> state.value.zacatek
                     else -> 0 cas 0
                 }
                 val k = when (i) {
-                    (state.value.konec.toTrvani() / 24.hod).toInt() -> (state.value.konec.toTrvani() % 24.hod).toCas()
+                    (state.value.konec / 24.hod) -> (state.value.konec % 24.hod)
                     else -> 23 cas 59
                 }
                 funguj(state.value.zacatek, state.value.konec, z, k)

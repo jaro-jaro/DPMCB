@@ -3,6 +3,8 @@ package cz.jaro.dpmcb
 /*import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.hod
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -27,35 +29,35 @@ class CasTest {
     }
 
     @Test
-    fun `Prevadeni cas - int`() {
-        assertEquals(3600, Cas(1, 0).toInt())
-        assertEquals(5400, Cas(1, 30).toInt())
-        assertEquals(2880, Cas(0, 48).toInt())
-        assertEquals(362340, Cas(99, 99).toInt())
-        assertEquals(330, Cas(0, 5, 30).toInt())
+    fun `Prevadeni cas - trvani`() {
+        assertEquals(1.hod, Cas(1, 0).toTrvani())
+        assertEquals(1.5.hod, Cas(1, 30).toTrvani())
+        assertEquals(48.min, Cas(0, 48).toTrvani())
+        assertEquals((99.hod + 99.min), Cas(99, 99).toTrvani())
+        assertEquals(5.5.min, Cas(0, 5, 30).toTrvani())
     }
 
     @Test
-    fun `Prevadeni int - cas`() {
-        assertEquals(Cas(1, 0), 3600.toCas())
-        assertEquals(Cas(1, 30), 5400.toCas())
-        assertEquals(Cas(0, 48), 2880.toCas())
-        assertEquals(Cas(99, 99), 362340.toCas())
-        assertEquals(Cas(0, 5, 30), 330.toCas())
+    fun `Prevadeni trvani - cas`() {
+        assertEquals(Cas(1, 0), 1.hod.toCas())
+        assertEquals(Cas(1, 30), 1.5.hod.toCas())
+        assertEquals(Cas(0, 48), 48.min.toCas())
+        assertEquals(Cas(99, 99), (99.hod + 99.min).toCas())
+        assertEquals(Cas(0, 5, 30), 5.5.min.toCas())
     }
 
     @Test
     fun scitani() {
-        assertEquals(10 cas 40, (10 cas 10) + 30)
-        assertEquals(11 cas 10, (10 cas 10) + 60)
-        assertEquals(11 cas 10, (10 cas 30) + 40)
+        assertEquals(10 cas 40, (10 cas 10) + 30.min)
+        assertEquals(11 cas 10, (10 cas 10) + 60.min)
+        assertEquals(11 cas 10, (10 cas 30) + 40.min)
     }
 
     @Test
     fun `odcitani cisel`() {
-        assertEquals(9 cas 40, (10 cas 10) - 30)
-        assertEquals(9 cas 10, (10 cas 10) - 60)
-        assertEquals(9 cas 50, (10 cas 30) - 40)
+        assertEquals(9 cas 40, (10 cas 10) - 30.min)
+        assertEquals(9 cas 10, (10 cas 10) - 60.min)
+        assertEquals(9 cas 50, (10 cas 30) - 40.min)
     }
 
     @Test

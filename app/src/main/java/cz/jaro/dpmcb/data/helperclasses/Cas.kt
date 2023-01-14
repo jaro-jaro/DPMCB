@@ -54,6 +54,8 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
     operator fun minus(other: Cas) = toInt().minus(other.toInt()).sek
     operator fun minus(other: Trvani) = toInt().minus(other).toCas()
     operator fun plus(other: Trvani) = toInt().plus(other).toCas()
+    operator fun div(other: Trvani) = toInt().div(other.sek)
+    operator fun rem(other: Trvani) = toInt().rem(other.sek).toCas()
 
     fun toTrvani() = toInt().sek
     private fun toInt() = h * 60 * 60 + min * 60 + s
