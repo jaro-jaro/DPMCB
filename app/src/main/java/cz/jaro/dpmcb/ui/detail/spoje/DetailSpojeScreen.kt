@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.detail.spoje
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -32,8 +33,11 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -46,6 +50,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
@@ -55,10 +60,12 @@ import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -176,6 +183,30 @@ fun DetailSpojeScreen(
                                 )
                             }
                         }
+                        if (detailSpoje != null && spojNaMape != null) Column(Modifier.padding(start = 8.dp)) {
+                            zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.forEach {
+                                val zastavka by remember {
+                                    derivedStateOf {
+                                        detailSpoje.stations.find { z ->
+                                            z.departureTime == it.cas.toString() && z.name.upravit() == it.nazevZastavky.upravit()
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = if (zastavka?.passed == false) (it.cas + spojNaMape.delay.min).toString() else "",
+                                    color = barvaZpozdeniTextu(spojNaMape.delay),
+                                    modifier = Modifier
+                                        .clickable {
+                                            navigator.navigate(
+                                                OdjezdyScreenDestination(
+                                                    cas = it.cas.toString(),
+                                                    zastavka = it.nazevZastavky,
+                                                )
+                                            )
+                                        }
+                                )
+                            }
+                        }
                         val primary = MaterialTheme.colorScheme.primary
                         val tertiary = MaterialTheme.colorScheme.tertiary
                         val surface = MaterialTheme.colorScheme.surface
@@ -184,6 +215,9 @@ fun DetailSpojeScreen(
                         val ted by Cas.presneTed.collectAsState(Cas.nikdy)
                         val zpozdeni = spojNaMape?.delay
 
+                        val scope = rememberCoroutineScope()
+                        val vyska = remember { Animatable(0F) }
+
                         Canvas(
                             modifier = Modifier
                                 .fillMaxHeight()
@@ -191,7 +225,7 @@ fun DetailSpojeScreen(
                                 .padding(start = 8.dp),
                             contentDescription = "Poloha spoje"
                         ) {
-                            println(ted.toString(true))
+                            while (System.currentTimeMillis() % 1_000 > 5L) Unit
                             val canvasHeight = size.height
                             val lineWidth = 6.3.dp.toPx()
                             val lineXOffset = 7.dp.toPx()
@@ -230,10 +264,14 @@ fun DetailSpojeScreen(
                                             val odjezd = posledniZastavka.departureTime.toCas() + zpozdeni.min
                                             val dobaJizdy = prijezd - odjezd
                                             val ubehlo = ted - odjezd
+                                            scope.launch {
+                                                vyska.animateTo((ubehlo / dobaJizdy).toFloat().coerceAtMost(1F))
+                                            }
+
                                             drawLine(
                                                 color = primary,
                                                 start = Offset(),
-                                                end = Offset(y = rowHeight * (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)),
+                                                end = Offset(y = rowHeight * vyska.value),
                                                 strokeWidth = lineWidth,
                                             )
                                         }
