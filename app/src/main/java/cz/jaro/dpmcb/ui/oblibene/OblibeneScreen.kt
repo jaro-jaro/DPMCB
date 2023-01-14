@@ -45,7 +45,9 @@ fun OblibeneScreen(
     navigator: DestinationsNavigator,
 ) {
     val oblibene by repo.oblibene.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
         if (oblibene.isEmpty()) item {
             Text(
                 text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
