@@ -17,11 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.WheelchairPickup
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,10 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -48,72 +43,70 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
+import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
 import kotlinx.coroutines.launch
-import kotlin.random.Random
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.ParametersHolder
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Destination
 @Composable
 fun DetailSpojeScreen(
-    navigator: DestinationsNavigator,
     spojId: Long,
+    viewModel: DetailSpojeViewModel = koinViewModel {
+        ParametersHolder(mutableListOf(spojId))
+    },
+    navigator: DestinationsNavigator,
 ) {
 
     App.title = R.string.detail_spoje
 
-    val a by produceState<Pair<Spoj?, List<ZastavkaSpoje>>>((null to emptyList())) {
-        value = repo.spojSeZastavkySpojeNaKterychStavi(spojId)
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.Navigovat -> {
+                    navigator.navigate(event.kam)
+                }
+
+                else -> {}
+            }
+        }
     }
-    val spoj = a.first
-    val zastavky = a.second
-    val b by dopravaRepo.spojPodleSpojeNeboUlozenehoId(spoj, zastavky).collectAsState(initial = null to null)
-    val spojNaMape = b.first
-    val detailSpoje = b.second
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        if (spoj == null) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
+        if (state.nacitaSe) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
         else {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp), verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Linka ${spoj.cisloLinky}")
+                Text("Linka ${state.cisloLinky}")
                 Icon(
-                    when {
-                        Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                        spoj.nizkopodlaznost -> Icons.Default.Accessible
-                        Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
-                        else -> Icons.Default.NotAccessible
-                    }, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                    state.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
-                if (spojNaMape != null) Badge(
-                    containerColor = barvaZpozdeniBublinyKontejner(spojNaMape.delay),
-                    contentColor = barvaZpozdeniBublinyText(spojNaMape.delay),
+                if (state.zpozdeni != null) Badge(
+                    containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeni!!),
+                    contentColor = barvaZpozdeniBublinyText(state.zpozdeni!!),
                 ) {
                     Text(
-                        text = spojNaMape.delay.run {
+                        text = state.zpozdeni!!.run {
                             "${toSign()}$this min"
                         },
                     )
@@ -130,11 +123,7 @@ fun DetailSpojeScreen(
                     Icon(Icons.Default.Star, "Oblíbené")
                 }
                 Button(onClick = {
-                    navigator.navigate(
-                        DetailKurzuScreenDestination(
-                            kurz = spoj.nazevKurzu
-                        )
-                    )
+                    viewModel.detailKurzu()
                 }) {
                     Text("Detail kurzu")
                 }
@@ -152,7 +141,7 @@ fun DetailSpojeScreen(
                             .padding(12.dp)
                     ) {
                         Column {
-                            zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.forEach {
+                            state.zastavky.forEach {
                                 Text(
                                     text = it.nazevZastavky,
                                     modifier = Modifier
@@ -168,7 +157,7 @@ fun DetailSpojeScreen(
                             }
                         }
                         Column(Modifier.padding(start = 8.dp)) {
-                            zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.forEach {
+                            state.zastavky.forEach {
                                 Text(
                                     text = it.cas.toString(),
                                     modifier = Modifier
@@ -183,37 +172,31 @@ fun DetailSpojeScreen(
                                 )
                             }
                         }
-                        if (detailSpoje != null && spojNaMape != null) Column(Modifier.padding(start = 8.dp)) {
-                            zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.forEach {
-                                val zastavka by remember {
-                                    derivedStateOf {
-                                        detailSpoje.stations.find { z ->
-                                            z.departureTime == it.cas.toString() && z.name.upravit() == it.nazevZastavky.upravit()
-                                        }
-                                    }
-                                }
-                                Text(
-                                    text = if (zastavka?.passed == false) (it.cas + spojNaMape.delay.min).toString() else "",
-                                    color = barvaZpozdeniTextu(spojNaMape.delay),
-                                    modifier = Modifier
-                                        .clickable {
-                                            navigator.navigate(
-                                                OdjezdyScreenDestination(
-                                                    cas = it.cas.toString(),
-                                                    zastavka = it.nazevZastavky,
+                        if (state.zpozdeni != null && state.zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+                            state.zastavky
+                                .zip(state.zastavkyNaJihu!!)
+                                .forEach { (zastavka, zastavkaNaJihu) ->
+                                    Text(
+                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas + state.zpozdeni!!.min).toString() else "",
+                                        color = barvaZpozdeniTextu(state.zpozdeni!!),
+                                        modifier = Modifier
+                                            .clickable {
+                                                navigator.navigate(
+                                                    OdjezdyScreenDestination(
+                                                        cas = zastavka.cas.toString(),
+                                                        zastavka = zastavka.nazevZastavky,
+                                                    )
                                                 )
-                                            )
-                                        }
-                                )
-                            }
+                                            }
+                                    )
+                                }
                         }
                         val primary = MaterialTheme.colorScheme.primary
                         val tertiary = MaterialTheme.colorScheme.tertiary
                         val surface = MaterialTheme.colorScheme.surface
                         val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
-                        val zastavek = zastavky.count()
+                        val zastavek = state.zastavky.count()
                         val ted by Cas.presneTed.collectAsState(Cas.nikdy)
-                        val zpozdeni = spojNaMape?.delay
 
                         val scope = rememberCoroutineScope()
                         val vyska = remember { Animatable(0F) }
@@ -241,46 +224,41 @@ fun DetailSpojeScreen(
                                     strokeWidth = lineWidth,
                                 )
 
-                                val useku = zastavek - 1
-                                if (spojNaMape != null) repeat(useku) { i ->
-                                    zpozdeni!!
-                                    detailSpoje!!
+                                if (state.zpozdeni != null && state.zastavkyNaJihu != null) state.zastavkyNaJihu!!.windowed(2)
+                                    .forEachIndexed { i, (posledniZastavka, pristiZastavka) ->
+                                        translate(top = i * rowHeight) {
 
-                                    translate(top = i * rowHeight) {
-                                        val posledniZastavka = detailSpoje.stations[i]
-                                        val pristiZastavka = detailSpoje.stations[i + 1]
-
-                                        if (posledniZastavka.passed && pristiZastavka.passed) {
-                                            drawLine(
-                                                color = primary,
-                                                start = Offset(),
-                                                end = Offset(y = rowHeight),
-                                                strokeWidth = lineWidth,
-                                            )
-                                        }
-
-                                        if (posledniZastavka.passed && !pristiZastavka.passed) {
-                                            val prijezd = pristiZastavka.arrivalTime.toCas() + zpozdeni.min
-                                            val odjezd = posledniZastavka.departureTime.toCas() + zpozdeni.min
-                                            val dobaJizdy = prijezd - odjezd
-                                            val ubehlo = ted - odjezd
-                                            scope.launch {
-                                                vyska.animateTo((ubehlo / dobaJizdy).toFloat().coerceAtMost(1F))
+                                            if (posledniZastavka.passed && pristiZastavka.passed) {
+                                                drawLine(
+                                                    color = primary,
+                                                    start = Offset(),
+                                                    end = Offset(y = rowHeight),
+                                                    strokeWidth = lineWidth,
+                                                )
                                             }
 
-                                            drawLine(
-                                                color = primary,
-                                                start = Offset(),
-                                                end = Offset(y = rowHeight * vyska.value),
-                                                strokeWidth = lineWidth,
-                                            )
+                                            if (posledniZastavka.passed && !pristiZastavka.passed) {
+                                                val prijezd = pristiZastavka.arrivalTime.toCas() + state.zpozdeni!!.min
+                                                val odjezd = posledniZastavka.departureTime.toCas() + state.zpozdeni!!.min
+                                                val dobaJizdy = prijezd - odjezd
+                                                val ubehlo = ted - odjezd
+                                                scope.launch {
+                                                    vyska.animateTo((ubehlo / dobaJizdy).toFloat().coerceAtMost(1F))
+                                                }
+
+                                                drawLine(
+                                                    color = primary,
+                                                    start = Offset(),
+                                                    end = Offset(y = rowHeight * vyska.value),
+                                                    strokeWidth = lineWidth,
+                                                )
+                                            }
                                         }
                                     }
-                                }
 
                                 repeat(zastavek) { i ->
                                     translate(top = i * rowHeight) {
-                                        val projel = detailSpoje?.stations?.get(i)?.passed ?: false
+                                        val projel = state.zastavkyNaJihu?.get(i)?.passed ?: false
                                         drawCircle(
                                             color = if (projel) primary else surface,
                                             radius = circleRadius,
@@ -301,11 +279,11 @@ fun DetailSpojeScreen(
                         }
                     }
                 }
-                if (repo.idSpoju.containsKey(spojId) || spojNaMape != null) Row(
+                if (state.idNaJihu != null) Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Text("id: ${repo.idSpoju.getOrElse(spojId) { spojNaMape!!.id }}")
+                    Text("id: ${state.idNaJihu!!}")
                 }
             }
         }
