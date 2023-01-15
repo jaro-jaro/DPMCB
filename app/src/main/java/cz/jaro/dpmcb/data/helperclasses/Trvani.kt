@@ -6,6 +6,8 @@ value class Trvani(val sek: Int) : Comparable<Trvani> {
     override fun compareTo(other: Trvani) = sek.compareTo(other.sek)
 
     companion object {
+        val nekonecne = Trvani(Int.MAX_VALUE)
+
         val Double.sek get() = toInt().sek
         val Int.sek get() = Trvani(this)
 

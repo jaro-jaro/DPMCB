@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.detail.spoje
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -31,8 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -44,8 +42,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
@@ -54,7 +50,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
@@ -192,14 +187,13 @@ fun DetailSpojeScreen(
                                 }
                         }
                         val primary = MaterialTheme.colorScheme.primary
-                        val tertiary = MaterialTheme.colorScheme.tertiary
+                        val seconadry = MaterialTheme.colorScheme.secondary
                         val surface = MaterialTheme.colorScheme.surface
                         val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
                         val zastavek = state.zastavky.count()
-                        val ted by Cas.presneTed.collectAsState(Cas.nikdy)
 
-                        val scope = rememberCoroutineScope()
-                        val vyska = remember { Animatable(0F) }
+                        val vyska by viewModel.vyska.collectAsState(0F)
+                        val animovanaVyska by animateFloatAsState(vyska)
 
                         Canvas(
                             modifier = Modifier
@@ -209,12 +203,13 @@ fun DetailSpojeScreen(
                             contentDescription = "Poloha spoje"
                         ) {
                             while (System.currentTimeMillis() % 1_000 > 5L) Unit
+
                             val canvasHeight = size.height
-                            val lineWidth = 6.3.dp.toPx()
+                            val lineWidth = 3.dp.toPx()
                             val lineXOffset = 7.dp.toPx()
                             val rowHeight = canvasHeight / zastavek
-                            val circleRadius = 5.2.dp.toPx()
-                            val circleStrokeWidth = 3.1.dp.toPx()
+                            val circleRadius = 5.5.dp.toPx()
+                            val circleStrokeWidth = 3.dp.toPx()
 
                             translate(left = lineXOffset, top = rowHeight * .5F) {
                                 drawLine(
@@ -223,38 +218,6 @@ fun DetailSpojeScreen(
                                     end = Offset(y = canvasHeight - rowHeight),
                                     strokeWidth = lineWidth,
                                 )
-
-                                if (state.zpozdeni != null && state.zastavkyNaJihu != null) state.zastavkyNaJihu!!.windowed(2)
-                                    .forEachIndexed { i, (posledniZastavka, pristiZastavka) ->
-                                        translate(top = i * rowHeight) {
-
-                                            if (posledniZastavka.passed && pristiZastavka.passed) {
-                                                drawLine(
-                                                    color = primary,
-                                                    start = Offset(),
-                                                    end = Offset(y = rowHeight),
-                                                    strokeWidth = lineWidth,
-                                                )
-                                            }
-
-                                            if (posledniZastavka.passed && !pristiZastavka.passed) {
-                                                val prijezd = pristiZastavka.arrivalTime.toCas() + state.zpozdeni!!.min
-                                                val odjezd = posledniZastavka.departureTime.toCas() + state.zpozdeni!!.min
-                                                val dobaJizdy = prijezd - odjezd
-                                                val ubehlo = ted - odjezd
-                                                scope.launch {
-                                                    vyska.animateTo((ubehlo / dobaJizdy).toFloat().coerceAtMost(1F))
-                                                }
-
-                                                drawLine(
-                                                    color = primary,
-                                                    start = Offset(),
-                                                    end = Offset(y = rowHeight * vyska.value),
-                                                    strokeWidth = lineWidth,
-                                                )
-                                            }
-                                        }
-                                    }
 
                                 repeat(zastavek) { i ->
                                     translate(top = i * rowHeight) {
@@ -275,6 +238,19 @@ fun DetailSpojeScreen(
                                         )
                                     }
                                 }
+
+                                drawLine(
+                                    color = primary,
+                                    start = Offset(),
+                                    end = Offset(y = rowHeight * animovanaVyska),
+                                    strokeWidth = lineWidth,
+                                )
+
+                                if (vyska > 0F) drawCircle(
+                                    color = seconadry,
+                                    radius = circleRadius - circleStrokeWidth * .5F,
+                                    center = Offset(y = rowHeight * animovanaVyska)
+                                )
                             }
                         }
                     }
