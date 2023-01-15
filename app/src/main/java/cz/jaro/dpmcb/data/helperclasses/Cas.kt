@@ -3,10 +3,12 @@ package cz.jaro.dpmcb.data.helperclasses
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.minus
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.plus
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
 import java.util.Calendar
@@ -45,7 +47,9 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
             while (currentCoroutineContext().isActive) {
                 emit(Calendar.getInstance().let { Cas(it[Calendar.HOUR_OF_DAY], it[Calendar.MINUTE], it[Calendar.SECOND]) })
             }
-        }.shareIn(MainScope(), SharingStarted.WhileSubscribed())
+        }
+            .flowOn(Dispatchers.IO)
+            .shareIn(MainScope(), SharingStarted.WhileSubscribed())
 
         val nikdy = Cas(99, 99)
     }
