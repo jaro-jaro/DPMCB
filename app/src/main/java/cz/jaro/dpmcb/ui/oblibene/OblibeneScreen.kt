@@ -65,7 +65,7 @@ fun OblibeneScreen(
             val spoj = a.first
             val zastavky = a.second
             val spojNaMape by dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky).collectAsState(initial = null)
-            val detailSpoje by dopravaRepo.detailSpojePodleSpojeNeboUlozenehoId(spojNaMape?.let { spoj }, zastavky).collectAsState(initial = null)
+            val detailSpoje by dopravaRepo.detailSpojePodleUlozenehoId(spojNaMape?.let { spoj }).collectAsState(initial = null)
 
             OutlinedCard(
                 onClick = {
