@@ -10,7 +10,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @property name Jméno zastávky – Shodné s [DetailZastavky.name]
  * @property passed Indikuje, jestli spoj již na zastávce zastavil
  */
-data class ZastavkaSpoje(
+data class ZastavkaSpojeNaJihu(
     val arrivalTime: String?,
     val departureTime: String?,
     val fixedCodes: List<FixedCode>?,
