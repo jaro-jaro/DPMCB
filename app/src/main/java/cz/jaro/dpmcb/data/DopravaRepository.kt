@@ -69,11 +69,13 @@ class DopravaRepository(
                     emit(api.ziskatData("/servicedetail?id=$spojId"))
                     delay(5000)
                 }
-            }.shareIn(
-                scope = scope,
-                started = SharingStarted.WhileSubscribed(),
-                replay = 1
-            )
+            }
+                .flowOn(Dispatchers.IO)
+                .shareIn(
+                    scope = scope,
+                    started = SharingStarted.WhileSubscribed(),
+                    replay = 1
+                )
         }
 
 //    suspend fun seznamVsechZastavek(): List<DetailZastavky> = withContext(Dispatchers.IO) {
