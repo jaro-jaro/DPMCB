@@ -146,7 +146,7 @@ class OdjezdyViewModel(
                     println(spojeAZastavky)
 
                     val indexScrollovani = spojeAZastavky.indexOfFirst { (_, zast) ->
-                        zast.cas > state.zacatek
+                        zast.cas >= state.zacatek
                     } + ((Int.MAX_VALUE / 2) / spojeAZastavky.size) * spojeAZastavky.size
                     println(indexScrollovani)
 

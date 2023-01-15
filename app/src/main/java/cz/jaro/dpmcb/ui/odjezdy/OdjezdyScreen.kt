@@ -5,6 +5,7 @@ import android.widget.LinearLayout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.Add
@@ -19,12 +20,16 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
+import com.google.accompanist.placeholder.PlaceholderHighlight
+import com.google.accompanist.placeholder.placeholder
+import com.google.accompanist.placeholder.shimmer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -228,6 +233,8 @@ fun KartickaPreview() {
     }
 }
 
+private fun Modifier.applyIf(apply: Boolean, block: Modifier.() -> Modifier) = if (apply) block() else this
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Karticka(
@@ -249,7 +256,19 @@ private fun Karticka(
                 .padding(all = 8.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .applyIf(kartickaState == null) {
+                        padding(all = 8.dp)
+                    }
+                    .placeholder(
+                        visible = kartickaState == null,
+                        color = Color.Gray,
+                        highlight = PlaceholderHighlight.shimmer(
+                            highlightColor = Color.DarkGray,
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                    )
             ) {
                 Text(
                     modifier = Modifier,
@@ -284,17 +303,42 @@ private fun Karticka(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    when {
+                    imageVector = when {
                         kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
                         else -> Icons.Default.NotAccessible
-                    }, "Invalidní vozík"
+                    },
+                    contentDescription = "Invalidní vozík",
+                    modifier = Modifier
+                        .applyIf(kartickaState == null) {
+                            padding(all = 8.dp)
+                        }
+                        .placeholder(
+                            visible = kartickaState == null,
+                            color = Color.Gray,
+                            highlight = PlaceholderHighlight.shimmer(
+                                highlightColor = Color.DarkGray,
+                            ),
+                            shape = RoundedCornerShape(6.dp),
+                        )
                 )
                 TextButton(
                     onClick = {
                         if (kartickaState == null) return@TextButton
                         poslatEvent(OdjezdyEvent.KliklNaZjr(kartickaState))
                     },
-                    enabled = kartickaState?.JePosledniZastavka == false
+                    enabled = kartickaState?.JePosledniZastavka == false,
+                    modifier = Modifier
+                        .applyIf(kartickaState == null) {
+                            padding(all = 8.dp)
+                        }
+                        .placeholder(
+                            visible = kartickaState == null,
+                            color = Color.Gray,
+                            highlight = PlaceholderHighlight.shimmer(
+                                highlightColor = Color.DarkGray,
+                            ),
+                            shape = RoundedCornerShape(6.dp),
+                        )
                 ) {
                     Text(text = "Zastávkové jízdní řády")
                 }

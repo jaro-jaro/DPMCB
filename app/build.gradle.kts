@@ -73,7 +73,7 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.5.1")
-    implementation("com.google.android.material:material:1.8.0-beta01")
+    implementation("com.google.android.material:material:1.8.0-rc01")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.5.1")
@@ -166,6 +166,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10")
 
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
+    implementation("com.google.accompanist:accompanist-placeholder-material:0.28.0")
 
     implementation("org.jsoup:jsoup:1.15.1")
 }
