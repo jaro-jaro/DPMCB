@@ -5,6 +5,8 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
+import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +117,7 @@ class DopravaRepository(
             spojeNaMape.find {
                 it.id == repo.idSpoju[spoj.id]
             }
-        } else spojNaMapePodleSpoje(spoj, zastavkySpoje).onEach {
+        } else spojNaMapePodleSpoje(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }).onEach {
             it?.also {
                 repo.idSpoju += spoj.id to it.id
             }
@@ -127,7 +129,7 @@ class DopravaRepository(
 
     fun spojPodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
         if (spoj == null || !repo.idSpoju.containsKey(spoj.id)) flowOf(null to null)
-        else spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
+        else spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI })
             .zip(detailSpoje(repo.idSpoju[spoj.id]!!)) { spojNaMape, detailSpoje ->
                 spojNaMape to detailSpoje
             }
