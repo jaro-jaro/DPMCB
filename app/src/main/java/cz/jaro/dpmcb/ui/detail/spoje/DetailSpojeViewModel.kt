@@ -57,11 +57,11 @@ class DetailSpojeViewModel(
         val prejetychUseku = state.zastavkyNaJihu?.count { it.passed }?.minus(1)?.coerceAtLeast(0) ?: 0
 
         val casOdjezduPosledni = state.zpozdeni?.min?.let { zpozdeni ->
-            state.zastavkyNaJihu?.findLast { it.passed }?.arrivalTime?.toCas()?.plus(zpozdeni)
+            state.zastavkyNaJihu?.findLast { it.passed }?.departureTime?.toCas()?.plus(zpozdeni)
         }
 
         val casPrijezduDoPristi = state.zpozdeni?.min?.let { zpozdeni ->
-            state.zastavkyNaJihu?.find { !it.passed }?.departureTime?.toCas()?.plus(zpozdeni)
+            state.zastavkyNaJihu?.find { !it.passed }?.arrivalTime?.toCas()?.plus(zpozdeni)
         }
 
         val dobaJizdy = casOdjezduPosledni?.let {
