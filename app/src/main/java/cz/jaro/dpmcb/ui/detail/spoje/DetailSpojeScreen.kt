@@ -202,8 +202,6 @@ fun DetailSpojeScreen(
                                 .padding(start = 8.dp),
                             contentDescription = "Poloha spoje"
                         ) {
-                            while (System.currentTimeMillis() % 1_000 > 5L) Unit
-
                             val canvasHeight = size.height
                             val lineWidth = 3.dp.toPx()
                             val lineXOffset = 7.dp.toPx()

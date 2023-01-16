@@ -27,9 +27,9 @@ import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -52,7 +52,7 @@ class DetailSpojeViewModel(
     private val _uiEvent = Channel<UiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    val vyska = _state.zip(Cas.presneTed) { state, ted ->
+    val vyska = _state.combine(Cas.presneTed) { state, ted ->
 
         val prejetychUseku = state.zastavkyNaJihu?.count { it.passed }?.minus(1)?.coerceAtLeast(0) ?: 0
 
@@ -72,7 +72,16 @@ class DetailSpojeViewModel(
             ted.minus(it)
         } ?: 0.sek
 
-        funguj(ted, prejetychUseku, casOdjezduPosledni, casPrijezduDoPristi, dobaJizdy, ubehlo)
+        funguj(
+            ted,
+            prejetychUseku,
+            casOdjezduPosledni,
+            casPrijezduDoPristi,
+            dobaJizdy,
+            ubehlo,
+            (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F),
+            prejetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
+        )
         prejetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
     }
 

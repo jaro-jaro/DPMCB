@@ -6,6 +6,7 @@ import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -45,6 +46,7 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
 
         val presneTed = flow {
             while (currentCoroutineContext().isActive) {
+                delay(500)
                 emit(Calendar.getInstance().let { Cas(it[Calendar.HOUR_OF_DAY], it[Calendar.MINUTE], it[Calendar.SECOND]) })
             }
         }
