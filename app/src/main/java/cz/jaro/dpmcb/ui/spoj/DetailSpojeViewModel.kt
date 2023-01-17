@@ -126,15 +126,4 @@ class DetailSpojeViewModel(
 
     lateinit var spoj: Spoj
 
-//    fun detailKurzu() {
-//        viewModelScope.launch {
-//            _uiEvent.send(
-//                UiEvent.Navigovat(
-//                    DetailKurzuScreenDestination(
-//                        kurz = spoj.nazevKurzu
-//                    )
-//                )
-//            )
-//        }
-//    }
 }
