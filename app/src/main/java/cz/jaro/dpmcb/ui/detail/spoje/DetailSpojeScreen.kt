@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
@@ -117,11 +116,11 @@ fun DetailSpojeScreen(
                 }) {
                     Icon(Icons.Default.Star, "Oblíbené")
                 }
-                Button(onClick = {
-                    viewModel.detailKurzu()
-                }) {
-                    Text("Detail kurzu")
-                }
+//                Button(onClick = {
+//                    viewModel.detailKurzu()
+//                }) {
+//                    Text("Detail kurzu")
+//                }
             }
             Column(
                 modifier = Modifier

@@ -23,7 +23,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.ui.UiEvent
-import cz.jaro.dpmcb.ui.destinations.DetailKurzuScreenDestination
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -127,15 +126,15 @@ class DetailSpojeViewModel(
 
     lateinit var spoj: Spoj
 
-    fun detailKurzu() {
-        viewModelScope.launch {
-            _uiEvent.send(
-                UiEvent.Navigovat(
-                    DetailKurzuScreenDestination(
-                        kurz = spoj.nazevKurzu
-                    )
-                )
-            )
-        }
-    }
+//    fun detailKurzu() {
+//        viewModelScope.launch {
+//            _uiEvent.send(
+//                UiEvent.Navigovat(
+//                    DetailKurzuScreenDestination(
+//                        kurz = spoj.nazevKurzu
+//                    )
+//                )
+//            )
+//        }
+//    }
 }
