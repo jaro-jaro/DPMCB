@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.data.helperclasses
 
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.minus
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.plus
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -28,9 +26,9 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
         }
 
         private fun Int.toCas() = if (this == 362340) nikdy else Cas(
-            h = floorDiv(60 * 60),
-            min = rem(60 * 60).floorDiv(60),
-            s = rem(60 * 60).rem(60),
+            h = div(60 * 60),
+            min = rem(60 * 60).div(60),
+            s = rem(60),
         )
 
         fun String?.toCas() = this
@@ -58,10 +56,10 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
 
     override operator fun compareTo(other: Cas) = toInt().compareTo(other.toInt())
     operator fun minus(other: Cas) = toInt().minus(other.toInt()).sek
-    operator fun minus(other: Trvani) = toInt().minus(other).toCas()
-    operator fun plus(other: Trvani) = toInt().plus(other).toCas()
-    operator fun div(other: Trvani) = toInt().div(other.sek)
-    operator fun rem(other: Trvani) = toInt().rem(other.sek).toCas()
+    operator fun minus(other: Trvani) = toTrvani().minus(other).toCas()
+    operator fun plus(other: Trvani) = toTrvani().plus(other).toCas()
+    operator fun div(other: Trvani) = toTrvani().div(other)
+    operator fun rem(other: Trvani) = toTrvani().rem(other).toCas()
 
     fun toTrvani() = toInt().sek
     private fun toInt() = h * 60 * 60 + min * 60 + s
