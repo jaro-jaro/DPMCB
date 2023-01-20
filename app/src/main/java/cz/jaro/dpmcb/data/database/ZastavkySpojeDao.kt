@@ -108,6 +108,40 @@ interface ZastavkySpojeDao {
     )
     suspend fun findByKurzInExactAndIsJoinSpoj(kurzLike: String, zastavka: String): Map<ZastavkaSpoje, Spoj>
 
+    @Query(
+        """
+            SELECT * FROM zastavkaspoje
+            JOIN (
+                SELECT spoj.* FROM spoj
+                JOIN ( 
+                    SELECT zs.* FROM zastavkaspoje AS zs
+                    WHERE zs.cisloLinky = :cisloLinky
+                    AND zs.upravene = :zastavka1
+                    AND zs.cas = :cas1
+                    AND indexNaLince = :index1
+                ) AS zs1 ON zs1.idSpoje = spoj.id
+                JOIN ( 
+                    SELECT zs.* FROM zastavkaspoje AS zs
+                    WHERE zs.cisloLinky = '9'
+                    AND zs.upravene = :zastavka2
+                    AND zs.cas = :cas2
+                    AND indexNaLince = :index2
+                ) AS zs2 ON zs2.idSpoje = spoj.id
+                LIMIT 1
+            ) AS spoj ON spoj.id = zastavkaspoje.idSpoje
+            ORDER BY zastavkaspoje.indexNaLince
+        """
+    )
+    suspend fun findByLinkaFrstZastavkaZastZastavka(
+        cisloLinky: Int,
+        zastavka1: String,
+        cas1: Cas,
+        index1: Int,
+        zastavka2: String,
+        cas2: Cas,
+        index2: Int,
+    ): Map<ZastavkaSpoje, Spoj>
+
     @Insert
     suspend fun insertAll(vararg zastavkySpoje: ZastavkaSpoje)
 

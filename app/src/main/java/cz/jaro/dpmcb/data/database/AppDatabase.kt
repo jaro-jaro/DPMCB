@@ -11,7 +11,7 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 
-@Database(entities = [Spoj::class, ZastavkaSpoje::class], version = 3)
+@Database(entities = [Spoj::class, ZastavkaSpoje::class], version = 4)
 @TypeConverters(CasConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun spojeDao(): SpojeDao

@@ -6,6 +6,7 @@ import android.media.MediaPlayer
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DepartureBoard
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -21,6 +22,7 @@ import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
+import cz.jaro.dpmcb.ui.destinations.PraveJedouciScreenDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 
 
@@ -53,6 +55,34 @@ enum class SuplikAkce(
             zavrit()
         }
     ),
+    Odjezdy(
+        jmeno = R.string.odjezdy,
+        icon = Icons.Default.DepartureBoard,
+        multiselect = true,
+        onClick = { navController, zavrit, _ ->
+
+            navController.navigate(
+                VybiratorScreenDestination(
+                    typ = TypAdapteru.ZASTAVKY,
+                    cisloLinky = -1,
+                    zastavka = null
+                )
+            )
+            zavrit()
+        }
+    ),
+    PraveJedouci(
+        jmeno = R.string.prave_jedouci,
+        icon = Icons.Default.FastForward,
+        multiselect = true,
+        onClick = { navController, zavrit, _ ->
+
+            navController.navigate(
+                PraveJedouciScreenDestination()
+            )
+            zavrit()
+        }
+    ),
     JizdniRady(
         R.string.jizdni_rady,
         Icons.Default.FormatListNumbered,
@@ -64,22 +94,6 @@ enum class SuplikAkce(
                     typ = TypAdapteru.LINKY,
                     cisloLinky = -1,
                     zastavka = null,
-                )
-            )
-            zavrit()
-        }
-    ),
-    Odjezdy(
-        R.string.odjezdy,
-        Icons.Default.DepartureBoard,
-        true,
-        onClick = { navController, zavrit, _ ->
-
-            navController.navigate(
-                VybiratorScreenDestination(
-                    typ = TypAdapteru.ZASTAVKY,
-                    cisloLinky = -1,
-                    zastavka = null
                 )
             )
             zavrit()

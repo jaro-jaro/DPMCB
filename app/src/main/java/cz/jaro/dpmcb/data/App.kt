@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.ui.detail.spoje.DetailSpojeViewModel
+import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
 import cz.jaro.dpmcb.ui.spojeni.SpojeniViewModel
 import cz.jaro.dpmcb.ui.spojeni.VyhledavacSpojeni
@@ -64,6 +65,9 @@ class App : Application() {
                 }
                 viewModel {
                     DetailSpojeViewModel(it.component1())
+                }
+                viewModel {
+                    PraveJedouciViewModel()
                 }
             })
         }
