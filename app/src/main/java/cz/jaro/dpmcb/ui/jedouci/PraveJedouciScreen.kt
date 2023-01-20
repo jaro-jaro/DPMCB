@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +34,7 @@ fun PraveJedouciScreen(
     App.title = R.string.doprava_na_jihu
 
     Column {
+        Text("Vyberte linku:", modifier = Modifier.padding(bottom = 4.dp, start = 8.dp))
         FlowRow(
             modifier = Modifier
                 .padding(start = 4.dp, end = 4.dp)
@@ -55,6 +57,12 @@ fun PraveJedouciScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp)
         ) {
+            if (seznam.isEmpty() && filtry.isEmpty()) item {
+                Text("Není vybraná žádná linka", modifier = Modifier.padding(all = 8.dp))
+            }
+            if (seznam.isEmpty() && filtry.isNotEmpty()) item {
+                Text("Od vybryných linek právě nic nejede", modifier = Modifier.padding(all = 8.dp))
+            }
             items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
                 Card(
                     modifier = Modifier
@@ -65,8 +73,18 @@ fun PraveJedouciScreen(
                     Column(
                         modifier = Modifier.padding(all = 8.dp)
                     ) {
-                        Text(text = "$cislo -> $cil")
-
+                        Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) {
+                            Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                            Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant))
                         spoje.forEach { spoj ->
                             Row(
                                 modifier = Modifier
@@ -77,8 +95,12 @@ fun PraveJedouciScreen(
                             ) {
                                 Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
                                 Text(
+                                    text = (spoj.pristiZastavka.second).toString(),
+                                )
+                                Text(
                                     text = (spoj.pristiZastavka.second + spoj.zpozdeni.min).toString(),
-                                    color = barvaZpozdeniTextu(spoj.zpozdeni)
+                                    color = barvaZpozdeniTextu(spoj.zpozdeni),
+                                    modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
                         }
