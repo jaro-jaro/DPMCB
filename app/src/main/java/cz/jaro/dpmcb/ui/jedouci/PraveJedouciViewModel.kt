@@ -56,6 +56,7 @@ class PraveJedouciViewModel : ViewModel() {
                 .asFlow()
                 .mapNotNull { (spojNaMape, detailSpoje) ->
                     repo.spojSeZastavkamiPodleJihu(spojNaMape = spojNaMape)?.let { (spoj, zastavky) ->
+                        repo.idSpoju = repo.idSpoju + (spoj.id to spojNaMape.id)
                         JedouciSpoj(
                             cisloLinky = spoj.cisloLinky,
                             spojId = spoj.id,

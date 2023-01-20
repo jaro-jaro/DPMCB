@@ -118,14 +118,16 @@ interface ZastavkySpojeDao {
                     WHERE zs.cisloLinky = :cisloLinky
                     AND zs.upravene = :zastavka1
                     AND zs.cas = :cas1
-                    AND indexNaLince = :index1
+                    AND zs.indexNaLince = :index1
+                    AND zs.nazevKurzu LIKE :kurzLike
                 ) AS zs1 ON zs1.idSpoje = spoj.id
                 JOIN ( 
                     SELECT zs.* FROM zastavkaspoje AS zs
-                    WHERE zs.cisloLinky = '9'
+                    WHERE zs.cisloLinky = :cisloLinky
                     AND zs.upravene = :zastavka2
                     AND zs.cas = :cas2
-                    AND indexNaLince = :index2
+                    AND zs.indexNaLince = :index2
+                    AND zs.nazevKurzu LIKE :kurzLike
                 ) AS zs2 ON zs2.idSpoje = spoj.id
                 LIMIT 1
             ) AS spoj ON spoj.id = zastavkaspoje.idSpoje
@@ -140,6 +142,7 @@ interface ZastavkySpojeDao {
         zastavka2: String,
         cas2: Cas,
         index2: Int,
+        kurzLike: String,
     ): Map<ZastavkaSpoje, Spoj>
 
     @Insert

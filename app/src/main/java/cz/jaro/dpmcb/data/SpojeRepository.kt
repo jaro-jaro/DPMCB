@@ -73,13 +73,14 @@ class SpojeRepository(ctx: Application) {
     val cislaLinek get() = ostatni.linkyAJejichZastavky.keys.toList()
     suspend fun zastavkySpoju() = zastavkySpojeDao.getAll()
     suspend fun spojSeZastavkamiPodleJihu(spojNaMape: SpojNaMape) = zastavkySpojeDao.findByLinkaFrstZastavkaZastZastavka(
-        cisloLinky = spojNaMape.lineNumber!! - 325_000.also { println(it) },
-        zastavka1 = spojNaMape.dep.upravit().also { println(it) },
-        cas1 = spojNaMape.depTime.toCas().also { println(it) },
-        index1 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dep.upravit() }.also { println(it) },
-        zastavka2 = spojNaMape.dest.upravit().also { println(it) },
-        cas2 = spojNaMape.destTime.toCas().also { println(it) },
-        index2 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dest.upravit() }.also { println(it) },
+        cisloLinky = spojNaMape.lineNumber!! - 325_000,
+        zastavka1 = spojNaMape.dep.upravit(),
+        cas1 = spojNaMape.depTime.toCas(),
+        index1 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dep.upravit() },
+        zastavka2 = spojNaMape.dest.upravit(),
+        cas2 = spojNaMape.destTime.toCas(),
+        index2 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dest.upravit() },
+        kurzLike = "${Datum.dnes.typDne.toChar()}%"
     )
         .toList()
         .groupBy({ it.second }, { it.first })
