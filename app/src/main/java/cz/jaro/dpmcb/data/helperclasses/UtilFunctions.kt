@@ -89,6 +89,14 @@ object UtilFunctions {
         }
 
     fun <R> funguj(vararg msg: R?): Unit = run { Log.d("funguj", msg.joinToString()) }
+    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
+        also { UtilFunctions.funguj(this.transform(), *msg) }
+
+    inline fun <reified T : Any?, reified R : Any?> T.funguj(vararg msg: R): T = also { funguj(*msg, transform = { this }) }
+    inline fun <reified T : Any?, reified S : Any?> T.funguj(transform: T.() -> S = { this as S }): T =
+        also { funguj(*emptyArray<Any?>(), transform = transform) }
+
+    inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
         -1 -> "-"

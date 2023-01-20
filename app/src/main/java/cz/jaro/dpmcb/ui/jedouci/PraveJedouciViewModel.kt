@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.toList
 
 class PraveJedouciViewModel : ViewModel() {
@@ -46,7 +47,11 @@ class PraveJedouciViewModel : ViewModel() {
             }
         }
         .flatMapLatest { seznamSpojFlowuu ->
-            combine(seznamSpojFlowuu) { it.asSequence() }
+            combine(seznamSpojFlowuu) {
+                it.asSequence()
+            }.onEmpty {
+                emit(emptySequence())
+            }
         }
         .map { spoje ->
             spoje
@@ -75,7 +80,6 @@ class PraveJedouciViewModel : ViewModel() {
                         .thenBy { it.cilovaZastavka.first }
                         .thenBy { it.pristiZastavka.first }
                 )
-                .also { println(it) }
                 .groupBy { it.cisloLinky to it.cilovaZastavka.first }
                 .map { Triple(it.key.first, it.key.second, it.value) }
         }
