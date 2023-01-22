@@ -146,7 +146,7 @@ fun RadekOdjezdu(
         modifier = Modifier
             .height(32.dp)
     ) {
-        vysledek.forEach { (zastavka, id) ->
+        vysledek.sortedBy { it.first.cas }.forEach { (zastavka, id) ->
             Text(
                 text = zastavka.cas.min.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
@@ -155,7 +155,7 @@ fun RadekOdjezdu(
                     }
                     //.width(32.dp)
                     .padding(4.dp),
-                color =  if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                color = if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
                 fontSize = 20.sp,
                 fontWeight = if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
             )

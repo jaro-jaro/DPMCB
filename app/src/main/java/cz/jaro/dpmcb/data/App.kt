@@ -3,11 +3,12 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.ui.detail.spoje.DetailSpojeViewModel
+import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
 import cz.jaro.dpmcb.ui.spojeni.SpojeniViewModel
 import cz.jaro.dpmcb.ui.spojeni.VyhledavacSpojeni
@@ -28,7 +29,6 @@ class App : Application() {
 
     companion object {
 
-        @delegate:StringRes
         var title by mutableStateOf(R.string.app_name)
 
         lateinit var prefs: SharedPreferences
@@ -62,6 +62,12 @@ class App : Application() {
                 }
                 viewModel {
                     VysledkySpojeniViewModel(it.component1())
+                }
+                viewModel {
+                    DetailSpojeViewModel(it.component1())
+                }
+                viewModel {
+                    PraveJedouciViewModel()
                 }
             })
         }

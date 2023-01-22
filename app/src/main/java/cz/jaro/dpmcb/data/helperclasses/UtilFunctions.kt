@@ -1,6 +1,16 @@
 package cz.jaro.dpmcb.data.helperclasses
 
 import android.util.Log
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltipBox
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
@@ -86,10 +96,55 @@ object UtilFunctions {
         }
 
     fun <R> funguj(vararg msg: R?): Unit = run { Log.d("funguj", msg.joinToString()) }
+    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
+        also { UtilFunctions.funguj(this.transform(), *msg) }
+
+    inline fun <reified T : Any?, reified R : Any?> T.funguj(vararg msg: R): T = also { funguj(*msg, transform = { this }) }
+    inline fun <reified T : Any?, reified S : Any?> T.funguj(transform: T.() -> S = { this as S }): T =
+        also { funguj(*emptyArray<Any?>(), transform = transform) }
+
+    inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
         -1 -> "-"
         1 -> "+"
         else -> ""
+    }
+
+    @Composable
+    fun barvaZpozdeniTextu(zpozdeni: Int) = when {
+        zpozdeni > 5 -> Color.Red
+        zpozdeni > 0 -> Color(0xFFCC6600)
+        else -> Color.Green
+    }
+
+    @Composable
+    fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
+        zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
+        zpozdeni > 0 -> Color(0xFFffddaf)
+        else -> Color(0xFFADF0D8)
+    }
+
+    @Composable
+    fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
+        zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
+        zpozdeni > 0 -> Color(0xFF614000)
+        else -> Color(0xFF015140)
+    }
+
+    fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun IconWithTooltip(
+        imageVector: ImageVector,
+        contentDescription: String?,
+        modifier: Modifier = Modifier,
+        tint: Color = LocalContentColor.current,
+    ) {
+        if (contentDescription != null) PlainTooltipBox(tooltip = { Text(text = contentDescription) }) {
+            Icon(imageVector, contentDescription, modifier, tint)
+        }
+        else Icon(imageVector, null, modifier, tint)
     }
 }

@@ -5,11 +5,9 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
@@ -17,7 +15,9 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.zastavkySpoje
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +25,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 
 class OdjezdyViewModel(
     zastavka: String,
@@ -37,8 +37,9 @@ class OdjezdyViewModel(
     private val _state = MutableStateFlow(
         OdjezdyState(
             zacatek = cas.toCas(),
-            konec = cas.toCas() + doba,
-            zastavka = zastavka
+            konec = cas.toCas() + doba.min,
+            zastavka = zastavka,
+            indexScrollovani = Int.MAX_VALUE / 2
         )
     )
     val state = _state.asStateFlow()
@@ -50,19 +51,19 @@ class OdjezdyViewModel(
         when (event) {
             is OdjezdyEvent.ZmensitCas -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek - 5)
+                    it.copy(zacatek = it.zacatek - 5.min)
                 }
             }
 
             is OdjezdyEvent.ZvetsitCas -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek + 5)
+                    it.copy(zacatek = it.zacatek + 5.min)
                 }
             }
 
             is OdjezdyEvent.ZmenitCas -> {
                 _state.update {
-                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba)
+                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba.min)
                 }
             }
 
@@ -94,13 +95,13 @@ class OdjezdyViewModel(
 
             is OdjezdyEvent.NacistDalsi -> {
                 _state.update {
-                    it.copy(konec = it.konec + doba)
+                    it.copy(konec = it.konec + doba.min)
                 }
             }
 
             is OdjezdyEvent.NacistPredchozi -> {
                 _state.update {
-                    it.copy(zacatek = it.zacatek - doba)
+                    it.copy(zacatek = it.zacatek - doba.min)
                 }
             }
         }
@@ -121,68 +122,61 @@ class OdjezdyViewModel(
         val zacatek: Cas,
         val konec: Cas,
         val zastavka: String,
-        val seznam: List<KartickaState> = emptyList(),
+        val seznam: List<Deferred<KartickaState>> = emptyList(),
         val nacitaSe: Boolean = false,
+        val indexScrollovani: Int,
     )
 
-    suspend fun nacistDalsi(typDne: UtilFunctions.VDP) = supervisorScope {
-        _state.update {
-            it.copy(nacitaSe = true)
-        }
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.typDne.zip(state) { typDne, state -> typDne to state }
+                .collect { (typDne, state) ->
+                    println("Collecting!")
 
-        launch(Dispatchers.IO) {
-            val spojeAZastavky = List(state.value.konec.toInt() / (24 * 60) + 1) { i ->
-                val z = when (i) {
-                    0 -> state.value.zacatek
-                    else -> 0 cas 0
+                    val spojeAZastavky = repo
+                        .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.zastavka)
+                        .flatMap { (spoj, zastavkySpoje) ->
+                            zastavkySpoje.vsechnyIndexy(state.zastavka).map { index ->
+                                spoj to zastavkySpoje[index]
+                            }
+                        }
+                        .sortedBy { (_, zast) ->
+                            zast.cas
+                        }
+                    println(spojeAZastavky)
+
+                    val indexScrollovani = spojeAZastavky.indexOfFirst { (_, zast) ->
+                        zast.cas >= state.zacatek
+                    } + ((Int.MAX_VALUE / 2) / spojeAZastavky.size) * spojeAZastavky.size
+                    println(indexScrollovani)
+
+                    _state.update { odjezdyState ->
+                        odjezdyState.copy(
+                            seznam = spojeAZastavky.map { (spoj, zastavka) ->
+                                async {
+                                    val index = zastavka.indexNaLince
+                                    val zastavky = spoj.zastavkySpoje()
+                                    val poslZast = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
+                                    val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky)
+
+                                    KartickaState(
+                                        konecna = poslZast.nazevZastavky,
+                                        cisloLinky = spoj.cisloLinky,
+                                        cas = zastavka.cas,
+                                        JePosledniZastavka = zastavky.indexOf(poslZast) == index,
+                                        pristiZastavka = zastavky.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
+                                        idSpoje = spoj.id,
+                                        nizkopodlaznost = spoj.nizkopodlaznost,
+                                        zpozdeni = spojNaMape.map { it?.delay },
+                                    )
+                                }
+                            }/*.awaitAll()*/,
+                            nacitaSe = false,
+                            indexScrollovani = indexScrollovani
+                        )
+                    }
+                    println("state updated")
                 }
-                val k = when (i) {
-                    (state.value.konec.toInt() / (24 * 60)) -> (state.value.konec.toInt() % (24 * 60)).toCas()
-                    else -> 23 cas 59
-                }
-                funguj(z, k)
-
-                repo
-                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.value.zastavka).also { funguj(it) }
-                    .map { (spoj, zastavkySpoje) ->
-                        (spoj to zastavkySpoje) to zastavkySpoje.vsechnyIndexy(state.value.zastavka)
-                    }.also { funguj(it) }
-                    .flatMap { (spojSeZastavkami, indexy) ->
-                        indexy.map { spojSeZastavkami to it }
-                    }.also { funguj(it) }
-                    .map { (spojSeZastavkami, index) ->
-                        spojSeZastavkami.first to spojSeZastavkami.second[index]
-                    }.also { funguj(it) }
-                    .filter { (_, zast) ->
-                        zast.also { funguj(it) }.run { cas != Cas.nikdy && z <= cas && cas <= k }
-                    }.also { funguj(it) }
-                    .sortedBy { (_, zast) ->
-                        zast.cas.toInt()
-                    }.also { funguj(it) }
-            }.flatten()
-
-            funguj(spojeAZastavky)
-
-            _state.update { odjezdyState ->
-                odjezdyState.copy(seznam = spojeAZastavky.map { (spoj, zastavka) ->
-
-                    val index = zastavka.indexNaLince
-                    val zastavky = spoj.zastavkySpoje()
-                    val poslZast = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
-                    val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky)
-
-                    KartickaState(
-                        konecna = poslZast.nazevZastavky,
-                        cisloLinky = spoj.cisloLinky,
-                        cas = zastavka.cas,
-                        JePosledniZastavka = zastavky.indexOf(poslZast) == index,
-                        pristiZastavka = zastavky.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
-                        idSpoje = spoj.id,
-                        nizkopodlaznost = spoj.nizkopodlaznost,
-                        zpozdeni = spojNaMape.map { it?.delay }
-                    )
-                }, nacitaSe = false)
-            }
         }
     }
 }
