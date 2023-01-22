@@ -1,9 +1,16 @@
 package cz.jaro.dpmcb.data.helperclasses
 
 import android.util.Log
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltipBox
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
@@ -126,4 +133,18 @@ object UtilFunctions {
     }
 
     fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun IconWithTooltip(
+        imageVector: ImageVector,
+        contentDescription: String?,
+        modifier: Modifier = Modifier,
+        tint: Color = LocalContentColor.current,
+    ) {
+        if (contentDescription != null) PlainTooltipBox(tooltip = { Text(text = contentDescription) }) {
+            Icon(imageVector, contentDescription, modifier, tint)
+        }
+        else Icon(imageVector, null, modifier, tint)
+    }
 }
