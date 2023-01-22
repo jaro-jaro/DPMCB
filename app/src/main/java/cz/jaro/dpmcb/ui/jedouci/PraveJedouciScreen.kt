@@ -64,7 +64,7 @@ fun PraveJedouciScreen(
                 Text("Od vybryných linek právě nic nejede", modifier = Modifier.padding(all = 8.dp))
             }
             items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
-                Card(
+                OutlinedCard(
                     modifier = Modifier
                         .animateItemPlacement()
                         .padding(all = 8.dp)
@@ -81,10 +81,12 @@ fun PraveJedouciScreen(
                             Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
                             Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
                         }
-                        Box(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(MaterialTheme.colorScheme.onSurface)
+                        )
                         spoje.forEach { spoj ->
                             Row(
                                 modifier = Modifier
