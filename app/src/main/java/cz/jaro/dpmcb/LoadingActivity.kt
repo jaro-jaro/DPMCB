@@ -105,7 +105,9 @@ class LoadingActivity : AppCompatActivity() {
                 if (intent.getBooleanExtra("update", false) || repo.verze == -1) {
                     stahnoutNoveJizdniRady()
                 }
-            } catch (_: Exception) {
+                repo.spoj(0)
+            } catch (e: Exception) {
+                e.printStackTrace()
                 var lock = true
                 MaterialAlertDialogBuilder(this@LoadingActivity).apply {
                     setTitle("Chyba!")

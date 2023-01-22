@@ -22,7 +22,6 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
@@ -92,7 +92,7 @@ fun DetailSpojeScreen(
                     .padding(8.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Linka ${state.cisloLinky}")
-                Icon(
+                IconWithTooltip(
                     state.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
                 if (state.zpozdeni != null) Badge(
@@ -114,7 +114,7 @@ fun DetailSpojeScreen(
                         repo.odebratOblibeny(spojId)
                     }
                 }) {
-                    Icon(Icons.Default.Star, "Oblíbené")
+                    IconWithTooltip(Icons.Default.Star, "Oblíbené")
                 }
 //                Button(onClick = {
 //                    viewModel.detailKurzu()

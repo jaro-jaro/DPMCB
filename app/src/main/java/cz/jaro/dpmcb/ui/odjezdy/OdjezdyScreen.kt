@@ -38,6 +38,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
@@ -101,7 +102,7 @@ fun OdjezdyScreen(
                     viewModel.poslatEvent(OdjezdyEvent.ZmensitCas)
                 },
             ) {
-                Icon(
+                IconWithTooltip(
                     imageVector = Icons.Default.Remove,
                     contentDescription = ""
                 )
@@ -150,7 +151,7 @@ fun OdjezdyScreen(
                     viewModel.poslatEvent(OdjezdyEvent.ZvetsitCas)
                 },
             ) {
-                Icon(
+                IconWithTooltip(
                     imageVector = Icons.Default.Add,
                     contentDescription = ""
                 )
@@ -302,7 +303,7 @@ private fun Karticka(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
+                IconWithTooltip(
                     imageVector = when {
                         kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
                         else -> Icons.Default.NotAccessible

@@ -5,19 +5,21 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.Room
+import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
+import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -42,7 +44,7 @@ class SpojeRepository(ctx: Application) {
             ostatniField = value
         }
 
-    private lateinit var db: AppDatabase
+    private val db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
 
     private val _typDne = MutableStateFlow(Datum.dnes.typDne)
     val typDne = _typDne.asStateFlow()
@@ -52,12 +54,6 @@ class SpojeRepository(ctx: Application) {
 
     private val _oblibene = MutableStateFlow(ostatni.oblibene)
     val oblibene = _oblibene.asStateFlow()
-
-    init {
-        coroutineScope.launch {
-            db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
-        }
-    }
 
     private val spojeDao get() = db.spojeDao()
 
@@ -76,6 +72,21 @@ class SpojeRepository(ctx: Application) {
     val historieVyhledavani get() = ostatni.historieVyhledavani
     val cislaLinek get() = ostatni.linkyAJejichZastavky.keys.toList()
     suspend fun zastavkySpoju() = zastavkySpojeDao.getAll()
+    suspend fun spojSeZastavkamiPodleJihu(spojNaMape: SpojNaMape) = zastavkySpojeDao.findByLinkaFrstZastavkaZastZastavka(
+        cisloLinky = spojNaMape.lineNumber!! - 325_000,
+        zastavka1 = spojNaMape.dep.upravit(),
+        cas1 = spojNaMape.depTime.toCas(),
+        index1 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dep.upravit() },
+        zastavka2 = spojNaMape.dest.upravit(),
+        cas2 = spojNaMape.destTime.toCas(),
+        index2 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dest.upravit() },
+        kurzLike = "${Datum.dnes.typDne.toChar()}%"
+    )
+        .toList()
+        .groupBy({ it.second }, { it.first })
+        .toList()
+        .firstOrNull()
+
     suspend fun spojeJedouciVTypDne(typDne: VDP) = spojeDao.findByKurzInExact("${typDne.toChar()}%")
     suspend fun spojeJedouciVTypDneSeZastavkySpoju(typDne: VDP) =
         zastavkySpojeDao.findByKurzInExactJoinSpoj("${typDne.toChar()}%")
@@ -129,7 +140,6 @@ class SpojeRepository(ctx: Application) {
     }
 
     fun odstranitSpojeAJejichZastavky() {
-        while (!::db.isInitialized) Unit
         db.clearAllTables()
     }
 

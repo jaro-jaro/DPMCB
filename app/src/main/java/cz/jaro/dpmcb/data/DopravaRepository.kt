@@ -111,6 +111,18 @@ class DopravaRepository(
                 }
         }
 
+    fun spojeNaMape() =
+        seznamSpojuKterePraveJedou().map { spojeNaMape ->
+            spojeNaMape.filter {
+                it.id.drop(2).startsWith("325")
+            }
+        }
+
+    private fun spojNaMapePodleId(id: String) =
+        spojeNaMape().map { spojeNaMape ->
+            spojeNaMape.find { it.id == id }
+        }
+
     fun spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
         if (spoj == null) flowOf(null)
         else if (repo.idSpoju.containsKey(spoj.id)) seznamSpojuKterePraveJedou().map { spojeNaMape ->
@@ -134,4 +146,8 @@ class DopravaRepository(
                 spojNaMape to detailSpoje
             }
 
+    fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
+        spojNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+            spojNaMape to detailSpoje
+        }
 }
