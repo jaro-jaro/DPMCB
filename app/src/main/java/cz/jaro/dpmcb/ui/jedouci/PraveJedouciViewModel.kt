@@ -23,6 +23,9 @@ class PraveJedouciViewModel : ViewModel() {
     private val _filtry = MutableStateFlow(emptyList<Int>())
     val filtry = _filtry.asStateFlow()
 
+    private val _nacitaSe = MutableStateFlow(false)
+    val nacitaSe = _nacitaSe.asStateFlow()
+
     fun upravitFiltry(upravit: MutableList<Int>.() -> Unit) {
         _filtry.value = buildList {
             addAll(filtry.value)
@@ -66,21 +69,31 @@ class PraveJedouciViewModel : ViewModel() {
                             cisloLinky = spoj.cisloLinky,
                             spojId = spoj.id,
                             cilovaZastavka = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().let { it.nazevZastavky to it.cas },
-                            pristiZastavka = zastavky.find { zastavka ->
-                                zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
-                                        && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
-                            }?.let { it.nazevZastavky to it.cas } ?: return@mapNotNull null,
+                            pristiZastavka = zastavky
+                                .find { zastavka ->
+                                    zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
+                                            && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
+                                }
+                                ?.let { it.nazevZastavky to it.cas }
+                                ?: return@mapNotNull null,
                             zpozdeni = spojNaMape.delay,
-                            indexNaLince = zastavky.find { zastavka ->
-                                zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
-                                        && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
-                            }?.indexNaLince ?: return@mapNotNull null,
+                            indexNaLince = zastavky
+                                .sortedBy { it.indexNaLince }
+                                .reversedIf { spoj.smer == Smer.NEGATIVNI }
+                                .indexOfFirst { zastavka ->
+                                    zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
+                                            && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
+                                }
+                                .takeUnless { it == -1 }
+                                ?: return@mapNotNull null,
+                            smer = spoj.smer
                         )
                     }
                 }
                 .toList()
                 .sortedWith(
                     compareBy<JedouciSpoj> { it.cisloLinky }
+                        .thenBy { it.smer }
                         .thenBy { it.indexNaLince }
                         .thenBy { it.pristiZastavka.second }
                 )
@@ -97,5 +110,6 @@ class PraveJedouciViewModel : ViewModel() {
         val pristiZastavka: Pair<String, Cas>,
         val zpozdeni: Int,
         val indexNaLince: Int,
+        val smer: Smer,
     )
 }
