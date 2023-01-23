@@ -99,7 +99,7 @@ class PraveJedouciViewModel : ViewModel() {
                     compareBy<JedouciSpoj> { it.cisloLinky }
                         .thenBy { it.smer }
                         .thenBy { it.indexNaLince }
-                        .thenBy { it.pristiZastavka.second }
+                        .thenByDescending { it.pristiZastavka.second }
                 )
                 .groupBy { it.cisloLinky to it.cilovaZastavka.first }
                 .map { Triple(it.key.first, it.key.second, it.value) }
