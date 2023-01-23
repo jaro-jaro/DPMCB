@@ -30,6 +30,7 @@ fun PraveJedouciScreen(
     val cislaLinek = viewModel.cislaLinek
     val seznam by viewModel.seznam.collectAsState(initial = emptyList())
     val filtry by viewModel.filtry.collectAsState()
+    val nacitaSe by viewModel.nacitaSe.collectAsState()
 
     App.title = R.string.doprava_na_jihu
 
@@ -61,7 +62,10 @@ fun PraveJedouciScreen(
                 Text("Není vybraná žádná linka", modifier = Modifier.padding(all = 8.dp))
             }
             if (seznam.isEmpty() && filtry.isNotEmpty()) item {
-                Text("Od vybryných linek právě nic nejede", modifier = Modifier.padding(all = 8.dp))
+                Text(
+                    if (nacitaSe) "Načítání..." else "Od vybryných linek právě nic nejede",
+                    modifier = Modifier.padding(all = 8.dp)
+                )
             }
             items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
                 OutlinedCard(

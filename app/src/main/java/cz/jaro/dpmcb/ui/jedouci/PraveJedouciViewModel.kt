@@ -36,6 +36,7 @@ class PraveJedouciViewModel : ViewModel() {
     @OptIn(ExperimentalCoroutinesApi::class)
     val seznam = dopravaRepo.spojeNaMape()
         .combine(filtry) { spojeNaMape, filtry ->
+            _nacitaSe.value = true
             spojeNaMape
                 .filter {
                     it.lineNumber?.minus(325_000) in filtry
@@ -102,6 +103,7 @@ class PraveJedouciViewModel : ViewModel() {
                 )
                 .groupBy { it.cisloLinky to it.cilovaZastavka.first }
                 .map { Triple(it.key.first, it.key.second, it.value) }
+                .also { _nacitaSe.value = false }
         }
 
     val cislaLinek = repo.cislaLinek
