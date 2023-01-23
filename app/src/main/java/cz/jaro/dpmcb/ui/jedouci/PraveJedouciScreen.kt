@@ -63,7 +63,7 @@ fun PraveJedouciScreen(
             }
             if (seznam.isEmpty() && filtry.isNotEmpty()) item {
                 Text(
-                    if (nacitaSe) "Načítání..." else "Od vybryných linek právě nic nejede",
+                    if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede",
                     modifier = Modifier.padding(all = 8.dp)
                 )
             }
