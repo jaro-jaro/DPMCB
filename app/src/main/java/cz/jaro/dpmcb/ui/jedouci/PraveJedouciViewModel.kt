@@ -70,15 +70,19 @@ class PraveJedouciViewModel : ViewModel() {
                                 zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
                                         && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
                             }?.let { it.nazevZastavky to it.cas } ?: return@mapNotNull null,
-                            zpozdeni = spojNaMape.delay
+                            zpozdeni = spojNaMape.delay,
+                            indexNaLince = zastavky.find { zastavka ->
+                                zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
+                                        && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
+                            }?.indexNaLince ?: return@mapNotNull null,
                         )
                     }
                 }
                 .toList()
                 .sortedWith(
                     compareBy<JedouciSpoj> { it.cisloLinky }
-                        .thenBy { it.cilovaZastavka.first }
-                        .thenBy { it.pristiZastavka.first }
+                        .thenBy { it.indexNaLince }
+                        .thenBy { it.pristiZastavka.second }
                 )
                 .groupBy { it.cisloLinky to it.cilovaZastavka.first }
                 .map { Triple(it.key.first, it.key.second, it.value) }
@@ -92,5 +96,6 @@ class PraveJedouciViewModel : ViewModel() {
         val cilovaZastavka: Pair<String, Cas>,
         val pristiZastavka: Pair<String, Cas>,
         val zpozdeni: Int,
+        val indexNaLince: Int,
     )
 }
