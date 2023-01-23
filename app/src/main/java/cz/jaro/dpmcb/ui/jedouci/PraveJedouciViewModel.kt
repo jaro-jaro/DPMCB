@@ -68,7 +68,10 @@ class PraveJedouciViewModel : ViewModel() {
                         JedouciSpoj(
                             cisloLinky = spoj.cisloLinky,
                             spojId = spoj.id,
-                            cilovaZastavka = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last().let { it.nazevZastavky to it.cas },
+                            cilovaZastavka = zastavky
+                                .reversedIf { spoj.smer == Smer.NEGATIVNI }
+                                .last { it.cas != Cas.nikdy }
+                                .let { it.nazevZastavky to it.cas },
                             pristiZastavka = zastavky
                                 .find { zastavka ->
                                     zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
