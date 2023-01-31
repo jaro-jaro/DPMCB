@@ -49,7 +49,7 @@ class App : Application() {
             modules(module {
 
                 viewModel {
-                    OdjezdyViewModel(it.component1(), it.component2(), it.component3())
+                    OdjezdyViewModel(it.component1(), it.component2())
                 }
                 viewModel {
                     JizdniRadyViewModel(it.component1(), it.component2(), it.component3())

@@ -31,7 +31,7 @@ class PraveJedouciViewModel : ViewModel() {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val seznam = dopravaRepo.spojeNaMape()
+    val seznam = dopravaRepo.spojeDPMCBNaMape()
         .combine(filtry) { spojeNaMape, filtry ->
             spojeNaMape
                 .filter {

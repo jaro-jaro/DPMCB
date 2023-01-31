@@ -142,7 +142,7 @@ fun DetailSpojeScreen(
                                         .clickable {
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
-                                                    cas = it.cas.toString(),
+                                                    cas = it.cas,
                                                     zastavka = it.nazevZastavky,
                                                 )
                                             )
@@ -158,7 +158,7 @@ fun DetailSpojeScreen(
                                         .clickable {
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
-                                                    cas = it.cas.toString(),
+                                                    cas = it.cas,
                                                     zastavka = it.nazevZastavky,
                                                 )
                                             )
@@ -177,7 +177,7 @@ fun DetailSpojeScreen(
                                             .clickable {
                                                 navigator.navigate(
                                                     OdjezdyScreenDestination(
-                                                        cas = zastavka.cas.toString(),
+                                                        cas = zastavka.cas,
                                                         zastavka = zastavka.nazevZastavky,
                                                     )
                                                 )

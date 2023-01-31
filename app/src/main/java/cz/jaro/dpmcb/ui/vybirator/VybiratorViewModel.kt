@@ -101,7 +101,6 @@ class VybiratorViewModel(
                 UiEvent.Navigovat(
                     OdjezdyScreenDestination(
                         zastavka = vysledek,
-                        cas = null,
                     )
                 )
             )
