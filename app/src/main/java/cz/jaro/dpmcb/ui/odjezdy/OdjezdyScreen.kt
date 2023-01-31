@@ -15,8 +15,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,11 +35,15 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
@@ -58,7 +62,13 @@ fun OdjezdyScreen(
 
     val state by viewModel.state.collectAsState()
 
+    val listState = rememberLazyListState(state.indexScrollovani)
+
     LaunchedEffect(Unit) {
+        viewModel.scrollovat = {
+            UtilFunctions.funguj("SKRÓLUJU")
+            listState.scrollToItem(state.indexScrollovani)
+        }
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is UiEvent.Navigovat -> {
@@ -70,10 +80,12 @@ fun OdjezdyScreen(
         }
     }
 
-    val listState = rememberLazyListState(state.indexScrollovani)
-
-    LaunchedEffect(state.indexScrollovani) {
-        listState.scrollToItem(state.indexScrollovani)
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .flowOn(Dispatchers.IO)
+            .collect {
+                viewModel.scrolluje(it)
+            }
     }
 
     if (state.nacitaSe) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -206,9 +218,7 @@ private fun Karticka(
                 Text(
                     text = "${kartickaState?.cas ?: "??:??"}"
                 )
-                val zpozdeni by produceState(null as Int?) {
-                    value = kartickaState?.zpozdeni?.await()
-                }
+                val zpozdeni by (kartickaState?.zpozdeni ?: flowOf(null)).collectAsState(null)
 
                 if (zpozdeni != null && kartickaState != null) Text(
                     text = "${kartickaState.cas + zpozdeni!!.min}",

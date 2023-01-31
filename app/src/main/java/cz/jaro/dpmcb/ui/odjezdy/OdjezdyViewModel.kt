@@ -24,12 +24,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OdjezdyViewModel(
     val zastavka: String,
     cas: Cas = Cas.ted,
 ) : ViewModel() {
+
+    lateinit var scrollovat: suspend () -> Unit
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _state = MutableStateFlow(OdjezdyState(cas = cas))
@@ -116,10 +119,17 @@ class OdjezdyViewModel(
                 } + ((Int.MAX_VALUE / 2) / it.seznam.size) * it.seznam.size
             )
         }
+        viewModelScope.launch(Dispatchers.Main) {
+            scrollovat()
+        }
     }
 
     fun scrolluje(i: Int) {
-        _state
+        _state.update {
+            it.copy(
+                indexScrollovani = i
+            )
+        }
     }
 
     data class KartickaState(
@@ -149,6 +159,9 @@ class OdjezdyViewModel(
                         zast.cas >= cas
                     } + ((Int.MAX_VALUE / 2) / it.seznam.size) * it.seznam.size
                 )
+            }
+            withContext(Dispatchers.Main) {
+                scrollovat()
             }
         }
     }
