@@ -16,6 +16,7 @@ import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import kotlinx.coroutines.flow.Flow
 import java.util.Calendar
 import kotlin.math.sign
 
@@ -147,4 +148,8 @@ object UtilFunctions {
         }
         else Icon(imageVector, null, modifier, tint)
     }
+
+    inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
+        kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
+
 }

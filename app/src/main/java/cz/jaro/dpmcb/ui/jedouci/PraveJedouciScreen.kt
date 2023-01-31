@@ -20,7 +20,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 @Destination
 fun PraveJedouciScreen(
@@ -30,6 +30,7 @@ fun PraveJedouciScreen(
     val cislaLinek = viewModel.cislaLinek
     val seznam by viewModel.seznam.collectAsState(initial = emptyList())
     val filtry by viewModel.filtry.collectAsState()
+    val nacitaSe by viewModel.nacitaSe.collectAsState()
 
     App.title = R.string.doprava_na_jihu
 
@@ -61,17 +62,26 @@ fun PraveJedouciScreen(
                 Text("Není vybraná žádná linka", modifier = Modifier.padding(all = 8.dp))
             }
             if (seznam.isEmpty() && filtry.isNotEmpty()) item {
-                Text("Od vybryných linek právě nic nejede", modifier = Modifier.padding(all = 8.dp))
+                Text(
+                    if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede",
+                    modifier = Modifier.padding(all = 8.dp)
+                )
             }
             items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
                 OutlinedCard(
                     modifier = Modifier
                         .animateItemPlacement()
                         .padding(all = 8.dp)
-                        .animateItemPlacement()
+                        .animateItemPlacement(),
+                    onClick = {
+                        if (spoje.size == 1) {
+                            navigator.navigate(DetailSpojeScreenDestination(spojId = spoje.first().spojId))
+                        }
+                    }
                 ) {
                     Column(
-                        modifier = Modifier.padding(all = 8.dp)
+                        modifier = Modifier
+                            .padding(all = 8.dp)
                     ) {
                         Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                         Row(
