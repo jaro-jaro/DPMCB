@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
+import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
@@ -40,6 +42,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
+import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -271,6 +274,185 @@ private fun Karticka(
                         )
                 ) {
                     Text(text = "Zastávkové jízdní řády")
+                }
+            }
+        }
+    }
+}
+
+
+@Preview(uiMode = UI_MODE_NIGHT_YES, device = "spec:width=1080px,height=2340px,dpi=480")
+@Composable
+fun Prev() {
+    DPMCBTheme {
+        Surface(
+            modifier = Modifier
+                .padding(16.dp)
+        ) {
+            Column {
+
+                OutlinedCard(
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .fillMaxWidth()
+
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconWithTooltip(
+                                imageVector = Icons.Default.Accessible,
+                                contentDescription = "Invalidní vozík",
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 8.dp),
+                                text = "9",
+                                fontSize = 30.sp
+                            )
+                            Text(
+                                modifier = Modifier,
+                                text = " -> ",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .weight(1F),
+                                text = "Suché Vrbné",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "14:19"
+                            )
+                            Text(
+                                text = "14:29",
+                                modifier = Modifier.padding(start = 8.dp),
+                                color = barvaZpozdeniTextu(zpozdeni = 10)
+                            )
+                        }
+                        Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .weight(1F),
+                                text = "Poliklinika Sever",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "14:25",
+                                color = barvaZpozdeniTextu(zpozdeni = 10)
+                            )
+                        }
+                    }
+                }
+                OutlinedCard(
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .fillMaxWidth()
+
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconWithTooltip(
+                                imageVector = Icons.Default.Accessible,
+                                contentDescription = "Invalidní vozík",
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 8.dp),
+                                text = "9",
+                                fontSize = 30.sp
+                            )
+                            Text(
+                                modifier = Modifier,
+                                text = " -> ",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .weight(1F),
+                                text = "Vltava",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "14:10"
+                            )
+                            Text(
+                                text = "14:10",
+                                modifier = Modifier.padding(start = 8.dp),
+                                color = barvaZpozdeniTextu(zpozdeni = 0)
+                            )
+                        }
+                        Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                modifier = Modifier
+                                    .weight(1F),
+                                text = "Nádraží",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "14:01",
+                                color = barvaZpozdeniTextu(zpozdeni = 0)
+                            )
+                        }
+                    }
+                }
+                OutlinedCard(
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .fillMaxWidth()
+
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            IconWithTooltip(
+                                imageVector = Icons.Default.Accessible,
+                                contentDescription = "Invalidní vozík",
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 8.dp),
+                                text = "10",
+                                fontSize = 30.sp
+                            )
+                            Text(
+                                modifier = Modifier,
+                                text = " -> ",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .weight(1F),
+                                text = "Na děkanských polích",
+                                fontSize = 20.sp
+                            )
+                            Text(
+                                text = "15:00"
+                            )
+                        }
+                    }
                 }
             }
         }
