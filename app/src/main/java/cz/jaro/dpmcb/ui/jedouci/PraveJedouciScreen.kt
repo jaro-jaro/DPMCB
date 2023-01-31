@@ -20,7 +20,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 @Destination
 fun PraveJedouciScreen(
@@ -72,10 +72,16 @@ fun PraveJedouciScreen(
                     modifier = Modifier
                         .animateItemPlacement()
                         .padding(all = 8.dp)
-                        .animateItemPlacement()
+                        .animateItemPlacement(),
+                    onClick = {
+                        if (spoje.size == 1) {
+                            navigator.navigate(DetailSpojeScreenDestination(spojId = spoje.first().spojId))
+                        }
+                    }
                 ) {
                     Column(
-                        modifier = Modifier.padding(all = 8.dp)
+                        modifier = Modifier
+                            .padding(all = 8.dp)
                     ) {
                         Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                         Row(
