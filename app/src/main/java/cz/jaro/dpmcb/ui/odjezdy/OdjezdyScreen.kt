@@ -3,6 +3,8 @@ package cz.jaro.dpmcb.ui.odjezdy
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -50,7 +52,7 @@ import kotlinx.coroutines.flow.flowOn
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalFoundationApi::class)
 @Destination
 @Composable
 fun OdjezdyScreen(
@@ -114,7 +116,6 @@ fun OdjezdyScreen(
                         val ll = LinearLayout(context)
 
                         val tp = android.widget.TimePicker(context)
-                        //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
                         tp.layoutParams = LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -157,7 +158,11 @@ fun OdjezdyScreen(
                             if (state.nacitaSe || state.seznam.isEmpty()) null else state.seznam[i % state.seznam.size]
                         }
                     }
-                    Karticka(karticka, viewModel::kliklNaDetailSpoje, viewModel::kliklNaZjr)
+                    Karticka(
+                        karticka, viewModel::kliklNaDetailSpoje, modifier = Modifier
+                            .animateContentSize()
+                            .animateItemPlacement()
+                    )
                 }
             )
         }
@@ -171,7 +176,7 @@ private fun Modifier.applyIf(apply: Boolean, block: Modifier.() -> Modifier) = i
 private fun Karticka(
     kartickaState: KartickaState?,
     detailSpoje: (KartickaState) -> Unit,
-    zjr: (KartickaState) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
 
     OutlinedCard(
@@ -179,20 +184,20 @@ private fun Karticka(
             if (kartickaState == null) return@OutlinedCard
             detailSpoje(kartickaState)
         },
-        modifier = Modifier
+        modifier = modifier
             .padding(bottom = 8.dp)
-
     ) {
         Column(
             modifier = Modifier
-                .padding(all = 8.dp)
+                .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
         ) {
+            val nasledujiciZastavka by (kartickaState?.aktualniNasledujiciZastavka ?: flowOf(null))
+                .collectAsState(null)
+            val zpozdeni by (kartickaState?.zpozdeni ?: flowOf(null)).collectAsState(null)
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .applyIf(kartickaState == null) {
-                        padding(all = 8.dp)
-                    }
                     .placeholder(
                         visible = kartickaState == null,
                         color = Color.Gray,
@@ -201,9 +206,19 @@ private fun Karticka(
                         ),
                         shape = RoundedCornerShape(6.dp),
                     )
+                    .applyIf(kartickaState == null) {
+                        padding(all = 8.dp)
+                    }
             ) {
+                IconWithTooltip(
+                    imageVector = when {
+                        kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
+                        else -> Icons.Default.NotAccessible
+                    },
+                    contentDescription = "Invalidní vozík",
+                )
                 Text(
-                    modifier = Modifier,
+                    modifier = Modifier.padding(start = 8.dp),
                     text = kartickaState?.cisloLinky?.toString() ?: "?",
                     fontSize = 30.sp
                 )
@@ -221,30 +236,18 @@ private fun Karticka(
                 Text(
                     text = "${kartickaState?.cas ?: "??:??"}"
                 )
-                val zpozdeni by (kartickaState?.zpozdeni ?: flowOf(null)).collectAsState(null)
-
                 if (zpozdeni != null && kartickaState != null) Text(
                     text = "${kartickaState.cas + zpozdeni!!.min}",
                     color = barvaZpozdeniTextu(zpozdeni!!),
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconWithTooltip(
-                    imageVector = when {
-                        kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
-                        else -> Icons.Default.NotAccessible
-                    },
-                    contentDescription = "Invalidní vozík",
+
+            if (nasledujiciZastavka != null && zpozdeni != null) {
+                Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
+                Row(
                     modifier = Modifier
-                        .applyIf(kartickaState == null) {
-                            padding(all = 8.dp)
-                        }
+                        .fillMaxWidth()
                         .placeholder(
                             visible = kartickaState == null,
                             color = Color.Gray,
@@ -253,27 +256,20 @@ private fun Karticka(
                             ),
                             shape = RoundedCornerShape(6.dp),
                         )
-                )
-                TextButton(
-                    onClick = {
-                        if (kartickaState == null) return@TextButton
-                        zjr(kartickaState)
-                    },
-                    enabled = kartickaState?.jePosledniZastavka == false,
-                    modifier = Modifier
                         .applyIf(kartickaState == null) {
                             padding(all = 8.dp)
                         }
-                        .placeholder(
-                            visible = kartickaState == null,
-                            color = Color.Gray,
-                            highlight = PlaceholderHighlight.shimmer(
-                                highlightColor = Color.DarkGray,
-                            ),
-                            shape = RoundedCornerShape(6.dp),
-                        )
                 ) {
-                    Text(text = "Zastávkové jízdní řády")
+                    Text(
+                        modifier = Modifier
+                            .weight(1F),
+                        text = nasledujiciZastavka!!.nazevZastavky,
+                        fontSize = 20.sp
+                    )
+                    Text(
+                        text = nasledujiciZastavka!!.cas.toString(),
+                        color = barvaZpozdeniTextu(zpozdeni!!)
+                    )
                 }
             }
         }

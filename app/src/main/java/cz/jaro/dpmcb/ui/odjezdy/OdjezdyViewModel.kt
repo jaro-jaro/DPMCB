@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.runningReduce
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,32 +45,44 @@ class OdjezdyViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     init {
-        viewModelScope.launch {
-            combine(repo.typDne, dopravaRepo.seznamSpojuKterePraveJedou()) { typDne, spojeNaMape ->
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.typDne.map { typDne ->
                 repo
                     .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, zastavka)
                     .flatMap { (spoj, zastavkySpoje) ->
-//                        funguj("flatMap", spoj)
                         val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
                         zastavkySpoje.vsechnyIndexy(zastavka).map { index ->
                             Quadruple(spoj, zastavkySpoje[index], spojNaMape, zastavkySpoje)
                         }
                     }
                     .sortedBy { (_, zast, _, _) ->
-//                        funguj("sortedBy", zastavka)
                         zast.cas
                     }
                     .map { (spoj, zastavka, spojNaMape, zastavkySpoje) ->
 
                         val index = zastavka.indexNaLince
-                        val poslZast = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
+                        val posledniZastavka = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
+                        val pristiZastavkaSpoje = zastavkySpoje.pristiZastavka(spoj.smer, index) ?: posledniZastavka
+                        val aktualniNasledujiciZastavka = spojNaMape.combine(Cas.presneTed) { spojNaMape, ted ->
+                            spojNaMape?.delay?.let { zpozdeni ->
+                                zastavkySpoje.find { (it.cas + zpozdeni.min) >= ted }
+                            }
+                        }.runningReduce { minulaZastavka, pristiZastavka ->
+                            when {
+                                minulaZastavka == null || pristiZastavka == null -> pristiZastavka
+                                spoj.smer == Smer.POZITIVNI && pristiZastavka.indexNaLince < minulaZastavka.indexNaLince -> minulaZastavka
+                                spoj.smer == Smer.NEGATIVNI && pristiZastavka.indexNaLince > minulaZastavka.indexNaLince -> minulaZastavka
+                                else -> pristiZastavka
+                            }
+                        }
 
                         KartickaState(
-                            konecna = poslZast.nazevZastavky,
+                            konecna = posledniZastavka.nazevZastavky,
                             cisloLinky = spoj.cisloLinky,
                             cas = zastavka.cas,
-                            jePosledniZastavka = zastavkySpoje.indexOf(poslZast) == index,
-                            pristiZastavka = zastavkySpoje.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
+                            jePosledniZastavka = zastavkySpoje.indexOf(posledniZastavka) == index,
+                            pristiZastavka = pristiZastavkaSpoje.nazevZastavky,
+                            aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
                             idSpoje = spoj.id,
                             nizkopodlaznost = spoj.nizkopodlaznost,
                             zpozdeni = spojNaMape.map { it?.delay },
@@ -135,6 +150,7 @@ class OdjezdyViewModel(
     data class KartickaState(
         val konecna: String,
         val pristiZastavka: String,
+        val aktualniNasledujiciZastavka: Flow<ZastavkaSpoje?>,
         val cisloLinky: Int,
         val cas: Cas,
         val jePosledniZastavka: Boolean,
