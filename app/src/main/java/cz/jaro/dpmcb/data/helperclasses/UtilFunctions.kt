@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
@@ -96,7 +97,7 @@ object UtilFunctions {
             else VDP.DNY
         }
 
-    fun <R> funguj(vararg msg: R?): Unit = run { Log.d("funguj", msg.joinToString()) }
+    fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
     inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
         also { UtilFunctions.funguj(this.transform(), *msg) }
 
