@@ -4,6 +4,7 @@ import android.content.Context
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
@@ -96,14 +97,14 @@ class DopravaRepository(
         }
         .filter { spojNaMape ->
             listOf(
-                spojNaMape.dep.upravit() == zastavkySpoje.first().nazevZastavky.upravit(),
-                spojNaMape.dest.upravit() == zastavkySpoje.last().nazevZastavky.upravit(),
+                spojNaMape.dep.upravit() == zastavkySpoje.first { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
+                spojNaMape.dest.upravit() == zastavkySpoje.last { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
             ).all { it }
         }
         .find { spojNaMape ->
             listOf(
-                spojNaMape.depTime.toCas() == zastavkySpoje.first().cas,
-                spojNaMape.destTime.toCas() == zastavkySpoje.last().cas,
+                spojNaMape.depTime.toCas() == zastavkySpoje.first { it.cas != Cas.nikdy }.cas,
+                spojNaMape.destTime.toCas() == zastavkySpoje.last { it.cas != Cas.nikdy }.cas,
             ).all { it }
         }
 
