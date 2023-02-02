@@ -19,14 +19,18 @@ jobs:
           java-version: 11
       - name: Make Gradle executable
         run: chmod +x ./gradlew
-      - name: Build with Gradle
+      - name: Save keystore file
+        run: echo "${{ secrets.keystore }}" | base64 -d > $GITHUB_WORKSPACE/signing-key.jks
+      - name: Build
         run: ./gradlew build
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Generate signed debug apk
+        run: ./gradlew assembleDebug \
+          -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/signing-key.jks \
+          -Pandroid.injected.signing.store.password=${{ secrets.keystore_password }} \
+          -Pandroid.injected.signing.key.alias=${{ secrets.key_alias }} \
+          -Pandroid.injected.signing.key.password=${{ secrets.key_password }}
       - name: Commit and push
         run: |
-          git config --global user.name 'jaro-jaro'
-          git config --global user.email 'jaro-jaro@users.noreply.github.com'
           git add app/build/outputs/apk/debug/app-debug.apk
           git commit -m "Generated debug APK"
           git push
