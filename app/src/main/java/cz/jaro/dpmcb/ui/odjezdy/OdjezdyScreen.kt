@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.odjezdy
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.TimePicker
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
@@ -113,32 +114,30 @@ fun OdjezdyScreen(
                     MaterialAlertDialogBuilder(ctx).apply {
                         setTitle("Vybrat čas")
 
-                        val ll = LinearLayout(context)
+                        setView(LinearLayout(context).apply {
+                            addView(TimePicker(context).apply {
+                                layoutParams = LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT
+                                )
+                                updateLayoutParams<LinearLayout.LayoutParams> {
+                                    updateMargins(top = 16)
+                                }
 
-                        val tp = android.widget.TimePicker(context)
-                        tp.layoutParams = LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-                        tp.updateLayoutParams<LinearLayout.LayoutParams> {
-                            updateMargins(top = 16)
-                        }
+                                setIs24HourView(true)
 
-                        tp.setIs24HourView(true)
+                                hour = state.cas.h
+                                minute = state.cas.min
 
-                        tp.hour = state.cas.h
-                        tp.minute = state.cas.min
+                                setPositiveButton("Zvolit") { dialog, _ ->
+                                    dialog.cancel()
 
-                        ll.addView(tp)
+                                    val novejCas = Cas(hour, minute)
+                                    viewModel.zmenitCas(novejCas)
+                                }
+                            })
+                        })
 
-                        setView(ll)
-
-                        setPositiveButton("Zvolit") { dialog, _ ->
-                            dialog.cancel()
-
-                            val novejCas = Cas(tp.hour, tp.minute)
-                            viewModel.zmenitCas(novejCas)
-                        }
                         show()
                     }
                 }
