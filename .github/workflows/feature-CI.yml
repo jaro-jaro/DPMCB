@@ -22,6 +22,7 @@ jobs:
       - name: Save keystore file
         run: echo "${{ secrets.keystore }}" | base64 -d > $GITHUB_WORKSPACE/signing-key.jks
       - run: cat $GITHUB_WORKSPACE/signing-key.jks
+      - run: echo $GITHUB_WORKSPACE/signing-key.jks
       - name: Build
         run: ./gradlew build
       - name: Generate signed debug apk
