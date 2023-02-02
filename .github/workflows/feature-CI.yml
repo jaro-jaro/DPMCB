@@ -27,7 +27,7 @@ jobs:
         run: ./gradlew build
       - name: Generate signed debug apk
         run: ./gradlew assembleDebug \
-          -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/signing-key.jks \
+          -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/signing-key.jks" \
           -Pandroid.injected.signing.store.password=${{ secrets.keystore_password }} \
           -Pandroid.injected.signing.key.alias=${{ secrets.key_alias }} \
           -Pandroid.injected.signing.key.password=${{ secrets.key_password }}
