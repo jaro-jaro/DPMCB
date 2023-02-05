@@ -18,12 +18,10 @@ import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.runningReduce
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,11 +43,11 @@ class OdjezdyViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.typDne.map { typDne ->
+            repo.typDne.combine(dopravaRepo.seznamSpojuKterePraveJedou()) { typDne, spojeNaMape ->
                 repo
                     .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, zastavka)
                     .flatMap { (spoj, zastavkySpoje) ->
-                        val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
+                        val spojNaMape = lazy { with(dopravaRepo) { spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje) } }
                         zastavkySpoje.vsechnyIndexy(zastavka).map { index ->
                             Quadruple(spoj, zastavkySpoje[index], spojNaMape, zastavkySpoje)
                         }
@@ -62,16 +60,9 @@ class OdjezdyViewModel(
                         val index = zastavkySpoje.indexOf(zastavka)
                         val posledniZastavka = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
                         val pristiZastavkaSpoje = zastavkySpoje.pristiZastavka(spoj.smer, index) ?: posledniZastavka
-                        val aktualniNasledujiciZastavka = spojNaMape.map { spojNaMape ->
-                            spojNaMape?.delay?.let { zpozdeni ->
+                        val aktualniNasledujiciZastavka = lazy {
+                            spojNaMape.value?.delay?.let { zpozdeni ->
                                 zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.find { (it.cas + zpozdeni.min) > Cas.ted }
-                            }
-                        }.runningReduce { minulaZastavka, pristiZastavka ->
-                            when {
-                                minulaZastavka == null || pristiZastavka == null -> pristiZastavka
-                                spoj.smer == Smer.POZITIVNI && pristiZastavka.indexNaLince < minulaZastavka.indexNaLince -> minulaZastavka
-                                spoj.smer == Smer.NEGATIVNI && pristiZastavka.indexNaLince > minulaZastavka.indexNaLince -> minulaZastavka
-                                else -> pristiZastavka
                             }
                         }
 
@@ -84,7 +75,7 @@ class OdjezdyViewModel(
                             aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
                             idSpoje = spoj.id,
                             nizkopodlaznost = spoj.nizkopodlaznost,
-                            zpozdeni = spojNaMape.map { it?.delay },
+                            zpozdeni = lazy { spojNaMape.value?.delay },
                         )
                     }
             }.collect { seznam ->
@@ -149,13 +140,13 @@ class OdjezdyViewModel(
     data class KartickaState(
         val konecna: String,
         val pristiZastavka: String,
-        val aktualniNasledujiciZastavka: Flow<ZastavkaSpoje?>,
+        val aktualniNasledujiciZastavka: Lazy<ZastavkaSpoje?>,
         val cisloLinky: Int,
         val cas: Cas,
         val jePosledniZastavka: Boolean,
         val idSpoje: Long,
         val nizkopodlaznost: Boolean,
-        val zpozdeni: Flow<Int?>,
+        val zpozdeni: Lazy<Int?>,
     )
 
     data class OdjezdyState(

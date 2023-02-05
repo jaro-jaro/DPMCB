@@ -45,7 +45,6 @@ import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -187,9 +186,8 @@ private fun Karticka(
             modifier = Modifier
                 .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
         ) {
-            val nasledujiciZastavka by (kartickaState?.aktualniNasledujiciZastavka ?: flowOf(null))
-                .collectAsState(null)
-            val zpozdeni by (kartickaState?.zpozdeni ?: flowOf(null)).collectAsState(null)
+            val nasledujiciZastavka by (kartickaState?.aktualniNasledujiciZastavka ?: lazyOf(null))
+            val zpozdeni by (kartickaState?.zpozdeni ?: lazyOf(null))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
