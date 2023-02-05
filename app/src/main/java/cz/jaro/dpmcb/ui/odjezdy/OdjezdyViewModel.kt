@@ -60,12 +60,12 @@ class OdjezdyViewModel(
                     }
                     .map { (spoj, zastavka, spojNaMape, zastavkySpoje) ->
 
-                        val index = zastavka.indexNaLince
+                        val index = zastavkySpoje.indexOf(zastavka)
                         val posledniZastavka = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
                         val pristiZastavkaSpoje = zastavkySpoje.pristiZastavka(spoj.smer, index) ?: posledniZastavka
                         val aktualniNasledujiciZastavka = spojNaMape.combine(Cas.presneTed) { spojNaMape, ted ->
                             spojNaMape?.delay?.let { zpozdeni ->
-                                zastavkySpoje.find { (it.cas + zpozdeni.min) >= ted }
+                                zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.find { (it.cas + zpozdeni.min) >= ted }
                             }
                         }.runningReduce { minulaZastavka, pristiZastavka ->
                             when {
