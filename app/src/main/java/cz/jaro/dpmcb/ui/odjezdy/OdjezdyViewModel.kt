@@ -21,7 +21,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningReduce
@@ -63,9 +62,9 @@ class OdjezdyViewModel(
                         val index = zastavkySpoje.indexOf(zastavka)
                         val posledniZastavka = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
                         val pristiZastavkaSpoje = zastavkySpoje.pristiZastavka(spoj.smer, index) ?: posledniZastavka
-                        val aktualniNasledujiciZastavka = spojNaMape.combine(Cas.presneTed) { spojNaMape, ted ->
+                        val aktualniNasledujiciZastavka = spojNaMape.map { spojNaMape ->
                             spojNaMape?.delay?.let { zpozdeni ->
-                                zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.find { (it.cas + zpozdeni.min) >= ted }
+                                zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.find { (it.cas + zpozdeni.min) > Cas.ted }
                             }
                         }.runningReduce { minulaZastavka, pristiZastavka ->
                             when {

@@ -40,7 +40,7 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
         fun Trvani.toCas() = sek.toCas()
 
         val ted
-            get() = Calendar.getInstance().let { it[Calendar.HOUR_OF_DAY] cas it[Calendar.MINUTE] }
+            get() = Calendar.getInstance().let { Cas(it[Calendar.HOUR_OF_DAY], it[Calendar.MINUTE], it[Calendar.SECOND]) }
 
         val presneTed = flow {
             while (currentCoroutineContext().isActive) {
