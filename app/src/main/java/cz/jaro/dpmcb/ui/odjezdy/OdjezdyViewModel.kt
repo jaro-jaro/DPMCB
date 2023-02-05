@@ -9,9 +9,12 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ifTake
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
+import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
@@ -41,19 +44,23 @@ class OdjezdyViewModel(
     private val _uiEvent = Channel<UiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
+    private val lejzove = mutableMapOf<Long, Lazy<SpojNaMape?>>()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             repo.typDne.combine(dopravaRepo.seznamSpojuKterePraveJedou()) { typDne, spojeNaMape ->
                 repo
                     .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, zastavka)
                     .flatMap { (spoj, zastavkySpoje) ->
-                        val spojNaMape = lazy { with(dopravaRepo) { spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje) } }
+                        val spojNaMape = lejzove.getOrPut(spoj.id) {
+                            lazy { with(dopravaRepo) { spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje) } }
+                        }
                         zastavkySpoje.vsechnyIndexy(zastavka).map { index ->
                             Quadruple(spoj, zastavkySpoje[index], spojNaMape, zastavkySpoje)
                         }
                     }
-                    .sortedBy { (_, zast, _, _) ->
-                        zast.cas
+                    .sortedBy { (_, zast, spojNaMape, _) ->
+                        zast.cas + (ifTake(spojNaMape.isInitialized()) { spojNaMape.value?.delay?.min.funguj() } ?: 0.min)
                     }
                     .map { (spoj, zastavka, spojNaMape, zastavkySpoje) ->
 
