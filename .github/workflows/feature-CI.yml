@@ -19,19 +19,19 @@ jobs:
           java-version: 11
       - name: Make Gradle executable
         run: chmod +x ./gradlew
-      - name: Save keystore file
-        run: echo "${{ secrets.keystore }}" | base64 -d > ./signing-key.jks
-      - run: echo "${{ secrets.keystore }}"
-      - run: cat ./signing-key.jks
-      - run: echo ./signing-key.jks
       - name: Build
         run: ./gradlew build
       - name: Generate signed debug apk
-        run: ./gradlew assembleDebug \
-          -Pandroid.injected.signing.store.file="./signing-key.jks" \
-          -Pandroid.injected.signing.store.password=${{ secrets.keystore_password }} \
-          -Pandroid.injected.signing.key.alias=${{ secrets.key_alias }} \
-          -Pandroid.injected.signing.key.password=${{ secrets.key_password }}
+        run: ./gradlew assembleDebug
+      - name: Sign APK
+        uses: ilharp/sign-android-release@v1
+        with:
+          releaseDir: app/build/outputs/apk/debug
+          signingKey: ${{ secrets.keystore }}
+          keyAlias: ${{ secrets.key_alias }}
+          keyStorePassword: ${{ secrets.keystore_password }}
+          keyPassword: ${{ secrets.key_password }}
+          buildToolsVersion: 33.0.0
       - name: Commit and push
         run: |
           git add app/build/outputs/apk/debug/app-debug.apk
