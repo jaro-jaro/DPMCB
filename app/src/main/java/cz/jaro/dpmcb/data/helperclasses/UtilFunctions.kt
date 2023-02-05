@@ -48,6 +48,8 @@ object UtilFunctions {
         Smer.NEGATIVNI -> -1
     }
 
+    fun <T> ifTake(condition: Boolean, take: () -> T): T? = if (condition) take() else null
+
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
 
     suspend inline fun <R> List<String>.proVsechnyIndexy(zastavka: String, crossinline operation: suspend (index: Int) -> R): List<R> = this
