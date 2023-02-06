@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - beta
-#      - CI
+      - CI
 
 jobs:
   build:
