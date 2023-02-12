@@ -36,6 +36,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add app/build/outputs/apk/debug/app-debug.apk
+          git add app/build/outputs/apk/debug/*.apk
+          git add ${{ env.ANDROID_SIGNED_FILE }}
           git commit -m "Generated debug APK"
           git push
