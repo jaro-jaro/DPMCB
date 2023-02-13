@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
@@ -44,7 +45,9 @@ fun OblibeneScreen(
     navigator: DestinationsNavigator,
 ) {
     val oblibene by repo.oblibene.collectAsState()
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
         if (oblibene.isEmpty()) item {
             Text(
                 text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
@@ -115,7 +118,7 @@ fun OblibeneScreen(
                             Text(text = z.nazevZastavky)
                             Spacer(modifier = Modifier.weight(1F))
                             Text(
-                                text = "${z.cas + spojNaMape!!.delay}",
+                                text = "${z.cas + spojNaMape!!.delay.min}",
                                 color = barvaZpozdeniTextu(spojNaMape!!.delay),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
@@ -130,7 +133,7 @@ fun OblibeneScreen(
                         Text(text = z.nazevZastavky)
                         Spacer(modifier = Modifier.weight(1F))
                         if (spojNaMape != null) Text(
-                            text = "${z.cas + spojNaMape!!.delay}",
+                            text = "${z.cas + spojNaMape!!.delay.min}",
                             color = barvaZpozdeniTextu(spojNaMape!!.delay),
                             modifier = Modifier.padding(start = 8.dp)
                         ) else Text(text = "${z.cas}")

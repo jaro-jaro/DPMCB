@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -25,7 +24,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 
 class NastaveniActivity : AppCompatActivity() {
@@ -52,7 +51,7 @@ class NastaveniActivity : AppCompatActivity() {
                                             startActivity(intent)
                                         }
                                     ) {
-                                        Icon(Icons.Default.ArrowBack, "Zpět")
+                                        IconWithTooltip(Icons.Default.ArrowBack, "Zpět")
                                     }
                                 }
                             )

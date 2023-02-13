@@ -5,8 +5,11 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
+import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
@@ -51,11 +55,13 @@ class DopravaRepository(
             )
             delay(5000)
         }
-    }.shareIn(
-        scope = scope,
-        started = SharingStarted.WhileSubscribed(),
-        replay = 1
-    )
+    }
+        .flowOn(Dispatchers.IO)
+        .shareIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(),
+            replay = 1
+        )
 
     fun seznamSpojuKterePraveJedou() =
         spojeFlow
@@ -73,11 +79,13 @@ class DopravaRepository(
                     )
                     delay(5000)
                 }
-            }.shareIn(
-                scope = scope,
-                started = SharingStarted.WhileSubscribed(),
-                replay = 1
-            )
+            }
+                .flowOn(Dispatchers.IO)
+                .shareIn(
+                    scope = scope,
+                    started = SharingStarted.WhileSubscribed(),
+                    replay = 1
+                )
         }
 
 //    suspend fun seznamVsechZastavek(): List<DetailZastavky> = withContext(Dispatchers.IO) {
@@ -111,13 +119,25 @@ class DopravaRepository(
                 }
         }
 
+    fun spojeNaMape() =
+        seznamSpojuKterePraveJedou().map { spojeNaMape ->
+            spojeNaMape.filter {
+                it.id.drop(2).startsWith("325")
+            }
+        }
+
+    private fun spojNaMapePodleId(id: String) =
+        spojeNaMape().map { spojeNaMape ->
+            spojeNaMape.find { it.id == id }
+        }
+
     fun spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
         if (spoj == null) flowOf(null)
         else if (repo.idSpoju.containsKey(spoj.id)) seznamSpojuKterePraveJedou().map { spojeNaMape ->
             spojeNaMape.find {
                 it.id == repo.idSpoju[spoj.id]
             }
-        } else spojNaMapePodleSpoje(spoj, zastavkySpoje).onEach {
+        } else spojNaMapePodleSpoje(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }).onEach {
             it?.also {
                 repo.idSpoju += spoj.id to it.id
             }
@@ -129,9 +149,13 @@ class DopravaRepository(
 
     fun spojPodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
         if (spoj == null || !repo.idSpoju.containsKey(spoj.id)) flowOf(null to null)
-        else spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
+        else spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI })
             .zip(detailSpoje(repo.idSpoju[spoj.id]!!)) { spojNaMape, detailSpoje ->
                 spojNaMape to detailSpoje
             }
 
+    fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
+        spojNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+            spojNaMape to detailSpoje
+        }
 }

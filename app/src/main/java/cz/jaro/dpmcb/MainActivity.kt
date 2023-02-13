@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -51,6 +50,7 @@ import com.ramcosta.composedestinations.DestinationsNavHost
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                                         }
                                     }
                                 ) {
-                                    Icon(
+                                    IconWithTooltip(
                                         imageVector = Icons.Filled.Menu,
                                         contentDescription = "Otevřít"
                                     )
@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity() {
                                                     }
                                                 },
                                             ) {
-                                                Icon(Icons.Default.CalendarMonth, "Vybrat podle data")
+                                                IconWithTooltip(Icons.Default.CalendarMonth, "Vybrat podle data")
                                             }
                                         }
                                         else NavigationDrawerItem(
@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                                                 Text(stringResource(akce.jmeno))
                                             },
                                             icon = {
-                                                Icon(akce.icon, stringResource(akce.jmeno))
+                                                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
                                             },
                                             selected = vybrano == akce,
                                             onClick = {

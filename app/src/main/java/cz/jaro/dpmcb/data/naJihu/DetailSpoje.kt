@@ -19,7 +19,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @param name Jméno spoje (Číslo linky + číslo spoje) – Pokud [isServiceVisibleOnMap], shodné s [SpojNaMape.name]
  * @param operator Dopravce – Pokud [isServiceVisibleOnMap], shodné s [SpojNaMape.operator]
  * @param serviceNumber Číslo spoje – Pokud [isServiceVisibleOnMap], shodné s [SpojNaMape.serviceNumber]
- * @param stations Seznam [ZastavkaSpoje]
+ * @param stations Seznam [ZastavkaSpojeNaJihu]
  * @param vehicleType ATV – Pokud [isServiceVisibleOnMap], shodné s [SpojNaMape.vehicleType]
  */
 data class DetailSpoje(
@@ -39,6 +39,6 @@ data class DetailSpoje(
     val name: String,
     val operator: String,
     val serviceNumber: Int?,
-    val stations: List<ZastavkaSpoje>,
+    val stations: List<ZastavkaSpojeNaJihu>,
     val vehicleType: String,
 )

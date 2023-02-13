@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -44,13 +43,13 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import cz.jaro.dpmcb.ui.vybirator.Vysledek
@@ -124,7 +123,7 @@ fun SpojeniScreen(
                             viewModel.upravitNastaveni { it.copy(jenNizkopodlazni = np) }
                         },
                         thumbContent = {
-                            Icon(Icons.Default.AccessibleForward, contentDescription = "Sprintující vozíček", modifier = Modifier.padding(2.dp))
+                            IconWithTooltip(Icons.Default.AccessibleForward, contentDescription = "Sprintující vozíček", modifier = Modifier.padding(2.dp))
                         })
                 }
 
@@ -140,7 +139,7 @@ fun SpojeniScreen(
                             viewModel.upravitNastaveni { it.copy(jenPrima = prima) }
                         },
                         thumbContent = {
-                            Icon(Icons.Default.NoTransfer, contentDescription = "Nepřestupovací ikonka", modifier = Modifier.padding(2.dp))
+                            IconWithTooltip(Icons.Default.NoTransfer, contentDescription = "Nepřestupovací ikonka", modifier = Modifier.padding(2.dp))
                         }
                     )
                 }
@@ -194,7 +193,7 @@ fun SpojeniScreen(
                     },
                     //Modifier.padding(all = 4.dp)
                 ) {
-                    Icon(Icons.Default.SwapVert, null)
+                    IconWithTooltip(Icons.Default.SwapVert, null)
                 }
                 Column {
                     OutlinedTextField(
@@ -228,7 +227,7 @@ fun SpojeniScreen(
                     enabled = false
                     //Modifier.padding(all = 4.dp)
                 ) {
-                    Icon(Icons.Default.SwapVert, null, tint = MaterialTheme.colorScheme.surface)
+                    IconWithTooltip(Icons.Default.SwapVert, null, tint = MaterialTheme.colorScheme.surface)
                 }
             }
         }
@@ -245,7 +244,7 @@ fun SpojeniScreen(
                         nastaveniVidim = true
                     }
                 ) {
-                    Icon(Icons.Default.Settings, "Nastavení")
+                    IconWithTooltip(Icons.Default.Settings, "Nastavení")
                 }
                 Button(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -260,7 +259,7 @@ fun SpojeniScreen(
                         casovatorVidim = true
                     }
                 ) {
-                    Icon(Icons.Default.Schedule, "Změnit čas")
+                    IconWithTooltip(Icons.Default.Schedule, "Změnit čas")
                 }
             }
         }
