@@ -34,7 +34,7 @@ class DopravaRepository(
             .replace(Regex("[ ,-]"), "")
             .replace("SrubecTočnaMHD", "SrubecTočna")
             .replace("NáměstíPřemyslaOtakaraII.", "Nám.PřemyslaOtakaraII.")
-            .replace("DobráVodauČ.BudějovicTočna", "DobráVodaTočna")
+            .replace("DobráVodauČ.Budějovic", "DobráVoda")
             .replace("KněžskéDv.", "KněžskéDvory")
             .lowercase()
     }
