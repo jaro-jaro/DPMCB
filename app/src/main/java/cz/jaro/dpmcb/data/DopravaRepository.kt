@@ -1,6 +1,9 @@
 package cz.jaro.dpmcb.data
 
-import android.content.Context
+import android.app.Activity
+import android.app.Application
+import android.app.Application.ActivityLifecycleCallbacks
+import android.os.Bundle
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -26,7 +29,7 @@ import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
 
 class DopravaRepository(
-    ctx: Context,
+    app: Application,
 ) {
     companion object {
         fun String.upravit() = this
@@ -39,15 +42,35 @@ class DopravaRepository(
             .lowercase()
     }
 
+    private var lock = true
+
+    init {
+        app.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {
+                lock = false
+            }
+
+            override fun onActivityPaused(activity: Activity) {
+                lock = true
+            }
+        })
+    }
+
     private val scope = MainScope()
 
     private val api = DopravaApi(
-        ctx = ctx,
+        ctx = app,
         baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
     )
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
+            while (lock) Unit
             emit(api.ziskatData("/service/position") ?: emptyList())
             delay(5000)
         }
@@ -68,6 +91,7 @@ class DopravaRepository(
         detailSpojeFlowMap.getOrPut(spojId) {
             flow<DetailSpoje?> {
                 while (currentCoroutineContext().isActive) {
+                    while (lock) Unit
                     emit(api.ziskatData("/servicedetail?id=$spojId"))
                     delay(5000)
                 }
