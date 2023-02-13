@@ -52,6 +52,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -190,7 +191,12 @@ class MainActivity : AppCompatActivity() {
                                             onClick = {
                                                 if (akce.multiselect)
                                                     vybrano = akce
-                                                akce.onClick(navController, { scope.launch { drawerState.close() } }, this@MainActivity)
+                                                akce.onClick(navController, {
+                                                    scope.launch {
+                                                        delay(100)
+                                                        drawerState.close()
+                                                    }
+                                                }, this@MainActivity)
                                             },
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                                         )
