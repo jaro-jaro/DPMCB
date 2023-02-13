@@ -138,7 +138,7 @@ fun OdjezdyScreen(
                     }
                 }
             ) {
-                Text(text = cas.toString())
+                Text(text = state.cas.toString())
             }
         }
 
