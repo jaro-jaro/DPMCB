@@ -60,7 +60,7 @@ class OdjezdyViewModel(
                         }
                     }
                     .sortedBy { (_, zast, spojNaMape, _) ->
-                        zast.cas + (ifTake(spojNaMape.isInitialized()) { spojNaMape.value?.delay?.min.funguj() } ?: 0.min)
+                        zast.cas + (ifTake(spojNaMape.isInitialized()) { spojNaMape.value?.delay?.min } ?: 0.min)
                     }
                     .map { (spoj, zastavka, spojNaMape, zastavkySpoje) ->
 
@@ -83,16 +83,19 @@ class OdjezdyViewModel(
                             idSpoje = spoj.id,
                             nizkopodlaznost = spoj.nizkopodlaznost,
                             zpozdeni = lazy { spojNaMape.value?.delay },
+                            jedePres = zastavkySpoje.map { it.nazevZastavky }
                         )
                     }
-            }.collect { seznam ->
-                _state.update {
-                    it.copy(
-                        seznam = seznam,
-                        nacitaSe = false,
-                    )
-                }
             }
+                .flowOn(Dispatchers.IO)
+                .collect { seznam ->
+                    _state.update {
+                        it.copy(
+                            seznam = seznam,
+                            nacitaSe = false,
+                        )
+                    }
+                }
         }
     }
 
@@ -108,30 +111,16 @@ class OdjezdyViewModel(
         }
     }
 
-    fun kliklNaZjr(spoj: KartickaState) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiEvent.send(
-                UiEvent.Navigovat(
-                    kam = JizdniRadyScreenDestination(
-                        cisloLinky = spoj.cisloLinky,
-                        zastavka = zastavka,
-                        pristiZastavka = spoj.pristiZastavka,
-                    )
-                )
-            )
-        }
-    }
-
     fun zmenitCas(cas: Cas) {
-        _state.update {
-            it.copy(
-                cas = cas,
-                indexScrollovani = it.seznam.indexOfFirst { zast ->
-                    zast.cas >= cas
-                } + ((Int.MAX_VALUE / 2) / it.seznam.size) * it.seznam.size
-            )
-        }
         viewModelScope.launch(Dispatchers.Main) {
+            _state.update {
+                it.copy(
+                    cas = cas,
+                    indexScrollovani = it.filtrovanejSeznam.indexOfFirst { zast ->
+                        zast.cas >= cas
+                    } + ((Int.MAX_VALUE / 2) / it.filtrovanejSeznam.size) * it.filtrovanejSeznam.size
+                )
+            }
             scrollovat()
         }
     }
@@ -154,6 +143,7 @@ class OdjezdyViewModel(
         val idSpoje: Long,
         val nizkopodlaznost: Boolean,
         val zpozdeni: Lazy<Int?>,
+        val jedePres: List<String>,
     )
 
     data class OdjezdyState(
@@ -161,7 +151,18 @@ class OdjezdyViewModel(
         val nacitaSe: Boolean = true,
         val cas: Cas,
         val indexScrollovani: Int = Int.MAX_VALUE / 2,
-    )
+        val filtrLinky: Int? = null,
+        val filtrZastavky: String? = null,
+    ) {
+        val filtrovanejSeznam
+            get() = seznam
+                .filter {
+                    filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
+                }
+                .filter {
+                    filtrZastavky?.let { filtr -> it.jedePres.contains(filtr) } ?: true
+                }
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

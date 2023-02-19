@@ -150,7 +150,7 @@ fun OdjezdyScreen(
                 itemContent = { i ->
                     val karticka by remember(state) {
                         derivedStateOf {
-                            if (state.nacitaSe || state.seznam.isEmpty()) null else state.seznam[i % state.seznam.size]
+                            if (state.nacitaSe || state.filtrovanejSeznam.isEmpty()) null else state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
                         }
                     }
                     Karticka(
