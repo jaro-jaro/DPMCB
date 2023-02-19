@@ -16,9 +16,8 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavHostController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.ramcosta.composedestinations.navigation.navigate
+import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
@@ -30,14 +29,14 @@ enum class SuplikAkce(
     @StringRes val jmeno: Int,
     val icon: ImageVector,
     val multiselect: Boolean,
-    val onClick: (navController: NavHostController, zavrit: () -> Unit, activity: MainActivity) -> Unit,
+    val onClick: (navigate: (direction: Direction) -> Unit, zavrit: () -> Unit, activity: MainActivity) -> Unit,
 ) {
     /*Spojeni(
         R.string.vyhledat_spojeni,
         Icons.Default.Timeline,
         true,
-        onClick = { navController, zavrit, _ ->
-            navController.navigate(
+        onClick = { navigate, zavrit, _ ->
+            navigate(
                 SpojeniScreenDestination()
             )
             zavrit()
@@ -47,9 +46,9 @@ enum class SuplikAkce(
         jmeno = R.string.oblibena,
         icon = Icons.Default.Star,
         multiselect = true,
-        onClick = { navController, zavrit, _ ->
+        onClick = { navigate, zavrit, _ ->
 
-            navController.navigate(
+            navigate(
                 OblibeneScreenDestination()
             )
             zavrit()
@@ -59,9 +58,9 @@ enum class SuplikAkce(
         jmeno = R.string.odjezdy,
         icon = Icons.Default.DepartureBoard,
         multiselect = true,
-        onClick = { navController, zavrit, _ ->
+        onClick = { navigate, zavrit, _ ->
 
-            navController.navigate(
+            navigate(
                 VybiratorScreenDestination(
                     typ = TypAdapteru.ZASTAVKY,
                     cisloLinky = -1,
@@ -75,9 +74,9 @@ enum class SuplikAkce(
         jmeno = R.string.prave_jedouci,
         icon = Icons.Default.FastForward,
         multiselect = true,
-        onClick = { navController, zavrit, _ ->
+        onClick = { navigate, zavrit, _ ->
 
-            navController.navigate(
+            navigate(
                 PraveJedouciScreenDestination()
             )
             zavrit()
@@ -87,9 +86,9 @@ enum class SuplikAkce(
         R.string.jizdni_rady,
         Icons.Default.FormatListNumbered,
         true,
-        onClick = { navController, zavrit, _ ->
+        onClick = { navigate, zavrit, _ ->
 
-            navController.navigate(
+            navigate(
                 VybiratorScreenDestination(
                     typ = TypAdapteru.LINKY,
                     cisloLinky = -1,
@@ -103,9 +102,9 @@ enum class SuplikAkce(
         R.string.mapa_linek,
         Icons.Default.Map,
         true,
-        onClick = { navController, zavrit, _ ->
+        onClick = { navigate, zavrit, _ ->
 
-            navController.navigate(
+            navigate(
                 MapaScreenDestination()
             )
             zavrit()
@@ -115,9 +114,9 @@ enum class SuplikAkce(
         jmeno = R.string.prukazka,
         icon = Icons.Rounded.QrCode2,
         multiselect = true,
-        onClick = { navController, zavrit, ctx ->
+        onClick = { navigate, zavrit, ctx ->
 
-//            navController.navigate(
+//            navigate(
 //                MapaScreenDestination()
 //            )
 //            zavrit()

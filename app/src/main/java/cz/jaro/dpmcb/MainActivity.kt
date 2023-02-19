@@ -43,6 +43,7 @@ import androidx.core.view.updateMargins
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.DestinationsNavHost
+import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Datum
@@ -52,7 +53,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
@@ -79,7 +79,6 @@ class MainActivity : AppCompatActivity() {
 
                 Scaffold(
                     topBar = {
-                        // IconButtony
                         TopAppBar(title = {
                             Text(stringResource(App.title))
                         },
@@ -101,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             actions = {
-                                // IconButtony
+
                             })
                     },
                 ) { paddingValues ->
@@ -191,12 +190,16 @@ class MainActivity : AppCompatActivity() {
                                             onClick = {
                                                 if (akce.multiselect)
                                                     vybrano = akce
-                                                akce.onClick(navController, {
-                                                    scope.launch {
-                                                        delay(100)
-                                                        drawerState.close()
-                                                    }
-                                                }, this@MainActivity)
+
+                                                akce.onClick(
+                                                    navController::navigate,
+                                                    {
+                                                        scope.launch {
+                                                            drawerState.close()
+                                                        }
+                                                    },
+                                                    this@MainActivity
+                                                )
                                             },
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                                         )
@@ -204,7 +207,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             drawerState = drawerState,
-                            gesturesEnabled = vybrano != SuplikAkce.Mapa
+//                            gesturesEnabled = vybrano != SuplikAkce.Mapa
                         ) {
                             DestinationsNavHost(
                                 navController = navController,
@@ -214,7 +217,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-
         }
 
         if (intent.getBooleanExtra("update", false)) {
