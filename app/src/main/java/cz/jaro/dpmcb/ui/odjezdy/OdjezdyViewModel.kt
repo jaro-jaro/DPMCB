@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OdjezdyViewModel(
     val zastavka: String,
@@ -195,10 +196,11 @@ class OdjezdyViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             while (state.value.seznam.isEmpty()) Unit
             while (!::scrollovat.isInitialized) Unit
-            scrollovat(state.value.seznam.indexOfFirst { zast ->
-                zast.cas >= cas
-            } + ((Int.MAX_VALUE / 2) / state.value.seznam.size) * state.value.seznam.size)
+            withContext(Dispatchers.Main) {
+                scrollovat(state.value.seznam.indexOfFirst { zast ->
+                    zast.cas >= cas
+                } + ((Int.MAX_VALUE / 2) / state.value.seznam.size) * state.value.seznam.size)
+            }
         }
-
     }
 }
