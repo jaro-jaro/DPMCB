@@ -37,8 +37,10 @@ class VybiratorViewModel(
                 TypAdapteru.LINKY -> repo.cislaLinek.sorted().map { it.toString() }
                 TypAdapteru.ZASTAVKY_LINKY -> repo.zastavkyLinky(cisloLinky).distinct()
                 TypAdapteru.PRISTI_ZASTAVKA -> pristiZastavky(cisloLinky, zastavka!!)
-                TypAdapteru.PRVNI_ZASTAVKA -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-                TypAdapteru.DRUHA_ZASTAVKA -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                TypAdapteru.ZASTAVKY_ZPET_1 -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                TypAdapteru.ZASTAVKA_ZPET_2 -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                TypAdapteru.LINKA_ZPET -> repo.cislaLinek.sorted().map { it.toString() }
+                TypAdapteru.ZASTAVKA_ZPET -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
             })
         }
 
@@ -130,6 +132,7 @@ class VybiratorViewModel(
                             )
                     })
             )
+
             TypAdapteru.PRISTI_ZASTAVKA -> _uiEvent.send(
                 UiEvent.Navigovat(
                     JizdniRadyScreenDestination(
@@ -139,11 +142,21 @@ class VybiratorViewModel(
                     )
                 )
             )
-            TypAdapteru.PRVNI_ZASTAVKA -> {
+
+            TypAdapteru.ZASTAVKY_ZPET_1 -> {
                 resultNavigator.navigateBack(result = Vysledek(vysledek to true))
             }
-            TypAdapteru.DRUHA_ZASTAVKA -> {
+
+            TypAdapteru.ZASTAVKA_ZPET_2 -> {
                 resultNavigator.navigateBack(result = Vysledek(vysledek to false))
+            }
+
+            TypAdapteru.LINKA_ZPET -> {
+
+            }
+
+            TypAdapteru.ZASTAVKA_ZPET -> {
+
             }
         }
     }

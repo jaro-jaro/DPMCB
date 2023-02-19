@@ -65,8 +65,10 @@ fun VybiratorScreen(
         TypAdapteru.LINKY -> R.string.vyberte_linku
         TypAdapteru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
         TypAdapteru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
-        TypAdapteru.PRVNI_ZASTAVKA -> R.string.vyberte_zastavku
-        TypAdapteru.DRUHA_ZASTAVKA -> R.string.vyberte_zastavku
+        TypAdapteru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
+        TypAdapteru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
+        TypAdapteru.LINKA_ZPET -> R.string.vyberte_linku
+        TypAdapteru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
     }
 
     LaunchedEffect(Unit) {
@@ -106,16 +108,20 @@ fun VybiratorScreen(
                     TypAdapteru.LINKY -> KeyboardType.Number
                     TypAdapteru.ZASTAVKY_LINKY -> KeyboardType.Text
                     TypAdapteru.PRISTI_ZASTAVKA -> KeyboardType.Text
-                    TypAdapteru.PRVNI_ZASTAVKA -> KeyboardType.Text
-                    TypAdapteru.DRUHA_ZASTAVKA -> KeyboardType.Text
+                    TypAdapteru.ZASTAVKY_ZPET_1 -> KeyboardType.Text
+                    TypAdapteru.ZASTAVKA_ZPET_2 -> KeyboardType.Text
+                    TypAdapteru.LINKA_ZPET -> KeyboardType.Number
+                    TypAdapteru.ZASTAVKA_ZPET -> KeyboardType.Text
                 },
                 imeAction = when (typ) {
                     TypAdapteru.ZASTAVKY -> ImeAction.Search
                     TypAdapteru.LINKY -> ImeAction.Next
                     TypAdapteru.ZASTAVKY_LINKY -> ImeAction.Next
                     TypAdapteru.PRISTI_ZASTAVKA -> ImeAction.Search
-                    TypAdapteru.PRVNI_ZASTAVKA -> ImeAction.Done
-                    TypAdapteru.DRUHA_ZASTAVKA -> ImeAction.Done
+                    TypAdapteru.ZASTAVKY_ZPET_1 -> ImeAction.Done
+                    TypAdapteru.ZASTAVKA_ZPET_2 -> ImeAction.Done
+                    TypAdapteru.LINKA_ZPET -> ImeAction.Done
+                    TypAdapteru.ZASTAVKA_ZPET -> ImeAction.Done
                 },
             ),
             keyboardActions = KeyboardActions(
