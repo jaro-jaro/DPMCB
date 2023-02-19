@@ -144,12 +144,13 @@ object UtilFunctions {
         imageVector: ImageVector,
         contentDescription: String?,
         modifier: Modifier = Modifier,
+        tooltipText: String? = contentDescription,
         tint: Color = LocalContentColor.current,
     ) {
-        if (contentDescription != null) PlainTooltipBox(tooltip = { Text(text = contentDescription) }) {
+        if (tooltipText != null) PlainTooltipBox(tooltip = { Text(text = tooltipText) }) {
             Icon(imageVector, contentDescription, modifier, tint)
         }
-        else Icon(imageVector, null, modifier, tint)
+        else Icon(imageVector, contentDescription, modifier, tint)
     }
 
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
