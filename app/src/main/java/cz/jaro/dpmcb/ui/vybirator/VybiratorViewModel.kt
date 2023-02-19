@@ -144,19 +144,19 @@ class VybiratorViewModel(
             )
 
             TypAdapteru.ZASTAVKY_ZPET_1 -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek to true))
+                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
             }
 
             TypAdapteru.ZASTAVKA_ZPET_2 -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek to false))
+                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
             }
 
             TypAdapteru.LINKA_ZPET -> {
-
+                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
             }
 
             TypAdapteru.ZASTAVKA_ZPET -> {
-
+                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
             }
         }
     }
