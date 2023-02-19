@@ -147,6 +147,7 @@ fun DetailSpojeScreen(
                                                 )
                                             )
                                         }
+                                        .height(24.dp)
                                 )
                             }
                         }
@@ -163,6 +164,7 @@ fun DetailSpojeScreen(
                                                 )
                                             )
                                         }
+                                        .height(24.dp)
                                 )
                             }
                         }
@@ -182,13 +184,14 @@ fun DetailSpojeScreen(
                                                     )
                                                 )
                                             }
+                                            .height(24.dp)
                                     )
                                 }
                         }
-                        val primary = MaterialTheme.colorScheme.primary
-                        val seconadry = MaterialTheme.colorScheme.secondary
-                        val surface = MaterialTheme.colorScheme.surface
-                        val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+                        val projetaBarva = MaterialTheme.colorScheme.primary
+                        val barvaBusu = MaterialTheme.colorScheme.secondary
+                        val barvaPozadi = MaterialTheme.colorScheme.surface
+                        val baravCary = MaterialTheme.colorScheme.surfaceVariant
                         val zastavek = state.zastavky.count()
 
                         val vyska by viewModel.vyska.collectAsState(0F)
@@ -210,7 +213,7 @@ fun DetailSpojeScreen(
 
                             translate(left = lineXOffset, top = rowHeight * .5F) {
                                 drawLine(
-                                    color = surfaceVariant,
+                                    color = baravCary,
                                     start = Offset(),
                                     end = Offset(y = canvasHeight - rowHeight),
                                     strokeWidth = lineWidth,
@@ -220,13 +223,13 @@ fun DetailSpojeScreen(
                                     translate(top = i * rowHeight) {
                                         val projel = state.zastavkyNaJihu?.get(i)?.passed ?: false
                                         drawCircle(
-                                            color = if (projel) primary else surface,
+                                            color = if (projel) projetaBarva else barvaPozadi,
                                             radius = circleRadius,
                                             center = Offset(),
                                             style = Fill
                                         )
                                         drawCircle(
-                                            color = if (projel) primary else surfaceVariant,
+                                            color = if (projel) projetaBarva else baravCary,
                                             radius = circleRadius,
                                             center = Offset(),
                                             style = Stroke(
@@ -237,14 +240,14 @@ fun DetailSpojeScreen(
                                 }
 
                                 drawLine(
-                                    color = primary,
+                                    color = projetaBarva,
                                     start = Offset(),
                                     end = Offset(y = rowHeight * animovanaVyska),
                                     strokeWidth = lineWidth,
                                 )
 
                                 if (vyska > 0F) drawCircle(
-                                    color = seconadry,
+                                    color = barvaBusu,
                                     radius = circleRadius - circleStrokeWidth * .5F,
                                     center = Offset(y = rowHeight * animovanaVyska)
                                 )
