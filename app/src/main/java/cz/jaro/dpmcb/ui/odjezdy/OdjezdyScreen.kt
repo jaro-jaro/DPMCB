@@ -8,7 +8,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.Clear
@@ -24,16 +23,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusEvent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
-import com.google.accompanist.placeholder.PlaceholderHighlight
-import com.google.accompanist.placeholder.placeholder
-import com.google.accompanist.placeholder.shimmer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -106,10 +101,11 @@ fun OdjezdyScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
         ) {
             Text(
                 text = zastavka,
@@ -153,78 +149,91 @@ fun OdjezdyScreen(
             }
         }
 
-        val focusRequester = LocalFocusManager.current
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+        ) {
+            val focusRequester = LocalFocusManager.current
 
-        Text(text = "Filtry")
-        TextField(
-            value = state.filtrLinky?.toString() ?: "Všechny",
-            onValueChange = {},
-            Modifier
-                .onFocusEvent {
-                    if (!it.hasFocus) return@onFocusEvent
-                    navigator.navigate(
-                        VybiratorScreenDestination(
-                            typ = TypAdapteru.LINKA_ZPET,
+            Text(text = "Filtry")
+            TextField(
+                value = state.filtrLinky?.toString() ?: "Všechny",
+                onValueChange = {},
+                Modifier
+                    .onFocusEvent {
+                        if (!it.hasFocus) return@onFocusEvent
+                        navigator.navigate(
+                            VybiratorScreenDestination(
+                                typ = TypAdapteru.LINKA_ZPET,
+                            )
                         )
-                    )
-                    focusRequester.clearFocus()
-                }
-                .fillMaxWidth(),
-            label = {
-                Text(text = "Linka:")
-            },
-            readOnly = true,
-            trailingIcon = {
-                if (state.filtrLinky != null) IconButton(onClick = {
-                    viewModel.zrusil(TypAdapteru.LINKA_ZPET)
-                }) {
-                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                }
-            },
-            colors = TextFieldDefaults.textFieldColors(
-                textColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-        )
-        TextField(
-            value = state.filtrZastavky ?: "Cokoliv",
-            onValueChange = {},
-            Modifier
-                .onFocusEvent {
-                    if (!it.hasFocus) return@onFocusEvent
-                    navigator.navigate(
-                        VybiratorScreenDestination(
-                            typ = TypAdapteru.ZASTAVKA_ZPET,
+                        focusRequester.clearFocus()
+                    }
+                    .fillMaxWidth(),
+                label = {
+                    Text(text = "Linka:")
+                },
+                readOnly = true,
+                trailingIcon = {
+                    if (state.filtrLinky != null) IconButton(onClick = {
+                        viewModel.zrusil(TypAdapteru.LINKA_ZPET)
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    textColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+            )
+            TextField(
+                value = state.filtrZastavky ?: "Cokoliv",
+                onValueChange = {},
+                Modifier
+                    .onFocusEvent {
+                        if (!it.hasFocus) return@onFocusEvent
+                        navigator.navigate(
+                            VybiratorScreenDestination(
+                                typ = TypAdapteru.ZASTAVKA_ZPET,
+                            )
                         )
-                    )
-                    focusRequester.clearFocus()
-                }
+                        focusRequester.clearFocus()
+                    }
+                    .fillMaxWidth(),
+
+                label = {
+                    Text(text = "Jede přes:")
+                },
+                readOnly = true,
+                trailingIcon = {
+                    if (state.filtrZastavky != null) IconButton(onClick = {
+                        viewModel.zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    textColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+            )
+        }
+        if (state.nacitaSe || state.filtrovanejSeznam.isEmpty()) Row(
+            Modifier
+                .padding(top = 8.dp)
                 .fillMaxWidth(),
-
-            label = {
-                Text(text = "Jede přes:")
-            },
-            readOnly = true,
-            trailingIcon = {
-                if (state.filtrZastavky != null) IconButton(onClick = {
-                    viewModel.zrusil(TypAdapteru.ZASTAVKA_ZPET)
-                }) {
-                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                }
-            },
-            colors = TextFieldDefaults.textFieldColors(
-                textColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-        )
-
-        LazyColumn(
+            horizontalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        else LazyColumn(
             state = listState,
+            modifier = Modifier.padding(top = 16.dp)
         ) {
             items(
                 count = Int.MAX_VALUE,
                 itemContent = { i ->
                     val karticka by remember(state) {
                         derivedStateOf {
-                            if (state.nacitaSe || state.filtrovanejSeznam.isEmpty()) null else state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
+                            state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
                         }
                     }
                     Karticka(
@@ -238,56 +247,41 @@ fun OdjezdyScreen(
     }
 }
 
-private fun Modifier.applyIf(condition: Boolean, block: Modifier.() -> Modifier) = if (condition) block() else this
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Karticka(
-    kartickaState: KartickaState?,
+    kartickaState: KartickaState,
     detailSpoje: (KartickaState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
-    OutlinedCard(
+    Divider(modifier)
+    Surface(
         onClick = {
-            if (kartickaState == null) return@OutlinedCard
             detailSpoje(kartickaState)
         },
         modifier = modifier
-            .padding(bottom = 8.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(top = 4.dp, start = 8.dp, end = 8.dp, bottom = 8.dp)
+                .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
         ) {
-            val nasledujiciZastavka by (kartickaState?.aktualniNasledujiciZastavka ?: lazyOf(null))
-            val zpozdeni by (kartickaState?.zpozdeni ?: lazyOf(null))
+            val nasledujiciZastavka by kartickaState.aktualniNasledujiciZastavka
+            val zpozdeni by kartickaState.zpozdeni
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .placeholder(
-                        visible = kartickaState == null,
-                        color = Color.Gray,
-                        highlight = PlaceholderHighlight.shimmer(
-                            highlightColor = Color.DarkGray,
-                        ),
-                        shape = RoundedCornerShape(6.dp),
-                    )
-                    .applyIf(kartickaState == null) {
-                        padding(all = 8.dp)
-                    }
             ) {
                 IconWithTooltip(
                     imageVector = when {
-                        kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
+                        kartickaState.nizkopodlaznost -> Icons.Default.Accessible
                         else -> Icons.Default.NotAccessible
                     },
                     contentDescription = "Invalidní vozík",
                 )
                 Text(
                     modifier = Modifier.padding(start = 8.dp),
-                    text = kartickaState?.cisloLinky?.toString() ?: "?",
+                    text = kartickaState.cisloLinky.toString(),
                     fontSize = 30.sp
                 )
                 Text(
@@ -298,13 +292,13 @@ private fun Karticka(
                 Text(
                     modifier = Modifier
                         .weight(1F),
-                    text = kartickaState?.konecna ?: "???",
+                    text = kartickaState.konecna,
                     fontSize = 20.sp
                 )
                 Text(
-                    text = "${kartickaState?.cas ?: "??:??"}"
+                    text = "${kartickaState.cas}"
                 )
-                if (zpozdeni != null && kartickaState != null) Text(
+                if (zpozdeni != null) Text(
                     text = "${kartickaState.cas + zpozdeni!!.min}",
                     color = barvaZpozdeniTextu(zpozdeni!!),
                     modifier = Modifier.padding(start = 8.dp)
@@ -314,19 +308,7 @@ private fun Karticka(
             if (nasledujiciZastavka != null && zpozdeni != null) {
                 Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .placeholder(
-                            visible = kartickaState == null,
-                            color = Color.Gray,
-                            highlight = PlaceholderHighlight.shimmer(
-                                highlightColor = Color.DarkGray,
-                            ),
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                        .applyIf(kartickaState == null) {
-                            padding(all = 8.dp)
-                        }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         modifier = Modifier
