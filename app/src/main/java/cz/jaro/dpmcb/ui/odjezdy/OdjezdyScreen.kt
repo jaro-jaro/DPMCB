@@ -44,15 +44,14 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
 import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
@@ -85,26 +84,21 @@ fun OdjezdyScreen(
 
     LaunchedEffect(Unit) {
         viewModel.scrollovat = {
-            UtilFunctions.funguj("SKRÓLUJU")
-            listState.scrollToItem(state.indexScrollovani)
+            listState.scrollToItem(it)
         }
-        viewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.Navigovat -> {
-                    navigator.navigate(event.kam)
-                }
-
-                else -> {}
-            }
+        viewModel.navigovat = {
+            navigator.navigate(it)
         }
     }
 
     LaunchedEffect(listState) {
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .flowOn(Dispatchers.IO)
-            .collect {
-                viewModel.scrolluje(it)
-            }
+        withContext(Dispatchers.IO) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    viewModel.scrolluje(it)
+                }
+        }
     }
 
     if (state.nacitaSe) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
