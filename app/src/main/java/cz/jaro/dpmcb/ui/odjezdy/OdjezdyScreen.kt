@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -22,8 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
@@ -34,22 +37,26 @@ import com.google.accompanist.placeholder.shimmer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.result.NavResult
+import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.UiEvent
+import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
+import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOn
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Destination
 @Composable
 fun OdjezdyScreen(
@@ -59,7 +66,17 @@ fun OdjezdyScreen(
         ParametersHolder(mutableListOf(zastavka, cas))
     },
     navigator: DestinationsNavigator,
+    resultRecipient: ResultRecipient<VybiratorScreenDestination, Vysledek>,
 ) {
+    resultRecipient.onNavResult { result ->
+        when (result) {
+            is NavResult.Canceled -> {}
+            is NavResult.Value -> {
+                viewModel.vybral(result.value)
+            }
+        }
+    }
+
     App.title = R.string.odjezdy
 
     val state by viewModel.state.collectAsState()
@@ -141,6 +158,69 @@ fun OdjezdyScreen(
                 Text(text = state.cas.toString())
             }
         }
+
+        val focusRequester = LocalFocusManager.current
+
+        Text(text = "Filtry")
+        TextField(
+            value = state.filtrLinky?.toString() ?: "Všechny",
+            onValueChange = {},
+            Modifier
+                .onFocusEvent {
+                    if (!it.hasFocus) return@onFocusEvent
+                    navigator.navigate(
+                        VybiratorScreenDestination(
+                            typ = TypAdapteru.LINKA_ZPET,
+                        )
+                    )
+                    focusRequester.clearFocus()
+                }
+                .fillMaxWidth(),
+            label = {
+                Text(text = "Linka:")
+            },
+            readOnly = true,
+            trailingIcon = {
+                if (state.filtrLinky != null) IconButton(onClick = {
+                    viewModel.zrusil(TypAdapteru.LINKA_ZPET)
+                }) {
+                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                }
+            },
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+        )
+        TextField(
+            value = state.filtrZastavky ?: "Cokoliv",
+            onValueChange = {},
+            Modifier
+                .onFocusEvent {
+                    if (!it.hasFocus) return@onFocusEvent
+                    navigator.navigate(
+                        VybiratorScreenDestination(
+                            typ = TypAdapteru.ZASTAVKA_ZPET,
+                        )
+                    )
+                    focusRequester.clearFocus()
+                }
+                .fillMaxWidth(),
+
+            label = {
+                Text(text = "Jede přes:")
+            },
+            readOnly = true,
+            trailingIcon = {
+                if (state.filtrZastavky != null) IconButton(onClick = {
+                    viewModel.zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                }) {
+                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                }
+            },
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+        )
 
         LazyColumn(
             state = listState,

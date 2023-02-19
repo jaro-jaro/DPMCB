@@ -9,6 +9,7 @@ import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ifTake
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
@@ -17,19 +18,18 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
-import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
+import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class OdjezdyViewModel(
     val zastavka: String,
     cas: Cas = Cas.ted,
@@ -37,7 +37,6 @@ class OdjezdyViewModel(
 
     lateinit var scrollovat: suspend () -> Unit
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     private val _state = MutableStateFlow(OdjezdyState(cas = cas))
     val state = _state.asStateFlow()
 
@@ -126,10 +125,54 @@ class OdjezdyViewModel(
     }
 
     fun scrolluje(i: Int) {
-        _state.update {
-            it.copy(
-                indexScrollovani = i
-            )
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.update {
+                it.copy(
+                    indexScrollovani = i
+                )
+            }
+        }
+    }
+
+    fun vybral(vysledek: Vysledek) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.value.indexScrollovani.funguj()
+//            _state.value.filtrovanejSeznam[_state.value.indexScrollovani % _state.value.filtrovanejSeznam.size].funguj()
+            _state.update { puvodniState ->
+                when (vysledek.typAdapteru) {
+                    TypAdapteru.LINKA_ZPET -> puvodniState.copy(filtrLinky = vysledek.value.toInt())
+                    TypAdapteru.ZASTAVKA_ZPET -> puvodniState.copy(filtrZastavky = vysledek.value)
+                    else -> return@launch
+                }.let { novyState ->
+                    novyState.copy(
+                        indexScrollovani = novyState.filtrovanejSeznam.indexOfFirst { zast ->
+                            zast.cas >= novyState.cas
+                        } + ((Int.MAX_VALUE / 2) / novyState.filtrovanejSeznam.size) * novyState.filtrovanejSeznam.size
+                    ).funguj(1) { indexScrollovani }.funguj(2) { filtrLinky to filtrZastavky }.funguj(2) { filtrovanejSeznam.size - seznam.size }
+                }
+            }
+//            delay(100)
+            _state.value.filtrovanejSeznam.map { it.cisloLinky }.funguj()
+            _state.value.indexScrollovani.funguj()
+            _state.value.filtrovanejSeznam[_state.value.indexScrollovani % _state.value.filtrovanejSeznam.size].funguj()
+            scrollovat()
+        }
+    }
+
+    fun zrusil(typAdapteru: TypAdapteru) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.update {
+                when (typAdapteru) {
+                    TypAdapteru.LINKA_ZPET -> it.copy(filtrLinky = null)
+                    TypAdapteru.ZASTAVKA_ZPET -> it.copy(filtrZastavky = null)
+                    else -> return@launch
+                }.copy(
+                    indexScrollovani = it.filtrovanejSeznam.indexOfFirst { zast ->
+                        zast.cas >= it.cas
+                    } + ((Int.MAX_VALUE / 2) / it.filtrovanejSeznam.size) * it.filtrovanejSeznam.size
+                )
+            }
+            scrollovat()
         }
     }
 
