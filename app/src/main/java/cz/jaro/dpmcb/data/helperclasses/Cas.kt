@@ -8,7 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import java.util.Calendar
 
@@ -49,7 +49,7 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
             }
         }
             .flowOn(Dispatchers.IO)
-            .shareIn(MainScope(), SharingStarted.WhileSubscribed())
+            .stateIn(MainScope(), SharingStarted.WhileSubscribed(), ted)
 
         val nikdy = Cas(99, 99)
     }
