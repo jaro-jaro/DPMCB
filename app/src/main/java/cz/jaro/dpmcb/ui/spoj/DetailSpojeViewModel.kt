@@ -68,7 +68,7 @@ class DetailSpojeViewModel(
         } ?: Trvani.nekonecne
 
         val ubehlo = casOdjezduPosledni?.let {
-            ted.minus(it)
+            ted.minus(it).coerceAtLeast(0.sek)
         } ?: 0.sek
 
         funguj(

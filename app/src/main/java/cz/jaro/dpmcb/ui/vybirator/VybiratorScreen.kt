@@ -31,7 +31,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
 import cz.jaro.dpmcb.FakeNavigator
@@ -43,8 +42,7 @@ import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@JvmInline
-value class Vysledek(val v: Pair<String, Boolean>) : java.io.Serializable
+data class Vysledek(val value: String, val typAdapteru: TypAdapteru) : java.io.Serializable
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Destination
@@ -65,8 +63,10 @@ fun VybiratorScreen(
         TypAdapteru.LINKY -> R.string.vyberte_linku
         TypAdapteru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
         TypAdapteru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
-        TypAdapteru.PRVNI_ZASTAVKA -> R.string.vyberte_zastavku
-        TypAdapteru.DRUHA_ZASTAVKA -> R.string.vyberte_zastavku
+        TypAdapteru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
+        TypAdapteru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
+        TypAdapteru.LINKA_ZPET -> R.string.vyberte_linku
+        TypAdapteru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
     }
 
     LaunchedEffect(Unit) {
@@ -106,16 +106,20 @@ fun VybiratorScreen(
                     TypAdapteru.LINKY -> KeyboardType.Number
                     TypAdapteru.ZASTAVKY_LINKY -> KeyboardType.Text
                     TypAdapteru.PRISTI_ZASTAVKA -> KeyboardType.Text
-                    TypAdapteru.PRVNI_ZASTAVKA -> KeyboardType.Text
-                    TypAdapteru.DRUHA_ZASTAVKA -> KeyboardType.Text
+                    TypAdapteru.ZASTAVKY_ZPET_1 -> KeyboardType.Text
+                    TypAdapteru.ZASTAVKA_ZPET_2 -> KeyboardType.Text
+                    TypAdapteru.LINKA_ZPET -> KeyboardType.Number
+                    TypAdapteru.ZASTAVKA_ZPET -> KeyboardType.Text
                 },
                 imeAction = when (typ) {
                     TypAdapteru.ZASTAVKY -> ImeAction.Search
                     TypAdapteru.LINKY -> ImeAction.Next
                     TypAdapteru.ZASTAVKY_LINKY -> ImeAction.Next
                     TypAdapteru.PRISTI_ZASTAVKA -> ImeAction.Search
-                    TypAdapteru.PRVNI_ZASTAVKA -> ImeAction.Done
-                    TypAdapteru.DRUHA_ZASTAVKA -> ImeAction.Done
+                    TypAdapteru.ZASTAVKY_ZPET_1 -> ImeAction.Done
+                    TypAdapteru.ZASTAVKA_ZPET_2 -> ImeAction.Done
+                    TypAdapteru.LINKA_ZPET -> ImeAction.Done
+                    TypAdapteru.ZASTAVKA_ZPET -> ImeAction.Done
                 },
             ),
             keyboardActions = KeyboardActions(

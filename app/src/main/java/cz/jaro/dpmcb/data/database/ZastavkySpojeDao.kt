@@ -103,10 +103,11 @@ interface ZastavkySpojeDao {
                 WHERE zs.nazevKurzu LIKE :kurzLike
                 AND zs.nazevZastavky = :zastavka
             ) AS spoj ON spoj.id = zastavkaspoje.idSpoje 
+            WHERE zastavkaspoje.cas != :cas
             ORDER BY zastavkaspoje.indexNaLince
         """
     )
-    suspend fun findByKurzInExactAndIsJoinSpoj(kurzLike: String, zastavka: String): Map<ZastavkaSpoje, Spoj>
+    suspend fun findByKurzInExactAndIsCasNotJoinSpoj(kurzLike: String, zastavka: String, cas: Cas): Map<ZastavkaSpoje, Spoj>
 
     @Query(
         """

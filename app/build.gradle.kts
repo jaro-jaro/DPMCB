@@ -19,7 +19,7 @@ android {
         minSdk = 24
         targetSdk = 33
         versionCode = 1
-        versionName = "0.5.4.1"
+        versionName = "0.5.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -31,9 +31,14 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_dpmcb"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_dpmcb_round"
         }
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders += "logo" to "@mipmap/logo_white"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_white_round"
         }
     }
     compileOptions {
@@ -72,7 +77,7 @@ android {
 dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.appcompat:appcompat:1.6.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0-alpha01")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
@@ -91,7 +96,7 @@ dependencies {
     implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
 
     // Coroutines
-    implementation("com.google.code.gson:gson:2.10")
+    implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
@@ -112,7 +117,7 @@ dependencies {
 
     // Compose
     implementation("androidx.activity:activity-compose:1.6.1")
-    implementation("androidx.compose.material3:material3:1.1.0-alpha04")
+    implementation("androidx.compose.material3:material3:1.1.0-alpha06")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
     implementation("androidx.compose.ui:ui:1.3.3")
     implementation("androidx.compose.ui:ui-tooling-preview:1.3.3")
@@ -154,8 +159,8 @@ dependencies {
     annotationProcessor("com.google.dagger:dagger-android-processor:2.11")*/
 
     // Compose Destinations
-    implementation("io.github.raamcosta.compose-destinations:core:1.7.27-beta")
-    ksp("io.github.raamcosta.compose-destinations:ksp:1.7.27-beta")
+    implementation("io.github.raamcosta.compose-destinations:core:1.8.33-beta")
+    ksp("io.github.raamcosta.compose-destinations:ksp:1.8.33-beta")
 
     // Datastore
     implementation("androidx.datastore:datastore-core:1.0.0")
@@ -163,7 +168,7 @@ dependencies {
     //implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
 
-    implementation("com.google.code.gson:gson:2.10")
+    implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
     implementation("com.google.accompanist:accompanist-placeholder-material:0.28.0")

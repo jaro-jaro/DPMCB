@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.MutableGraphZastavek
@@ -46,6 +47,8 @@ object UtilFunctions {
         Smer.POZITIVNI -> 1
         Smer.NEGATIVNI -> -1
     }
+
+    fun <T> ifTake(condition: Boolean, take: () -> T): T? = if (condition) take() else null
 
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
 
@@ -96,7 +99,7 @@ object UtilFunctions {
             else VDP.DNY
         }
 
-    fun <R> funguj(vararg msg: R?): Unit = run { Log.d("funguj", msg.joinToString()) }
+    fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
     inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
         also { UtilFunctions.funguj(this.transform(), *msg) }
 
@@ -141,12 +144,13 @@ object UtilFunctions {
         imageVector: ImageVector,
         contentDescription: String?,
         modifier: Modifier = Modifier,
+        tooltipText: String? = contentDescription,
         tint: Color = LocalContentColor.current,
     ) {
-        if (contentDescription != null) PlainTooltipBox(tooltip = { Text(text = contentDescription) }) {
+        if (tooltipText != null) PlainTooltipBox(tooltip = { Text(text = tooltipText) }) {
             Icon(imageVector, contentDescription, modifier, tint)
         }
-        else Icon(imageVector, null, modifier, tint)
+        else Icon(imageVector, contentDescription, modifier, tint)
     }
 
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =

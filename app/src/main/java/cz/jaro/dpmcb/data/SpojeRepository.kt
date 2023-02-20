@@ -94,7 +94,7 @@ class SpojeRepository(ctx: Application) {
             .groupBy({ it.second }, { it.first })
 
     suspend fun spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne: VDP, zastavka: String) =
-        zastavkySpojeDao.findByKurzInExactAndIsJoinSpoj("${typDne.toChar()}%", zastavka)
+        zastavkySpojeDao.findByKurzInExactAndIsCasNotJoinSpoj("${typDne.toChar()}%", zastavka, Cas.nikdy)
             .toList()
             .groupBy({ it.second }, { it.first })
 

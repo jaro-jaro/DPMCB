@@ -7,6 +7,7 @@ import android.os.Bundle
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
@@ -112,51 +112,58 @@ class DopravaRepository(
 //        api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
 //    }
 
+    private fun List<SpojNaMape>.spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) = this
+        .filter {
+            it.id.drop(2).startsWith("325")
+        }
+        .filter {
+            it.id.split("-")[1].endsWith(spoj.cisloLinky.toString())
+        }
+        .filter { spojNaMape ->
+            listOf(
+                spojNaMape.dep.upravit() == zastavkySpoje.first { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
+                spojNaMape.dest.upravit() == zastavkySpoje.last { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
+            ).all { it }
+        }
+        .find { spojNaMape ->
+            listOf(
+                spojNaMape.depTime.toCas() == zastavkySpoje.first { it.cas != Cas.nikdy }.cas,
+                spojNaMape.destTime.toCas() == zastavkySpoje.last { it.cas != Cas.nikdy }.cas,
+            ).all { it }
+        }
+
     private fun spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
-            spojeNaMape
-                .filter {
-                    it.id.drop(2).startsWith("325")
-                }
-                .filter {
-                    it.id.split("-")[1].endsWith(spoj.cisloLinky.toString())
-                }
-                .filter { spojNaMape ->
-                    listOf(
-                        spojNaMape.dep.upravit() == zastavkySpoje.first().nazevZastavky.upravit(),
-                        spojNaMape.dest.upravit() == zastavkySpoje.last().nazevZastavky.upravit(),
-                    ).all { it }
-                }
-                .find { spojNaMape ->
-                    listOf(
-                        spojNaMape.depTime.toCas() == zastavkySpoje.first().cas,
-                        spojNaMape.destTime.toCas() == zastavkySpoje.last().cas,
-                    ).all { it }
-                }
+            spojeNaMape.spojNaMapePodleSpoje(spoj, zastavkySpoje)
         }
 
-    fun spojeNaMape() =
+    fun List<SpojNaMape>.spojeDPMCB() = filter {
+        it.id.drop(2).startsWith("325")
+    }
+
+    fun spojeDPMCBNaMape() =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
-            spojeNaMape.filter {
-                it.id.drop(2).startsWith("325")
-            }
+            spojeNaMape.spojeDPMCB()
         }
 
-    private fun spojNaMapePodleId(id: String) =
-        spojeNaMape().map { spojeNaMape ->
-            spojeNaMape.find { it.id == id }
+    private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
+
+    private fun spojDPMCBNaMapePodleId(id: String) =
+        spojeDPMCBNaMape().map { spojeNaMape ->
+            spojeNaMape.spojPodleId(id)
+        }
+
+    fun List<SpojNaMape>.spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
+        if (spoj == null) null
+        else if (repo.idSpoju.containsKey(spoj.id)) find {
+            it.id == repo.idSpoju[spoj.id]
+        } else spojNaMapePodleSpoje(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI })?.also {
+            repo.idSpoju += spoj.id to it.id
         }
 
     fun spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
-        if (spoj == null) flowOf(null)
-        else if (repo.idSpoju.containsKey(spoj.id)) seznamSpojuKterePraveJedou().map { spojeNaMape ->
-            spojeNaMape.find {
-                it.id == repo.idSpoju[spoj.id]
-            }
-        } else spojNaMapePodleSpoje(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }).onEach {
-            it?.also {
-                repo.idSpoju += spoj.id to it.id
-            }
+        seznamSpojuKterePraveJedou().map { spojeNaMape ->
+            spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
         }
 
     fun detailSpojePodleUlozenehoId(spoj: Spoj?): Flow<DetailSpoje?> =
@@ -171,7 +178,7 @@ class DopravaRepository(
             }
 
     fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
-        spojNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
 }

@@ -49,6 +49,7 @@ import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
+import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
@@ -67,7 +68,7 @@ fun SpojeniScreen(
         when (result) {
             is NavResult.Canceled -> {}
             is NavResult.Value -> {
-                viewModel.vybralZastavku(result.value.v.second, result.value.v.first)
+                viewModel.vybralZastavku(result.value.typAdapteru == TypAdapteru.ZASTAVKY_ZPET_1, result.value.value)
             }
         }
     }

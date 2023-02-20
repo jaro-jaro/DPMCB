@@ -33,7 +33,7 @@ class SpojeniViewModel : ViewModel() {
             _uiEvent.send(
                 UiEvent.Navigovat(
                     VybiratorScreenDestination(
-                        typ = if (start) TypAdapteru.PRVNI_ZASTAVKA else TypAdapteru.DRUHA_ZASTAVKA,
+                        typ = if (start) TypAdapteru.ZASTAVKY_ZPET_1 else TypAdapteru.ZASTAVKA_ZPET_2,
                     )
                 )
             )

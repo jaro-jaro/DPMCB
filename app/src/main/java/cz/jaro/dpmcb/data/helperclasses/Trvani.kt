@@ -7,6 +7,7 @@ value class Trvani(val sek: Int) : Comparable<Trvani> {
 
     companion object {
         val nekonecne = Trvani(Int.MAX_VALUE)
+        val zadne = Trvani(0)
 
         val Double.sek get() = toInt().sek
         val Int.sek get() = Trvani(this)
@@ -31,4 +32,18 @@ value class Trvani(val sek: Int) : Comparable<Trvani> {
 
     val min get() = sek / 60.0
     val hod get() = min / 60.0
+
+    fun useknoutSekundy() = min.toInt().min
+
+    fun asString(): String {
+        val hodin = hod.toInt()
+        val minut = minus(hodin.hod).min.toInt()
+
+        return when {
+            hodin == 0 && minut == 0 -> "<1 min"
+            hodin == 0 -> "$minut min"
+            minut == 0 -> "$hodin hod"
+            else -> "$hodin hod $minut min"
+        }
+    }
 }

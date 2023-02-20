@@ -2,85 +2,97 @@ package cz.jaro.dpmcb.ui.odjezdy
 
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.TimePicker
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
-import com.google.accompanist.placeholder.PlaceholderHighlight
-import com.google.accompanist.placeholder.placeholder
-import com.google.accompanist.placeholder.shimmer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.result.NavResult
+import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.cas
+import cz.jaro.dpmcb.data.helperclasses.Trvani
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
+import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.UiEvent
+import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
-import cz.jaro.dpmcb.ui.theme.DPMCBTheme
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
+import cz.jaro.dpmcb.ui.vybirator.Vysledek
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Destination
 @Composable
 fun OdjezdyScreen(
     zastavka: String,
-    cas: String? = null,
-    doba: Int = 5,
+    cas: Cas = Cas.ted,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas, doba))
+        ParametersHolder(mutableListOf(zastavka, cas))
     },
     navigator: DestinationsNavigator,
+    resultRecipient: ResultRecipient<VybiratorScreenDestination, Vysledek>,
 ) {
-    App.title = R.string.odjezdy
-
-    val state by viewModel.state.collectAsState()
-//    val viewModel = rememberSaveable() { OdjezdyViewModel(repo, zastavka, cas, doba) }
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.Navigovat -> {
-                    navigator.navigate(event.kam)
-                }
-
-                else -> {}
+    resultRecipient.onNavResult { result ->
+        when (result) {
+            is NavResult.Canceled -> {}
+            is NavResult.Value -> {
+                viewModel.vybral(result.value)
             }
         }
     }
 
-    val listState = rememberLazyListState(Int.MAX_VALUE / 2)
+    App.title = R.string.odjezdy
 
-    LaunchedEffect(state.indexScrollovani) {
-        listState.scrollToItem(state.indexScrollovani)
+    val state by viewModel.state.collectAsState()
+
+    val listState = rememberLazyListState(state.indexScrollovani)
+
+    LaunchedEffect(Unit) {
+        viewModel.scrollovat = {
+            listState.scrollToItem(it)
+        }
+        viewModel.navigovat = {
+            navigator.navigate(it)
+        }
+    }
+
+    LaunchedEffect(listState) {
+        withContext(Dispatchers.IO) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    viewModel.scrolluje(it)
+                }
+        }
     }
 
     if (state.nacitaSe) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -88,192 +100,206 @@ fun OdjezdyScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
         ) {
             Text(
-                text = state.zastavka,
+                text = zastavka,
                 fontSize = 20.sp
             )
-            IconButton(
-                onClick = {
-                    viewModel.poslatEvent(OdjezdyEvent.ZmensitCas)
-                },
-            ) {
-                IconWithTooltip(
-                    imageVector = Icons.Default.Remove,
-                    contentDescription = ""
-                )
-            }
             val ctx = LocalContext.current
             TextButton(
                 onClick = {
                     MaterialAlertDialogBuilder(ctx).apply {
                         setTitle("Vybrat čas")
 
-                        val ll = LinearLayout(context)
+                        setView(LinearLayout(context).apply {
+                            addView(TimePicker(context).apply {
+                                layoutParams = LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT
+                                )
+                                updateLayoutParams<LinearLayout.LayoutParams> {
+                                    updateMargins(top = 16)
+                                }
 
-                        val tp = android.widget.TimePicker(context)
-                        //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
-                        tp.layoutParams = LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-                        tp.updateLayoutParams<LinearLayout.LayoutParams> {
-                            updateMargins(top = 16)
-                        }
+                                setIs24HourView(true)
 
-                        tp.setIs24HourView(true)
+                                hour = state.cas.h
+                                minute = state.cas.min
 
-                        tp.hour = state.zacatek.h
-                        tp.minute = state.zacatek.min
+                                setPositiveButton("Zvolit") { dialog, _ ->
+                                    dialog.cancel()
 
-                        ll.addView(tp)
+                                    val novejCas = Cas(hour, minute)
+                                    viewModel.zmenitCas(novejCas)
+                                }
+                            })
+                        })
 
-                        setView(ll)
-
-                        setPositiveButton("Zvolit") { dialog, _ ->
-                            dialog.cancel()
-
-                            val novejCas = Cas(tp.hour, tp.minute)
-                            viewModel.poslatEvent(OdjezdyEvent.ZmenitCas(novejCas))
-                        }
                         show()
                     }
                 }
             ) {
-                Text(text = state.zacatek.toString())
+                Text(text = state.cas.toString())
             }
-            IconButton(
-                onClick = {
-                    viewModel.poslatEvent(OdjezdyEvent.ZvetsitCas)
-                },
-            ) {
-                IconWithTooltip(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = ""
-                )
-            }
+            Spacer(modifier = Modifier.weight(1F))
+            Text("Zjednodušit")
+            Switch(checked = state.kompaktniRezim, onCheckedChange = {
+                viewModel.zmenilKompaktniRezim()
+            }, Modifier.padding(all = 8.dp))
         }
 
-        val scope = rememberCoroutineScope()
-
-        LazyColumn(
-            state = listState,
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
         ) {
-            if (state.seznam.isNotEmpty()) items(
-                count = Int.MAX_VALUE,
-                itemContent = {
-                    val index = it % state.seznam.size
-                    val karticka by produceState(null as KartickaState?) {
-                        value = state.seznam[index].await()
+            val focusRequester = LocalFocusManager.current
+
+            TextField(
+                value = state.filtrLinky?.toString() ?: "Všechny",
+                onValueChange = {},
+                Modifier
+                    .onFocusEvent {
+                        if (!it.hasFocus) return@onFocusEvent
+                        navigator.navigate(
+                            VybiratorScreenDestination(
+                                typ = TypAdapteru.LINKA_ZPET,
+                            )
+                        )
+                        focusRequester.clearFocus()
                     }
-                    Karticka(karticka, viewModel::poslatEvent)
+                    .fillMaxWidth(),
+                label = {
+                    Text(text = "Linka:")
+                },
+                readOnly = true,
+                trailingIcon = {
+                    if (state.filtrLinky != null) IconButton(onClick = {
+                        viewModel.zrusil(TypAdapteru.LINKA_ZPET)
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    textColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+            )
+            TextField(
+                value = state.filtrZastavky ?: "Cokoliv",
+                onValueChange = {},
+                Modifier
+                    .onFocusEvent {
+                        if (!it.hasFocus) return@onFocusEvent
+                        navigator.navigate(
+                            VybiratorScreenDestination(
+                                typ = TypAdapteru.ZASTAVKA_ZPET,
+                            )
+                        )
+                        focusRequester.clearFocus()
+                    }
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+
+                label = {
+                    Text(text = "Jede přes:")
+                },
+                readOnly = true,
+                trailingIcon = {
+                    if (state.filtrZastavky != null) IconButton(onClick = {
+                        viewModel.zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    textColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+            )
+        }
+        if (state.nacitaSe) Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        else if (state.filtrovanejSeznam.isEmpty()) Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                if (state.filtrZastavky == null && state.filtrLinky == null) "Přes tuto zastávku nic nejede"
+                else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který zastavuje na zastávce ${state.filtrZastavky}"
+                else if (state.filtrZastavky == null) "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}"
+                else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který zastavuje na zastávce ${state.filtrZastavky}",
+                Modifier.padding(horizontal = 16.dp)
+            )
+        }
+        else LazyColumn(
+            state = listState,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            items(
+                count = Int.MAX_VALUE,
+                itemContent = { i ->
+                    if (state.filtrovanejSeznam.isNotEmpty()) {
+                        val karticka = state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
+                        Karticka(
+                            karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                                .animateContentSize()
+                                .animateItemPlacement()
+                        )
+                    }
                 }
             )
-            else item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Načítání")
-                }
-            }
-            /*item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Načítání")
-                    if (!state.nacitaSe)
-                        viewModel.poslatEvent(OdjezdyEvent.NacistDalsi)
-                }
-            }*/
         }
     }
 }
-
-@Preview
-@Composable
-fun KartickaPreview() {
-    DPMCBTheme {
-        Column {
-            Karticka(
-                KartickaState(
-                    konecna = "Ahoj",
-                    pristiZastavka = "Čau",
-                    cisloLinky = 9,
-                    cas = 12 cas 38,
-                    JePosledniZastavka = false,
-                    idSpoje = 612L,
-                    nizkopodlaznost = true,
-                    zpozdeni = flowOf(null),
-                )
-            ) {}
-            Karticka(
-                KartickaState(
-                    konecna = "Ne",
-                    pristiZastavka = "Nechci se zdravit",
-                    cisloLinky = 29,
-                    cas = 14 cas 88,
-                    JePosledniZastavka = true,
-                    idSpoje = 1415926535L,
-                    nizkopodlaznost = false,
-                    zpozdeni = flowOf(2),
-                )
-            ) {}
-        }
-    }
-}
-
-private fun Modifier.applyIf(apply: Boolean, block: Modifier.() -> Modifier) = if (apply) block() else this
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Karticka(
-    kartickaState: KartickaState?,
-    poslatEvent: (OdjezdyEvent) -> Unit,
+    kartickaState: KartickaState,
+    detailSpoje: (KartickaState) -> Unit,
+    zjednodusit: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-
-    OutlinedCard(
+    Divider(modifier)
+    Surface(
         onClick = {
-            if (kartickaState == null) return@OutlinedCard
-            poslatEvent(OdjezdyEvent.KliklNaDetailSpoje(kartickaState.idSpoje))
+            detailSpoje(kartickaState)
         },
-        modifier = Modifier
-            .padding(bottom = 8.dp)
-
+        modifier = modifier
     ) {
         Column(
             modifier = Modifier
-                .padding(all = 8.dp)
+                .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
         ) {
+            val nasledujiciZastavka by kartickaState.aktualniNasledujiciZastavka
+            val zpozdeni by kartickaState.zpozdeni
+            val jedeZa by kartickaState.jedeZa
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .applyIf(kartickaState == null) {
-                        padding(all = 8.dp)
-                    }
-                    .placeholder(
-                        visible = kartickaState == null,
-                        color = Color.Gray,
-                        highlight = PlaceholderHighlight.shimmer(
-                            highlightColor = Color.DarkGray,
-                        ),
-                        shape = RoundedCornerShape(6.dp),
-                    )
             ) {
+                IconWithTooltip(
+                    imageVector = when {
+                        kartickaState.nizkopodlaznost -> Icons.Default.Accessible
+                        else -> Icons.Default.NotAccessible
+                    },
+                    contentDescription = "Invalidní vozík",
+                )
                 Text(
-                    modifier = Modifier,
-                    text = kartickaState?.cisloLinky?.toString() ?: "?",
+                    modifier = Modifier.padding(start = 8.dp),
+                    text = kartickaState.cisloLinky.toString(),
                     fontSize = 30.sp
                 )
                 Text(
@@ -284,64 +310,41 @@ private fun Karticka(
                 Text(
                     modifier = Modifier
                         .weight(1F),
-                    text = kartickaState?.konecna ?: "???",
+                    text = kartickaState.konecna,
                     fontSize = 20.sp
                 )
-                Text(
-                    text = "${kartickaState?.cas ?: "??:??"}"
-                )
-                val zpozdeni by (kartickaState?.zpozdeni ?: flowOf(null)).collectAsState(initial = null)
-                if (zpozdeni != null && kartickaState != null) Text(
-                    text = "${kartickaState.cas + zpozdeni!!.min}",
-                    color = barvaZpozdeniTextu(zpozdeni!!),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                if (zjednodusit) Text(
+                    text = if (jedeZa == null || jedeZa!! < Trvani.zadne) "${kartickaState.cas}"
+                    else jedeZa!!.asString(),
+                    color = if (zpozdeni == null || jedeZa == null || jedeZa!! < Trvani.zadne) MaterialTheme.colorScheme.onSurface
+                    else barvaZpozdeniTextu(zpozdeni!!),
+                ) else {
+                    Text(
+                        text = "${kartickaState.cas}"
+                    )
+                    if (zpozdeni != null) Text(
+                        text = "${kartickaState.cas + zpozdeni!!.min}",
+                        color = barvaZpozdeniTextu(zpozdeni!!),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconWithTooltip(
-                    imageVector = when {
-                        kartickaState?.nizkopodlaznost ?: false -> Icons.Default.Accessible
-                        else -> Icons.Default.NotAccessible
-                    },
-                    contentDescription = "Invalidní vozík",
-                    modifier = Modifier
-                        .applyIf(kartickaState == null) {
-                            padding(all = 8.dp)
-                        }
-                        .placeholder(
-                            visible = kartickaState == null,
-                            color = Color.Gray,
-                            highlight = PlaceholderHighlight.shimmer(
-                                highlightColor = Color.DarkGray,
-                            ),
-                            shape = RoundedCornerShape(6.dp),
-                        )
-                )
-                TextButton(
-                    onClick = {
-                        if (kartickaState == null) return@TextButton
-                        poslatEvent(OdjezdyEvent.KliklNaZjr(kartickaState))
-                    },
-                    enabled = kartickaState?.JePosledniZastavka == false,
-                    modifier = Modifier
-                        .applyIf(kartickaState == null) {
-                            padding(all = 8.dp)
-                        }
-                        .placeholder(
-                            visible = kartickaState == null,
-                            color = Color.Gray,
-                            highlight = PlaceholderHighlight.shimmer(
-                                highlightColor = Color.DarkGray,
-                            ),
-                            shape = RoundedCornerShape(6.dp),
-                        )
+
+            if (nasledujiciZastavka != null && zpozdeni != null && !zjednodusit) {
+                Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = "Zastávkové jízdní řády")
+                    Text(
+                        modifier = Modifier
+                            .weight(1F),
+                        text = nasledujiciZastavka!!.nazevZastavky,
+                        fontSize = 20.sp
+                    )
+                    Text(
+                        text = nasledujiciZastavka!!.cas.toString(),
+                        color = barvaZpozdeniTextu(zpozdeni!!)
+                    )
                 }
             }
         }

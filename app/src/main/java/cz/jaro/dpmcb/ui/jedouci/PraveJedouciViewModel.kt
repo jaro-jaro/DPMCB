@@ -38,7 +38,7 @@ class PraveJedouciViewModel : ViewModel() {
     val seznam = filtry.map {
         it.ifEmpty { null }
     }
-        .combine(dopravaRepo.spojeNaMape()) { filtry, spojeNaMape ->
+        .combine(dopravaRepo.spojeDPMCBNaMape()) { filtry, spojeNaMape ->
             _nacitaSe.value = true
             filtry?.let {
                 spojeNaMape
