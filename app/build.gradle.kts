@@ -31,9 +31,14 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_dpmcb"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_dpmcb_round"
         }
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders += "logo" to "@mipmap/logo_white"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_white_round"
         }
     }
     compileOptions {
