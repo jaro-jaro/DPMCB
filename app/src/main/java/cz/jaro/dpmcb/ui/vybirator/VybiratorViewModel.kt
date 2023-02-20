@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.result.ResultBackNavigator
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.proVsechnyIndexy
@@ -14,6 +15,7 @@ import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -54,14 +56,12 @@ class VybiratorViewModel(
     val uiEvent = _uiEvent.receiveAsFlow()
 
     fun poslatEvent(event: VybiratorEvent) {
-        viewModelScope.launch {
-            when (event) {
-                is VybiratorEvent.KliklEnter -> hotovo(state.seznam.first())
-                is VybiratorEvent.KliklNaSeznam -> hotovo(event.vec)
-                is VybiratorEvent.NapsalNeco -> {
-                    state = state.copy(hledani = event.co.replace("\n", ""))
-                    if (state.seznam.count() == 1) hotovo(state.seznam.first())
-                }
+        when (event) {
+            is VybiratorEvent.KliklEnter -> hotovo(state.seznam.first())
+            is VybiratorEvent.KliklNaSeznam -> hotovo(event.vec)
+            is VybiratorEvent.NapsalNeco -> {
+                state = state.copy(hledani = event.co.replace("\n", ""))
+                if (state.seznam.count() == 1) hotovo(state.seznam.first())
             }
         }
     }
@@ -90,73 +90,80 @@ class VybiratorViewModel(
     ) = repo.zastavkyLinky(cisloLinky)
         .proVsechnyIndexy(zastavka) { index ->
             repo.spojeLinkyZastavujiciVZastavceSeZastavkamiSpoju(cisloLinky, index)
-                .mapNotNull { (spoj, zastavkySpoje) ->
+                .mapNotNull { (spoj, zastavkySpoje: List<ZastavkaSpoje>) ->
                     zastavkySpoje.pristiZastavka(spoj.smer, index)?.nazevZastavky
                 }
         }.flatten().distinct()
 
-    private suspend fun hotovo(
+    private var job: Job? = null
+
+    private fun hotovo(
         vysledek: String,
     ) {
-        when (typ) {
-            TypAdapteru.ZASTAVKY -> _uiEvent.send(
-                UiEvent.Navigovat(
-                    OdjezdyScreenDestination(
-                        zastavka = vysledek,
+        if (job != null && typ.name.contains("ZPET")) return
+        job = viewModelScope.launch {
+            when (typ) {
+                TypAdapteru.ZASTAVKY -> _uiEvent.send(
+                    UiEvent.Navigovat(
+                        OdjezdyScreenDestination(
+                            zastavka = vysledek,
+                        )
                     )
                 )
-            )
-            TypAdapteru.LINKY -> _uiEvent.send(
-                UiEvent.Navigovat(
-                    VybiratorScreenDestination(
-                        cisloLinky = vysledek.toInt(),
-                        zastavka = null,
-                        typ = TypAdapteru.ZASTAVKY_LINKY
+
+                TypAdapteru.LINKY -> _uiEvent.send(
+                    UiEvent.Navigovat(
+                        VybiratorScreenDestination(
+                            cisloLinky = vysledek.toInt(),
+                            zastavka = null,
+                            typ = TypAdapteru.ZASTAVKY_LINKY
+                        )
                     )
                 )
-            )
-            TypAdapteru.ZASTAVKY_LINKY -> _uiEvent.send(
-                UiEvent.Navigovat(
-                    pristiZastavky(cisloLinky, vysledek).let { pz ->
-                        if (pz.size == 1)
-                            JizdniRadyScreenDestination(
-                                cisloLinky = cisloLinky,
-                                zastavka = vysledek,
-                                pristiZastavka = pz.first(),
-                            )
-                        else
-                            VybiratorScreenDestination(
-                                cisloLinky = cisloLinky,
-                                zastavka = vysledek,
-                                typ = TypAdapteru.PRISTI_ZASTAVKA
-                            )
-                    })
-            )
 
-            TypAdapteru.PRISTI_ZASTAVKA -> _uiEvent.send(
-                UiEvent.Navigovat(
-                    JizdniRadyScreenDestination(
-                        cisloLinky = cisloLinky,
-                        zastavka = zastavka!!,
-                        pristiZastavka = vysledek,
+                TypAdapteru.ZASTAVKY_LINKY -> _uiEvent.send(
+                    UiEvent.Navigovat(
+                        pristiZastavky(cisloLinky, vysledek).let { pz: List<String> ->
+                            if (pz.size == 1)
+                                JizdniRadyScreenDestination(
+                                    cisloLinky = cisloLinky,
+                                    zastavka = vysledek,
+                                    pristiZastavka = pz.first(),
+                                )
+                            else
+                                VybiratorScreenDestination(
+                                    cisloLinky = cisloLinky,
+                                    zastavka = vysledek,
+                                    typ = TypAdapteru.PRISTI_ZASTAVKA
+                                )
+                        })
+                )
+
+                TypAdapteru.PRISTI_ZASTAVKA -> _uiEvent.send(
+                    UiEvent.Navigovat(
+                        JizdniRadyScreenDestination(
+                            cisloLinky = cisloLinky,
+                            zastavka = zastavka!!,
+                            pristiZastavka = vysledek,
+                        )
                     )
                 )
-            )
 
-            TypAdapteru.ZASTAVKY_ZPET_1 -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
-            }
+                TypAdapteru.ZASTAVKY_ZPET_1 -> {
+                    resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
+                }
 
-            TypAdapteru.ZASTAVKA_ZPET_2 -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
-            }
+                TypAdapteru.ZASTAVKA_ZPET_2 -> {
+                    resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
+                }
 
-            TypAdapteru.LINKA_ZPET -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
-            }
+                TypAdapteru.LINKA_ZPET -> {
+                    resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
+                }
 
-            TypAdapteru.ZASTAVKA_ZPET -> {
-                resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
+                TypAdapteru.ZASTAVKA_ZPET -> {
+                    resultNavigator.navigateBack(result = Vysledek(vysledek, typ))
+                }
             }
         }
     }
