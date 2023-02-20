@@ -153,7 +153,6 @@ fun OdjezdyScreen(
         ) {
             val focusRequester = LocalFocusManager.current
 
-            Text(text = "Filtry")
             TextField(
                 value = state.filtrLinky?.toString() ?: "Všechny",
                 onValueChange = {},
@@ -196,7 +195,8 @@ fun OdjezdyScreen(
                         )
                         focusRequester.clearFocus()
                     }
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
 
                 label = {
                     Text(text = "Jede přes:")
