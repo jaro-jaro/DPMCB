@@ -107,6 +107,7 @@ class OdjezdyViewModel(
                 oldState.copy(
                     cas = cas,
                 ).also { newState ->
+                    if (newState.filtrovanejSeznam.isEmpty()) return@also
                     scrollovat(newState.filtrovanejSeznam.indexOfFirst { zast ->
                         zast.cas >= cas
                     } + ((Int.MAX_VALUE / 2) / newState.filtrovanejSeznam.size) * newState.filtrovanejSeznam.size)
@@ -133,6 +134,7 @@ class OdjezdyViewModel(
                     TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
                     else -> return@launch
                 }.also { newState ->
+                    if (newState.filtrovanejSeznam.isEmpty()) return@also
                     scrollovat(
                         newState.filtrovanejSeznam.indexOfFirst { zast ->
                             zast.cas >= newState.cas
@@ -144,18 +146,21 @@ class OdjezdyViewModel(
     }
 
     fun zrusil(typAdapteru: TypAdapteru) {
-        viewModelScope.launch(Dispatchers.Main) {
+        viewModelScope.launch(Dispatchers.IO) {
             _state.update { oldState ->
                 when (typAdapteru) {
                     TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
                     TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
                     else -> return@launch
                 }.also { newState ->
-                    scrollovat(
-                        newState.filtrovanejSeznam.indexOfFirst { zast ->
-                            zast.cas >= newState.cas
-                        } + ((Int.MAX_VALUE / 2) / newState.filtrovanejSeznam.size) * newState.filtrovanejSeznam.size
-                    )
+                    if (newState.filtrovanejSeznam.isEmpty()) return@also
+                    launch(Dispatchers.Main) {
+                        scrollovat(
+                            newState.filtrovanejSeznam.indexOfFirst { zast ->
+                                zast.cas >= newState.cas
+                            } + ((Int.MAX_VALUE / 2) / newState.filtrovanejSeznam.size) * newState.filtrovanejSeznam.size
+                        )
+                    }
                 }
             }
         }

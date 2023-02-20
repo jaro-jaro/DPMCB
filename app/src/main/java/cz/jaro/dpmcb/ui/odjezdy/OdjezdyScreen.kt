@@ -16,9 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -216,13 +214,27 @@ fun OdjezdyScreen(
                 ),
             )
         }
-        if (state.nacitaSe || state.filtrovanejSeznam.isEmpty()) Row(
+        if (state.nacitaSe) Row(
             Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator()
+        }
+        else if (state.filtrovanejSeznam.isEmpty()) Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                if (state.filtrZastavky == null && state.filtrLinky == null) "Přes tuto zastávku nic nejede"
+                else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který zastavuje na zastávce ${state.filtrZastavky}"
+                else if (state.filtrZastavky == null) "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}"
+                else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který zastavuje na zastávce ${state.filtrZastavky}",
+                Modifier.padding(horizontal = 16.dp)
+            )
         }
         else LazyColumn(
             state = listState,
@@ -231,16 +243,14 @@ fun OdjezdyScreen(
             items(
                 count = Int.MAX_VALUE,
                 itemContent = { i ->
-                    val karticka by remember(state) {
-                        derivedStateOf {
-                            state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
-                        }
+                    if (state.filtrovanejSeznam.isNotEmpty()) {
+                        val karticka = state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
+                        Karticka(
+                            karticka, viewModel::kliklNaDetailSpoje, modifier = Modifier
+                                .animateContentSize()
+                                .animateItemPlacement()
+                        )
                     }
-                    Karticka(
-                        karticka, viewModel::kliklNaDetailSpoje, modifier = Modifier
-                            .animateContentSize()
-                            .animateItemPlacement()
-                    )
                 }
             )
         }
