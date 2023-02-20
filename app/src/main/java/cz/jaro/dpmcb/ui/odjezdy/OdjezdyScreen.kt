@@ -35,6 +35,7 @@ import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.dpmcb.data.helperclasses.Trvani
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
@@ -145,6 +146,11 @@ fun OdjezdyScreen(
             ) {
                 Text(text = state.cas.toString())
             }
+            Spacer(modifier = Modifier.weight(1F))
+            Text("Zjednodušit")
+            Switch(checked = state.kompaktniRezim, onCheckedChange = {
+                viewModel.zmenilKompaktniRezim()
+            }, Modifier.padding(all = 8.dp))
         }
 
         Column(
@@ -246,7 +252,7 @@ fun OdjezdyScreen(
                     if (state.filtrovanejSeznam.isNotEmpty()) {
                         val karticka = state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
                         Karticka(
-                            karticka, viewModel::kliklNaDetailSpoje, modifier = Modifier
+                            karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
                                 .animateContentSize()
                                 .animateItemPlacement()
                         )
@@ -262,6 +268,7 @@ fun OdjezdyScreen(
 private fun Karticka(
     kartickaState: KartickaState,
     detailSpoje: (KartickaState) -> Unit,
+    zjednodusit: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Divider(modifier)
@@ -277,6 +284,7 @@ private fun Karticka(
         ) {
             val nasledujiciZastavka by kartickaState.aktualniNasledujiciZastavka
             val zpozdeni by kartickaState.zpozdeni
+            val jedeZa by kartickaState.jedeZa
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -305,17 +313,24 @@ private fun Karticka(
                     text = kartickaState.konecna,
                     fontSize = 20.sp
                 )
-                Text(
-                    text = "${kartickaState.cas}"
-                )
-                if (zpozdeni != null) Text(
-                    text = "${kartickaState.cas + zpozdeni!!.min}",
-                    color = barvaZpozdeniTextu(zpozdeni!!),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                if (zjednodusit) Text(
+                    text = if (jedeZa == null || jedeZa!! < Trvani.zadne) "${kartickaState.cas}"
+                    else jedeZa!!.asString(),
+                    color = if (zpozdeni == null || jedeZa == null || jedeZa!! < Trvani.zadne) MaterialTheme.colorScheme.onSurface
+                    else barvaZpozdeniTextu(zpozdeni!!),
+                ) else {
+                    Text(
+                        text = "${kartickaState.cas}"
+                    )
+                    if (zpozdeni != null) Text(
+                        text = "${kartickaState.cas + zpozdeni!!.min}",
+                        color = barvaZpozdeniTextu(zpozdeni!!),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
 
-            if (nasledujiciZastavka != null && zpozdeni != null) {
+            if (nasledujiciZastavka != null && zpozdeni != null && !zjednodusit) {
                 Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth()

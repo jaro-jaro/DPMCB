@@ -9,6 +9,7 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.Trvani
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ifTake
@@ -77,7 +78,8 @@ class OdjezdyViewModel(
                             idSpoje = spoj.id,
                             nizkopodlaznost = spoj.nizkopodlaznost,
                             zpozdeni = lazy { spojNaMape.value?.delay },
-                            jedePres = zastavkySpoje.map { it.nazevZastavky }
+                            jedePres = zastavkySpoje.map { it.nazevZastavky },
+                            jedeZa = lazy { spojNaMape.value?.delay?.min?.let { zastavka.cas + it - Cas.ted } }
                         )
                     }
             }
@@ -166,6 +168,14 @@ class OdjezdyViewModel(
         }
     }
 
+    fun zmenilKompaktniRezim() {
+        _state.update {
+            it.copy(
+                kompaktniRezim = !it.kompaktniRezim
+            )
+        }
+    }
+
     data class KartickaState(
         val konecna: String,
         val pristiZastavka: String,
@@ -177,6 +187,7 @@ class OdjezdyViewModel(
         val nizkopodlaznost: Boolean,
         val zpozdeni: Lazy<Int?>,
         val jedePres: List<String>,
+        val jedeZa: Lazy<Trvani?>,
     )
 
     data class OdjezdyState(
@@ -186,6 +197,7 @@ class OdjezdyViewModel(
         val indexScrollovani: Int = Int.MAX_VALUE / 2,
         val filtrLinky: Int? = null,
         val filtrZastavky: String? = null,
+        val kompaktniRezim: Boolean = false,
     ) {
         val filtrovanejSeznam
             get() = seznam
