@@ -338,11 +338,11 @@ private fun Karticka(
                     Text(
                         modifier = Modifier
                             .weight(1F),
-                        text = nasledujiciZastavka!!.nazevZastavky,
+                        text = nasledujiciZastavka!!.first,
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nasledujiciZastavka!!.cas.toString(),
+                        text = nasledujiciZastavka!!.second.toString(),
                         color = barvaZpozdeniTextu(zpozdeni!!)
                     )
                 }

@@ -4,13 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -112,31 +105,6 @@ class DopravaRepository(
 //        api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
 //    }
 
-    private fun List<SpojNaMape>.spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) = this
-        .filter {
-            it.id.drop(2).startsWith("325")
-        }
-        .filter {
-            it.id.split("-")[1].endsWith(spoj.cisloLinky.toString())
-        }
-        .filter { spojNaMape ->
-            listOf(
-                spojNaMape.dep.upravit() == zastavkySpoje.first { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
-                spojNaMape.dest.upravit() == zastavkySpoje.last { it.cas != Cas.nikdy }.nazevZastavky.upravit(),
-            ).all { it }
-        }
-        .find { spojNaMape ->
-            listOf(
-                spojNaMape.depTime.toCas() == zastavkySpoje.first { it.cas != Cas.nikdy }.cas,
-                spojNaMape.destTime.toCas() == zastavkySpoje.last { it.cas != Cas.nikdy }.cas,
-            ).all { it }
-        }
-
-    private fun spojNaMapePodleSpoje(spoj: Spoj, zastavkySpoje: List<ZastavkaSpoje>) =
-        seznamSpojuKterePraveJedou().map { spojeNaMape ->
-            spojeNaMape.spojNaMapePodleSpoje(spoj, zastavkySpoje)
-        }
-
     fun List<SpojNaMape>.spojeDPMCB() = filter {
         it.id.drop(2).startsWith("325")
     }
@@ -148,37 +116,25 @@ class DopravaRepository(
 
     private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
 
+    fun List<SpojNaMape>.spojDPMCBPodleId(id: String) = spojeDPMCB().spojPodleId(id)
+
     private fun spojDPMCBNaMapePodleId(id: String) =
         spojeDPMCBNaMape().map { spojeNaMape ->
             spojeNaMape.spojPodleId(id)
         }
 
-    fun List<SpojNaMape>.spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
-        if (spoj == null) null
-        else if (repo.idSpoju.containsKey(spoj.id)) find {
-            it.id == repo.idSpoju[spoj.id]
-        } else spojNaMapePodleSpoje(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI })?.also {
-            repo.idSpoju += spoj.id to it.id
-        }
-
-    fun spojNaMapePodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>) =
-        seznamSpojuKterePraveJedou().map { spojeNaMape ->
-            spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje)
-        }
-
-    fun detailSpojePodleUlozenehoId(spoj: Spoj?): Flow<DetailSpoje?> =
-        if (spoj == null || !repo.idSpoju.containsKey(spoj.id)) flowOf(null)
-        else detailSpoje(repo.idSpoju[spoj.id]!!)
-
-    fun spojPodleSpojeNeboUlozenehoId(spoj: Spoj?, zastavkySpoje: List<ZastavkaSpoje>): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
-        if (spoj == null || !repo.idSpoju.containsKey(spoj.id)) flowOf(null to null)
-        else spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI })
-            .zip(detailSpoje(repo.idSpoju[spoj.id]!!)) { spojNaMape, detailSpoje ->
-                spojNaMape to detailSpoje
-            }
-
     fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
         spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
+
+    @JvmName("spojPodleIdAllowNull")
+    fun spojPodleId(id: String?): Flow<Pair<SpojNaMape?, DetailSpoje?>> = id?.let {
+        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+            spojNaMape to detailSpoje
+        }
+    } ?: flowOf(null to null)
+
+    fun spojNaMapePodleId(id: String): Flow<SpojNaMape?> = spojDPMCBNaMapePodleId(id)
 }
+

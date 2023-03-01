@@ -1,18 +1,15 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 import cz.jaro.dpmcb.data.helperclasses.Smer
 
-@kotlinx.serialization.Serializable
-@Entity
+@Entity(primaryKeys = ["linka", "cisloSpoje"])
 data class Spoj(
-    @PrimaryKey val id: Long,
-
-    val cisloLinky: Int,
-    val nazevKurzu: String,
-
+    val linka: Int,
+    val cisloSpoje: Int,
+    val pevneKody: String,
     val smer: Smer,
-    val nizkopodlaznost: Boolean,
-    val vyjmecnosti: Int,
-)
+) {
+    var id = "S-$linka-$cisloSpoje"
+        internal set
+}

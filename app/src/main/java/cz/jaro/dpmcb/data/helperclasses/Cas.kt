@@ -37,6 +37,10 @@ data class Cas(val h: Int = 0, val min: Int = 0, val s: Int = 0) : Comparable<Ca
             ?.toCas()
             ?: ted
 
+        fun String?.toCasDivne() = this?.run {
+            slice(0..1).toInt() cas slice(2..3).toInt()
+        } ?: ted
+
         fun Trvani.toCas() = sek.toCas()
 
         val ted

@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
@@ -29,12 +30,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
@@ -56,7 +61,7 @@ import org.koin.core.parameter.ParametersHolder
 @Destination
 @Composable
 fun DetailSpojeScreen(
-    spojId: Long,
+    spojId: String,
     viewModel: DetailSpojeViewModel = koinViewModel {
         ParametersHolder(mutableListOf(spojId))
     },
@@ -65,7 +70,7 @@ fun DetailSpojeScreen(
 
     App.title = R.string.detail_spoje
 
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -106,7 +111,7 @@ fun DetailSpojeScreen(
                     )
                 }
                 Spacer(Modifier.weight(1F))
-                val oblibene by repo.oblibene.collectAsState()
+                val oblibene by repo.oblibene.collectAsStateWithLifecycle()
                 FilledIconToggleButton(checked = spojId in oblibene, onCheckedChange = {
                     if (it) {
                         repo.pridatOblibeny(spojId)
@@ -121,6 +126,21 @@ fun DetailSpojeScreen(
 //                }) {
 //                    Text("Detail kurzu")
 //                }
+            }
+
+            var zobrazitZpozdeni by remember { mutableStateOf(false) }
+
+            if (state.zpozdeni != null && state.zastavkyNaJihu != null) Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End
+            ) {
+                Text("Zobrazit zpoždění", Modifier.clickable {
+                    zobrazitZpozdeni = !zobrazitZpozdeni
+                })
+                Checkbox(checked = zobrazitZpozdeni, onCheckedChange = {
+                    zobrazitZpozdeni = it
+                })
             }
             Column(
                 modifier = Modifier
@@ -137,13 +157,13 @@ fun DetailSpojeScreen(
                         Column {
                             state.zastavky.forEach {
                                 Text(
-                                    text = it.nazevZastavky,
+                                    text = it.nazev,
                                     modifier = Modifier
                                         .clickable {
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
-                                                    cas = it.cas,
-                                                    zastavka = it.nazevZastavky,
+                                                    cas = it.prijezd ?: it.odjezd!!,
+                                                    zastavka = it.nazev,
                                                 )
                                             )
                                         }
@@ -151,16 +171,33 @@ fun DetailSpojeScreen(
                                 )
                             }
                         }
-                        Column(Modifier.padding(start = 8.dp)) {
+                        if (state.zpozdeni == null || state.zastavkyNaJihu == null || !zobrazitZpozdeni) Column(Modifier.padding(start = 8.dp)) {
+                            state.zastavky.forEach { it ->
+                                Text(
+                                    text = it.prijezd?.toString() ?: "",
+                                    modifier = Modifier
+                                        .clickable {
+                                            navigator.navigate(
+                                                OdjezdyScreenDestination(
+                                                    cas = it.prijezd ?: it.odjezd!!,
+                                                    zastavka = it.nazev,
+                                                )
+                                            )
+                                        }
+                                        .height(24.dp)
+                                )
+                            }
+                        }
+                        if (state.zpozdeni == null || state.zastavkyNaJihu == null || !zobrazitZpozdeni) Column(Modifier.padding(start = 8.dp)) {
                             state.zastavky.forEach {
                                 Text(
-                                    text = it.cas.toString(),
+                                    text = it.odjezd?.toString() ?: "",
                                     modifier = Modifier
                                         .clickable {
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
-                                                    cas = it.cas,
-                                                    zastavka = it.nazevZastavky,
+                                                    cas = it.odjezd ?: it.prijezd!!,
+                                                    zastavka = it.nazev,
                                                 )
                                             )
                                         }
@@ -168,19 +205,65 @@ fun DetailSpojeScreen(
                                 )
                             }
                         }
-                        if (state.zpozdeni != null && state.zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+                        if (state.zpozdeni != null && state.zastavkyNaJihu != null && zobrazitZpozdeni) Column(Modifier.padding(start = 8.dp)) {
                             state.zastavky
                                 .zip(state.zastavkyNaJihu!!)
                                 .forEach { (zastavka, zastavkaNaJihu) ->
-                                    Text(
-                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas + state.zpozdeni!!.min).toString() else "",
+                                    if (zastavkaNaJihu.passed) Text(
+                                        text = zastavka.prijezd?.toString() ?: "",
+                                        modifier = Modifier
+                                            .clickable {
+                                                navigator.navigate(
+                                                    OdjezdyScreenDestination(
+                                                        cas = zastavka.prijezd ?: zastavka.odjezd!!,
+                                                        zastavka = zastavka.nazev,
+                                                    )
+                                                )
+                                            }
+                                            .height(24.dp)
+                                    )
+                                    else Text(
+                                        text = if (zastavka.prijezd == null) "" else (zastavka.prijezd + state.zpozdeni!!.min).toString(),
                                         color = barvaZpozdeniTextu(state.zpozdeni!!),
                                         modifier = Modifier
                                             .clickable {
                                                 navigator.navigate(
                                                     OdjezdyScreenDestination(
-                                                        cas = zastavka.cas,
-                                                        zastavka = zastavka.nazevZastavky,
+                                                        cas = zastavka.prijezd ?: zastavka.odjezd!!,
+                                                        zastavka = zastavka.nazev,
+                                                    )
+                                                )
+                                            }
+                                            .height(24.dp)
+                                    )
+                                }
+                        }
+                        if (state.zpozdeni != null && state.zastavkyNaJihu != null && zobrazitZpozdeni) Column(Modifier.padding(start = 8.dp)) {
+                            state.zastavky
+                                .zip(state.zastavkyNaJihu!!)
+                                .forEach { (zastavka, zastavkaNaJihu) ->
+                                    if (zastavkaNaJihu.passed) Text(
+                                        text = zastavka.odjezd?.toString() ?: "",
+                                        modifier = Modifier
+                                            .clickable {
+                                                navigator.navigate(
+                                                    OdjezdyScreenDestination(
+                                                        cas = zastavka.odjezd ?: zastavka.prijezd!!,
+                                                        zastavka = zastavka.nazev,
+                                                    )
+                                                )
+                                            }
+                                            .height(24.dp)
+                                    )
+                                    else Text(
+                                        text = if (zastavka.odjezd == null) "" else (zastavka.odjezd + state.zpozdeni!!.min).toString(),
+                                        color = barvaZpozdeniTextu(state.zpozdeni!!),
+                                        modifier = Modifier
+                                            .clickable {
+                                                navigator.navigate(
+                                                    OdjezdyScreenDestination(
+                                                        cas = zastavka.odjezd ?: zastavka.prijezd!!,
+                                                        zastavka = zastavka.nazev,
                                                     )
                                                 )
                                             }
@@ -255,11 +338,11 @@ fun DetailSpojeScreen(
                         }
                     }
                 }
-                if (state.idNaJihu != null) Row(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Text("id: ${state.idNaJihu!!}")
+                    Text("id: $spojId")
                 }
             }
         }

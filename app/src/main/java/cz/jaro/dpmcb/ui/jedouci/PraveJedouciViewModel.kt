@@ -1,13 +1,13 @@
 package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 
 class PraveJedouciViewModel : ViewModel() {
 
@@ -69,28 +70,24 @@ class PraveJedouciViewModel : ViewModel() {
                 }
                 .asFlow()
                 .mapNotNull { (spojNaMape, detailSpoje) ->
-                    repo.spojSeZastavkamiPodleJihu(spojNaMape = spojNaMape)?.let { (spoj, zastavky) ->
-                        repo.idSpoju = repo.idSpoju + (spoj.id to spojNaMape.id)
+                    repo.spojSeZastavkamiPodleId(spojNaMape.id).let { (spoj, zastavky) ->
                         JedouciSpoj(
-                            cisloLinky = spoj.cisloLinky,
+                            cisloLinky = spoj.linka,
                             spojId = spoj.id,
                             cilovaZastavka = zastavky
-                                .reversedIf { spoj.smer == Smer.NEGATIVNI }
                                 .last { it.cas != Cas.nikdy }
-                                .let { it.nazevZastavky to it.cas },
+                                .let { it.nazev to it.cas },
                             pristiZastavka = zastavky
                                 .find { zastavka ->
-                                    zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
+                                    zastavka.nazev.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
                                             && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
                                 }
-                                ?.let { it.nazevZastavky to it.cas }
+                                ?.let { it.nazev to it.cas }
                                 ?: return@mapNotNull null,
                             zpozdeni = spojNaMape.delay,
                             indexNaLince = zastavky
-                                .sortedBy { it.indexNaLince }
-                                .reversedIf { spoj.smer == Smer.NEGATIVNI }
                                 .indexOfFirst { zastavka ->
-                                    zastavka.nazevZastavky.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
+                                    zastavka.nazev.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
                                             && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
                                 }
                                 .takeUnless { it == -1 }
@@ -112,11 +109,17 @@ class PraveJedouciViewModel : ViewModel() {
                 .also { _nacitaSe.value = false }
         }
 
-    val cislaLinek = repo.cislaLinek
+    var cislaLinek: List<Int>? = null
+
+    init {
+        viewModelScope.launch {
+            cislaLinek = repo.cislaLinek()
+        }
+    }
 
     data class JedouciSpoj(
         val cisloLinky: Int,
-        val spojId: Long,
+        val spojId: String,
         val cilovaZastavka: Pair<String, Cas>,
         val pristiZastavka: Pair<String, Cas>,
         val zpozdeni: Int,

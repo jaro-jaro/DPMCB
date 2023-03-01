@@ -11,17 +11,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.Trvani
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.ui.UiEvent
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +30,7 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class DetailSpojeViewModel(
-    spojId: Long,
+    spojId: String,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -41,7 +38,6 @@ class DetailSpojeViewModel(
             zastavky = emptyList(),
             cisloLinky = -1,
             nizkopodlaznost = Icons.Default.AccessibleForward,
-            idNaJihu = null,
             zpozdeni = null,
             zastavkyNaJihu = null,
         )
@@ -71,7 +67,7 @@ class DetailSpojeViewModel(
             ted.minus(it).coerceAtLeast(0.sek)
         } ?: 0.sek
 
-        funguj(
+        UtilFunctions.funguj(
             ted,
             prejetychUseku,
             casOdjezduPosledni,
@@ -87,14 +83,18 @@ class DetailSpojeViewModel(
     init {
         viewModelScope.launch {
             val (spoj, zastavky) = repo.spojSeZastavkySpojeNaKterychStavi(spojId)
-            this@DetailSpojeViewModel.spoj = spoj
-            _state.update {
-                it.copy(
-                    zastavky = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI },
-                    cisloLinky = spoj.cisloLinky,
+            _state.update { state ->
+                state.copy(
+                    zastavky = zastavky.map { zastavka ->
+                        zastavka.copy(
+                            odjezd = zastavka.odjezd.takeUnless { it == Cas.nikdy },
+                            prijezd = zastavka.prijezd.takeUnless { it == Cas.nikdy },
+                        )
+                    },
+                    cisloLinky = spoj.linka,
                     nizkopodlaznost = when {
                         Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                        spoj.nizkopodlaznost -> Icons.Default.Accessible
+                        spoj.pevneKody.contains("24") -> Icons.Default.Accessible
                         Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                         else -> Icons.Default.NotAccessible
                     },
@@ -102,10 +102,9 @@ class DetailSpojeViewModel(
                 )
             }
 
-            App.dopravaRepo.spojPodleSpojeNeboUlozenehoId(spoj, zastavky).collect { (spojNaMape, detailSpoje) ->
+            App.dopravaRepo.spojPodleId(spojId).collect { (spojNaMape, detailSpoje) ->
                 _state.update {
                     it.copy(
-                        idNaJihu = repo.idSpoju.getOrElse(spojId) { spojNaMape?.id ?: detailSpoje?.id },
                         zpozdeni = spojNaMape?.delay,
                         zastavkyNaJihu = detailSpoje?.stations
                     )
@@ -115,15 +114,11 @@ class DetailSpojeViewModel(
     }
 
     data class DetailSpojeState(
-        val zastavky: List<ZastavkaSpoje>,
+        val zastavky: List<CasNazevSpojId>,
         val cisloLinky: Int,
         val nizkopodlaznost: ImageVector,
-        val idNaJihu: String?,
         val zpozdeni: Int?,
         val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
         val nacitaSe: Boolean = true,
     )
-
-    lateinit var spoj: Spoj
-
 }

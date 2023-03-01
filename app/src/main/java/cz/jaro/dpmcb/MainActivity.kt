@@ -20,7 +20,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.DestinationsNavHost
@@ -50,9 +50,6 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
@@ -119,27 +116,12 @@ class MainActivity : AppCompatActivity() {
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                                             verticalAlignment = CenterVertically
                                         ) {
-                                            var typDne by remember { mutableStateOf(repo.typDne.value) }
+                                            val datum by repo.datum.collectAsStateWithLifecycle()
 
                                             Text(
-                                                text = "Typ dne:",
+                                                text = "Používaný datum: $datum",
                                                 modifier = Modifier.padding(all = 16.dp)
                                             )
-
-                                            VDP.values().forEach { vdp ->
-                                                OutlinedIconToggleButton(
-                                                    checked = typDne == vdp,
-                                                    onCheckedChange = {
-                                                        typDne = vdp
-                                                        scope.launch {
-                                                            repo.upravitTypDne(vdp)
-                                                        }
-                                                    },
-                                                    modifier = Modifier
-                                                ) {
-                                                    Text(vdp.toChar().toString())
-                                                }
-                                            }
 
                                             Spacer(
                                                 modifier = Modifier.weight(1F)
@@ -149,12 +131,12 @@ class MainActivity : AppCompatActivity() {
                                                 onClick = {
                                                     scope.launch {
                                                         MaterialAlertDialogBuilder(this@MainActivity).apply {
-                                                            setTitle("Vybrat typ dne podle data")
+                                                            setTitle("Vybrat nový datum")
 
                                                             val ll = LinearLayout(context)
 
                                                             val dp = android.widget.DatePicker(context)
-                                                            //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
+                                                            dp.updateDate(datum.rok, datum.mesic - 1, datum.den)
                                                             dp.layoutParams = LinearLayout.LayoutParams(
                                                                 ViewGroup.LayoutParams.WRAP_CONTENT,
                                                                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -170,16 +152,15 @@ class MainActivity : AppCompatActivity() {
                                                             setPositiveButton("Zvolit") { dialog, _ ->
                                                                 dialog.cancel()
 
-                                                                val typ = Datum(dp.dayOfMonth, dp.month + 1, dp.year).typDne
-                                                                typDne = typ
-                                                                repo.upravitTypDne(typ)
+                                                                val novyDatum = Datum(dp.dayOfMonth, dp.month + 1, dp.year)
+                                                                repo.upravitDatum(novyDatum)
                                                             }
                                                             show()
                                                         }
                                                     }
                                                 },
                                             ) {
-                                                IconWithTooltip(Icons.Default.CalendarMonth, "Vybrat podle data")
+                                                IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
                                             }
                                         }
                                         else NavigationDrawerItem(

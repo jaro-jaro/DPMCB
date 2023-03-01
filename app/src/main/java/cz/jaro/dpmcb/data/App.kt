@@ -10,9 +10,6 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.ui.detail.spoje.DetailSpojeViewModel
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
-import cz.jaro.dpmcb.ui.spojeni.SpojeniViewModel
-import cz.jaro.dpmcb.ui.spojeni.VyhledavacSpojeni
-import cz.jaro.dpmcb.ui.spojeni.VysledkySpojeniViewModel
 import cz.jaro.dpmcb.ui.vybirator.VybiratorViewModel
 import cz.jaro.dpmcb.ui.zjr.JizdniRadyViewModel
 import org.koin.android.ext.koin.androidContext
@@ -20,10 +17,6 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
-
-typealias GraphZastavek = Map<String, Set<String>>
-typealias MutableGraphZastavek = MutableMap<String, MutableSet<String>>
-typealias Spojeni = List<VyhledavacSpojeni.CastSpojeni>
 
 class App : Application() {
 
@@ -56,12 +49,6 @@ class App : Application() {
                 }
                 viewModel {
                     VybiratorViewModel(it.component1(), it.component2(), it.component3(), it.component4())
-                }
-                viewModel {
-                    SpojeniViewModel()
-                }
-                viewModel {
-                    VysledkySpojeniViewModel(it.component1())
                 }
                 viewModel {
                     DetailSpojeViewModel(it.component1())

@@ -40,7 +40,7 @@ fun PraveJedouciScreen(
             modifier = Modifier
                 .padding(start = 4.dp, end = 4.dp)
         ) {
-            cislaLinek.forEach { cislo ->
+            cislaLinek?.forEach { cislo ->
                 Chip(
                     seznam = filtry,
                     cisloLinky = cislo,

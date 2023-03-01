@@ -21,20 +21,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,13 +58,14 @@ fun OblibeneScreen(
 
         items(oblibene) {
 
-            val a by produceState<Pair<Spoj?, List<ZastavkaSpoje>>>((null to emptyList())) {
+            val a by produceState<Pair<LinkaNizkopodlaznostSpojId?, List<CasNazevSpojId>>>((null to emptyList())) {
                 value = repo.spojSeZastavkySpojeNaKterychStavi(it)
             }
             val spoj = a.first
             val zastavky = a.second
-            val spojNaMape by dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky).collectAsState(initial = null)
-            val detailSpoje by dopravaRepo.detailSpojePodleUlozenehoId(spojNaMape?.let { spoj }).collectAsState(initial = null)
+            val b by dopravaRepo.spojPodleId(spoj?.spojId).collectAsStateWithLifecycle(null to null)
+            val spojNaMape = b.first
+            val detailSpoje = b.second
 
             OutlinedCard(
                 onClick = {
@@ -82,14 +82,14 @@ fun OblibeneScreen(
                             .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "${spoj.cisloLinky}")
+                        Text(text = "${spoj.linka}")
                         if (spojNaMape != null) Badge(
-                            containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(spojNaMape!!.delay),
-                            contentColor = UtilFunctions.barvaZpozdeniBublinyText(spojNaMape!!.delay),
+                            containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(spojNaMape.delay),
+                            contentColor = UtilFunctions.barvaZpozdeniBublinyText(spojNaMape.delay),
                             modifier = Modifier.padding(start = 8.dp)
                         ) {
                             Text(
-                                text = spojNaMape!!.delay.run {
+                                text = spojNaMape.delay.run {
                                     "${toSign()}$this min"
                                 },
                             )
@@ -101,25 +101,25 @@ fun OblibeneScreen(
                             .padding(start = 8.dp, end = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val z = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.first()
-                        Text(text = z.nazevZastavky)
-                        Text(text = z.cas.toString())
+                        val z = zastavky.first()
+                        Text(text = z.nazev)
+                        Text(text = (z.odjezd ?: z.prijezd!!).toString())
                     }
                     if (detailSpoje != null && spojNaMape != null) {
-                        val zNaMape = detailSpoje!!.stations.find { !it.passed }
+                        val zNaMape = detailSpoje.stations.find { !it.passed }
                         val z = zastavky.find {
-                            it.nazevZastavky.upravit() == zNaMape?.name?.upravit() && it.cas.toString() == zNaMape.departureTime
+                            it.nazev.upravit() == zNaMape?.name?.upravit() && it.odjezd.toString() == zNaMape.departureTime
                         }
                         if (z != null) Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 8.dp, end = 8.dp),
                         ) {
-                            Text(text = z.nazevZastavky)
+                            Text(text = z.nazev)
                             Spacer(modifier = Modifier.weight(1F))
                             Text(
-                                text = "${z.cas + spojNaMape!!.delay.min}",
-                                color = barvaZpozdeniTextu(spojNaMape!!.delay),
+                                text = "${(z.odjezd ?: z.prijezd!!) + spojNaMape.delay.min}",
+                                color = barvaZpozdeniTextu(spojNaMape.delay),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }
@@ -129,14 +129,14 @@ fun OblibeneScreen(
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
                     ) {
-                        val z = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last()
-                        Text(text = z.nazevZastavky)
+                        val z = zastavky.last()
+                        Text(text = z.nazev)
                         Spacer(modifier = Modifier.weight(1F))
                         if (spojNaMape != null) Text(
-                            text = "${z.cas + spojNaMape!!.delay.min}",
-                            color = barvaZpozdeniTextu(spojNaMape!!.delay),
+                            text = "${(z.odjezd ?: z.prijezd!!) + spojNaMape.delay.min}",
+                            color = barvaZpozdeniTextu(spojNaMape.delay),
                             modifier = Modifier.padding(start = 8.dp)
-                        ) else Text(text = "${z.cas}")
+                        ) else Text(text = "${z.odjezd ?: z.prijezd!!}")
                     }
                 }
             }
