@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity() {
                                             val datum by repo.datum.collectAsStateWithLifecycle()
 
                                             Text(
-                                                text = "Používaný datum: $datum",
+                                                text = "Používané datum: $datum",
                                                 modifier = Modifier.padding(all = 16.dp)
                                             )
 
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
                                                 onClick = {
                                                     scope.launch {
                                                         MaterialAlertDialogBuilder(this@MainActivity).apply {
-                                                            setTitle("Vybrat nový datum")
+                                                            setTitle("Vybrat nové datum")
 
                                                             val ll = LinearLayout(context)
 
