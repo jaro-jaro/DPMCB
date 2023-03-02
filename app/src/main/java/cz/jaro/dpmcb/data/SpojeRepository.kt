@@ -138,7 +138,6 @@ class SpojeRepository(ctx: Application) {
 
     suspend fun zastavkyJedouciVDatumSPristiZastavkou(linka: Int, zastavka: String, pristiZastavka: String, datum: Datum) =
         dao.zastavkyJedouciVDatumSPristiZastavkou(linka + 325_000, zastavka, pristiZastavka, datum)
-            .funguj { map { it.pevneKody to datum.jedeDnes(it.pevneKody) }.distinct() }
             .filter { (_, _, _, pevneKody) ->
                 datum.jedeDnes(pevneKody)
             }
@@ -161,7 +160,7 @@ class SpojeRepository(ctx: Application) {
                 "28" -> null // zastávka s možností přestupu na železniční dopravu
                 else -> null
             }
-        }.all { it }
+        }.any { it }
 
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,
