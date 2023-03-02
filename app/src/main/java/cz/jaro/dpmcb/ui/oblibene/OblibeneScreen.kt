@@ -133,10 +133,10 @@ fun OblibeneScreen(
                         Text(text = z.nazev)
                         Spacer(modifier = Modifier.weight(1F))
                         if (spojNaMape != null) Text(
-                            text = "${(z.odjezd ?: z.prijezd!!) + spojNaMape.delay.min}",
+                            text = "${(z.prijezd ?: z.odjezd!!) + spojNaMape.delay.min}",
                             color = barvaZpozdeniTextu(spojNaMape.delay),
                             modifier = Modifier.padding(start = 8.dp)
-                        ) else Text(text = "${z.odjezd ?: z.prijezd!!}")
+                        ) else Text(text = "${z.prijezd ?: z.odjezd!!}")
                     }
                 }
             }

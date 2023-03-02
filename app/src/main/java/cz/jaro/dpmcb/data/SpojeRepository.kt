@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
@@ -100,11 +101,13 @@ class SpojeRepository(ctx: Application) {
 //    suspend fun spojSeZastavkySpoje(spojId: Long) =
 //        zastavkySpojeDao.findBySpojIdJoinSpoj(spojId)
 //            .let { it.values.first() to it.keys.toList() }
-//
+
+    private val isNikdy: (Cas?) -> Boolean = { it == Cas.nikdy }
+
     suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String) =
         dao.spojSeZastavkySpojeNaKterychStavi(spojId)
             .groupBy({ LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId, it.pevneKody) },
-                { CasNazevSpojId(it.odjezd, it.prijezd, it.nazev, it.spojId) }).toList().first()
+                { CasNazevSpojId(it.odjezd.takeUnless(isNikdy), it.prijezd.takeUnless(isNikdy), it.nazev, it.spojId) }).toList().first()
 //
 //    suspend fun spojeKurzu(kurz: String) = dao.findByKurz(kurz)
 //    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String) =
