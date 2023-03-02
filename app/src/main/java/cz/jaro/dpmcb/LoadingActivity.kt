@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -57,6 +56,7 @@ import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.VerzeJDF
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zaslinky
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zasspoje
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zastavky
+import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -74,7 +74,7 @@ class LoadingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            DPMCBTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
