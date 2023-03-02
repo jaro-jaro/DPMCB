@@ -263,6 +263,14 @@ fun DetailSpojeScreen(
                 ) {
                     Text("id: $spojId")
                 }
+                Column {
+                    state.pevneKody.forEach {
+                        Text(it)
+                    }
+                    state.caskody.forEach {
+                        Text(it)
+                    }
+                }
             }
         }
     }

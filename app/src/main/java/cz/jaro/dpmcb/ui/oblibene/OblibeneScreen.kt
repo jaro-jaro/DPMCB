@@ -27,11 +27,13 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 
@@ -57,8 +59,15 @@ fun OblibeneScreen(
 
         items(oblibene) {
 
-            val a by produceState<Pair<LinkaNizkopodlaznostSpojId?, List<CasNazevSpojId>>>((null to emptyList())) {
-                value = repo.spojSeZastavkySpojeNaKterychStavi(it)
+            val a by produceState<Quadruple<LinkaNizkopodlaznostSpojId?, List<CasNazevSpojId>, List<JedeOdDo>, List<String>>>(
+                Quadruple(
+                    null,
+                    emptyList(),
+                    emptyList(),
+                    emptyList()
+                )
+            ) {
+                value = repo.spojSeZastavkySpojeNaKterychStaviACaskody(it)
             }
             val spoj = a.first
             val zastavky = a.second

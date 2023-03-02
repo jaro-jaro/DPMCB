@@ -40,6 +40,8 @@ class DetailSpojeViewModel(
             nizkopodlaznost = Icons.Default.AccessibleForward,
             zpozdeni = null,
             zastavkyNaJihu = null,
+            caskody = emptyList(),
+            pevneKody = emptyList(),
         )
     )
     val state = _state.asStateFlow()
@@ -82,22 +84,23 @@ class DetailSpojeViewModel(
 
     init {
         viewModelScope.launch {
-            val (spoj, zastavky) = repo.spojSeZastavkySpojeNaKterychStavi(spojId)
+            val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId)
             _state.update { state ->
                 state.copy(
-                    zastavky = zastavky.map { zastavka ->
-                        zastavka.copy(
-                            odjezd = zastavka.odjezd.takeUnless { it == Cas.nikdy },
-                            prijezd = zastavka.prijezd.takeUnless { it == Cas.nikdy },
-                        )
-                    },
+                    zastavky = zastavky,
                     cisloLinky = spoj.linka,
                     nizkopodlaznost = when {
                         Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                        spoj.pevneKody.contains("24") -> Icons.Default.Accessible
+                        spoj.nizkopodlaznost -> Icons.Default.Accessible
                         Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                         else -> Icons.Default.NotAccessible
                     },
+                    caskody = caskody.groupBy({ it.jede }, {
+                        if (it.v.start != it.v.endInclusive) "od ${it.v.start} do ${it.v.endInclusive}" else "${it.v.start}"
+                    }).map { (jede, terminy) ->
+                        (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
+                    },
+                    pevneKody = pevneKody,
                     nacitaSe = false,
                 )
             }
@@ -120,5 +123,7 @@ class DetailSpojeViewModel(
         val zpozdeni: Int?,
         val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
         val nacitaSe: Boolean = true,
+        val caskody: List<String>,
+        val pevneKody: List<String>,
     )
 }

@@ -13,8 +13,10 @@ import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
@@ -104,10 +106,16 @@ class SpojeRepository(ctx: Application) {
 
     private val isNikdy: (Cas?) -> Boolean = { it == Cas.nikdy }
 
-    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String) =
-        dao.spojSeZastavkySpojeNaKterychStavi(spojId)
-            .groupBy({ LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId, it.pevneKody) },
-                { CasNazevSpojId(it.cas, it.nazev, it.spojId) }).toList().first()
+    suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String) =
+        dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
+            Quadruple(
+                first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
+                map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
+                map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() }.funguj(),
+                zcitelnitPevneKody(first().pevneKody),
+            )
+        }
+
 //
 //    suspend fun spojeKurzu(kurz: String) = dao.findByKurz(kurz)
 //    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String) =
@@ -161,6 +169,26 @@ class SpojeRepository(ctx: Application) {
                 else -> null
             }
         }.any { it }
+
+    private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
+        .split(" ")
+        .mapNotNull {
+            when (it) {
+                "1" -> "Jede v pracovních dnech"
+                "2" -> "Jede v neděli a ve státem uznané svátky"
+                "3" -> "Jede v pondělí"
+                "4" -> "Jede v úterý"
+                "5" -> "Jede ve středu"
+                "6" -> "Jede ve čtvrtek"
+                "7" -> "Jede v pátek"
+                "8" -> "Jede v sobotu"
+                "14" -> "Bezbariérově přístupná zastávka"
+                "19" -> null
+                "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
+                "28" -> "Zastávka s možností přestupu na železniční dopravu"
+                else -> null
+            }
+        }
 
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,
