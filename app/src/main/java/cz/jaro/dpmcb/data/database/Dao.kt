@@ -108,11 +108,25 @@ interface Dao {
 
     @Query(
         """
-        WITH spojeZdeJedouci AS (
-            SELECT DISTINCT spoj.* FROM zastavkaspoje
+        WITH pocetCaskoduSpoje AS (
+            SELECT DISTINCT spoj.id, COUNT(caskod.indexTerminu) pocet FROM zastavkaspoje
             JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
+            WHERE zastavka.nazevZastavky = :zastavka
+            AND spoj.linka = :linka
+            AND (
+                NOT zastavkaspoje.odjezd = :nikdy
+                OR NOT zastavkaspoje.prijezd = :nikdy
+            )
+            GROUP BY spoj.id
+        ),
+        spojeZdeJedouci AS (
+            SELECT DISTINCT spoj.*, COUNT(caskod.indexTerminu) FROM zastavkaspoje
+            JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
+            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
+            JOIN pocetCaskoduSpoje ON pocetCaskoduSpoje.id = spoj.id
             WHERE zastavka.nazevZastavky = :zastavka
             AND spoj.linka = :linka
             AND (
@@ -130,6 +144,14 @@ interface Dao {
                     AND :datum <= caskod.platiDo
                 )
             ))
+            GROUP BY spoj.id
+            HAVING (
+                caskod.jede 
+                AND COUNT(caskod.indexTerminu) >= 1
+            ) OR (
+                NOT caskod.jede
+                AND COUNT(caskod.indexTerminu) = pocetCaskoduSpoje.pocet
+            )
         ),
         indexyTyhleZastavky AS (
             SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince FROM zastavkaSpoje
