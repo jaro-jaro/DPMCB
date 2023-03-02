@@ -27,7 +27,6 @@ import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
@@ -103,14 +102,11 @@ fun OblibeneScreen(
                     ) {
                         val z = zastavky.first()
                         Text(text = z.nazev)
-                        Text(text = (z.odjezd ?: z.prijezd!!).toString())
+                        Text(text = z.cas.toString())
                     }
                     if (detailSpoje != null && spojNaMape != null) {
-                        val zNaMape = detailSpoje.stations.find { !it.passed }
-                        val z = zastavky.find {
-                            it.nazev.upravit() == zNaMape?.name?.upravit() && it.odjezd.toString() == zNaMape.departureTime
-                        }
-                        if (z != null) Row(
+                        val z = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }]
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 8.dp, end = 8.dp),
@@ -118,7 +114,7 @@ fun OblibeneScreen(
                             Text(text = z.nazev)
                             Spacer(modifier = Modifier.weight(1F))
                             Text(
-                                text = "${(z.odjezd ?: z.prijezd!!) + spojNaMape.delay.min}",
+                                text = "${z.cas + spojNaMape.delay.min}",
                                 color = barvaZpozdeniTextu(spojNaMape.delay),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
@@ -133,10 +129,10 @@ fun OblibeneScreen(
                         Text(text = z.nazev)
                         Spacer(modifier = Modifier.weight(1F))
                         if (spojNaMape != null) Text(
-                            text = "${(z.prijezd ?: z.odjezd!!) + spojNaMape.delay.min}",
+                            text = "${z.cas + spojNaMape.delay.min}",
                             color = barvaZpozdeniTextu(spojNaMape.delay),
                             modifier = Modifier.padding(start = 8.dp)
-                        ) else Text(text = "${z.prijezd ?: z.odjezd!!}")
+                        ) else Text(text = "${z.cas}")
                     }
                 }
             }

@@ -6,8 +6,7 @@ data class LinkaNizkopodlaznostCasNazevSpojId(
     val nizkopodlaznost: Boolean,
     val linka: Int,
     val pevneKody: String,
-    val odjezd: Cas?,
-    val prijezd: Cas?,
+    val cas: Cas,
     val nazev: String,
     val spojId: String,
 )

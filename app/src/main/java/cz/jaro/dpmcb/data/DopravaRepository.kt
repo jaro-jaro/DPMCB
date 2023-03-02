@@ -24,16 +24,6 @@ import kotlinx.coroutines.isActive
 class DopravaRepository(
     app: Application,
 ) {
-    companion object {
-        fun String.upravit() = this
-            .removePrefix("České Budějovice, ")
-            .replace(Regex("[ ,-]"), "")
-            .replace("SrubecTočnaMHD", "SrubecTočna")
-            .replace("NáměstíPřemyslaOtakaraII.", "Nám.PřemyslaOtakaraII.")
-            .replace("DobráVodauČ.Budějovic", "DobráVoda")
-            .replace("KněžskéDv.", "KněžskéDvory")
-            .lowercase()
-    }
 
     private var lock = true
 

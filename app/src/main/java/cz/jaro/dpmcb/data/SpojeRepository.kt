@@ -107,7 +107,7 @@ class SpojeRepository(ctx: Application) {
     suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String) =
         dao.spojSeZastavkySpojeNaKterychStavi(spojId)
             .groupBy({ LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId, it.pevneKody) },
-                { CasNazevSpojId(it.odjezd.takeUnless(isNikdy), it.prijezd.takeUnless(isNikdy), it.nazev, it.spojId) }).toList().first()
+                { CasNazevSpojId(it.cas, it.nazev, it.spojId) }).toList().first()
 //
 //    suspend fun spojeKurzu(kurz: String) = dao.findByKurz(kurz)
 //    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String) =

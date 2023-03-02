@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
@@ -77,21 +76,9 @@ class PraveJedouciViewModel : ViewModel() {
                             cilovaZastavka = zastavky
                                 .last { it.cas != Cas.nikdy }
                                 .let { it.nazev to it.cas },
-                            pristiZastavka = zastavky
-                                .find { zastavka ->
-                                    zastavka.nazev.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
-                                            && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
-                                }
-                                ?.let { it.nazev to it.cas }
-                                ?: return@mapNotNull null,
+                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas },
                             zpozdeni = spojNaMape.delay,
-                            indexNaLince = zastavky
-                                .indexOfFirst { zastavka ->
-                                    zastavka.nazev.upravit() == detailSpoje.stations.find { !it.passed }!!.name.upravit()
-                                            && zastavka.cas.toString() == detailSpoje.stations.find { !it.passed }!!.departureTime
-                                }
-                                .takeUnless { it == -1 }
-                                ?: return@mapNotNull null,
+                            indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer
                         )
                     }

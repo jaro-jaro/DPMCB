@@ -214,7 +214,10 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, odjezd, prijezd, nazevZastavky nazev, spoj.id spojId FROM zastavkaspoje
+        SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
+            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+            ELSE zastavkaspoje.odjezd
+        END cas, nazevZastavky nazev, spoj.id spojId FROM zastavkaspoje
         JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.linka = zastavkaspoje.linka AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
         WHERE (
