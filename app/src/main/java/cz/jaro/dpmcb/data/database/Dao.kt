@@ -236,11 +236,24 @@ interface Dao {
 
     @Query(
         """
-        WITH spojeZdeJedouci AS (
+        WITH pocetCaskoduSpoje AS (
+            SELECT DISTINCT spoj.id, COUNT(caskod.indexTerminu) pocet FROM zastavkaspoje
+            JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
+            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
+            WHERE zastavka.nazevZastavky = :zastavka
+            AND (
+                NOT zastavkaspoje.odjezd = :nikdy
+                OR NOT zastavkaspoje.prijezd = :nikdy
+            )
+            GROUP BY spoj.id
+        ),
+        spojeZdeJedouci AS (
             SELECT DISTINCT spoj.* FROM zastavkaspoje
             JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
-            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND zastavka.linka = zastavkaspoje.linka
+            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
+            JOIN pocetCaskoduSpoje ON pocetCaskoduSpoje.id = spoj.id
             WHERE zastavka.nazevZastavky = :zastavka
             AND (
                 NOT zastavkaspoje.odjezd = :nikdy
@@ -257,6 +270,14 @@ interface Dao {
                     AND :datum <= caskod.platiDo
                 )
             ))
+            GROUP BY spoj.id
+            HAVING (
+                caskod.jede 
+                AND COUNT(caskod.indexTerminu) >= 1
+            ) OR (
+                NOT caskod.jede
+                AND COUNT(caskod.indexTerminu) = pocetCaskoduSpoje.pocet
+            )
         ),
         indexyTyhleZastavky AS (
             SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince, zastavkaspoje.linka FROM zastavkaSpoje
@@ -269,7 +290,8 @@ interface Dao {
             SELECT zastavka.nazevZastavky nazev, spoj.pevneKody, CASE
                 WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
                 ELSE zastavkaspoje.odjezd
-            END cas, zastavkaspoje.indexZastavkyNaLince, spoj.cisloSpoje, spoj.linka, (spoj.pevnekody LIKE '%24%') nizkopodlaznost FROM zastavkaspoje
+            END cas, zastavkaspoje.indexZastavkyNaLince, spoj.cisloSpoje, spoj.linka, (spoj.pevnekody LIKE '%24%') nizkopodlaznost 
+            FROM zastavkaspoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
             CROSS JOIN indexyTyhleZastavky tahleZastavka ON zastavkaspoje.linka = tahleZastavka.linka AND zastavkaspoje.indexZastavkyNaLince = tahleZastavka.indexZastavkyNaLince
@@ -277,10 +299,11 @@ interface Dao {
         SELECT tahleZastavka.*, CASE
             WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
-        END jinaZastavkaSpojeCas, zastavka.nazevZastavky jinaZastavkaSpojeNazev FROM tahleZastavka
-        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = tahleZastavka.cisloSpoje AND zastavkaspoje.linka = tahleZastavka.linka
-        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
+        END jinaZastavkaSpojeCas, zastavka.nazevZastavky jinaZastavkaSpojeNazev 
+        FROM tahleZastavka
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
+        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
+        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = tahleZastavka.cisloSpoje AND zastavkaspoje.linka = tahleZastavka.linka
         ORDER BY CASE
            WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
            ELSE -zastavkaSpoje.indexZastavkyNaLince
