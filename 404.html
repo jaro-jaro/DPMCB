@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        <p id="text"></p>
+
+        <p>Zdá se, že ještě nemáte aplikaci! Stáhněte si ji <a
+                href="https://github.com/jaro-jaro/DPMCB/releases">zde</a></p>
+    </title>
+</head>
+
+<body></body>
+<script>
+    console.log(window.location)
+    if (window.location.pathname.startsWith("https://jaro-jaro.github.io/DPMCB/spoj/S-325-")) {
+        const text = document.getElementById("text")
+        const path = window.location.pathname.split("/")
+        const id = path[path.length - 1].split("-")
+        const linka = parseInt(id[1]) - 325_000
+        const cislo = parseInt(id[2])
+        text.innerText = `Spoj `
+    }
+</script>
+
+</html>
