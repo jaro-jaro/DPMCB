@@ -105,7 +105,7 @@ object UtilFunctions {
 
     fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @ExperimentalMaterial3Api
     @Composable
     fun IconWithTooltip(
         imageVector: ImageVector,
