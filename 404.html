@@ -9,12 +9,12 @@
 <body>
     <p id="text"></p>
 
-    <p>Zdá se, že ještě nemáte aplikaci! Stáhněte si ji <a href="https://github.com/jaro-jaro/DPMCB/releases">zde</a>
-    </p>
+    <p id="p2"></p>
 </body>
 <script>
     const text = document.getElementById("text")
     const tit = document.getElementById("tit")
+    const p2 = document.getElementById("p2")
     if (window.location.pathname.startsWith("/DPMCB/spoj/S-325")) {
         const path = window.location.pathname.split("/")
         const id = path[path.length - 1].split("-")
@@ -22,6 +22,11 @@
         const cislo = parseInt(id[2])
         text.innerText = `Spoj č. ${cislo} linky ${linka}`
         tit.innerText = `Spoj linky ${linka} || DPMCB`
+        p2.innerHTML = `Zdá se, že ještě nemáte aplikaci! Stáhněte si ji <a href="https://github.com/jaro-jaro/DPMCB/releases">zde</a>`
+    }
+    else if (window.location.pathname.startsWith("/DPMCB/spoj")) {
+        text.innerText = `Tento spoj neexistuje :(`
+        tit.innerText = `Spoj || DPMCB`
     }
     else {
         text.innerText = "404 :("
