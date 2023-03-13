@@ -4,8 +4,8 @@ plugins {
     id("androidx.navigation.safeargs.kotlin")
     id("com.google.gms.google-services")
     //id("dagger.hilt.android.plugin")
-    id("kotlin-kapt")
-    id("com.google.devtools.ksp") version "1.7.20-1.0.7"
+//    id("kotlin-kapt")
+    id("com.google.devtools.ksp") version "1.8.10-1.0.9"
     id("org.jetbrains.kotlin.plugin.serialization")
     id("kotlin-parcelize")
 }
@@ -42,18 +42,18 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility(JavaVersion.VERSION_1_8)
-        targetCompatibility(JavaVersion.VERSION_1_8)
+        sourceCompatibility(JavaVersion.VERSION_17)
+        targetCompatibility(JavaVersion.VERSION_17)
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding = true
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.3.2"
+        kotlinCompilerExtensionVersion = "1.4.2"
     }
     packagingOptions {
         resources {
@@ -78,14 +78,14 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0-alpha01")
+    implementation("com.google.android.material:material:1.9.0-alpha02")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
-    implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
-    implementation("androidx.preference:preference:1.2.0")
+//    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+//    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")
+//    implementation("androidx.preference:preference-ktx:1.2.0")
 
     // Tests
     testImplementation("junit:junit:4.13.2")
@@ -96,48 +96,48 @@ dependencies {
     implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
 
     // Coroutines
-    implementation("com.google.code.gson:gson:2.10.1")
+//    implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
+//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
 
     // Navigation
-    implementation("android.arch.navigation:navigation-fragment-ktx:1.0.0")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
+//    implementation("android.arch.navigation:navigation-fragment-ktx:1.0.0")
+//    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
-    implementation("androidx.navigation:navigation-dynamic-features-fragment:2.5.3")
-    androidTestImplementation("androidx.navigation:navigation-testing:2.5.3")
+//    implementation("androidx.navigation:navigation-dynamic-features-fragment:2.5.3")
+//    androidTestImplementation("androidx.navigation:navigation-testing:2.5.3")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:31.1.0"))
-    //implementation("com.google.firebase:firebase-core")
-    implementation("com.google.firebase:firebase-analytics-ktx")
+//    implementation("com.google.firebase:firebase-core")
+//    implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
-    implementation("com.google.firebase:firebase-common-ktx:20.3.0")
+    implementation("com.google.firebase:firebase-common-ktx:20.3.1")
 
     // Compose
     implementation("androidx.activity:activity-compose:1.6.1")
-    implementation("androidx.compose.material3:material3:1.1.0-alpha06")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0-alpha01")
+    implementation("androidx.compose.material3:material3:1.1.0-alpha08")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.0")
     implementation("androidx.compose.ui:ui:1.3.3")
     implementation("androidx.compose.ui:ui-tooling-preview:1.3.3")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.3.3")
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.3.3")
+//    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
+//    debugImplementation("androidx.compose.ui:ui-tooling:1.3.3")
+//    debugImplementation("androidx.compose.ui:ui-test-manifest:1.3.3")
     implementation("androidx.navigation:navigation-compose:2.5.3")
     implementation("androidx.compose.foundation:foundation:1.3.1")
     implementation("androidx.compose.material:material-icons-core:1.3.1")
     implementation("androidx.compose.material:material-icons-extended:1.3.1")
-    implementation("androidx.compose.runtime:runtime-livedata:1.3.3")
-    implementation("androidx.compose.runtime:runtime-rxjava2:1.3.3")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
+//    implementation("androidx.compose.runtime:runtime-livedata:1.3.3")
+//    implementation("androidx.compose.runtime:runtime-rxjava2:1.3.3")
+//    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
 
     // Room
     implementation("androidx.room:room-ktx:2.5.0")
     implementation("androidx.room:room-runtime:2.5.0")
     annotationProcessor("androidx.room:room-compiler:2.5.0")
-    kapt("androidx.room:room-compiler:2.5.0")
+    ksp("androidx.room:room-compiler:2.5.0")
     //ksp("androidx.room:room-compiler:2.4.3")
 
     // Dagger Hilt
@@ -151,7 +151,7 @@ dependencies {
     implementation("io.insert-koin:koin-android:3.3.0")
     implementation("io.insert-koin:koin-androidx-navigation:3.3.0")
     implementation("io.insert-koin:koin-androidx-compose:3.3.0")
-    testImplementation("io.insert-koin:koin-test-junit4:3.2.2")
+//    testImplementation("io.insert-koin:koin-test-junit4:3.2.2")
 
     // Dagger
     /*implementation("com.google.dagger:dagger:2.40.1")
@@ -164,10 +164,10 @@ dependencies {
     ksp("io.github.raamcosta.compose-destinations:ksp:1.8.33-beta")
 
     // Datastore
-    implementation("androidx.datastore:datastore-core:1.0.0")
-    implementation("androidx.datastore:datastore:1.0.0")
-    //implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+//    implementation("androidx.datastore:datastore-core:1.0.0")
+//    implementation("androidx.datastore:datastore:1.0.0")
+//    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
     implementation("com.google.code.gson:gson:2.10.1")
 
