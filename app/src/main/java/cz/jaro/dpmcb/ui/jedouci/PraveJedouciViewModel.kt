@@ -9,15 +9,17 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 
 class PraveJedouciViewModel : ViewModel() {
 
@@ -71,7 +73,7 @@ class PraveJedouciViewModel : ViewModel() {
                 .mapNotNull { (spojNaMape, detailSpoje) ->
                     repo.spojSeZastavkamiPodleId(spojNaMape.id).let { (spoj, zastavky) ->
                         JedouciSpoj(
-                            cisloLinky = spoj.linka,
+                            cisloLinky = spoj.linka - 325_000,
                             spojId = spoj.id,
                             cilovaZastavka = zastavky
                                 .last { it.cas != Cas.nikdy }
@@ -96,13 +98,9 @@ class PraveJedouciViewModel : ViewModel() {
                 .also { _nacitaSe.value = false }
         }
 
-    var cislaLinek: List<Int>? = null
-
-    init {
-        viewModelScope.launch {
-            cislaLinek = repo.cislaLinek()
-        }
-    }
+    val cislaLinek = flow {
+        emit(repo.cislaLinek())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     data class JedouciSpoj(
         val cisloLinky: Int,

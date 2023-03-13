@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.flowlayout.FlowRow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -27,7 +28,7 @@ fun PraveJedouciScreen(
     viewModel: PraveJedouciViewModel = koinViewModel(),
     navigator: DestinationsNavigator,
 ) {
-    val cislaLinek = viewModel.cislaLinek
+    val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
     val seznam by viewModel.seznam.collectAsState(initial = emptyList())
     val filtry by viewModel.filtry.collectAsState()
     val nacitaSe by viewModel.nacitaSe.collectAsState()
