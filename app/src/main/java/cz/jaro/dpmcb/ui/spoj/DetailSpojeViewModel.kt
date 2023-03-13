@@ -13,6 +13,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.Cas
 import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
+import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.Trvani
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
@@ -95,7 +96,9 @@ class DetailSpojeViewModel(
                         Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                         else -> Icons.Default.NotAccessible
                     },
-                    caskody = caskody.groupBy({ it.jede }, {
+                    caskody = caskody.filterNot {
+                        !it.jede && it.v == Datum(0, 0, 0)..Datum(0, 0, 0)
+                    }.groupBy({ it.jede }, {
                         if (it.v.start != it.v.endInclusive) "od ${it.v.start} do ${it.v.endInclusive}" else "${it.v.start}"
                     }).map { (jede, terminy) ->
                         (if (jede) "Jede " else "Nejede ") + terminy.joinToString()

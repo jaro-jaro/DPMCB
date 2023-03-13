@@ -15,6 +15,12 @@ data class Datum(val den: Int, val mesic: Int, val rok: Int) : Comparable<Datum>
 
         class DatumRange(override val start: Datum, override val endInclusive: Datum) : ClosedRange<Datum> {
             override fun toString() = "$start..$endInclusive"
+            override fun equals(other: Any?) = other is DatumRange && other.start == start && other.endInclusive == endInclusive
+            override fun hashCode(): Int {
+                var result = start.hashCode()
+                result = 31 * result + endInclusive.hashCode()
+                return result
+            }
         }
     }
 
