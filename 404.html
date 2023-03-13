@@ -2,26 +2,30 @@
 <html>
 
 <head>
-    <title>
-        <p id="text"></p>
-
-        <p>Zdá se, že ještě nemáte aplikaci! Stáhněte si ji <a
-                href="https://github.com/jaro-jaro/DPMCB/releases">zde</a></p>
+    <title id="tit">
     </title>
 </head>
 
-<body></body>
+<body>
+    <p id="text"></p>
+
+    <p>Zdá se, že ještě nemáte aplikaci! Stáhněte si ji <a href="https://github.com/jaro-jaro/DPMCB/releases">zde</a>
+    </p>
+</body>
 <script>
     const text = document.getElementById("text")
+    const tit = document.getElementById("tit")
     if (window.location.pathname.startsWith("/DPMCB/spoj/S-325")) {
         const path = window.location.pathname.split("/")
         const id = path[path.length - 1].split("-")
         const linka = parseInt(id[1]) - 325_000
         const cislo = parseInt(id[2])
         text.innerText = `Spoj č. ${cislo} linky ${linka}`
+        tit.innerText = `Spoj linky ${linka} || DPMCB`
     }
     else {
         text.innerText = "404 :("
+        tit.innerText = "404 || DPMCB"
     }
 </script>
 
