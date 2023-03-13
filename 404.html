@@ -12,14 +12,16 @@
 
 <body></body>
 <script>
-    console.log(window.location)
-    if (window.location.pathname.startsWith("https://jaro-jaro.github.io/DPMCB/spoj/S-325-")) {
-        const text = document.getElementById("text")
+    const text = document.getElementById("text")
+    if (window.location.pathname.startsWith("/DPMCB/spoj/S-325")) {
         const path = window.location.pathname.split("/")
         const id = path[path.length - 1].split("-")
         const linka = parseInt(id[1]) - 325_000
         const cislo = parseInt(id[2])
-        text.innerText = `Spoj `
+        text.innerText = `Spoj č. ${cislo} linky ${linka}`
+    }
+    else {
+        text.innerText = "404 :("
     }
 </script>
 
