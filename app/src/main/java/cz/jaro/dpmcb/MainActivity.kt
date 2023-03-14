@@ -23,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.ui.NavGraphs
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
 
@@ -60,6 +62,8 @@ class MainActivity : AppCompatActivity() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+
+        val link = intent?.getStringExtra("link")
 
         setContent {
             val keyboardController = LocalSoftwareKeyboardController.current!!
@@ -73,12 +77,25 @@ class MainActivity : AppCompatActivity() {
                 val scope = rememberCoroutineScope()
                 val navController = rememberNavController()
                 var vybrano by remember { mutableStateOf(SuplikAkce.Oblibene) }
+                LaunchedEffect(Unit) {
+                    link?.let {
+                        navController.navigate(
+                            when {
+                                it.startsWith("/spoj") -> DetailSpojeScreenDestination(it.split("/").last())
+                                else -> return@let
+                            }
+                        )
+                    }
+                    vybrano = SuplikAkce.Vypnout
+                    drawerState.close()
+                }
 
                 Scaffold(
                     topBar = {
-                        TopAppBar(title = {
-                            Text(stringResource(App.title))
-                        },
+                        TopAppBar(
+                            title = {
+                                Text(stringResource(App.title))
+                            },
                             navigationIcon = {
                                 IconButton(
                                     onClick = {

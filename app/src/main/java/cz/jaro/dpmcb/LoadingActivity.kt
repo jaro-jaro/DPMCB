@@ -2,9 +2,15 @@ package cz.jaro.dpmcb
 
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.CATEGORY_DEFAULT
+import android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.Intent.FLAG_ACTIVITY_NO_HISTORY
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -140,6 +146,20 @@ class LoadingActivity : AppCompatActivity() {
                 while (lock) Unit
             }
 
+            val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }
+
+            if (uri?.path?.removePrefix("/DPMCB").equals("/app-details")) {
+                finish()
+                startActivity(Intent(ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                    addCategory(CATEGORY_DEFAULT)
+                    addFlags(FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(FLAG_ACTIVITY_NO_HISTORY)
+                    addFlags(FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                })
+                return@launch
+            }
+
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
 
             if (!jeOnline()) {
@@ -158,6 +178,10 @@ class LoadingActivity : AppCompatActivity() {
             val onlineVerze = reference.get().await().getValue<Int>() ?: -2
 
             intent.putExtra("update", mistniVerze < onlineVerze)
+
+            uri?.path?.let {
+                intent.putExtra("link", it.removePrefix("/DPMCB"))
+            }
 
             finish()
             startActivity(intent)
