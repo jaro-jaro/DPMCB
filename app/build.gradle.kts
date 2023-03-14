@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 33
         versionCode = 1
         versionName = "0.5.5.1"
