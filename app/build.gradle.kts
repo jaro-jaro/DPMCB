@@ -178,6 +178,8 @@ dependencies {
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
     implementation("com.google.accompanist:accompanist-placeholder-material:0.28.0")
 
+    implementation("com.marosseleng.android:compose-material3-datetime-pickers:0.7.0")
+
     implementation("org.jsoup:jsoup:1.15.1")
 
     implementation(files("./libs/datum-cas.aar"))

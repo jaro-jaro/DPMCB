@@ -2,12 +2,11 @@ package cz.jaro.dpmcb
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.LinearLayout
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -29,22 +28,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updateMargins
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.toDatum
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
@@ -120,6 +120,20 @@ class MainActivity : AppCompatActivity() {
                                                 text = "Používané datum: $datum",
                                                 modifier = Modifier.padding(all = 16.dp)
                                             )
+                                            var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+                                            if (zobrazitDialog) DatePickerDialog(
+                                                onDismissRequest = {
+                                                    zobrazitDialog = false
+                                                },
+                                                onDateChange = {
+                                                    repo.upravitDatum(it.toDatum())
+                                                    zobrazitDialog = false
+                                                },
+                                                title = {
+                                                    Text("Vybrat nové datum")
+                                                },
+                                                initialDate = datum.toLocalDate()
+                                            )
 
                                             Spacer(
                                                 modifier = Modifier.weight(1F)
@@ -127,36 +141,8 @@ class MainActivity : AppCompatActivity() {
 
                                             IconButton(
                                                 onClick = {
-                                                    scope.launch {
-                                                        MaterialAlertDialogBuilder(this@MainActivity).apply {
-                                                            setTitle("Vybrat nové datum")
-
-                                                            val ll = LinearLayout(context)
-
-                                                            val dp = android.widget.DatePicker(context)
-                                                            dp.updateDate(datum.rok, datum.mesic - 1, datum.den)
-                                                            dp.layoutParams = LinearLayout.LayoutParams(
-                                                                ViewGroup.LayoutParams.WRAP_CONTENT,
-                                                                ViewGroup.LayoutParams.WRAP_CONTENT
-                                                            )
-                                                            dp.updateLayoutParams<LinearLayout.LayoutParams> {
-                                                                updateMargins(top = 16)
-                                                            }
-
-                                                            ll.addView(dp)
-
-                                                            setView(ll)
-
-                                                            setPositiveButton("Zvolit") { dialog, _ ->
-                                                                dialog.cancel()
-
-                                                                val novyDatum = Datum(dp.dayOfMonth, dp.month + 1, dp.year)
-                                                                repo.upravitDatum(novyDatum)
-                                                            }
-                                                            show()
-                                                        }
-                                                    }
-                                                },
+                                                    zobrazitDialog = true
+                                                }
                                             ) {
                                                 IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
                                             }
