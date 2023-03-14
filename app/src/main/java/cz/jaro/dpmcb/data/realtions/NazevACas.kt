@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.datum_cas.Cas
 
 data class NazevACas(
     val nazev: String,

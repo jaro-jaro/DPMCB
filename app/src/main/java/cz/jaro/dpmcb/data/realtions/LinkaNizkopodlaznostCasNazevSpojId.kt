@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
 
 data class LinkaNizkopodlaznostCasNazevSpojId(
     val nizkopodlaznost: Boolean,

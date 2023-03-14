@@ -1,4 +1,4 @@
-package cz.jaro.dpmcb.ui.detail.spoje
+package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
@@ -9,14 +9,14 @@ import androidx.compose.material.icons.filled.WheelchairPickup
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.min
+import cz.jaro.datum_cas.sek
+import cz.jaro.datum_cas.toCas
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Datum
-import cz.jaro.dpmcb.data.helperclasses.Trvani
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
@@ -50,7 +50,7 @@ class DetailSpojeViewModel(
     private val _uiEvent = Channel<UiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    val vyska = _state.combine(Cas.presneTed) { state, ted ->
+    val vyska = _state.combine(Cas.tedFlow) { state, ted ->
 
         val prejetychUseku = state.zastavkyNaJihu?.count { it.passed }?.minus(1)?.coerceAtLeast(0) ?: 0
 

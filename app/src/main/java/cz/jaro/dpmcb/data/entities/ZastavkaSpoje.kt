@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.datum_cas.Cas
 
 @Entity(primaryKeys = ["linka", "cisloSpoje", "indexZastavkyNaLince"])
 data class ZastavkaSpoje(

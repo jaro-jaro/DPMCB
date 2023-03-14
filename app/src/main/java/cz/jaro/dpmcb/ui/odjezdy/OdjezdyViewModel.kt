@@ -3,11 +3,11 @@ package cz.jaro.dpmcb.ui.odjezdy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Trvani
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ifTake
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape

@@ -55,7 +55,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.4.2"
     }
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -72,6 +72,10 @@ android {
             }
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -175,6 +179,8 @@ dependencies {
     implementation("com.google.accompanist:accompanist-placeholder-material:0.28.0")
 
     implementation("org.jsoup:jsoup:1.15.1")
+
+    implementation(files("./libs/datum-cas.aar"))
 }
 
 

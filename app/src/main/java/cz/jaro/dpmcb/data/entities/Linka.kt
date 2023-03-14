@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import cz.jaro.dpmcb.data.helperclasses.Datum
+import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.helperclasses.TypLinky
 import cz.jaro.dpmcb.data.helperclasses.TypVozidla
 

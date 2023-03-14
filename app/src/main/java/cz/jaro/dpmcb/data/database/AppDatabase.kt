@@ -4,18 +4,18 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.sek
+import cz.jaro.datum_cas.toCas
+import cz.jaro.datum_cas.toDatum
 import cz.jaro.dpmcb.data.database.AppDatabase.Companion.Converters
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Datum
-import cz.jaro.dpmcb.data.helperclasses.Datum.Companion.toDatum
 import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.sek
 
 @Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 12)
 @TypeConverters(Converters::class)

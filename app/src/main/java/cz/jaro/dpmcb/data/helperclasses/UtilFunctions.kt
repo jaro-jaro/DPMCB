@@ -11,6 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.cas
+import cz.jaro.datum_cas.hod
 import cz.jaro.dpmcb.BuildConfig
 import kotlinx.coroutines.flow.Flow
 import kotlin.math.sign
@@ -123,4 +128,21 @@ object UtilFunctions {
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
 
+    fun String?.toCasDivne() = this?.run {
+        slice(0..1).toInt() cas slice(2..3).toInt()
+    } ?: Cas.ted
+
+    fun String.toDatumDivne() = Datum(slice(0..1).toInt(), slice(2..3).toInt(), slice(4..7).toInt())
+
+    fun Trvani.asString(): String {
+        val hodin = hod.toInt()
+        val minut = minus(hodin.hod).min.toInt()
+
+        return when {
+            hodin == 0 && minut == 0 -> "<1 min"
+            hodin == 0 -> "$minut min"
+            minut == 0 -> "$hodin hod"
+            else -> "$hodin hod $minut min"
+        }
+    }
 }

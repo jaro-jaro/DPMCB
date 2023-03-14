@@ -31,6 +31,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.VsechnoOstatni
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -38,10 +40,6 @@ import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCasDivne
-import cz.jaro.dpmcb.data.helperclasses.Datum
-import cz.jaro.dpmcb.data.helperclasses.Datum.Companion.toDatumDivne
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
@@ -56,6 +54,8 @@ import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.VerzeJDF
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zaslinky
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zasspoje
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zastavky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
