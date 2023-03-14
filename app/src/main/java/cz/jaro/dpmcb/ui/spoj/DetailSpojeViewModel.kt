@@ -43,6 +43,8 @@ class DetailSpojeViewModel(
             zastavkyNaJihu = null,
             caskody = emptyList(),
             pevneKody = emptyList(),
+            nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
+            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId"
         )
     )
     val state = _state.asStateFlow()
@@ -128,5 +130,7 @@ class DetailSpojeViewModel(
         val nacitaSe: Boolean = true,
         val caskody: List<String>,
         val pevneKody: List<String>,
+        val nazevSpoje: String,
+        val deeplink: String,
     )
 }

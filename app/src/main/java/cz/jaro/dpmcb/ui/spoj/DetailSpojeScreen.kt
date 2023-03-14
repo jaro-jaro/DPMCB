@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.spoj
 
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -17,23 +18,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -260,7 +269,77 @@ fun DetailSpojeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Text("id: $spojId")
+                    var zobrazitMenu by remember { mutableStateOf(false) }
+                    val context = LocalContext.current
+
+                    TextButton(onClick = {
+                        zobrazitMenu = true
+                    }) {
+                        Text("id: $spojId")
+                        DropdownMenu(
+                            expanded = zobrazitMenu,
+                            onDismissRequest = {
+                                zobrazitMenu = false
+                            }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Zobrazit v mapě")
+                                },
+                                onClick = {},
+                                enabled = false
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("ID: $spojId")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, spojId)
+                                        type = "text/plain"
+                                    }, "Sdílet ID spoje"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Název: ${state.nazevSpoje}")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
+                                        type = "text/plain"
+                                    }, "Sdílet název spoje"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Sdílet deeplink")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
+                                        type = "text/uri-list"
+                                    }, "Sdílet deeplink"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                        }
+                    }
+
                 }
                 Column {
                     state.pevneKody.forEach {
