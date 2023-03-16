@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 val navController = rememberNavController()
-                var vybrano by remember { mutableStateOf(SuplikAkce.Oblibene) }
+                var vybrano by remember { mutableStateOf<SuplikAkce?>(SuplikAkce.Oblibene) }
                 LaunchedEffect(Unit) {
                     link?.let {
                         navController.navigate(
@@ -85,9 +85,9 @@ class MainActivity : AppCompatActivity() {
                                 else -> return@let
                             }
                         )
+                        vybrano = null
+                        drawerState.close()
                     }
-                    vybrano = SuplikAkce.Vypnout
-                    drawerState.close()
                 }
 
                 Scaffold(
