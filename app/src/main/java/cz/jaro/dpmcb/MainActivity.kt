@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,7 +113,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             actions = {
-                                val cas by Cas.tedFlow.collectAsState()
+                                val cas by Cas.tedFlow.collectAsStateWithLifecycle()
                                 Text(cas.toString(true))
                             })
                     },

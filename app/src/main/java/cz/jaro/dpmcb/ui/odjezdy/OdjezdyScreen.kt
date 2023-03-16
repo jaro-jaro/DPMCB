@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -75,7 +75,7 @@ fun OdjezdyScreen(
 
     App.title = R.string.odjezdy
 
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState(state.indexScrollovani)
 
@@ -183,7 +183,7 @@ fun OdjezdyScreen(
                     unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             )
-            val linkaPressedState by linkaSource.interactions.collectAsState(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (linkaPressedState is PressInteraction.Release) {
                 navigator.navigate(
                     VybiratorScreenDestination(
@@ -217,7 +217,7 @@ fun OdjezdyScreen(
                     unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             )
-            val zastavkaPressedState by zastavkaSource.interactions.collectAsState(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (zastavkaPressedState is PressInteraction.Release) {
                 navigator.navigate(
                     VybiratorScreenDestination(

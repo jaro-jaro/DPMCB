@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
@@ -44,7 +43,7 @@ import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 fun OblibeneScreen(
     navigator: DestinationsNavigator,
 ) {
-    val oblibene by repo.oblibene.collectAsState()
+    val oblibene by repo.oblibene.collectAsStateWithLifecycle()
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {

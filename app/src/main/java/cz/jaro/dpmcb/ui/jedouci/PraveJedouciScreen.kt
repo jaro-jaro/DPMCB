@@ -29,9 +29,9 @@ fun PraveJedouciScreen(
     navigator: DestinationsNavigator,
 ) {
     val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
-    val seznam by viewModel.seznam.collectAsState(initial = emptyList())
-    val filtry by viewModel.filtry.collectAsState()
-    val nacitaSe by viewModel.nacitaSe.collectAsState()
+    val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
+    val filtry by viewModel.filtry.collectAsStateWithLifecycle()
+    val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
 
     App.title = R.string.doprava_na_jihu
 
