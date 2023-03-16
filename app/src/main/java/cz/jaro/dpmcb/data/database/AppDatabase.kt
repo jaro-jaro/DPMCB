@@ -6,6 +6,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.dni
 import cz.jaro.datum_cas.sek
 import cz.jaro.datum_cas.toCas
 import cz.jaro.datum_cas.toDatum
@@ -31,10 +32,10 @@ abstract class AppDatabase : RoomDatabase() {
             fun fromCas(value: Cas) = value.toTrvani().sek
 
             @TypeConverter
-            fun toDatum(value: Int) = value.toDatum()
+            fun toDatum(value: Int) = value.dni.toDatum()
 
             @TypeConverter
-            fun fromDatum(value: Datum) = value.toInt()
+            fun fromDatum(value: Datum) = value.toTrvani().dni
 
             @TypeConverter
             fun toSmer(value: Int) = Smer.values()[value]
