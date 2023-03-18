@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel
+import cz.jaro.dpmcb.ui.oblibene.OblibeneViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
 import cz.jaro.dpmcb.ui.spoj.DetailSpojeViewModel
 import cz.jaro.dpmcb.ui.vybirator.VybiratorViewModel
@@ -55,6 +56,9 @@ class App : Application() {
                 }
                 viewModel {
                     PraveJedouciViewModel()
+                }
+                viewModel {
+                    OblibeneViewModel()
                 }
             })
         }

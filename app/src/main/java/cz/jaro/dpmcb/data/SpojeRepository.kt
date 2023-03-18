@@ -14,7 +14,6 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
@@ -111,9 +110,24 @@ class SpojeRepository(ctx: Application) {
             Quadruple(
                 first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                 map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() }.funguj(),
+                map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() },
                 zcitelnitPevneKody(first().pevneKody),
             )
+        }
+
+    suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String) =
+        dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
+            val caskody = map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() }
+            Triple(
+                first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
+                map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
+            ) { datum: Datum ->
+                listOf(
+                    (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+                    caskody.filter { !it.jede }.none { datum in it.v },
+                    datum.jedeDnes(first().pevneKody),
+                ).all { it }
+            }
         }
 
 //
@@ -140,7 +154,7 @@ class SpojeRepository(ctx: Application) {
 //
 //    fun zastavkyLinky(cisloLinky: Int) = ostatni.linkyAJejichZastavky[cisloLinky]!!
 
-    suspend fun nazvyZastavekLinky(linka: Int) = dao.nazvyZastavekLinky(linka + 325_000).funguj()
+    suspend fun nazvyZastavekLinky(linka: Int) = dao.nazvyZastavekLinky(linka + 325_000)
 
     suspend fun pristiZastavky(linka: Int, tahleZastavka: String) = dao.pristiZastavky(linka + 325_000, tahleZastavka)
 

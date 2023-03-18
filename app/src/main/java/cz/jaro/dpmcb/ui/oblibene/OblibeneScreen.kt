@@ -15,7 +15,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -24,17 +23,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.datum_cas.Datum
+import cz.jaro.datum_cas.dni
 import cz.jaro.datum_cas.min
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
-import cz.jaro.dpmcb.data.realtions.JedeOdDo
-import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import org.koin.androidx.compose.koinViewModel
+import java.util.Calendar.DAY_OF_WEEK
+import java.util.Calendar.FRIDAY
+import java.util.Calendar.MONDAY
+import java.util.Calendar.SATURDAY
+import java.util.Calendar.SUNDAY
+import java.util.Calendar.THURSDAY
+import java.util.Calendar.TUESDAY
+import java.util.Calendar.WEDNESDAY
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination
@@ -42,12 +46,13 @@ import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 @Composable
 fun OblibeneScreen(
     navigator: DestinationsNavigator,
+    viewModel: OblibeneViewModel = koinViewModel(),
 ) {
-    val oblibene by repo.oblibene.collectAsStateWithLifecycle()
+    val oblibene by viewModel.state.collectAsStateWithLifecycle()
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
-        if (oblibene.isEmpty()) item {
+        if (!oblibene.nejake) item {
             Text(
                 text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
                 modifier = Modifier.padding(all = 16.dp),
@@ -55,95 +60,194 @@ fun OblibeneScreen(
                 textAlign = TextAlign.Center
             )
         }
+        else if (oblibene.dnes.isEmpty()) item {
+            Text(
+                text = "Dnes nejede žádný z vašich oblíbených spojů",
+                modifier = Modifier.padding(all = 16.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+        }
+        else item {
+            Text(
+                text = "Jede dnes",
+                modifier = Modifier.padding(all = 16.dp),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center
+            )
+        }
 
-        items(oblibene) {
-
-            val a by produceState<Quadruple<LinkaNizkopodlaznostSpojId?, List<CasNazevSpojId>, List<JedeOdDo>, List<String>>>(
-                Quadruple(
-                    null,
-                    emptyList(),
-                    emptyList(),
-                    emptyList()
-                )
-            ) {
-                value = repo.spojSeZastavkySpojeNaKterychStaviACaskody(it)
-            }
-            val spoj = a.first
-            val zastavky = a.second
-            val b by dopravaRepo.spojPodleId(spoj?.spojId).collectAsStateWithLifecycle(null to null)
-            val spojNaMape = b.first
-            val detailSpoje = b.second
+        items(oblibene.dnes) {
 
             OutlinedCard(
                 onClick = {
-                    navigator.navigate(DetailSpojeScreenDestination(it))
+                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(all = 8.dp)
             ) {
-                if (spoj != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp, top = 8.dp, end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, top = 8.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "${it.linka}")
+                    if (it.zpozdeni != null) Badge(
+                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(it.zpozdeni),
+                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(it.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
                     ) {
-                        Text(text = "${spoj.linka}")
-                        if (spojNaMape != null) Badge(
-                            containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(spojNaMape.delay),
-                            contentColor = UtilFunctions.barvaZpozdeniBublinyText(spojNaMape.delay),
-                            modifier = Modifier.padding(start = 8.dp)
-                        ) {
-                            Text(
-                                text = spojNaMape.delay.run {
-                                    "${toSign()}$this min"
-                                },
-                            )
-                        }
+                        Text(
+                            text = it.zpozdeni.run {
+                                "${toSign()}$this min"
+                            },
+                        )
                     }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, end = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = it.vychoziZastavka)
+                    Text(text = it.vychoziZastavkaCas.toString())
+                }
+                if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, end = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val z = zastavky.first()
-                        Text(text = z.nazev)
-                        Text(text = z.cas.toString())
-                    }
-                    if (detailSpoje != null && spojNaMape != null) {
-                        val z = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }]
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 8.dp, end = 8.dp),
-                        ) {
-                            Text(text = z.nazev)
-                            Spacer(modifier = Modifier.weight(1F))
-                            Text(
-                                text = "${z.cas + spojNaMape.delay.min}",
-                                color = barvaZpozdeniTextu(spojNaMape.delay),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
-                    ) {
-                        val z = zastavky.last()
-                        Text(text = z.nazev)
+                        Text(text = it.aktualniZastavka)
                         Spacer(modifier = Modifier.weight(1F))
-                        if (spojNaMape != null) Text(
-                            text = "${z.cas + spojNaMape.delay.min}",
-                            color = barvaZpozdeniTextu(spojNaMape.delay),
+                        Text(
+                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            color = barvaZpozdeniTextu(it.zpozdeni),
                             modifier = Modifier.padding(start = 8.dp)
-                        ) else Text(text = "${z.cas}")
+                        )
                     }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
+                ) {
+                    Text(text = it.cilovaZastavka)
+                    Spacer(modifier = Modifier.weight(1F))
+                    if (it.zpozdeni != null) Text(
+                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        color = barvaZpozdeniTextu(it.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) else Text(text = "${it.cilovaZastavkaCas}")
                 }
             }
         }
+
+        if (oblibene.jindy.isNotEmpty()) item {
+            Text(
+                text = "Jede jindy",
+                modifier = Modifier.padding(all = 16.dp),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        items(oblibene.jindy, key = { it.spojId }) {
+
+            OutlinedCard(
+                onClick = {
+                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
+                },
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, top = 8.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "${it.linka}")
+                    if (it.zpozdeni != null) Badge(
+                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(it.zpozdeni),
+                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(it.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = it.zpozdeni.run {
+                                "${toSign()}$this min"
+                            },
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, end = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = it.vychoziZastavka)
+                    Text(text = it.vychoziZastavkaCas.toString())
+                }
+                if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, end = 8.dp),
+                    ) {
+                        Text(text = it.aktualniZastavka)
+                        Spacer(modifier = Modifier.weight(1F))
+                        Text(
+                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            color = barvaZpozdeniTextu(it.zpozdeni),
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
+                ) {
+                    Text(text = it.cilovaZastavka)
+                    Spacer(modifier = Modifier.weight(1F))
+                    if (it.zpozdeni != null) Text(
+                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        color = barvaZpozdeniTextu(it.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) else Text(text = "${it.cilovaZastavkaCas}")
+                }
+                if (it.dalsiPojede != null) {
+                    Text(
+                        text = "Další pojede ${it.dalsiPojede.hezky()}", Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun Datum.hezky() = (this - Datum.dnes).let { za ->
+    when {
+        za == 1.dni -> "zítra"
+        za == 2.dni -> "pozítří"
+        za < 7.dni -> when (toCalendar()[DAY_OF_WEEK]) {
+            MONDAY -> "v pondělí"
+            TUESDAY -> "v úterý"
+            WEDNESDAY -> "ve středu"
+            THURSDAY -> "ve čtvrtek"
+            FRIDAY -> "v pátek"
+            SATURDAY -> "v sobotu"
+            SUNDAY -> "v neděli"
+            else -> throw IllegalArgumentException("WTF")
+        }
+
+        else -> toString()
     }
 }
