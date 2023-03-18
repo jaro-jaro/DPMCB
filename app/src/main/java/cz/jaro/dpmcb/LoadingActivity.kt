@@ -122,7 +122,7 @@ class LoadingActivity : AppCompatActivity() {
                 if (intent.getBooleanExtra("update", false) || repo.verze == -1) {
                     stahnoutNoveJizdniRady()
                 }
-                repo.cislaLinek()
+                repo.cislaLinek().ifEmpty { throw Exception() }
             } catch (e: Exception) {
                 e.printStackTrace()
                 var lock = true

@@ -18,7 +18,7 @@ import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
 
-@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 12)
+@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 13)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao
@@ -26,16 +26,16 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         class Converters {
             @TypeConverter
-            fun toCas(value: Int) = value.sek.toCas()
+            fun toCas(value: Long) = value.sek.toCas()
 
             @TypeConverter
             fun fromCas(value: Cas) = value.toTrvani().sek
 
             @TypeConverter
-            fun toDatum(value: Int) = value.dni.toDatum()
+            fun toDatum(value: Long) = value.dni.toDatum()
 
             @TypeConverter
-            fun fromDatum(value: Datum) = value.toTrvani().dni
+            fun fromDatum(value: Datum) = value.toTrvani().dni.toLong()
 
             @TypeConverter
             fun toSmer(value: Int) = Smer.values()[value]
