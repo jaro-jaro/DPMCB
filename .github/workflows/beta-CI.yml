@@ -19,8 +19,6 @@ jobs:
           java-version: 17
       - name: Make Gradle executable
         run: chmod +x ./gradlew
-      - name: Generate version.txt file
-        run: ./gradlew generateVersionTxt
       - name: Get version name
         run: echo "VERSION_NAME=v$(cat ./app/version.txt)" >> $GITHUB_ENV
       - name: Create git tag

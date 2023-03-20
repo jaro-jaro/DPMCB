@@ -184,10 +184,3 @@ dependencies {
 
     implementation(files("./libs/datum-cas.aar"))
 }
-
-
-task("generateVersionTxt") {
-    doLast {
-        file("./version.txt").writeText(android.defaultConfig.versionName ?: "Neznámá verze")
-    }
-}
