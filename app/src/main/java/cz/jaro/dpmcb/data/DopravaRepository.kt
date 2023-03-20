@@ -4,8 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -15,13 +13,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
 
@@ -55,7 +51,7 @@ class DopravaRepository(
         baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
     )
 
-    private val spojeFlow: StateFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
+    private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
             while (lock) Unit
             emit(api.ziskatData("/service/position") ?: emptyList())
@@ -63,25 +59,24 @@ class DopravaRepository(
         }
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(
+        .shareIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(),
-            initialValue = emptyList()
+            replay = 1
         )
 
-    fun seznamSpojuKterePraveJedou(): SharedFlow<List<SpojNaMape>> =
+    fun seznamSpojuKterePraveJedou() =
         spojeFlow
 
     private val detailSpojeFlowMap = mutableMapOf<String, SharedFlow<DetailSpoje?>>()
 
     fun detailSpoje(spojId: String) =
         detailSpojeFlowMap.getOrPut(spojId) {
-            flow {
+            flow<DetailSpoje?> {
                 while (currentCoroutineContext().isActive) {
                     while (lock) Unit
-                    val detailSpoje = api.ziskatData<DetailSpoje>("/servicedetail?id=$spojId")
-                    emit(detailSpoje?.funguj { Quadruple(isServiceVisibleOnMap, isWalking, isDirectServiceOrigin, isDirectServiceSubseq) })
-                    delay(spojeFlow.value.spojPodleId(spojId)?.let { 5_000L } ?: 30_000L)
+                    emit(api.ziskatData("/servicedetail?id=$spojId"))
+                    delay(5000)
                 }
             }
                 .flowOn(Dispatchers.IO)
