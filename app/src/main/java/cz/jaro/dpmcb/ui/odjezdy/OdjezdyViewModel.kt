@@ -3,21 +3,14 @@ package cz.jaro.dpmcb.ui.odjezdy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.Trvani
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ifTake
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,46 +32,39 @@ class OdjezdyViewModel(
     private val _state = MutableStateFlow(OdjezdyState(cas = cas))
     val state = _state.asStateFlow()
 
-    private val lejzove = mutableMapOf<Long, Lazy<SpojNaMape?>>()
+    private val lejzove = mutableMapOf<String, Lazy<SpojNaMape?>>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.typDne.combine(dopravaRepo.seznamSpojuKterePraveJedou()) { typDne, spojeNaMape ->
-                repo
-                    .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, zastavka)
-                    .flatMap { (spoj, zastavkySpoje) ->
-                        val spojNaMape = lejzove.getOrPut(spoj.id) {
-                            lazy { with(dopravaRepo) { spojeNaMape.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavkySpoje) } }
+            repo.datum.combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
+                repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
+                    .map {
+                        val spojNaMape = lejzove.getOrPut(it.spojId) {
+                            lazy { with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) } }
                         }
-                        zastavkySpoje.vsechnyIndexy(zastavka).map { index ->
-                            Quadruple(spoj, zastavkySpoje[index], spojNaMape, zastavkySpoje)
-                        }
+                        it to spojNaMape
                     }
-                    .sortedBy { (_, zast, spojNaMape, _) ->
+                    .sortedBy { (zast, spojNaMape) ->
                         zast.cas + (ifTake(spojNaMape.isInitialized()) { spojNaMape.value?.delay?.min } ?: 0.min)
                     }
-                    .map { (spoj, zastavka, spojNaMape, zastavkySpoje) ->
+                    .map { (zastavka, spojNaMape) ->
 
-                        val index = zastavkySpoje.indexOf(zastavka)
-                        val posledniZastavka = zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
-                        val pristiZastavkaSpoje = zastavkySpoje.pristiZastavka(spoj.smer, index) ?: posledniZastavka
+                        val posledniZastavka = zastavka.zastavkySpoje.last { it.second != Cas.nikdy }
                         val aktualniNasledujiciZastavka = lazy {
                             spojNaMape.value?.delay?.let { zpozdeni ->
-                                zastavkySpoje.reversedIf { spoj.smer == Smer.NEGATIVNI }.find { (it.cas + zpozdeni.min) > Cas.ted }
+                                zastavka.zastavkySpoje.find { (it.second + zpozdeni.min) > Cas.ted }
                             }
                         }
 
                         KartickaState(
-                            konecna = posledniZastavka.nazevZastavky,
-                            cisloLinky = spoj.cisloLinky,
+                            konecna = posledniZastavka.first,
+                            cisloLinky = zastavka.linka,
                             cas = zastavka.cas,
-                            jePosledniZastavka = zastavkySpoje.indexOf(posledniZastavka) == index,
-                            pristiZastavka = pristiZastavkaSpoje.nazevZastavky,
                             aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
-                            idSpoje = spoj.id,
-                            nizkopodlaznost = spoj.nizkopodlaznost,
+                            idSpoje = zastavka.spojId,
+                            nizkopodlaznost = zastavka.nizkopodlaznost,
                             zpozdeni = lazy { spojNaMape.value?.delay },
-                            jedePres = zastavkySpoje.map { it.nazevZastavky },
+                            jedePres = zastavka.zastavkySpoje.map { it.first },
                             jedeZa = lazy { spojNaMape.value?.delay?.min?.let { zastavka.cas + it - Cas.ted } }
                         )
                     }
@@ -97,7 +83,7 @@ class OdjezdyViewModel(
 
     fun kliklNaDetailSpoje(spoj: KartickaState) {
         navigovat(
-            DetailSpojeScreenDestination(
+            cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination(
                 spoj.idSpoje
             )
         )
@@ -178,12 +164,10 @@ class OdjezdyViewModel(
 
     data class KartickaState(
         val konecna: String,
-        val pristiZastavka: String,
-        val aktualniNasledujiciZastavka: Lazy<ZastavkaSpoje?>,
+        val aktualniNasledujiciZastavka: Lazy<Pair<String, Cas>?>,
         val cisloLinky: Int,
         val cas: Cas,
-        val jePosledniZastavka: Boolean,
-        val idSpoje: Long,
+        val idSpoje: String,
         val nizkopodlaznost: Boolean,
         val zpozdeni: Lazy<Int?>,
         val jedePres: List<String>,

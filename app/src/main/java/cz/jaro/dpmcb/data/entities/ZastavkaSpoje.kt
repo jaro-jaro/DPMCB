@@ -1,23 +1,17 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
-import cz.jaro.dpmcb.data.DopravaRepository.Companion.upravit
-import cz.jaro.dpmcb.data.helperclasses.Cas
+import cz.jaro.datum_cas.Cas
 
-@kotlinx.serialization.Serializable
-@Entity
+@Entity(primaryKeys = ["linka", "cisloSpoje", "indexZastavkyNaLince"])
 data class ZastavkaSpoje(
-    @PrimaryKey val id: Long,
-
-    val nazevZastavky: String,
-    val idSpoje: Long,
-    val cisloLinky: Int,
-    val nazevKurzu: String,
-    val nizkopodlaznost: Boolean,
-
-    val cas: Cas,
-    val indexNaLince: Int,
-
-    val upravene: String = nazevZastavky.upravit(),
-)
+    val linka: Int,
+    val cisloSpoje: Int,
+    val indexZastavkyNaLince: Int,
+    val cisloZastavky: Int,
+    val kmOdStartu: Int,
+    val prijezd: Cas?,
+    val odjezd: Cas?,
+) {
+    val cas get() = odjezd ?: prijezd ?: Cas.nikdy
+}

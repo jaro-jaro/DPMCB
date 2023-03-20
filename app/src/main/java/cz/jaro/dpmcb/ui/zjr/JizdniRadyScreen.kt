@@ -18,8 +18,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,11 +28,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
+import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -52,11 +49,7 @@ fun JizdniRadyScreen(
 ) {
 //    val viewModel = remember { JizdniRadyViewModel(cisloLinky, zastavka, pristiZastavka, repo) }
 
-    val typDne by repo.typDne.collectAsState(VDP.DNY)
-
-    LaunchedEffect(typDne) {
-        viewModel.nacistJR(typDne)
-    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -94,14 +87,14 @@ fun JizdniRadyScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (viewModel.state.nacitaSe) Box(
+        if (state == JizdniRadyViewModel.JizdniRadyState.Loading) Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter
         ) {
             CircularProgressIndicator()
         }
 
-        if (!viewModel.state.nacitaSe) Row(
+        if (state is JizdniRadyViewModel.JizdniRadyState.Success) Row(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState()),
         ) {
@@ -127,7 +120,11 @@ fun JizdniRadyScreen(
                     .fillMaxWidth()
             ) {
                 repeat(24) { h ->
-                    RadekOdjezdu(navigator, viewModel.dataProHodinu(h), zobrazitNizkopodlaznosti)
+                    RadekOdjezdu(
+                        navigator = navigator,
+                        vysledek = (state as JizdniRadyViewModel.JizdniRadyState.Success).data.filter { it.odjezd.h == h },
+                        zobrazitNizkopodlaznost = zobrazitNizkopodlaznosti
+                    )
                 }
             }
         }
@@ -138,26 +135,26 @@ fun JizdniRadyScreen(
 @Composable
 fun RadekOdjezdu(
     navigator: DestinationsNavigator,
-    vysledek: List<Pair<ZastavkaSpoje, Long>>,
-    zobrazitNizkopodlaznost: Boolean
+    vysledek: List<OdjezdNizkopodlaznostSpojId>,
+    zobrazitNizkopodlaznost: Boolean,
 ) {
 
     Row(
         modifier = Modifier
             .height(32.dp)
     ) {
-        vysledek.sortedBy { it.first.cas }.forEach { (zastavka, id) ->
+        vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
             Text(
-                text = zastavka.cas.min.let { if ("$it".length <= 1) "0$it" else "$it" },
+                text = odjezd.min.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
-                        navigator.navigate(DetailSpojeScreenDestination(spojId = id))
+                        navigator.navigate(DetailSpojeScreenDestination(spojId = spojId))
                     }
                     //.width(32.dp)
                     .padding(4.dp),
-                color = if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
                 fontSize = 20.sp,
-                fontWeight = if (zobrazitNizkopodlaznost && zastavka.nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (zobrazitNizkopodlaznost && nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
             )
         }
     }

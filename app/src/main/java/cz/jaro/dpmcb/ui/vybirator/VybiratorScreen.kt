@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
@@ -58,6 +60,8 @@ fun VybiratorScreen(
     },
 ) {
 
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
     App.title = when (typ) {
         TypAdapteru.ZASTAVKY -> R.string.vyberte_zastavku
         TypAdapteru.LINKY -> R.string.vyberte_linku
@@ -82,10 +86,10 @@ fun VybiratorScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        Text(text = viewModel.state.info)
+        Text(text = state.info)
         val focusNaTextField = remember { FocusRequester() }
         TextField(
-            value = viewModel.state.hledani,
+            value = state.hledani,
             onValueChange = { viewModel.poslatEvent(VybiratorEvent.NapsalNeco(it)) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -142,7 +146,7 @@ fun VybiratorScreen(
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            items(viewModel.state.seznam.toList()) { item ->
+            items(state.seznam.toList()) { item ->
                 DropdownMenuItem(
                     text = { Text(item) },
                     modifier = Modifier

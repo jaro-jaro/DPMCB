@@ -32,7 +32,7 @@ data class Quadruple<out A, out B, out C, out D>(
 }
 
 /**
- * Converts this triple into a list.
+ * Converts this quadruple into a list.
  */
 fun <T> Quadruple<T, T, T, T>.toList(): List<T> = listOf(first, second, third, fourth)
 

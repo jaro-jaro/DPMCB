@@ -5,6 +5,8 @@ import android.widget.LinearLayout
 import android.widget.TimePicker
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,30 +17,31 @@ import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updateMargins
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Trvani
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
@@ -72,7 +75,7 @@ fun OdjezdyScreen(
 
     App.title = R.string.odjezdy
 
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState(state.indexScrollovani)
 
@@ -157,25 +160,16 @@ fun OdjezdyScreen(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
         ) {
-            val focusRequester = LocalFocusManager.current
-
+            val linkaSource = remember { MutableInteractionSource() }
             TextField(
                 value = state.filtrLinky?.toString() ?: "Všechny",
                 onValueChange = {},
                 Modifier
-                    .onFocusEvent {
-                        if (!it.hasFocus) return@onFocusEvent
-                        navigator.navigate(
-                            VybiratorScreenDestination(
-                                typ = TypAdapteru.LINKA_ZPET,
-                            )
-                        )
-                        focusRequester.clearFocus()
-                    }
                     .fillMaxWidth(),
                 label = {
                     Text(text = "Linka:")
                 },
+                interactionSource = linkaSource,
                 readOnly = true,
                 trailingIcon = {
                     if (state.filtrLinky != null) IconButton(onClick = {
@@ -185,22 +179,24 @@ fun OdjezdyScreen(
                     }
                 },
                 colors = TextFieldDefaults.textFieldColors(
-                    textColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                    focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             )
+            val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            if (linkaPressedState is PressInteraction.Release) {
+                navigator.navigate(
+                    VybiratorScreenDestination(
+                        typ = TypAdapteru.LINKA_ZPET,
+                    )
+                )
+                linkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            }
+            val zastavkaSource = remember { MutableInteractionSource() }
             TextField(
                 value = state.filtrZastavky ?: "Cokoliv",
                 onValueChange = {},
                 Modifier
-                    .onFocusEvent {
-                        if (!it.hasFocus) return@onFocusEvent
-                        navigator.navigate(
-                            VybiratorScreenDestination(
-                                typ = TypAdapteru.ZASTAVKA_ZPET,
-                            )
-                        )
-                        focusRequester.clearFocus()
-                    }
                     .fillMaxWidth()
                     .padding(top = 8.dp),
 
@@ -215,10 +211,21 @@ fun OdjezdyScreen(
                         IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                     }
                 },
+                interactionSource = zastavkaSource,
                 colors = TextFieldDefaults.textFieldColors(
-                    textColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant
+                    focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             )
+            val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            if (zastavkaPressedState is PressInteraction.Release) {
+                navigator.navigate(
+                    VybiratorScreenDestination(
+                        typ = TypAdapteru.ZASTAVKA_ZPET,
+                    )
+                )
+                zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            }
         }
         if (state.nacitaSe) Row(
             Modifier
@@ -338,11 +345,11 @@ private fun Karticka(
                     Text(
                         modifier = Modifier
                             .weight(1F),
-                        text = nasledujiciZastavka!!.nazevZastavky,
+                        text = nasledujiciZastavka!!.first,
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nasledujiciZastavka!!.cas.toString(),
+                        text = nasledujiciZastavka!!.second.toString(),
                         color = barvaZpozdeniTextu(zpozdeni!!)
                     )
                 }

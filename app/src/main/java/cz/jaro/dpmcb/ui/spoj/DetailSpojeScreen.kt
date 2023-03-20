@@ -1,5 +1,6 @@
-package cz.jaro.dpmcb.ui.detail.spoje
+package cz.jaro.dpmcb.ui.spoj
 
+import android.content.Intent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -17,30 +18,38 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
@@ -56,7 +65,7 @@ import org.koin.core.parameter.ParametersHolder
 @Destination
 @Composable
 fun DetailSpojeScreen(
-    spojId: Long,
+    spojId: String,
     viewModel: DetailSpojeViewModel = koinViewModel {
         ParametersHolder(mutableListOf(spojId))
     },
@@ -65,7 +74,7 @@ fun DetailSpojeScreen(
 
     App.title = R.string.detail_spoje
 
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -106,7 +115,7 @@ fun DetailSpojeScreen(
                     )
                 }
                 Spacer(Modifier.weight(1F))
-                val oblibene by repo.oblibene.collectAsState()
+                val oblibene by repo.oblibene.collectAsStateWithLifecycle()
                 FilledIconToggleButton(checked = spojId in oblibene, onCheckedChange = {
                     if (it) {
                         repo.pridatOblibeny(spojId)
@@ -137,13 +146,13 @@ fun DetailSpojeScreen(
                         Column {
                             state.zastavky.forEach {
                                 Text(
-                                    text = it.nazevZastavky,
+                                    text = it.nazev,
                                     modifier = Modifier
                                         .clickable {
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
                                                     cas = it.cas,
-                                                    zastavka = it.nazevZastavky,
+                                                    zastavka = it.nazev,
                                                 )
                                             )
                                         }
@@ -160,7 +169,7 @@ fun DetailSpojeScreen(
                                             navigator.navigate(
                                                 OdjezdyScreenDestination(
                                                     cas = it.cas,
-                                                    zastavka = it.nazevZastavky,
+                                                    zastavka = it.nazev,
                                                 )
                                             )
                                         }
@@ -180,7 +189,7 @@ fun DetailSpojeScreen(
                                                 navigator.navigate(
                                                     OdjezdyScreenDestination(
                                                         cas = zastavka.cas,
-                                                        zastavka = zastavka.nazevZastavky,
+                                                        zastavka = zastavka.nazev,
                                                     )
                                                 )
                                             }
@@ -194,8 +203,8 @@ fun DetailSpojeScreen(
                         val baravCary = MaterialTheme.colorScheme.surfaceVariant
                         val zastavek = state.zastavky.count()
 
-                        val vyska by viewModel.vyska.collectAsState(0F)
-                        val animovanaVyska by animateFloatAsState(vyska)
+                        val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
+                        val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
 
                         Canvas(
                             modifier = Modifier
@@ -255,11 +264,89 @@ fun DetailSpojeScreen(
                         }
                     }
                 }
-                if (state.idNaJihu != null) Row(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Text("id: ${state.idNaJihu!!}")
+                    var zobrazitMenu by remember { mutableStateOf(false) }
+                    val context = LocalContext.current
+
+                    TextButton(onClick = {
+                        zobrazitMenu = true
+                    }) {
+                        Text("id: $spojId")
+                        DropdownMenu(
+                            expanded = zobrazitMenu,
+                            onDismissRequest = {
+                                zobrazitMenu = false
+                            }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Zobrazit v mapě")
+                                },
+                                onClick = {},
+                                enabled = false
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("ID: $spojId")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, spojId)
+                                        type = "text/plain"
+                                    }, "Sdílet ID spoje"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Název: ${state.nazevSpoje}")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
+                                        type = "text/plain"
+                                    }, "Sdílet název spoje"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Sdílet deeplink")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
+                                        type = "text/uri-list"
+                                    }, "Sdílet deeplink"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                        }
+                    }
+
+                }
+                Column {
+                    state.pevneKody.forEach {
+                        Text(it)
+                    }
+                    state.caskody.forEach {
+                        Text(it)
+                    }
                 }
             }
         }

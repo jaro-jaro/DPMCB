@@ -1,23 +1,21 @@
 package cz.jaro.dpmcb.ui.vybirator
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.result.ResultBackNavigator
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.proVsechnyIndexy
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.Normalizer
 
@@ -28,28 +26,35 @@ class VybiratorViewModel(
     private val resultNavigator: ResultBackNavigator<Vysledek>,
 ) : ViewModel() {
 
-    var state by mutableStateOf(
-        VybiratorState()
-    )
+    private val _state = MutableStateFlow(VybiratorState())
+    val state = _state.asStateFlow()
 
     init {
+        cisloLinky.funguj(zastavka, typ)
+        state.funguj()
         viewModelScope.launch {
-            state = state.copy(puvodniSeznam = when (typ) {
-                TypAdapteru.ZASTAVKY -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-                TypAdapteru.LINKY -> repo.cislaLinek.sorted().map { it.toString() }
-                TypAdapteru.ZASTAVKY_LINKY -> repo.zastavkyLinky(cisloLinky).distinct()
-                TypAdapteru.PRISTI_ZASTAVKA -> pristiZastavky(cisloLinky, zastavka!!)
-                TypAdapteru.ZASTAVKY_ZPET_1 -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-                TypAdapteru.ZASTAVKA_ZPET_2 -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-                TypAdapteru.LINKA_ZPET -> repo.cislaLinek.sorted().map { it.toString() }
-                TypAdapteru.ZASTAVKA_ZPET -> repo.zastavky.sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            })
+            _state.update {
+                it.copy(puvodniSeznam = when (typ) {
+                    TypAdapteru.ZASTAVKY -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                    TypAdapteru.LINKY -> repo.cislaLinek().sorted().map { it.toString() }
+                    TypAdapteru.ZASTAVKY_LINKY -> repo.nazvyZastavekLinky(cisloLinky).distinct()
+                    TypAdapteru.PRISTI_ZASTAVKA -> pristiZastavky(cisloLinky, zastavka!!)
+                    TypAdapteru.ZASTAVKY_ZPET_1 -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                    TypAdapteru.ZASTAVKA_ZPET_2 -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                    TypAdapteru.LINKA_ZPET -> repo.cislaLinek().sorted().map { it.toString() }
+                    TypAdapteru.ZASTAVKA_ZPET -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                })
+            }
         }
+        state.funguj()
 
-        if (typ == TypAdapteru.ZASTAVKY_LINKY)
-            state = state.copy(info = "$cisloLinky: ? -> ?")
-        if (typ == TypAdapteru.PRISTI_ZASTAVKA)
-            state = state.copy(info = "$cisloLinky: $zastavka -> ?")
+        if (typ == TypAdapteru.ZASTAVKY_LINKY) _state.update {
+            it.copy(info = "$cisloLinky: ? -> ?")
+        }
+        if (typ == TypAdapteru.PRISTI_ZASTAVKA) _state.update {
+            it.copy(info = "$cisloLinky: $zastavka -> ?")
+        }
+        state.funguj()
     }
 
     private val _uiEvent = Channel<UiEvent>()
@@ -57,11 +62,13 @@ class VybiratorViewModel(
 
     fun poslatEvent(event: VybiratorEvent) {
         when (event) {
-            is VybiratorEvent.KliklEnter -> hotovo(state.seznam.first())
+            is VybiratorEvent.KliklEnter -> hotovo(state.value.seznam.first())
             is VybiratorEvent.KliklNaSeznam -> hotovo(event.vec)
             is VybiratorEvent.NapsalNeco -> {
-                state = state.copy(hledani = event.co.replace("\n", ""))
-                if (state.seznam.count() == 1) hotovo(state.seznam.first())
+                _state.update {
+                    it.copy(hledani = event.co.replace("\n", ""))
+                }
+                if (state.value.seznam.count() == 1) hotovo(state.value.seznam.first())
             }
         }
     }
@@ -87,13 +94,7 @@ class VybiratorViewModel(
     private suspend fun pristiZastavky(
         cisloLinky: Int,
         zastavka: String,
-    ) = repo.zastavkyLinky(cisloLinky)
-        .proVsechnyIndexy(zastavka) { index ->
-            repo.spojeLinkyZastavujiciVZastavceSeZastavkamiSpoju(cisloLinky, index)
-                .mapNotNull { (spoj, zastavkySpoje: List<ZastavkaSpoje>) ->
-                    zastavkySpoje.pristiZastavka(spoj.smer, index)?.nazevZastavky
-                }
-        }.flatten().distinct()
+    ) = repo.pristiZastavky(cisloLinky, zastavka)
 
     private var job: Job? = null
 

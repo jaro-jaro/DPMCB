@@ -24,6 +24,17 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter android:label="DPMCB spoj Deeplink">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:host="jaro-jaro.github.io" />
+                <data android:pathPrefix="/DPMCB" />
+                <data android:scheme="https" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".NastaveniActivity"
