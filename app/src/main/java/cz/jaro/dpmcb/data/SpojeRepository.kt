@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.Room
-import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -72,39 +71,6 @@ class SpojeRepository(ctx: Application) {
     suspend fun zastavky() = dao.nazvyZastavek()
     suspend fun cislaLinek() = dao.cislaLinek()
 
-    //    suspend fun spojSeZastavkamiPodleJihu(spojNaMape: SpojNaMape) = zastavkySpojeDao.findByLinkaFrstZastavkaZastZastavka(
-//        cisloLinky = spojNaMape.lineNumber!! - 325_000,
-//        zastavka1 = spojNaMape.dep.upravit(),
-//        cas1 = spojNaMape.depTime.toCas(),
-//        index1 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dep.upravit() },
-//        zastavka2 = spojNaMape.dest.upravit(),
-//        cas2 = spojNaMape.destTime.toCas(),
-//        index2 = zastavkyLinky(spojNaMape.lineNumber - 325_000).indexOfFirst { it.upravit() == spojNaMape.dest.upravit() },
-//        kurzLike = "${Datum.dnes.typDne.toChar()}%"
-//    )
-//        .toList()
-//        .groupBy({ it.second }, { it.first })
-//        .toList()
-//        .firstOrNull()
-//
-//    suspend fun spojeJedouciVTypDne(typDne: VDP) = dao.findByKurzInExact("${typDne.toChar()}%")
-//    suspend fun spojeJedouciVTypDneSeZastavkySpoju(typDne: VDP) =
-//        zastavkySpojeDao.findByKurzInExactJoinSpoj("${typDne.toChar()}%")
-//            .toList()
-//            .groupBy({ it.second }, { it.first })
-//
-//    suspend fun spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne: VDP, zastavka: String) =
-//        zastavkySpojeDao.findByKurzInExactAndIsCasNotJoinSpoj("${typDne.toChar()}%", zastavka, Cas.nikdy)
-//            .toList()
-//            .groupBy({ it.second }, { it.first })
-//
-//    suspend fun spoj(spojId: Long) = dao.findById(spojId)
-//    suspend fun spojSeZastavkySpoje(spojId: Long) =
-//        zastavkySpojeDao.findBySpojIdJoinSpoj(spojId)
-//            .let { it.values.first() to it.keys.toList() }
-
-    private val isNikdy: (Cas?) -> Boolean = { it == Cas.nikdy }
-
     suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String) =
         dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
             Quadruple(
@@ -129,30 +95,6 @@ class SpojeRepository(ctx: Application) {
                 ).all { it }
             }
         }
-
-//
-//    suspend fun spojeKurzu(kurz: String) = dao.findByKurz(kurz)
-//    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String) =
-//        zastavkySpojeDao.findByKurzAndNotCasJoinSpoj(kurz, Cas.nikdy)
-//            .toList()
-//            .groupBy({ it.second }, { it.first })
-//
-//    suspend fun spojeLinky(cisloLinky: Int) = dao.findByLinka(cisloLinky)
-//    suspend fun spojeLinkyZastavujiciVZastavceSeZastavkamiSpoju(cisloLinky: Int, indexZastavky: Int) =
-//        zastavkySpojeDao.findByLinkaAndIndexAndNotCasJoinSpoj(cisloLinky, indexZastavky, Cas.nikdy)
-//            .toList()
-//            .groupBy({ it.second }, { it.first })
-//
-//    suspend fun spojeLinkyJedouciVTypDneSeZastavkamiSpoju(cisloLinky: Int, typDne: VDP) =
-//        zastavkySpojeDao.findByLinkaAndKurzInExactJoinSpoj(cisloLinky, "${typDne.toChar()}%")
-//            .toList()
-//            .groupBy({ it.second }, { it.first })
-//
-//    suspend fun zastavkaSpoje(idZastavky: Long) = zastavkySpojeDao.findById(idZastavky)
-//    suspend fun zastavkySpoje(spojId: Long) = zastavkySpojeDao.findBySpoj(spojId)
-//    suspend fun nazvyZastavekSpoje(spojId: Long) = zastavkySpojeDao.findNazvyBySpoj(spojId)
-//
-//    fun zastavkyLinky(cisloLinky: Int) = ostatni.linkyAJejichZastavky[cisloLinky]!!
 
     suspend fun nazvyZastavekLinky(linka: Int) = dao.nazvyZastavekLinky(linka + 325_000)
 
