@@ -244,12 +244,13 @@ class SpojeRepository(ctx: Application) {
             .filter {
                 datum.jedeDnes(it.pevneKody)
             }
-            .groupBy { "S-${it.linka}-${it.cisloSpoje}" }
-            .map { (spojId, seznam) ->
+            .groupBy { "S-${it.linka}-${it.cisloSpoje}" to it.indexZastavkyNaLince }
+            .map { Triple(it.key.first, it.key.second, it.value) }
+            .map { (spojId, indexZastavkyNaLince, seznam) ->
                 ZastavkaSpojeSeSpojemAJehoZastavky(
                     nazev = seznam.first().nazev,
                     cas = seznam.first().cas,
-                    indexZastavkyNaLince = seznam.first().indexZastavkyNaLince,
+                    indexZastavkyNaLince = indexZastavkyNaLince,
                     spojId = spojId,
                     linka = seznam.first().linka - 325_000,
                     nizkopodlaznost = seznam.first().nizkopodlaznost,
