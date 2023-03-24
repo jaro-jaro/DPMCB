@@ -8,7 +8,7 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
-import java.io.InputStream
+import java.io.File
 
 @Destination
 @Composable
@@ -21,11 +21,7 @@ fun MapaScreen(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             PDFView(context, null).apply {
-
-                val assetManager = context.assets
-                val inputStream: InputStream = assetManager.open("Schema 2022_01.pdf")
-
-                fromStream(inputStream).load()
+                fromFile(File(context.filesDir, "Schema.pdf")).load()
             }
         }
     )

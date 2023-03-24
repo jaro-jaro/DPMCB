@@ -37,6 +37,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
@@ -70,6 +71,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.io.File
 import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
@@ -123,6 +125,9 @@ class LoadingActivity : AppCompatActivity() {
                     stahnoutNoveJizdniRady()
                 }
                 repo.cislaLinek().ifEmpty { throw Exception() }
+                if (!File(filesDir, "schema.pdf").exists()) {
+                    throw Exception()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 var lock = true
@@ -202,6 +207,8 @@ class LoadingActivity : AppCompatActivity() {
         infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování..."
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+        val storage = Firebase.storage
+        val schemaRef = storage.reference.child("schema.pdf")
         val referenceData = database.getReference("data2/data")
         val referenceVerze = database.getReference("data2/verze")
 
@@ -235,7 +242,7 @@ class LoadingActivity : AppCompatActivity() {
                     tabulka.forEach radek@{ radek ->
                         indexRadku++
 
-                        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání linky $cisloLinky..."
+                        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání linky $cisloLinky..."
                         progress = indexRadku / pocetRadku
 
                         when (TypyTabulek.valueOf(typTabulky)) {
@@ -294,7 +301,7 @@ class LoadingActivity : AppCompatActivity() {
                 }
             }
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nDokončování..."
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat..."
 
         spoje.forEachIndexed { index, spoj ->
             progress = index.toFloat() / spoje.count()
@@ -315,7 +322,26 @@ class LoadingActivity : AppCompatActivity() {
                 )
         }
 
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schéma MHD"
+        progress = 0F
+
+        val file = File(filesDir, "schema.pdf")
+
+        val task = schemaRef.getFile(file)
+
+        task.addOnFailureListener {
+            throw it
+        }
+
+        task.addOnProgressListener {
+            progress = it.bytesTransferred.toFloat() / it.totalByteCount
+        }
+
+        task.await()
+
         progress = null
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání..."
+
 
         val verze = referenceVerze.get().await().getValue<Int>() ?: -1
 
