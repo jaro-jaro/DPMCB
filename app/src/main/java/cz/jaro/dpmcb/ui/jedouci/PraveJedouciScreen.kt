@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.flowlayout.FlowRow
@@ -17,6 +18,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
@@ -32,10 +34,17 @@ fun PraveJedouciScreen(
     val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
     val filtry by viewModel.filtry.collectAsStateWithLifecycle()
     val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
+    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
 
     App.title = R.string.doprava_na_jihu
 
-    Column {
+    if (!jeOnline) Text(
+        text = "Jste offline :(",
+        modifier = Modifier.padding(all = 16.dp),
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center
+    )
+    else Column {
         Text("Vyberte linku:", modifier = Modifier.padding(bottom = 4.dp, start = 8.dp))
         FlowRow(
             modifier = Modifier

@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -115,6 +118,24 @@ class MainActivity : AppCompatActivity() {
                             actions = {
                                 val cas by Cas.tedFlow.collectAsStateWithLifecycle()
                                 Text(cas.toString(true))
+
+                                val jeOnline by repo.isOnline.collectAsStateWithLifecycle()
+                                val onlineMod by repo.onlineMod.collectAsStateWithLifecycle()
+                                IconButton(onClick = {
+                                    if (!jeOnline) return@IconButton
+
+                                    repo.upravitOnlineMod(!onlineMod)
+                                }) {
+                                    IconWithTooltip(
+                                        imageVector = if (jeOnline && onlineMod) Icons.Default.Wifi else Icons.Default.WifiOff,
+                                        contentDescription = when {
+                                            jeOnline && onlineMod -> "Online, kliknutím přepnete do offline módu"
+                                            jeOnline && !onlineMod -> "Offline, kliknutím vypnete offline méó"
+                                            else -> "Offline, nejste připojeni k internetu"
+                                        },
+                                        tint = if (jeOnline) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                                    )
+                                }
                             })
                     },
                 ) { paddingValues ->

@@ -13,21 +13,31 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Calendar.DAY_OF_WEEK
 
 class SpojeRepository(ctx: Application) {
+
+    private val scope = MainScope()
 
     private val coroutineScope = MainScope()
     private val sharedPref: SharedPreferences =
@@ -171,6 +181,10 @@ class SpojeRepository(ctx: Application) {
         _datum.update { datum }
     }
 
+    fun upravitOnlineMod(mod: Boolean) {
+        _onlineMod.update { mod }
+    }
+
     fun pridatOblibeny(id: String) {
         _oblibene.update { it + id }
         ostatni = ostatni.copy(oblibene = _oblibene.value)
@@ -201,4 +215,15 @@ class SpojeRepository(ctx: Application) {
             }
 
     suspend fun spojSeZastavkamiPodleId(spojId: String): Pair<Spoj, List<NazevACas>> = dao.spojSeZastavkamiPodleId(spojId).toList().first()
+
+    val isOnline = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(ctx.isOnline)
+            delay(5000)
+        }
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val maPristupKJihu = isOnline.combine(onlineMod) { jeOnline, onlineMod ->
+        jeOnline && onlineMod
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
 }

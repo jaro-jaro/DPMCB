@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,11 @@ class DopravaRepository(
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
             while (lock) Unit
-            emit(api.ziskatData("/service/position") ?: emptyList())
+            emit(
+                if (repo.onlineMod.value)
+                    api.ziskatData("/service/position") ?: emptyList()
+                else emptyList()
+            )
             delay(5000)
         }
     }
@@ -75,7 +80,11 @@ class DopravaRepository(
             flow<DetailSpoje?> {
                 while (currentCoroutineContext().isActive) {
                     while (lock) Unit
-                    emit(api.ziskatData("/servicedetail?id=$spojId"))
+                    emit(
+                        if (repo.onlineMod.value)
+                            api.ziskatData("/servicedetail?id=$spojId")
+                        else null
+                    )
                     delay(5000)
                 }
             }
@@ -88,11 +97,11 @@ class DopravaRepository(
         }
 
 //    suspend fun seznamVsechZastavek(): List<DetailZastavky> = withContext(Dispatchers.IO) {
-//        api.ziskatData("/station") ?: emptyList()
+//       if (repo.onlineMod.value) api.ziskatData("/station") ?: emptyList() else emptyList()
 //    }
 //
 //    suspend fun blizkeOdjezdyZeZastavky(zastavkaId: String): List<OdjezdSpoje> = withContext(Dispatchers.IO) {
-//        api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList()
+//       if (repo.onlineMod.value) api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList() else emptyList()
 //    }
 
     fun List<SpojNaMape>.spojeDPMCB() = filter {
