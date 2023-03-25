@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -180,6 +179,10 @@ class SpojeRepository(ctx: Application) {
 
     fun upravitDatum(datum: Datum) {
         _datum.update { datum }
+    }
+
+    fun upravitOnlineMod(mod: Boolean) {
+        _onlineMod.update { mod }
     }
 
     fun pridatOblibeny(id: String) {

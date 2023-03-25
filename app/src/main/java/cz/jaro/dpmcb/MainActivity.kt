@@ -26,7 +26,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -120,14 +119,14 @@ class MainActivity : AppCompatActivity() {
                                 val cas by Cas.tedFlow.collectAsStateWithLifecycle()
                                 Text(cas.toString(true))
 
-                                val jeOnline by repo.isOnline.collectAsState(false)
-                                val onlineMod by repo.onlineMod.collectAsState(false)
+                                val jeOnline by repo.isOnline.collectAsStateWithLifecycle(false)
+                                val onlineMod by repo.onlineMod.collectAsStateWithLifecycle(false)
                                 IconButton(onClick = {
                                     if (!jeOnline) return@IconButton
 
                                     repo.upravitOnlineMod(!onlineMod)
                                 }) {
-                                    Icon(
+                                    IconWithTooltip(
                                         imageVector = if (jeOnline && onlineMod) Icons.Default.Wifi else Icons.Default.WifiOff,
                                         contentDescription = when {
                                             jeOnline && onlineMod -> "Online, kliknutím přepnete do offline módu"
