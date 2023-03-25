@@ -109,10 +109,16 @@ fun OdjezdyScreen(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = zastavka,
-                fontSize = 20.sp
-            )
+            TextButton(
+                onClick = {
+                    navigator.navigate(VybiratorScreenDestination(TypAdapteru.ZASTAVKY))
+                }
+            ) {
+                Text(
+                    text = zastavka,
+                    fontSize = 20.sp
+                )
+            }
             val ctx = LocalContext.current
             TextButton(
                 onClick = {
