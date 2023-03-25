@@ -39,6 +39,7 @@ import cz.jaro.datum_cas.Trvani
 import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
@@ -151,10 +152,13 @@ fun OdjezdyScreen(
                 Text(text = state.cas.toString())
             }
             Spacer(modifier = Modifier.weight(1F))
+
+            val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+
             Text("Zjednodušit")
             Switch(checked = state.kompaktniRezim, onCheckedChange = {
                 viewModel.zmenilKompaktniRezim()
-            }, Modifier.padding(all = 8.dp))
+            }, Modifier.padding(all = 8.dp), enabled = jeOnline)
         }
 
         Column(
