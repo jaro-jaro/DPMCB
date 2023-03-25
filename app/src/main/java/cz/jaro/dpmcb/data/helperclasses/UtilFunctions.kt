@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.data.helperclasses
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -18,6 +19,7 @@ import cz.jaro.datum_cas.cas
 import cz.jaro.datum_cas.hod
 import cz.jaro.dpmcb.BuildConfig
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import kotlin.math.sign
 
 object UtilFunctions {
@@ -145,4 +147,6 @@ object UtilFunctions {
             else -> "$hodin hod $minut min"
         }
     }
+
+    val Context.schemaFile get() = File(filesDir, "schema.pdf")
 }

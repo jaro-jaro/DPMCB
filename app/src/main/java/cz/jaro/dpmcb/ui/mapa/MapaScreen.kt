@@ -8,7 +8,7 @@ import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
-import java.io.File
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
 
 @Destination
 @Composable
@@ -21,7 +21,7 @@ fun MapaScreen(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             PDFView(context, null).apply {
-                fromFile(File(context.filesDir, "Schema.pdf")).load()
+                fromFile(context.schemaFile).load()
             }
         }
     )

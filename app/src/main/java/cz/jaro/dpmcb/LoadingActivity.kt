@@ -61,6 +61,7 @@ import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.VerzeJDF
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zaslinky
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zasspoje
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zastavky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -71,7 +72,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import java.io.File
 import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
@@ -125,7 +125,7 @@ class LoadingActivity : AppCompatActivity() {
                     stahnoutNoveJizdniRady()
                 }
                 repo.cislaLinek().ifEmpty { throw Exception() }
-                if (!File(filesDir, "schema.pdf").exists()) {
+                if (!schemaFile.exists()) {
                     throw Exception()
                 }
             } catch (e: Exception) {
@@ -325,9 +325,7 @@ class LoadingActivity : AppCompatActivity() {
         infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schéma MHD"
         progress = 0F
 
-        val file = File(filesDir, "schema.pdf")
-
-        val task = schemaRef.getFile(file)
+        val task = schemaRef.getFile(schemaFile)
 
         task.addOnFailureListener {
             throw it
