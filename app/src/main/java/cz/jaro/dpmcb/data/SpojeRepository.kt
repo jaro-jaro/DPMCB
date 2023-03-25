@@ -3,8 +3,6 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import androidx.core.content.edit
 import androidx.room.Room
 import cz.jaro.datum_cas.Datum
@@ -15,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
@@ -26,8 +25,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
@@ -221,24 +221,9 @@ class SpojeRepository(ctx: Application) {
             emit(ctx.isOnline)
             delay(5000)
         }
-    }.shareIn(
-        scope = scope,
-        started = SharingStarted.WhileSubscribed(),
-        replay = 1
-    )
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val maPristupKJihu = isOnline.combine(onlineMod) { jeOnline, onlineMod ->
+        jeOnline && onlineMod
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
 }
-
-val Context.isOnline: Boolean
-    get() {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkCapabilities = connectivityManager.activeNetwork ?: return false
-        val activeNetwork = connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
-
-        return activeNetwork.hasTransport(
-            NetworkCapabilities.TRANSPORT_WIFI
-        ) || activeNetwork.hasTransport(
-            NetworkCapabilities.TRANSPORT_CELLULAR
-        ) || activeNetwork.hasTransport(
-            NetworkCapabilities.TRANSPORT_ETHERNET
-        )
-    }

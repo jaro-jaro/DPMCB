@@ -1,5 +1,8 @@
 package cz.jaro.dpmcb.data.helperclasses
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -30,46 +33,6 @@ object UtilFunctions {
     fun <T> ifTake(condition: Boolean, take: () -> T): T? = if (condition) take() else null
 
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
-
-//    suspend inline fun <R> List<String>.proVsechnyIndexy(zastavka: String, crossinline operation: suspend (index: Int) -> R): List<R> = this
-//        .vsechnyIndexy(zastavka)
-//        .map { index -> operation(index) }
-
-//    suspend inline fun <R> List<Dao.NazevZastavkySIndexem>.proVsechnyIndexy(zastavka: String, crossinline operation: suspend (index: Int) -> R): List<R> = this
-//        .vsechnyIndexy(zastavka)
-//        .map { index -> operation(index) }
-//
-//    fun List<Dao.NazevZastavkySIndexem>.vsechnyIndexy(zastavka: String): List<Int> = this
-//        .asSequence()
-//        .filter { (z, _) -> z == zastavka }
-//        .map { (_, index) -> index }
-//        .toList()
-
-//    @JvmName("vsechnyIndexyZastavkaSpoje")
-//    fun List<ZastavkaSpoje>.vsechnyIndexy(zastavka: String): List<Int> = map { it.nazevZastavky }.vsechnyIndexy(zastavka)
-
-//    suspend fun Spoj.zastavkySpoje() = repo.zastavkySpoje(id)
-//    suspend fun Spoj.nazvyZastavek() = repo.nazvyZastavekSpoje(id)
-
-//    suspend fun Spoj.pristiZastavka(
-//        indexTyhleZastavky: Int,
-//    ): ZastavkaSpoje? {
-//        val zastavek = zastavkySpoje().size
-//        return when (smer) {
-//            Smer.POZITIVNI -> zastavkySpoje().toList().subList(indexTyhleZastavky + 1, zastavek)
-//            Smer.NEGATIVNI -> zastavkySpoje().toList().subList(0, indexTyhleZastavky).reversed()
-//        }.find { zastavka -> zastavka.cas != Cas.nikdy }
-//    }
-
-//    fun List<ZastavkaSpoje>.pristiZastavka(
-//        smerSpoje: Smer,
-//        indexTyhleZastavky: Int,
-//    ): ZastavkaSpoje? {
-//        return when (smerSpoje) {
-//            Smer.POZITIVNI -> filter { it.indexZastavkyNaLince > indexTyhleZastavky }.find { zastavka -> zastavka.cas != Cas.nikdy }
-//            Smer.NEGATIVNI -> subList(0, indexTyhleZastavky).reversed().find { zastavka -> zastavka.cas != Cas.nikdy }
-//        }
-//    }
 
     fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
     inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
@@ -145,4 +108,19 @@ object UtilFunctions {
             else -> "$hodin hod $minut min"
         }
     }
+
+    val Context.isOnline: Boolean
+        get() {
+            val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val networkCapabilities = connectivityManager.activeNetwork ?: return false
+            val activeNetwork = connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
+
+            return activeNetwork.hasTransport(
+                NetworkCapabilities.TRANSPORT_WIFI
+            ) || activeNetwork.hasTransport(
+                NetworkCapabilities.TRANSPORT_CELLULAR
+            ) || activeNetwork.hasTransport(
+                NetworkCapabilities.TRANSPORT_ETHERNET
+            )
+        }
 }

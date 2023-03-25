@@ -119,8 +119,8 @@ class MainActivity : AppCompatActivity() {
                                 val cas by Cas.tedFlow.collectAsStateWithLifecycle()
                                 Text(cas.toString(true))
 
-                                val jeOnline by repo.isOnline.collectAsStateWithLifecycle(false)
-                                val onlineMod by repo.onlineMod.collectAsStateWithLifecycle(false)
+                                val jeOnline by repo.isOnline.collectAsStateWithLifecycle()
+                                val onlineMod by repo.onlineMod.collectAsStateWithLifecycle()
                                 IconButton(onClick = {
                                     if (!jeOnline) return@IconButton
 
