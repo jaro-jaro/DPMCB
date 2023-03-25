@@ -2,9 +2,15 @@ package cz.jaro.dpmcb
 
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.CATEGORY_DEFAULT
+import android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.Intent.FLAG_ACTIVITY_NO_HISTORY
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -31,28 +37,39 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.GraphZastavek
 import cz.jaro.dpmcb.data.VsechnoOstatni
+import cz.jaro.dpmcb.data.entities.CasKod
+import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
+import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Smer.NEGATIVNI
-import cz.jaro.dpmcb.data.helperclasses.Smer.POZITIVNI
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.emptyGraphZastavek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toGraphZastavek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toMutableGraphZastavek
+import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Caskody
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Dopravci
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.LinExt
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Linky
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Pevnykod
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Spoje
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Udaje
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.VerzeJDF
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zaslinky
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zasspoje
+import cz.jaro.dpmcb.data.helperclasses.TypyTabulek.Zastavky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
@@ -105,7 +122,7 @@ class LoadingActivity : AppCompatActivity() {
                 if (intent.getBooleanExtra("update", false) || repo.verze == -1) {
                     stahnoutNoveJizdniRady()
                 }
-                repo.spoj(0)
+                repo.cislaLinek().ifEmpty { throw Exception() }
             } catch (e: Exception) {
                 e.printStackTrace()
                 var lock = true
@@ -129,6 +146,20 @@ class LoadingActivity : AppCompatActivity() {
                 while (lock) Unit
             }
 
+            val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }
+
+            if (uri?.path?.removePrefix("/DPMCB").equals("/app-details")) {
+                finish()
+                startActivity(Intent(ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                    addCategory(CATEGORY_DEFAULT)
+                    addFlags(FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(FLAG_ACTIVITY_NO_HISTORY)
+                    addFlags(FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+                })
+                return@launch
+            }
+
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
 
             if (!jeOnline()) {
@@ -148,6 +179,10 @@ class LoadingActivity : AppCompatActivity() {
 
             intent.putExtra("update", mistniVerze < onlineVerze)
 
+            uri?.path?.let {
+                intent.putExtra("link", it.removePrefix("/DPMCB"))
+            }
+
             finish()
             startActivity(intent)
         }
@@ -162,140 +197,144 @@ class LoadingActivity : AppCompatActivity() {
 
         infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat..."
 
-        repo.odstranitSpojeAJejichZastavky()
+        repo.odstranitVse()
 
         infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování..."
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val referenceData = database.getReference("data")
-        val referenceLinky = database.getReference("linky")
-        val referenceVerze = database.getReference("verze")
+        val referenceData = database.getReference("data2/data")
+        val referenceVerze = database.getReference("data2/verze")
 
-        val jr = referenceData.get().await()
-            .getValue<Map<String, Map<String, Map<String, List<List<String>>>>>>() ?: mapOf()
-        val zastavkyLinek = referenceLinky.get().await()
-            .getValue<Map<String, List<String>>>() ?: mapOf()
+        val data = referenceData.get().await()
+            .getValue<Map<String, Map<String, List<List<String>>>>>() ?: mapOf()
 
-        val budouciData = mutableMapOf<Int, MutableList<List<String>>>()
+        val zastavkySpoje: MutableList<ZastavkaSpoje> = mutableListOf()
+        val zastavky: MutableList<Zastavka> = mutableListOf()
+        val casKody: MutableList<CasKod> = mutableListOf()
+        val linky: MutableList<Linka> = mutableListOf()
+        val spoje: MutableList<Spoj> = mutableListOf()
 
         progress = 0F
 
-        jr.forEach { (_, linkyDanehoVdp) -> //pro vsechny vdp
-            linkyDanehoVdp.forEach { (cisloLinky, linka) ->
-
-                if (!budouciData.containsKey(cisloLinky.toInt())) {
-                    budouciData[cisloLinky.toInt()] = mutableListOf()
-                }
-
-                linka.forEach { (plusminus, spoje) ->
-                    spoje.forEach { spoj ->
-
-                        budouciData[cisloLinky.toInt()]!! +=
-                            if (plusminus == "+")
-                                listOf("+") +
-                                        spoj
-                            else
-                                listOf("-") +
-                                        spoj.filterIndexed { i, _ -> i <= 2 } +
-                                        spoj.filterIndexed { i, _ -> i > 2 }.reversed()
-
-                    }
-                }
-            }
-        }
-
-        val pocetZastavekCelkove = budouciData
+        val pocetRadku = data
             .toList()
-            .flatMap { (_, spoje) ->
-                spoje.flatten()
+            .flatMap { it0 ->
+                it0.second.flatMap {
+                    it.value
+                }
             }
             .count()
-        var indexZastavky = 0F
+        var indexRadku = 0F
 
-        var idSpoje = 1L
-        var idZastavkySCasem = 1L
-
-        val linky = mutableMapOf<Int, List<String>>()
-        val zastavky = mutableSetOf<String>()
-        val spoje = mutableListOf<Spoj>()
-        val zastavkySpoju = mutableListOf<ZastavkaSpoje>()
-
-        budouciData.toList().sortedBy { it.first }.forEach { (cisloLinky, spojeZDat) ->
-
-            spojeZDat.forEach { spoj ->
-
-                spoje += Spoj(
-                    nizkopodlaznost = spoj[1].toBooleanStrict(),
-                    nazevKurzu = spoj[2],
-                    vyjmecnosti = spoj[3].toInt(),
-                    smer = if (spoj[0] == "+") POZITIVNI else NEGATIVNI,
-                    cisloLinky = cisloLinky,
-                    id = idSpoje
-                )
-
-                spoj
-                    .filterIndexed { i, _ -> i > 3 }
-                    .mapIndexed { i, cas ->
-                        //println(cisloLinky)
-                        //println(zastavkyLinek[cisloLinky.toString()])
-                        //println(i to cas)
-                        Triple(zastavkyLinek[cisloLinky.toString()]!![i], cas.toCas(), i)
-                    }
-                    .forEach { (zastavka, cas, indexZastavkyNaLince) ->
-                        indexZastavky++
+        data
+            .filter { it.key.split("-")[1] == "0" }
+            .map { it.key.split("-")[0].toInt() to it.value }
+            .sortedBy { it.first }
+            .forEach { (cisloLinky, dataLinky) ->
+                dataLinky.forEach { (typTabulky, tabulka) ->
+                    tabulka.forEach radek@{ radek ->
+                        indexRadku++
 
                         infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání linky $cisloLinky..."
-                        progress = indexZastavky / pocetZastavekCelkove
+                        progress = indexRadku / pocetRadku
 
-                        val novyId = idZastavkySCasem
-                        idZastavkySCasem++
+                        when (TypyTabulek.valueOf(typTabulky)) {
+                            Zasspoje -> zastavkySpoje += ZastavkaSpoje(
+                                linka = radek[0].toInt(),
+                                cisloSpoje = radek[1].toInt(),
+                                indexZastavkyNaLince = radek[2].toInt(),
+                                cisloZastavky = radek[3].toInt(),
+                                kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
+                                prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne() ?: Cas.nikdy,
+                                odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne() ?: Cas.nikdy,
+                            )
 
-                        zastavkySpoju += ZastavkaSpoje(
-                            id = novyId,
-                            nazevZastavky = zastavka,
-                            idSpoje = idSpoje,
-                            cisloLinky = cisloLinky,
-                            nazevKurzu = spoj[2],
-                            cas = cas,
-                            indexNaLince = indexZastavkyNaLince,
-                            nizkopodlaznost = spoj[1].toBooleanStrict()
-                        )
+                            Zastavky -> zastavky += Zastavka(
+                                linka = radek[0].toInt(),
+                                cisloZastavky = radek[1].toInt(),
+                                nazevZastavky = radek[2],
+                                pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                            )
 
-                        zastavky += zastavka
+                            Caskody -> casKody += CasKod(
+                                linka = radek[0].toInt(),
+                                cisloSpoje = radek[1].toInt(),
+                                kod = radek[3].toInt(),
+                                indexTerminu = radek[2].toInt(),
+                                jede = radek[4] == "1",
+                                platiOd = radek[5].toDatumDivne(),
+                                platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
+                            )
+
+                            Linky -> linky += Linka(
+                                cislo = radek[0].toInt(),
+                                trasa = radek[1],
+                                typVozidla = Json.decodeFromString("\"${radek[4]}\""),
+                                typLinky = Json.decodeFromString("\"${radek[3]}\""),
+                                maVyluku = radek[5] != "0",
+                                platnostOd = radek[13].toDatumDivne(),
+                                platnostDo = radek[14].toDatumDivne(),
+                            )
+
+                            Spoje -> spoje += Spoj(
+                                linka = radek[0].toInt(),
+                                cisloSpoje = radek[1].toInt(),
+                                pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                smer = Smer.POZITIVNI // POZOR!!! DOČASNÁ HODNOTA!!!
+                            )
+
+                            Pevnykod -> Unit
+                            Zaslinky -> Unit
+                            VerzeJDF -> Unit
+                            Dopravci -> Unit
+                            LinExt -> Unit
+                            Udaje -> Unit
+                        }
                     }
-
-                idSpoje++
+                }
             }
 
-            linky += Pair(
-                cisloLinky,
-                zastavkyLinek[cisloLinky.toString()]!!,
-            )
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nDokončování..."
+
+        spoje.forEachIndexed { index, spoj ->
+            progress = index.toFloat() / spoje.count()
+
+            val zast = zastavkySpoje.filter { it.cisloSpoje == spoj.cisloSpoje }.sortedBy { it.indexZastavkyNaLince }
+            spoje[index] =
+                spoj.copy(smer = if (zast.first().cas <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
+
+            if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka })
+                casKody += CasKod(
+                    linka = spoj.linka,
+                    cisloSpoje = spoj.cisloSpoje,
+                    kod = 0,
+                    indexTerminu = 0,
+                    jede = false,
+                    platiOd = Datum(0, 0, 0),
+                    platiDo = Datum(0, 0, 0)
+                )
         }
 
         progress = null
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nDokončování..."
 
         val verze = referenceVerze.get().await().getValue<Int>() ?: -1
-
-        val graphZastavek = vytvoritGraf(zastavkySpoju.groupBy({ zs -> spoje.find { it.id == zs.idSpoje }!! }, { it }))
 
         println(spoje)
         println(linky)
         println(zastavky)
-        println(zastavkySpoju)
-        println(graphZastavek)
+        println(zastavkySpoje)
+        println(casKody)
 
         coroutineScope {
             launch {
                 repo.zapsat(
-                    zastavkySpoju = zastavkySpoju.toTypedArray(),
-                    spoje = spoje.toTypedArray(),
+                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.linka, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
+                    zastavky = zastavky.distinctBy { it.linka to it.cisloZastavky }.toTypedArray(),
+                    casKody = casKody.distinctBy { Quadruple(it.linka, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
+                    linky = linky.distinctBy { it.cislo }.toTypedArray(),
+                    spoje = spoje.distinctBy { it.linka to it.cisloSpoje }.toTypedArray(),
                     ostatni = VsechnoOstatni(
                         verze = verze,
-                        linkyAJejichZastavky = linky,
-                        zastavky = zastavky.toList(),
-                        graphZastavek = graphZastavek,
                         oblibene = repo.oblibene.value
                     )
                 )
@@ -316,41 +355,5 @@ class LoadingActivity : AppCompatActivity() {
         ) || activeNetwork.hasTransport(
             NetworkCapabilities.TRANSPORT_ETHERNET
         )
-    }
-
-    private fun vytvoritGraf(spoje: Map<Spoj, List<ZastavkaSpoje>>): GraphZastavek {
-
-        val graphZastavek = emptyGraphZastavek().toMutableGraphZastavek()
-
-        spoje.forEach { (spoj, zastavkySpoje) ->
-            zastavkySpoje
-                .sortedBy { it.indexNaLince }
-                .reversedIf { spoj.smer == NEGATIVNI }
-                .filter { it.cas != Cas.nikdy }
-                .map { it.nazevZastavky }
-                .also { zastavky ->
-                    zastavky.zipWithNext().forEach { (zastavka, soused) ->
-                        graphZastavek.putIfAbsent(zastavka, mutableSetOf())
-                        graphZastavek[zastavka]!!.add(soused)
-                    }
-                }
-        }
-
-        graphZastavek.toList().sortedBy { it.first }.toMap().forEach {
-            println(it)
-        }
-
-        //println(graphZastavek
-        //    .flatMap { (k, v) ->
-        //        v.map { k to it }
-        //    }
-        //    .joinToString("\n") {
-        //        it.toList().joinToString("&&&")
-        //    }
-        //    .replace(" ", "")
-        //    .replace("&&&", " ")
-        //)
-
-        return graphZastavek.toGraphZastavek()
     }
 }

@@ -2,9 +2,7 @@ package cz.jaro.dpmcb
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.LinearLayout
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
@@ -23,17 +21,18 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -42,19 +41,19 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updateMargins
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
+import com.ramcosta.composedestinations.navigation.navigate
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.toDatum
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Datum
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.VDP
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toChar
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.typDne
 import cz.jaro.dpmcb.ui.NavGraphs
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
 
@@ -67,6 +66,8 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
+        val link = intent?.getStringExtra("link")
+
         setContent {
             val keyboardController = LocalSoftwareKeyboardController.current!!
 
@@ -78,11 +79,22 @@ class MainActivity : AppCompatActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 val navController = rememberNavController()
-                var vybrano by remember { mutableStateOf(SuplikAkce.Oblibene) }
+                var vybrano by remember { mutableStateOf<SuplikAkce?>(SuplikAkce.Oblibene) }
+                LaunchedEffect(Unit) {
+                    link?.let {
+                        navController.navigate(
+                            when {
+                                it.startsWith("/spoj") -> DetailSpojeScreenDestination(it.split("/").last())
+                                else -> return@let
+                            }
+                        )
+                        vybrano = null
+                        drawerState.close()
+                    }
+                }
 
                 Scaffold(
                     topBar = {
-                        // IconButtony
                         TopAppBar(
                             title = {
                                 Text(stringResource(App.title))
@@ -105,6 +117,9 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             actions = {
+                                val cas by Cas.tedFlow.collectAsStateWithLifecycle()
+                                Text(cas.toString(true))
+
                                 val jeOnline by repo.isOnline.collectAsState(false)
                                 val onlineMod by repo.onlineMod.collectAsState(false)
                                 IconButton(onClick = {
@@ -137,27 +152,26 @@ class MainActivity : AppCompatActivity() {
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                                             verticalAlignment = CenterVertically
                                         ) {
-                                            var typDne by remember { mutableStateOf(repo.typDne.value) }
+                                            val datum by repo.datum.collectAsStateWithLifecycle()
 
                                             Text(
-                                                text = "Typ dne:",
+                                                text = "Používané datum: $datum",
                                                 modifier = Modifier.padding(all = 16.dp)
                                             )
-
-                                            VDP.values().forEach { vdp ->
-                                                OutlinedIconToggleButton(
-                                                    checked = typDne == vdp,
-                                                    onCheckedChange = {
-                                                        typDne = vdp
-                                                        scope.launch {
-                                                            repo.upravitTypDne(vdp)
-                                                        }
-                                                    },
-                                                    modifier = Modifier
-                                                ) {
-                                                    Text(vdp.toChar().toString())
-                                                }
-                                            }
+                                            var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+                                            if (zobrazitDialog) DatePickerDialog(
+                                                onDismissRequest = {
+                                                    zobrazitDialog = false
+                                                },
+                                                onDateChange = {
+                                                    repo.upravitDatum(it.toDatum())
+                                                    zobrazitDialog = false
+                                                },
+                                                title = {
+                                                    Text("Vybrat nové datum")
+                                                },
+                                                initialDate = datum.toLocalDate()
+                                            )
 
                                             Spacer(
                                                 modifier = Modifier.weight(1F)
@@ -165,39 +179,10 @@ class MainActivity : AppCompatActivity() {
 
                                             IconButton(
                                                 onClick = {
-                                                    scope.launch {
-                                                        MaterialAlertDialogBuilder(this@MainActivity).apply {
-                                                            setTitle("Vybrat typ dne podle data")
-
-                                                            val ll = LinearLayout(context)
-
-                                                            val dp = android.widget.DatePicker(context)
-                                                            //dp.maxDate = Calendar.getInstance().apply { set(3000, 12, 30) }.timeInMillis
-                                                            dp.layoutParams = LinearLayout.LayoutParams(
-                                                                ViewGroup.LayoutParams.WRAP_CONTENT,
-                                                                ViewGroup.LayoutParams.WRAP_CONTENT
-                                                            )
-                                                            dp.updateLayoutParams<LinearLayout.LayoutParams> {
-                                                                updateMargins(top = 16)
-                                                            }
-
-                                                            ll.addView(dp)
-
-                                                            setView(ll)
-
-                                                            setPositiveButton("Zvolit") { dialog, _ ->
-                                                                dialog.cancel()
-
-                                                                val typ = Datum(dp.dayOfMonth, dp.month + 1, dp.year).typDne
-                                                                typDne = typ
-                                                                repo.upravitTypDne(typ)
-                                                            }
-                                                            show()
-                                                        }
-                                                    }
-                                                },
+                                                    zobrazitDialog = true
+                                                }
                                             ) {
-                                                IconWithTooltip(Icons.Default.CalendarMonth, "Vybrat podle data")
+                                                IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
                                             }
                                         }
                                         else NavigationDrawerItem(
@@ -211,7 +196,16 @@ class MainActivity : AppCompatActivity() {
                                             onClick = {
                                                 if (akce.multiselect)
                                                     vybrano = akce
-                                                akce.onClick(navController, { scope.launch { drawerState.close() } }, this@MainActivity)
+
+                                                akce.onClick(
+                                                    navController::navigate,
+                                                    {
+                                                        scope.launch {
+                                                            drawerState.close()
+                                                        }
+                                                    },
+                                                    this@MainActivity
+                                                )
                                             },
                                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                                         )
@@ -219,7 +213,7 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             drawerState = drawerState,
-                            gesturesEnabled = vybrano != SuplikAkce.Mapa
+//                            gesturesEnabled = vybrano != SuplikAkce.Mapa
                         ) {
                             DestinationsNavHost(
                                 navController = navController,
@@ -229,7 +223,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-
         }
 
         if (intent.getBooleanExtra("update", false)) {

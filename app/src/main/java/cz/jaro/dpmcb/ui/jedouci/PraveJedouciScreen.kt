@@ -10,12 +10,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.flowlayout.FlowRow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
@@ -27,10 +28,10 @@ fun PraveJedouciScreen(
     viewModel: PraveJedouciViewModel = koinViewModel(),
     navigator: DestinationsNavigator,
 ) {
-    val cislaLinek = viewModel.cislaLinek
-    val seznam by viewModel.seznam.collectAsState(initial = emptyList())
-    val filtry by viewModel.filtry.collectAsState()
-    val nacitaSe by viewModel.nacitaSe.collectAsState()
+    val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
+    val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
+    val filtry by viewModel.filtry.collectAsStateWithLifecycle()
+    val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
 
     App.title = R.string.doprava_na_jihu
 
@@ -40,7 +41,7 @@ fun PraveJedouciScreen(
             modifier = Modifier
                 .padding(start = 4.dp, end = 4.dp)
         ) {
-            cislaLinek.forEach { cislo ->
+            cislaLinek?.forEach { cislo ->
                 Chip(
                     seznam = filtry,
                     cisloLinky = cislo,
