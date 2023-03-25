@@ -76,6 +76,7 @@ fun OdjezdyScreen(
     App.title = R.string.odjezdy
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val filtrovanejSeznam by viewModel.filtrovanejSeznam.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState(state.indexScrollovani)
 
@@ -98,7 +99,7 @@ fun OdjezdyScreen(
         }
     }
 
-    if (state.nacitaSe) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    if (filtrovanejSeznam == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
     Column(
         modifier = Modifier
@@ -227,7 +228,7 @@ fun OdjezdyScreen(
                 zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
         }
-        if (state.nacitaSe) Row(
+        if (filtrovanejSeznam == null) Row(
             Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
@@ -235,7 +236,7 @@ fun OdjezdyScreen(
         ) {
             CircularProgressIndicator()
         }
-        else if (state.filtrovanejSeznam.isEmpty()) Row(
+        else if (filtrovanejSeznam!!.isEmpty()) Row(
             Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
@@ -256,8 +257,8 @@ fun OdjezdyScreen(
             items(
                 count = Int.MAX_VALUE,
                 itemContent = { i ->
-                    if (state.filtrovanejSeznam.isNotEmpty()) {
-                        val karticka = state.filtrovanejSeznam[i % state.filtrovanejSeznam.size]
+                    if (filtrovanejSeznam!!.isNotEmpty()) {
+                        val karticka = filtrovanejSeznam!![i % filtrovanejSeznam!!.size]
                         Karticka(
                             karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
                                 .animateContentSize()
@@ -289,9 +290,9 @@ private fun Karticka(
             modifier = Modifier
                 .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
         ) {
-            val nasledujiciZastavka by kartickaState.aktualniNasledujiciZastavka
-            val zpozdeni by kartickaState.zpozdeni
-            val jedeZa by kartickaState.jedeZa
+            val nasledujiciZastavka = kartickaState.aktualniNasledujiciZastavka
+            val zpozdeni = kartickaState.zpozdeni
+            val jedeZa = kartickaState.jedeZa
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -321,17 +322,17 @@ private fun Karticka(
                     fontSize = 20.sp
                 )
                 if (zjednodusit) Text(
-                    text = if (jedeZa == null || jedeZa!! < Trvani.zadne) "${kartickaState.cas}"
-                    else jedeZa!!.asString(),
-                    color = if (zpozdeni == null || jedeZa == null || jedeZa!! < Trvani.zadne) MaterialTheme.colorScheme.onSurface
-                    else barvaZpozdeniTextu(zpozdeni!!),
+                    text = if (jedeZa == null || jedeZa < Trvani.zadne) "${kartickaState.cas}"
+                    else jedeZa.asString(),
+                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Trvani.zadne) MaterialTheme.colorScheme.onSurface
+                    else barvaZpozdeniTextu(zpozdeni),
                 ) else {
                     Text(
                         text = "${kartickaState.cas}"
                     )
                     if (zpozdeni != null) Text(
-                        text = "${kartickaState.cas + zpozdeni!!.min}",
-                        color = barvaZpozdeniTextu(zpozdeni!!),
+                        text = "${kartickaState.cas + zpozdeni.min}",
+                        color = barvaZpozdeniTextu(zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -345,12 +346,12 @@ private fun Karticka(
                     Text(
                         modifier = Modifier
                             .weight(1F),
-                        text = nasledujiciZastavka!!.first,
+                        text = nasledujiciZastavka.first,
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nasledujiciZastavka!!.second.toString(),
-                        color = barvaZpozdeniTextu(zpozdeni!!)
+                        text = nasledujiciZastavka.second.toString(),
+                        color = barvaZpozdeniTextu(zpozdeni)
                     )
                 }
             }
