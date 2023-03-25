@@ -118,6 +118,7 @@ dependencies {
 //    implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-common-ktx:20.3.1")
+    implementation("com.google.firebase:firebase-storage-ktx:20.1.0")
 
     // Compose
     implementation("androidx.activity:activity-compose:1.6.1")
