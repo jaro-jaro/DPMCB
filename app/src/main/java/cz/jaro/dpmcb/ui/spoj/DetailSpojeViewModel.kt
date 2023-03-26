@@ -54,22 +54,18 @@ class DetailSpojeViewModel(
     val vyska = _state.combine(Cas.tedFlow) { state, ted ->
 
         val prejetychUseku = when {
-            state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            state.zastavkyNaJihu != null && state.zpozdeni != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
             state.zastavky.last().cas < ted -> state.zastavky.lastIndex
-            else -> state.zastavky.indexOfLast { it.cas < ted }
+            else -> state.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
         }
 
         val casOdjezduPosledni = state.zastavky[prejetychUseku].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
 
-        val casPrijezduDoPristi = state.zastavky[prejetychUseku + 1].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
+        val casPrijezduDoPristi = state.zastavky.getOrNull(prejetychUseku + 1)?.cas?.plus(state.zpozdeni?.min ?: Trvani.zadne)
 
-        val dobaJizdy = casOdjezduPosledni.let {
-            casPrijezduDoPristi.minus(it)
-        }
+        val dobaJizdy = casPrijezduDoPristi?.minus(casOdjezduPosledni) ?: Trvani.nekonecne
 
-        val ubehlo = casOdjezduPosledni.let {
-            ted.minus(it).coerceAtLeast(0.sek)
-        }
+        val ubehlo = ted.minus(casOdjezduPosledni).coerceAtLeast(0.sek)
 
         UtilFunctions.funguj(
             ted,

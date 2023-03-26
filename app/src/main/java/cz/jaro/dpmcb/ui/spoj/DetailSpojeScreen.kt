@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
@@ -46,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.datum_cas.Cas.Companion.ted
 import cz.jaro.datum_cas.min
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
@@ -230,7 +234,11 @@ fun DetailSpojeScreen(
 
                                 repeat(zastavek) { i ->
                                     translate(top = i * rowHeight) {
-                                        val projel = state.zastavkyNaJihu?.get(i)?.passed ?: false
+                                        val projel = if (state.zastavkyNaJihu != null && state.zpozdeni != null)
+                                            state.zastavkyNaJihu!![i].passed
+                                        else
+                                            state.zastavky[i].cas < ted
+
                                         drawCircle(
                                             color = if (projel) projetaBarva else barvaPozadi,
                                             radius = circleRadius,
@@ -302,6 +310,21 @@ fun DetailSpojeScreen(
                                 },
                                 trailingIcon = {
                                     IconWithTooltip(Icons.Default.Share, null)
+                                }
+                            )
+                            if (BuildConfig.DEBUG) DropdownMenuItem(
+                                text = {
+                                    Text("Detail spoje v api na jihu")
+                                },
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_VIEW
+                                        data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=$spojId")
+                                    }, "Sdílet ID spoje"))
+                                    zobrazitMenu = false
+                                },
+                                trailingIcon = {
+                                    IconWithTooltip(Icons.Default.Public, null)
                                 }
                             )
                             DropdownMenuItem(
