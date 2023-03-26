@@ -41,7 +41,10 @@ class NastaveniActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            DPMCBTheme {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+            DPMCBTheme(
+                if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
+            ) {
                 Surface {
                     Scaffold(
                         topBar = {
@@ -63,7 +66,6 @@ class NastaveniActivity : AppCompatActivity() {
                             )
                         }
                     ) { paddingValues ->
-                        val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
                         val upravit = repo::upravitNastaveni
 
                         Column(

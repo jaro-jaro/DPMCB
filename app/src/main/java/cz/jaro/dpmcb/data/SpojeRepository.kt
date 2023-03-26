@@ -69,7 +69,7 @@ class SpojeRepository(ctx: Application) {
     private val _datum = MutableStateFlow(Datum.dnes)
     val datum = _datum.asStateFlow()
 
-    private val _onlineMod = MutableStateFlow(true)
+    private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
     val onlineMod = _onlineMod.asStateFlow()
 
     private val _nastaveni = MutableStateFlow(ostatni.nastaveni)
