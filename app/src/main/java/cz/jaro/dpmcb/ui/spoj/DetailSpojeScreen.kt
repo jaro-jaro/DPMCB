@@ -201,8 +201,10 @@ fun DetailSpojeScreen(
                                     )
                                 }
                         }
-                        val projetaBarva = MaterialTheme.colorScheme.primary
-                        val barvaBusu = MaterialTheme.colorScheme.secondary
+                        val neNaMape = state.zpozdeni != null && state.zastavkyNaJihu != null
+
+                        val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         val barvaPozadi = MaterialTheme.colorScheme.surface
                         val baravCary = MaterialTheme.colorScheme.surfaceVariant
                         val zastavek = state.zastavky.count()
