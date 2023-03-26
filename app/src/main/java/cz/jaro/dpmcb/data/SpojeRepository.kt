@@ -13,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
@@ -89,14 +90,14 @@ class SpojeRepository(ctx: Application) {
             Quadruple(
                 first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                 map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() },
+                map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() },
                 zcitelnitPevneKody(first().pevneKody),
             )
         }
 
     suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String) =
         dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
-            val caskody = map { JedeOdDo(it.jede, it.od..it.do_) }.distinctBy { it.jede to it.v.toString() }
+            val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
             Triple(
                 first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                 map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
@@ -204,23 +205,33 @@ class SpojeRepository(ctx: Application) {
     }
 
     suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum: Datum, zastavka: String): List<ZastavkaSpojeSeSpojemAJehoZastavky> =
-        dao.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
-            .filter {
-                datum.jedeDnes(it.pevneKody)
-            }
+        dao.spojeZastavujiciNaIndexechZastavky(zastavka).funguj { 0 }
             .groupBy { "S-${it.linka}-${it.cisloSpoje}" to it.indexZastavkyNaLince }
-            .map { Triple(it.key.first, it.key.second, it.value) }
-            .map { (spojId, indexZastavkyNaLince, seznam) ->
+            .map { Triple(it.key.first, it.key.second, it.value) }.funguj { 2 }
+            .filter { (_, _, seznam) ->
+                val caskody = seznam.map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
+                listOf(
+                    (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+                    caskody.filter { !it.jede }.none { datum in it.v },
+                    datum.jedeDnes(seznam.first().pevneKody),
+                ).all { it }
+            }.funguj { 3 }
+            .map { Triple(it.first, it.second, it.third.first()) }
+            .let { seznam ->
+                val zastavkySpoju = dao.zastavkySpoju(seznam.map { it.first })
+                seznam.map { Quadruple(it.first, it.second, it.third, zastavkySpoju[it.first]!!) }
+            }
+            .map { (spojId, indexZastavkyNaLince, info, zastavky) ->
                 ZastavkaSpojeSeSpojemAJehoZastavky(
-                    nazev = seznam.first().nazev,
-                    cas = seznam.first().cas,
+                    nazev = info.nazev,
+                    cas = info.cas,
                     indexZastavkyNaLince = indexZastavkyNaLince,
                     spojId = spojId,
-                    linka = seznam.first().linka - 325_000,
-                    nizkopodlaznost = seznam.first().nizkopodlaznost,
-                    zastavkySpoje = seznam.map { it.jinaZastavkaSpojeNazev to it.jinaZastavkaSpojeCas }
+                    linka = info.linka - 325_000,
+                    nizkopodlaznost = info.nizkopodlaznost,
+                    zastavkySpoje = zastavky.map { it.nazev to it.cas }
                 )
-            }
+            }.funguj { 4 }
 
     suspend fun spojSeZastavkamiPodleId(spojId: String): Pair<Spoj, List<NazevACas>> = dao.spojSeZastavkamiPodleId(spojId).toList().first()
 

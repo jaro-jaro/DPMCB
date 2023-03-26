@@ -72,6 +72,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlin.system.exitProcess
@@ -185,7 +186,9 @@ class LoadingActivity : AppCompatActivity() {
             val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
             val reference = database.getReference("verze")
 
-            val onlineVerze = reference.get().await().getValue<Int>() ?: -2
+            val onlineVerze = withTimeoutOrNull(3_000) {
+                reference.get().await().getValue<Int>()
+            } ?: -2
 
             intent.putExtra("update", mistniVerze < onlineVerze)
 
