@@ -70,8 +70,11 @@ class SpojeRepository(ctx: Application) {
     private val _datum = MutableStateFlow(Datum.dnes)
     val datum = _datum.asStateFlow()
 
-    private val _onlineMod = MutableStateFlow(true)
+    private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
     val onlineMod = _onlineMod.asStateFlow()
+
+    private val _nastaveni = MutableStateFlow(ostatni.nastaveni)
+    val nastaveni = _nastaveni.asStateFlow()
 
     private val _oblibene = MutableStateFlow(ostatni.oblibene)
     val oblibene = _oblibene.asStateFlow()
@@ -184,6 +187,11 @@ class SpojeRepository(ctx: Application) {
 
     fun upravitOnlineMod(mod: Boolean) {
         _onlineMod.update { mod }
+    }
+
+    fun upravitNastaveni(update: (Nastaveni) -> Nastaveni) {
+        _nastaveni.update(update)
+        ostatni = ostatni.copy(nastaveni = _nastaveni.value)
     }
 
     fun pridatOblibeny(id: String) {

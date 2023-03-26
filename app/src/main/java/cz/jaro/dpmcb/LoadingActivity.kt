@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.database.ktx.database
@@ -83,7 +85,10 @@ class LoadingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DPMCBTheme {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+            DPMCBTheme(
+                if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -168,7 +173,7 @@ class LoadingActivity : AppCompatActivity() {
 
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
 
-            if (!jeOnline()) {
+            if (!jeOnline() || !repo.nastaveni.value.kontrolaAktualizaci) {
                 finish()
                 startActivity(intent)
                 return@launch
