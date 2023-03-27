@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -70,7 +71,10 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val keyboardController = LocalSoftwareKeyboardController.current!!
 
-            DPMCBTheme {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+            DPMCBTheme(
+                if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
+            ) {
                 val drawerState = rememberDrawerState(DrawerValue.Open) {
                     keyboardController.hide()
 

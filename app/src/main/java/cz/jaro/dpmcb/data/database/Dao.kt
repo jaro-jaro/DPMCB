@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.MapInfo
 import androidx.room.Query
 import androidx.room.Transaction
 import cz.jaro.datum_cas.Cas
@@ -15,7 +16,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavkou
+import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojem
 
 @Dao
 interface Dao {
@@ -217,7 +218,7 @@ interface Dao {
         SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
             WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
-        END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo do_ FROM zastavkaspoje
+        END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
         JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.linka = zastavkaspoje.linka AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
         JOIN caskod ON caskod.linka = zastavkaspoje.linka AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
@@ -236,47 +237,14 @@ interface Dao {
 
     @Query(
         """
-        WITH pocetCaskoduSpoje AS (
-            SELECT DISTINCT spoj.id, COUNT(caskod.indexTerminu) pocet FROM zastavkaspoje
-            JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
-            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
-            WHERE zastavka.nazevZastavky = :zastavka
-            AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
-            )
-            GROUP BY spoj.id
-        ),
-        spojeZdeJedouci AS (
+        WITH spojeZdeJedouci AS (
             SELECT DISTINCT spoj.* FROM zastavkaspoje
             JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
-            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.linka = zastavkaspoje.linka
-            JOIN pocetCaskoduSpoje ON pocetCaskoduSpoje.id = spoj.id
             WHERE zastavka.nazevZastavky = :zastavka
             AND (
                 NOT zastavkaspoje.odjezd = :nikdy
                 OR NOT zastavkaspoje.prijezd = :nikdy
-            )
-            AND ((
-                caskod.jede 
-                AND caskod.platiOd <= :datum
-                AND :datum <= caskod.platiDo
-            ) OR (
-                NOT caskod.jede 
-                AND NOT (
-                    caskod.platiOd <= :datum
-                    AND :datum <= caskod.platiDo
-                )
-            ))
-            GROUP BY spoj.id
-            HAVING (
-                caskod.jede 
-                AND COUNT(caskod.indexTerminu) >= 1
-            ) OR (
-                NOT caskod.jede
-                AND COUNT(caskod.indexTerminu) = pocetCaskoduSpoje.pocet
             )
         ),
         indexyTyhleZastavky AS (
@@ -296,23 +264,15 @@ interface Dao {
             JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
             CROSS JOIN indexyTyhleZastavky tahleZastavka ON zastavkaspoje.linka = tahleZastavka.linka AND zastavkaspoje.indexZastavkyNaLince = tahleZastavka.indexZastavkyNaLince
         )
-        SELECT tahleZastavka.*, CASE
-            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
-            ELSE zastavkaspoje.odjezd
-        END jinaZastavkaSpojeCas, zastavka.nazevZastavky jinaZastavkaSpojeNazev 
+        SELECT tahleZastavka.*, caskod.jede, caskod.platiOd od, caskod.platiDo `do`
         FROM tahleZastavka
-        JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
-        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
-        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = tahleZastavka.cisloSpoje AND zastavkaspoje.linka = tahleZastavka.linka
-        ORDER BY CASE
-           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
-           ELSE -zastavkaSpoje.indexZastavkyNaLince
-        END
+        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = tahleZastavka.cisloSpoje AND spoj.linka = tahleZastavka.linka
+        JOIN caskod ON caskod.cisloSpoje = tahleZastavka.cisloSpoje AND caskod.linka = tahleZastavka.linka
     """
     )
-    suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(
-        datum: Datum, zastavka: String, nikdy: Cas = Cas.nikdy, pozitivni: Smer = Smer.POZITIVNI,
-    ): List<ZastavkaSpojeSeSpojemAJehoZastavkou>
+    suspend fun spojeZastavujiciNaIndexechZastavky(
+        zastavka: String, nikdy: Cas = Cas.nikdy,
+    ): List<ZastavkaSpojeSeSpojem>
 
     @Transaction
     @Query(
@@ -331,6 +291,25 @@ interface Dao {
     """
     )
     suspend fun spojSeZastavkamiPodleId(spojId: String, pozitivni: Smer = Smer.POZITIVNI, nikdy: Cas = Cas.nikdy): Map<Spoj, List<NazevACas>>
+
+    @Transaction
+    @MapInfo(keyColumn = "id")
+    @Query(
+        """
+        SELECT spoj.id, CASE
+            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+            ELSE zastavkaspoje.odjezd
+        END cas, zastavka.nazevZastavky nazev FROM spoj
+        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
+        JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
+        WHERE spoj.id IN (:spojIds)
+        ORDER BY CASE
+           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
+           ELSE -zastavkaSpoje.indexZastavkyNaLince
+        END
+    """
+    )
+    suspend fun zastavkySpoju(spojIds: List<String>, pozitivni: Smer = Smer.POZITIVNI, nikdy: Cas = Cas.nikdy): Map<String, List<NazevACas>>
 
     @Insert
     suspend fun vlozitZastavkySpoje(vararg zastavky: ZastavkaSpoje)

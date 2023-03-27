@@ -12,5 +12,5 @@ data class LinkaNizkopodlaznostCasNazevSpojId(
     val spojId: String,
     val jede: Boolean,
     val od: Datum,
-    @Suppress("PropertyName") val do_: Datum,
+    val `do`: Datum,
 )
