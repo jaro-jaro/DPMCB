@@ -7,4 +7,6 @@ data class VsechnoOstatni(
     val oblibene: List<String> = emptyList(),
 
     val nastaveni: Nastaveni = Nastaveni(),
+
+    val zobrazitNizkopodlaznost: Boolean = false,
 )
