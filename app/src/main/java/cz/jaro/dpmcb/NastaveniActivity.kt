@@ -7,7 +7,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -77,10 +77,9 @@ class NastaveniActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Určit tmavý režim podle systému")
+                                Text("Určit tmavý režim podle systému", Modifier.weight(1F))
 
                                 Switch(
                                     checked = nastaveni.dmPodleSystemu,
@@ -95,10 +94,9 @@ class NastaveniActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Tmavý režim")
+                                Text("Tmavý režim", Modifier.weight(1F))
 
                                 Switch(
                                     checked = if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm,
@@ -114,10 +112,9 @@ class NastaveniActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Automaticky zakázat připojení k internetu po zapnutí aplikace")
+                                Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
 
                                 Switch(
                                     checked = !nastaveni.autoOnline,
@@ -132,10 +129,9 @@ class NastaveniActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace")
+                                Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
 
                                 Switch(
                                     checked = nastaveni.kontrolaAktualizaci,
@@ -151,28 +147,37 @@ class NastaveniActivity : AppCompatActivity() {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Button(
-                                    onClick = {
-                                        startActivity(Intent().apply {
-                                            action = Intent.ACTION_VIEW
-                                            data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases")
-                                        })
-                                    }
+                                Box(
+                                    Modifier.weight(1F),
+                                    contentAlignment = Alignment.CenterStart
                                 ) {
-                                    Text("Aktualizovat aplikaci")
+                                    Button(
+                                        onClick = {
+                                            startActivity(Intent().apply {
+                                                action = Intent.ACTION_VIEW
+                                                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases")
+                                            })
+                                        }
+                                    ) {
+                                        Text("Aktualizovat aplikaci")
+                                    }
                                 }
-                                Button(
-                                    onClick = {
-                                        startActivity(Intent(this@NastaveniActivity, LoadingActivity::class.java).apply {
-                                            flags = FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                                            putExtra("update", true)
-                                        })
-                                    }
+                                Box(
+                                    Modifier.weight(1F),
+                                    contentAlignment = Alignment.CenterEnd
                                 ) {
-                                    Text("Aktualizovat data")
+                                    Button(
+                                        onClick = {
+                                            startActivity(Intent(this@NastaveniActivity, LoadingActivity::class.java).apply {
+                                                flags = FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+                                                putExtra("update", true)
+                                            })
+                                        }
+                                    ) {
+                                        Text("Aktualizovat data")
+                                    }
                                 }
                                 //if (BuildConfig.DEBUG) Text("Aktuální verze dat: ${repo.verze}")
                             }
