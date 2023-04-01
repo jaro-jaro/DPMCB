@@ -284,6 +284,10 @@ interface Dao {
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
         WHERE spoj.id = :spojId
+        AND (
+            NOT zastavkaspoje.odjezd = :nikdy
+            OR NOT zastavkaspoje.prijezd = :nikdy
+        )
         ORDER BY CASE
            WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
            ELSE -zastavkaSpoje.indexZastavkyNaLince
