@@ -142,6 +142,23 @@ class NastaveniActivity : AppCompatActivity() {
                                     },
                                 )
                             }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text("Zapamatovat si volbu Zobrazit nízkopodlžnosti v JŘ", Modifier.weight(1F))
+
+                                Switch(
+                                    checked = nastaveni.zachovavatNizkopodlaznost,
+                                    onCheckedChange = { value ->
+                                        upravit {
+                                            it.copy(zachovavatNizkopodlaznost = value)
+                                        }
+                                    },
+                                )
+                            }
 
                             Row(
                                 modifier = Modifier

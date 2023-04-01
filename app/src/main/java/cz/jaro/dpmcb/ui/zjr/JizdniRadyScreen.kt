@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
@@ -72,16 +73,21 @@ fun JizdniRadyScreen(
             )
         }
 
-        var zobrazitNizkopodlaznosti by remember { mutableStateOf(false) }
+        val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+        val zobrazit by repo.zobrazitNizkopodlaznost.collectAsStateWithLifecycle()
+
+        var zobrazitNizkopodlaznosti by remember { mutableStateOf(if (nastaveni.zachovavatNizkopodlaznost) zobrazit else false) }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = zobrazitNizkopodlaznosti, onCheckedChange = {
                 zobrazitNizkopodlaznosti = it
+                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
             })
             Text("Zobrazit nízkopodlažnost", Modifier.clickable {
                 zobrazitNizkopodlaznosti = !zobrazitNizkopodlaznosti
+                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
             })
         }
 

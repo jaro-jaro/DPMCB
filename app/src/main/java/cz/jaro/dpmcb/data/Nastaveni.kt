@@ -8,4 +8,5 @@ data class Nastaveni(
     val dm: Boolean = true,
     val autoOnline: Boolean = true,
     val kontrolaAktualizaci: Boolean = true,
+    val zachovavatNizkopodlaznost: Boolean = false,
 )
