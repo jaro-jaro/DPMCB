@@ -14,7 +14,6 @@ import cz.jaro.datum_cas.Datum
 import cz.jaro.datum_cas.Trvani
 import cz.jaro.datum_cas.min
 import cz.jaro.datum_cas.sek
-import cz.jaro.datum_cas.toCas
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
@@ -54,23 +53,19 @@ class DetailSpojeViewModel(
 
     val vyska = _state.combine(Cas.tedFlow) { state, ted ->
 
-        val prejetychUseku = state.zastavkyNaJihu?.count { it.passed }?.minus(1)?.coerceAtLeast(0) ?: 0
-
-        val casOdjezduPosledni = state.zpozdeni?.min?.let { zpozdeni ->
-            state.zastavkyNaJihu?.findLast { it.passed }?.departureTime?.toCas()?.plus(zpozdeni)
+        val prejetychUseku = when {
+            state.zastavkyNaJihu != null && state.zpozdeni != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            state.zastavky.last().cas < ted -> state.zastavky.lastIndex
+            else -> state.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
         }
 
-        val casPrijezduDoPristi = state.zpozdeni?.min?.let { zpozdeni ->
-            state.zastavkyNaJihu?.find { !it.passed }?.arrivalTime?.toCas()?.plus(zpozdeni)
-        }
+        val casOdjezduPosledni = state.zastavky[prejetychUseku].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
 
-        val dobaJizdy = casOdjezduPosledni?.let {
-            casPrijezduDoPristi?.minus(it)
-        } ?: Trvani.nekonecne
+        val casPrijezduDoPristi = state.zastavky.getOrNull(prejetychUseku + 1)?.cas?.plus(state.zpozdeni?.min ?: Trvani.zadne)
 
-        val ubehlo = casOdjezduPosledni?.let {
-            ted.minus(it).coerceAtLeast(0.sek)
-        } ?: 0.sek
+        val dobaJizdy = casPrijezduDoPristi?.minus(casOdjezduPosledni) ?: Trvani.nekonecne
+
+        val ubehlo = ted.minus(casOdjezduPosledni).coerceAtLeast(0.sek)
 
         UtilFunctions.funguj(
             ted,
