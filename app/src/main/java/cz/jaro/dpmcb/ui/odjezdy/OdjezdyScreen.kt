@@ -1,8 +1,5 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TimePicker
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,18 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updateMargins
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
@@ -37,6 +34,7 @@ import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Trvani
 import cz.jaro.datum_cas.min
+import cz.jaro.datum_cas.toCas
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
@@ -121,38 +119,24 @@ fun OdjezdyScreen(
                     fontSize = 20.sp
                 )
             }
-            val ctx = LocalContext.current
+            var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+            if (zobrazitDialog) TimePickerDialog(
+                onDismissRequest = {
+                    zobrazitDialog = false
+                },
+                onTimeChange = {
+                    viewModel.zmenitCas(it.toCas())
+                    zobrazitDialog = false
+                },
+                title = {
+                    Text("Změnit čas")
+                },
+                initialTime = state.cas.toLocalTime()
+            )
+
             TextButton(
                 onClick = {
-                    MaterialAlertDialogBuilder(ctx).apply {
-                        setTitle("Vybrat čas")
-
-                        setView(LinearLayout(context).apply {
-                            addView(TimePicker(context).apply {
-                                layoutParams = LinearLayout.LayoutParams(
-                                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                                    ViewGroup.LayoutParams.WRAP_CONTENT
-                                )
-                                updateLayoutParams<LinearLayout.LayoutParams> {
-                                    updateMargins(top = 16)
-                                }
-
-                                setIs24HourView(true)
-
-                                hour = state.cas.h
-                                minute = state.cas.min
-
-                                setPositiveButton("Zvolit") { dialog, _ ->
-                                    dialog.cancel()
-
-                                    val novejCas = Cas(hour, minute)
-                                    viewModel.zmenitCas(novejCas)
-                                }
-                            })
-                        })
-
-                        show()
-                    }
+                    zobrazitDialog = true
                 }
             ) {
                 Text(text = state.cas.toString())
