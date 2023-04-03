@@ -36,8 +36,10 @@ import cz.jaro.datum_cas.Trvani
 import cz.jaro.datum_cas.min
 import cz.jaro.datum_cas.toCas
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
@@ -72,7 +74,8 @@ fun OdjezdyScreen(
         }
     }
 
-    App.title = R.string.odjezdy
+    title = R.string.odjezdy
+    App.vybrano = SuplikAkce.Odjezdy
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val filtrovanejSeznam by viewModel.filtrovanejSeznam.collectAsStateWithLifecycle()

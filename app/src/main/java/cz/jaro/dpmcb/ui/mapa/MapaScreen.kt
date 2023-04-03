@@ -7,7 +7,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
 
 @Destination
@@ -16,6 +18,7 @@ fun MapaScreen(
 
 ) {
     title = R.string.mapa_linek
+    vybrano = SuplikAkce.Mapa
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),

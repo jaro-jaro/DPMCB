@@ -27,6 +27,10 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.datum_cas.Datum
 import cz.jaro.datum_cas.dni
 import cz.jaro.datum_cas.min
+import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
+import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
@@ -49,6 +53,9 @@ fun OblibeneScreen(
     navigator: DestinationsNavigator,
     viewModel: OblibeneViewModel = koinViewModel(),
 ) {
+    title = R.string.app_name
+    vybrano = SuplikAkce.Oblibene
+
     val oblibene by viewModel.state.collectAsStateWithLifecycle()
     LazyColumn(
         modifier = Modifier.fillMaxSize()

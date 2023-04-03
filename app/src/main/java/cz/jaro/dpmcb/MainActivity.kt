@@ -30,7 +30,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -51,6 +50,7 @@ import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.toDatum
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
@@ -82,7 +82,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 val scope = rememberCoroutineScope()
                 val navController = rememberNavController()
-                var vybrano by remember { mutableStateOf<SuplikAkce?>(SuplikAkce.Oblibene) }
                 LaunchedEffect(Unit) {
                     link?.let {
                         navController.navigate(
