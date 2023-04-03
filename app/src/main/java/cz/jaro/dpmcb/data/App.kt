@@ -1,12 +1,11 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
-import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel
 import cz.jaro.dpmcb.ui.oblibene.OblibeneViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
@@ -24,8 +23,7 @@ class App : Application() {
     companion object {
 
         var title by mutableStateOf(R.string.app_name)
-
-        lateinit var prefs: SharedPreferences
+        var vybrano by mutableStateOf(null as SuplikAkce?)
 
         lateinit var repo: SpojeRepository
         lateinit var dopravaRepo: DopravaRepository
@@ -33,7 +31,6 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        prefs = getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
         repo = SpojeRepository(this)
         dopravaRepo = DopravaRepository(this)
 
