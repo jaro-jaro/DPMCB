@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
@@ -252,16 +253,14 @@ fun OdjezdyScreen(
             modifier = Modifier.padding(top = 16.dp)
         ) {
             items(
-                count = Int.MAX_VALUE,
-                itemContent = { i ->
-                    if (filtrovanejSeznam!!.isNotEmpty()) {
-                        val karticka = filtrovanejSeznam!![i % filtrovanejSeznam!!.size]
-                        Karticka(
-                            karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
-                                .animateContentSize()
-                                .animateItemPlacement()
-                        )
-                    }
+                items = filtrovanejSeznam!!,
+                key = { it.idSpoje to it.cas },
+                itemContent = { karticka ->
+                    Karticka(
+                        karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                            .animateContentSize()
+                            .animateItemPlacement()
+                    )
                 }
             )
         }

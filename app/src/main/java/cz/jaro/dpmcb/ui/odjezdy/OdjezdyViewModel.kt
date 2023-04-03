@@ -93,7 +93,7 @@ class OdjezdyViewModel(
                         scrollovat(
                             filtrovanejSeznam.indexOfFirst { zast ->
                                 zast.cas >= state.cas
-                            } + ((Int.MAX_VALUE / 2) / filtrovanejSeznam.size) * filtrovanejSeznam.size
+                            }
                         )
                     }
                 }
@@ -175,7 +175,7 @@ class OdjezdyViewModel(
 
     data class OdjezdyState(
         val cas: Cas,
-        val indexScrollovani: Int = Int.MAX_VALUE / 2,
+        val indexScrollovani: Int = 0,
         val filtrLinky: Int? = null,
         val filtrZastavky: String? = null,
         val kompaktniRezim: Boolean = false,
@@ -189,7 +189,7 @@ class OdjezdyViewModel(
                 scrollovat(
                     seznam.value!!.indexOfFirst { zast ->
                         zast.cas >= cas
-                    } + ((Int.MAX_VALUE / 2) / seznam.value!!.size) * seznam.value!!.size
+                    }
                 )
             }
         }
