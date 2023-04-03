@@ -75,6 +75,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.io.File
 import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
@@ -173,6 +174,10 @@ class LoadingActivity : AppCompatActivity() {
 
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
 
+            uri?.path?.let {
+                intent.putExtra("link", it.removePrefix("/DPMCB"))
+            }
+
             if (!jeOnline() || !repo.nastaveni.value.kontrolaAktualizaci) {
                 finish()
                 startActivity(intent)
@@ -184,17 +189,13 @@ class LoadingActivity : AppCompatActivity() {
             infoText = "Kontrola dostupnosti aktualizací"
 
             val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-            val reference = database.getReference("verze")
+            val reference = database.getReference("data3/verze")
 
             val onlineVerze = withTimeoutOrNull(3_000) {
                 reference.get().await().getValue<Int>()
             } ?: -2
 
             intent.putExtra("update", mistniVerze < onlineVerze)
-
-            uri?.path?.let {
-                intent.putExtra("link", it.removePrefix("/DPMCB"))
-            }
 
             finish()
             startActivity(intent)
@@ -208,28 +209,47 @@ class LoadingActivity : AppCompatActivity() {
             exitProcess(-1)
         }
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat..."
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)"
 
         repo.odstranitVse()
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování..."
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)"
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val storage = Firebase.storage
         val schemaRef = storage.reference.child("schema.pdf")
-        val referenceData = database.getReference("data2/data")
-        val referenceVerze = database.getReference("data2/verze")
+        val jrRef = storage.reference.child("jr-dpmcb.json")
+        val referenceVerze = database.getReference("data3/verze")
 
-        val data = referenceData.get().await()
-            .getValue<Map<String, Map<String, List<List<String>>>>>() ?: mapOf()
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)"
+        progress = 0F
+
+        val jrFile = File(cacheDir, "jr-dpmcb.jaro")
+
+        val jrTask = jrRef.getFile(jrFile)
+
+        jrTask.addOnFailureListener {
+            throw it
+        }
+
+        jrTask.addOnProgressListener {
+            progress = it.bytesTransferred.toFloat() / it.totalByteCount
+        }
+
+        jrTask.await()
+
+        progress = null
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/5)"
+
+        val json = jrFile.readText()
+
+        val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
         val zastavkySpoje: MutableList<ZastavkaSpoje> = mutableListOf()
         val zastavky: MutableList<Zastavka> = mutableListOf()
         val casKody: MutableList<CasKod> = mutableListOf()
         val linky: MutableList<Linka> = mutableListOf()
         val spoje: MutableList<Spoj> = mutableListOf()
-
-        progress = 0F
 
         val pocetRadku = data
             .toList()
@@ -241,16 +261,18 @@ class LoadingActivity : AppCompatActivity() {
             .count()
         var indexRadku = 0F
 
+        progress = 0F
+
         data
             .filter { it.key.split("-")[1] == "0" }
             .map { it.key.split("-")[0].toInt() to it.value }
             .sortedBy { it.first }
-            .forEach { (cisloLinky, dataLinky) ->
+            .forEach { (_, dataLinky) ->
                 dataLinky.forEach { (typTabulky, tabulka) ->
                     tabulka.forEach radek@{ radek ->
                         indexRadku++
 
-                        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání linky $cisloLinky..."
+                        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)"
                         progress = indexRadku / pocetRadku
 
                         when (TypyTabulek.valueOf(typTabulky)) {
@@ -309,7 +331,7 @@ class LoadingActivity : AppCompatActivity() {
                 }
             }
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat..."
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)"
 
         spoje.forEachIndexed { index, spoj ->
             progress = index.toFloat() / spoje.count()
@@ -330,24 +352,23 @@ class LoadingActivity : AppCompatActivity() {
                 )
         }
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schéma MHD"
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schéma MHD (5/5)"
         progress = 0F
 
-        val task = schemaRef.getFile(schemaFile)
+        val schemaTask = schemaRef.getFile(schemaFile)
 
-        task.addOnFailureListener {
+        schemaTask.addOnFailureListener {
             throw it
         }
 
-        task.addOnProgressListener {
+        schemaTask.addOnProgressListener {
             progress = it.bytesTransferred.toFloat() / it.totalByteCount
         }
 
-        task.await()
+        schemaTask.await()
 
         progress = null
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání..."
-
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání"
 
         val verze = referenceVerze.get().await().getValue<Int>() ?: -1
 
