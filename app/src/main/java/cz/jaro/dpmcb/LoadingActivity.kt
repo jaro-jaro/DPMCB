@@ -173,6 +173,10 @@ class LoadingActivity : AppCompatActivity() {
 
             val intent = Intent(this@LoadingActivity, MainActivity::class.java)
 
+            uri?.path?.let {
+                intent.putExtra("link", it.removePrefix("/DPMCB"))
+            }
+
             if (!jeOnline() || !repo.nastaveni.value.kontrolaAktualizaci) {
                 finish()
                 startActivity(intent)
@@ -191,10 +195,6 @@ class LoadingActivity : AppCompatActivity() {
             } ?: -2
 
             intent.putExtra("update", mistniVerze < onlineVerze)
-
-            uri?.path?.let {
-                intent.putExtra("link", it.removePrefix("/DPMCB"))
-            }
 
             finish()
             startActivity(intent)
