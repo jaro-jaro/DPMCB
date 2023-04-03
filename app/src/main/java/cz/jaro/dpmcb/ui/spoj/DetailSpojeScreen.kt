@@ -54,6 +54,7 @@ import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
@@ -76,7 +77,8 @@ fun DetailSpojeScreen(
     navigator: DestinationsNavigator,
 ) {
 
-    App.title = R.string.detail_spoje
+    title = R.string.detail_spoje
+    App.vybrano = null
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

@@ -38,7 +38,9 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
 import cz.jaro.dpmcb.FakeNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.SuplikAkce
+import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.UiEvent
 import kotlinx.coroutines.delay
@@ -63,7 +65,7 @@ fun VybiratorScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    App.title = when (typ) {
+    title = when (typ) {
         TypAdapteru.ZASTAVKY -> R.string.vyberte_zastavku
         TypAdapteru.LINKY -> R.string.vyberte_linku
         TypAdapteru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
@@ -72,6 +74,16 @@ fun VybiratorScreen(
         TypAdapteru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
         TypAdapteru.LINKA_ZPET -> R.string.vyberte_linku
         TypAdapteru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
+    }
+    vybrano = when (typ) {
+        TypAdapteru.ZASTAVKY -> SuplikAkce.Odjezdy
+        TypAdapteru.LINKY -> SuplikAkce.JizdniRady
+        TypAdapteru.ZASTAVKY_LINKY -> SuplikAkce.JizdniRady
+        TypAdapteru.PRISTI_ZASTAVKA -> SuplikAkce.JizdniRady
+        TypAdapteru.ZASTAVKY_ZPET_1 -> null
+        TypAdapteru.ZASTAVKA_ZPET_2 -> null
+        TypAdapteru.LINKA_ZPET -> SuplikAkce.Odjezdy
+        TypAdapteru.ZASTAVKA_ZPET -> SuplikAkce.Odjezdy
     }
 
     LaunchedEffect(Unit) {

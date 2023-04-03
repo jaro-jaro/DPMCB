@@ -17,6 +17,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
@@ -37,6 +38,7 @@ fun PraveJedouciScreen(
     val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
 
     App.title = R.string.doprava_na_jihu
+    App.vybrano = SuplikAkce.PraveJedouci
 
     if (!jeOnline) Text(
         text = "Jste offline :(",

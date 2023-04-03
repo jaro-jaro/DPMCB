@@ -31,7 +31,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import org.koin.androidx.compose.koinViewModel
@@ -48,7 +52,8 @@ fun JizdniRadyScreen(
     },
     navigator: DestinationsNavigator,
 ) {
-//    val viewModel = remember { JizdniRadyViewModel(cisloLinky, zastavka, pristiZastavka, repo) }
+    title = R.string.jizdni_rady
+    vybrano = SuplikAkce.JizdniRady
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
