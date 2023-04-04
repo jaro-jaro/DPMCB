@@ -94,7 +94,7 @@ class DetailSpojeViewModel(
                         else -> Icons.Default.NotAccessible
                     },
                     caskody = caskody.filterNot {
-                        !it.jede && it.v == Datum(0, 0, 0)..Datum(0, 0, 0)
+                        !it.jede && it.v.start == Datum(0, 0, 0) && it.v.endInclusive == Datum(0, 0, 0)
                     }.groupBy({ it.jede }, {
                         if (it.v.start != it.v.endInclusive) "od ${it.v.start} do ${it.v.endInclusive}" else "${it.v.start}"
                     }).map { (jede, terminy) ->
