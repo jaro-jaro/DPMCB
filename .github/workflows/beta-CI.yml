@@ -3,8 +3,7 @@ name: Build & Publish Signed Release APK
 on:
   push:
     branches:
-      - beta
-      - CI
+      - main
 
 jobs:
   build:
