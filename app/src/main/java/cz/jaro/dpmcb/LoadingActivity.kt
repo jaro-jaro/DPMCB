@@ -264,8 +264,7 @@ class LoadingActivity : AppCompatActivity() {
         progress = 0F
 
         data
-            .filter { it.key.split("-")[1] == "0" }
-            .map { it.key.split("-")[0].toInt() to it.value }
+            .map { it.key.toInt() to it.value }
             .sortedBy { it.first }
             .forEach { (_, dataLinky) ->
                 dataLinky.forEach { (typTabulky, tabulka) ->
