@@ -6,6 +6,7 @@ import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -14,17 +15,23 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +51,8 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
@@ -150,67 +160,140 @@ class MainActivity : AppCompatActivity() {
                             drawerContent = {
                                 ModalDrawerSheet {
                                     SuplikAkce.values().forEach { akce ->
-                                        if (akce == SuplikAkce.Datum) Row(
-                                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                                            verticalAlignment = CenterVertically
-                                        ) {
-                                            val datum by repo.datum.collectAsStateWithLifecycle()
+                                        when (akce) {
+                                            SuplikAkce.ZpetnaVazba -> {
+                                                var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+                                                var text by rememberSaveable { mutableStateOf("") }
+                                                var hodnoceni by rememberSaveable { mutableStateOf(-1) }
 
-                                            Text(
-                                                text = "Používané datum: $datum",
-                                                modifier = Modifier.padding(all = 16.dp)
-                                            )
-                                            var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-                                            if (zobrazitDialog) DatePickerDialog(
-                                                onDismissRequest = {
-                                                    zobrazitDialog = false
-                                                },
-                                                onDateChange = {
-                                                    repo.upravitDatum(it.toDatum())
-                                                    zobrazitDialog = false
-                                                },
-                                                title = {
-                                                    Text("Vybrat nové datum")
-                                                },
-                                                initialDate = datum.toLocalDate()
-                                            )
-
-                                            Spacer(
-                                                modifier = Modifier.weight(1F)
-                                            )
-
-                                            IconButton(
-                                                onClick = {
-                                                    zobrazitDialog = true
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
-                                            }
-                                        }
-                                        else NavigationDrawerItem(
-                                            label = {
-                                                Text(stringResource(akce.jmeno))
-                                            },
-                                            icon = {
-                                                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
-                                            },
-                                            selected = vybrano == akce,
-                                            onClick = {
-                                                if (akce.multiselect)
-                                                    vybrano = akce
-
-                                                akce.onClick(
-                                                    navController::navigate,
-                                                    {
-                                                        scope.launch {
-                                                            drawerState.close()
+                                                if (zobrazitDialog) AlertDialog(
+                                                    onDismissRequest = {
+                                                        zobrazitDialog = false
+                                                    },
+                                                    title = {
+                                                        Text("Ohodnotit aplikaci")
+                                                    },
+                                                    confirmButton = {
+                                                        TextButton(onClick = {
+                                                            val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                                                            val ref = database.getReference("hodnoceni")
+                                                            ref.push().setValue(buildMap {
+                                                                if (text.isNotBlank()) set("popis", text)
+                                                                if (hodnoceni != -1) set("hodnoceni", "${hodnoceni + 1}/5")
+                                                            })
+                                                            hodnoceni = -1
+                                                            text = ""
+                                                            zobrazitDialog = false
+                                                        }) {
+                                                            Text("Odeslat")
                                                         }
                                                     },
-                                                    this@MainActivity
+                                                    text = {
+                                                        Column {
+                                                            Row {
+                                                                repeat(5) { i ->
+                                                                    IconButton(onClick = {
+                                                                        hodnoceni = if (hodnoceni == i) -1 else i
+                                                                    }, Modifier.weight(1F)) {
+                                                                        if (hodnoceni >= i)
+                                                                            Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
+                                                                        else
+                                                                            Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
+                                                                    }
+                                                                }
+                                                            }
+
+                                                            OutlinedTextField(
+                                                                value = text,
+                                                                onValueChange = {
+                                                                    text = it
+                                                                },
+                                                                Modifier.padding(top = 16.dp),
+                                                                label = {
+                                                                    Text("Chcete něco doplnit?")
+                                                                },
+                                                            )
+                                                        }
+                                                    }
                                                 )
-                                            },
-                                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                                        )
+                                                NavigationDrawerItem(
+                                                    label = {
+                                                        Text(stringResource(akce.jmeno))
+                                                    },
+                                                    icon = {
+                                                        IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                                                    },
+                                                    selected = false,
+                                                    onClick = {
+                                                        zobrazitDialog = true
+                                                    },
+                                                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                                                )
+                                            }
+
+                                            SuplikAkce.Datum -> Row(
+                                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                                                verticalAlignment = CenterVertically
+                                            ) {
+                                                val datum by repo.datum.collectAsStateWithLifecycle()
+
+                                                Text(
+                                                    text = "Používané datum: $datum",
+                                                    modifier = Modifier.padding(all = 16.dp)
+                                                )
+                                                var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+                                                if (zobrazitDialog) DatePickerDialog(
+                                                    onDismissRequest = {
+                                                        zobrazitDialog = false
+                                                    },
+                                                    onDateChange = {
+                                                        repo.upravitDatum(it.toDatum())
+                                                        zobrazitDialog = false
+                                                    },
+                                                    title = {
+                                                        Text("Vybrat nové datum")
+                                                    },
+                                                    initialDate = datum.toLocalDate()
+                                                )
+
+                                                Spacer(
+                                                    modifier = Modifier.weight(1F)
+                                                )
+
+                                                IconButton(
+                                                    onClick = {
+                                                        zobrazitDialog = true
+                                                    }
+                                                ) {
+                                                    IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
+                                                }
+                                            }
+
+                                            else -> NavigationDrawerItem(
+                                                label = {
+                                                    Text(stringResource(akce.jmeno))
+                                                },
+                                                icon = {
+                                                    IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                                                },
+                                                selected = vybrano == akce,
+                                                onClick = {
+                                                    if (akce.multiselect)
+                                                        vybrano = akce
+
+                                                    akce.onClick(
+                                                        navController::navigate,
+                                                        {
+                                                            scope.launch {
+                                                                drawerState.close()
+                                                            }
+                                                        },
+                                                        this@MainActivity
+                                                    )
+                                                },
+                                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                                            )
+                                        }
                                     }
                                 }
                             },

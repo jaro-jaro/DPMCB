@@ -128,10 +128,7 @@ enum class SuplikAkce(
         R.string.zpetna_vazba,
         Icons.Default.Stars,
         false,
-        onClick = { _, zavrit, _ ->
-
-            zavrit()
-        }
+        onClick = { _, _, _ -> }
     ),
     Vypnout(
         R.string.vypnout_aplikaci,
