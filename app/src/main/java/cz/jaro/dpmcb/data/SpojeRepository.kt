@@ -123,46 +123,6 @@ class SpojeRepository(ctx: Application) {
                 datum.jedeDnes(pevneKody)
             }
 
-    private fun Datum.jedeDnes(pevneKody: String) = pevneKody
-        .split(" ")
-        .mapNotNull {
-            when (it) {
-                "1" -> toCalendar()[DAY_OF_WEEK] in 2..6 // jede v pracovních dnech
-                "2" -> toCalendar()[DAY_OF_WEEK] == 1 // jede v neděli a ve státem uznané svátky
-                "3" -> toCalendar()[DAY_OF_WEEK] == 2 // jede v pondělí
-                "4" -> toCalendar()[DAY_OF_WEEK] == 3 // jede v úterý
-                "5" -> toCalendar()[DAY_OF_WEEK] == 4 // jede ve středu
-                "6" -> toCalendar()[DAY_OF_WEEK] == 5 // jede ve čtvrtek
-                "7" -> toCalendar()[DAY_OF_WEEK] == 6 // jede v pátek
-                "8" -> toCalendar()[DAY_OF_WEEK] == 7 // jede v sobotu
-                "14" -> null // bezbariérově přístupná zastávka
-                "19" -> null // ???
-                "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce
-                "28" -> null // zastávka s možností přestupu na železniční dopravu
-                else -> null
-            }
-        }.any { it }
-
-    private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
-        .split(" ")
-        .mapNotNull {
-            when (it) {
-                "1" -> "Jede v pracovních dnech"
-                "2" -> "Jede v neděli a ve státem uznané svátky"
-                "3" -> "Jede v pondělí"
-                "4" -> "Jede v úterý"
-                "5" -> "Jede ve středu"
-                "6" -> "Jede ve čtvrtek"
-                "7" -> "Jede v pátek"
-                "8" -> "Jede v sobotu"
-                "14" -> "Bezbariérově přístupná zastávka"
-                "19" -> null
-                "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
-                "28" -> "Zastávka s možností přestupu na železniční dopravu"
-                else -> null
-            }
-        }
-
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,
         zastavky: Array<Zastavka>,
@@ -254,3 +214,105 @@ class SpojeRepository(ctx: Application) {
         jeOnline && onlineMod
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
 }
+
+private fun Datum.jedeDnes(pevneKody: String) = pevneKody
+    .split(" ")
+    .mapNotNull {
+        when (it) {
+            "1" -> toCalendar()[DAY_OF_WEEK] in 2..6 // jede v pracovních dnech
+            "2" -> toCalendar()[DAY_OF_WEEK] == 1 || jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v neděli a ve státem uznané svátky
+            "3" -> toCalendar()[DAY_OF_WEEK] == 2 // jede v pondělí
+            "4" -> toCalendar()[DAY_OF_WEEK] == 3 // jede v úterý
+            "5" -> toCalendar()[DAY_OF_WEEK] == 4 // jede ve středu
+            "6" -> toCalendar()[DAY_OF_WEEK] == 5 // jede ve čtvrtek
+            "7" -> toCalendar()[DAY_OF_WEEK] == 6 // jede v pátek
+            "8" -> toCalendar()[DAY_OF_WEEK] == 7 // jede v sobotu
+            "14" -> null // bezbariérově přístupná zastávka
+            "19" -> null // ???
+            "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce
+            "28" -> null // zastávka s možností přestupu na železniční dopravu
+            else -> null
+        }
+    }.any { it }
+
+private fun jeStatniSvatekNeboDenPracovnihoKlidu(datum: Datum) = listOf(
+    Datum(1, 1, 1), // Den obnovy samostatného českého státu
+    Datum(1, 1, 1), // Nový rok
+    Datum(1, 5, 1), // Svátek práce
+    Datum(8, 5, 1), // Den vítězství
+    Datum(5, 7, 1), // Den slovanských věrozvěstů Cyrila a Metoděje,
+    Datum(6, 7, 1), // Den upálení mistra Jana Husa
+    Datum(28, 9, 1), // Den české státnosti
+    Datum(28, 10, 1), // Den vzniku samostatného československého státu
+    Datum(17, 11, 1), // Den boje za svobodu a demokracii
+    Datum(24, 12, 1), // Štědrý den
+    Datum(25, 12, 1), // 1. svátek vánoční
+    Datum(26, 12, 1), // 2. svátek vánoční
+).any {
+    it.den == datum.den && it.mesic == datum.mesic
+} || jeVelkyPatekNeboVelikonocniPondeli(datum)
+
+private fun jeVelkyPatekNeboVelikonocniPondeli(datum: Datum): Boolean {
+    val (velkyPatek, velikonocniPondeli) = polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(datum.rok) ?: return false
+
+    return datum == velikonocniPondeli || datum == velkyPatek
+}
+
+fun polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(rok: Int): Pair<Datum, Datum>? {
+
+    // Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data_Velikonoc
+
+    val (m, n) = listOf(
+        1583..1599 to (22 to 2),
+        1600..1699 to (22 to 2),
+        1700..1799 to (23 to 3),
+        1800..1899 to (23 to 4),
+        1900..1999 to (24 to 5),
+        2000..2099 to (24 to 5),
+        2100..2199 to (24 to 6),
+        2200..2299 to (25 to 0),
+    ).find { (roky, _) ->
+        rok in roky
+    }?.second ?: return null
+
+    val a = rok % 19
+    val b = rok % 4
+    val c = rok % 7
+    val d = (19 * a + m) % 30
+    val e = (n + 2 * b + 4 * c + 6 * d) % 7
+    val velikonocniNedeleOdZacatkuBrezna = 22 + d + e
+
+    val velkyPatekOdZacatkuBrezna = velikonocniNedeleOdZacatkuBrezna - 2
+    val velkyPatekOdZacatkuDubna = velkyPatekOdZacatkuBrezna - 31
+    val velkyPatekJeVDubnu = velkyPatekOdZacatkuDubna > 0
+    val velkyPatek =
+        if (velkyPatekJeVDubnu) Datum(velkyPatekOdZacatkuDubna, 4, rok) else Datum(velkyPatekOdZacatkuBrezna, 3, rok)
+
+    val velikonocniPondeliOdZacatkuBrezna = velikonocniNedeleOdZacatkuBrezna + 1
+    val velikonocniPondeliOdZacatkuDubna = velikonocniPondeliOdZacatkuBrezna - 31
+    val velikonocniPondeliJeVDubnu = velikonocniPondeliOdZacatkuDubna > 0
+    val velikonocniPondeli =
+        if (velikonocniPondeliJeVDubnu) Datum(velikonocniPondeliOdZacatkuDubna, 4, rok) else Datum(velikonocniPondeliOdZacatkuBrezna, 3, rok)
+
+    return velkyPatek to velikonocniPondeli
+}
+
+private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
+    .split(" ")
+    .mapNotNull {
+        when (it) {
+            "1" -> "Jede v pracovních dnech"
+            "2" -> "Jede v neděli a ve státem uznané svátky"
+            "3" -> "Jede v pondělí"
+            "4" -> "Jede v úterý"
+            "5" -> "Jede ve středu"
+            "6" -> "Jede ve čtvrtek"
+            "7" -> "Jede v pátek"
+            "8" -> "Jede v sobotu"
+            "14" -> "Bezbariérově přístupná zastávka"
+            "19" -> null
+            "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
+            "28" -> "Zastávka s možností přestupu na železniční dopravu"
+            else -> null
+        }
+    }

@@ -1,8 +1,10 @@
 package cz.jaro.dpmcb
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -27,7 +29,6 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,6 +63,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -163,7 +165,6 @@ class MainActivity : AppCompatActivity() {
                                         when (akce) {
                                             SuplikAkce.ZpetnaVazba -> {
                                                 var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-                                                var text by rememberSaveable { mutableStateOf("") }
                                                 var hodnoceni by rememberSaveable { mutableStateOf(-1) }
 
                                                 if (zobrazitDialog) AlertDialog(
@@ -177,12 +178,8 @@ class MainActivity : AppCompatActivity() {
                                                         TextButton(onClick = {
                                                             val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                                                             val ref = database.getReference("hodnoceni")
-                                                            ref.push().setValue(buildMap {
-                                                                if (text.isNotBlank()) set("popis", text)
-                                                                if (hodnoceni != -1) set("hodnoceni", "${hodnoceni + 1}/5")
-                                                            })
+                                                            ref.push().setValue("${hodnoceni + 1}/5")
                                                             hodnoceni = -1
-                                                            text = ""
                                                             zobrazitDialog = false
                                                         }) {
                                                             Text("Odeslat")
@@ -202,17 +199,15 @@ class MainActivity : AppCompatActivity() {
                                                                     }
                                                                 }
                                                             }
-
-                                                            OutlinedTextField(
-                                                                value = text,
-                                                                onValueChange = {
-                                                                    text = it
-                                                                },
-                                                                Modifier.padding(top = 16.dp),
-                                                                label = {
-                                                                    Text("Chcete něco doplnit?")
-                                                                },
-                                                            )
+                                                            Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
+                                                            TextButton(onClick = {
+                                                                startActivity(Intent().apply {
+                                                                    action = Intent.ACTION_VIEW
+                                                                    data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases")
+                                                                })
+                                                            }) {
+                                                                Text(text = "Přejít na GitHub")
+                                                            }
                                                         }
                                                     }
                                                 )
@@ -225,7 +220,10 @@ class MainActivity : AppCompatActivity() {
                                                     },
                                                     selected = false,
                                                     onClick = {
-                                                        zobrazitDialog = true
+                                                        if (isOnline)
+                                                            zobrazitDialog = true
+                                                        else
+                                                            Toast.makeText(this@MainActivity, "Jste offline!", Toast.LENGTH_SHORT).show()
                                                     },
                                                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                                                 )

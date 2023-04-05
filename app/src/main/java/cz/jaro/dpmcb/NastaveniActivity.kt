@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,6 +32,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 
 class NastaveniActivity : AppCompatActivity() {
@@ -148,7 +150,7 @@ class NastaveniActivity : AppCompatActivity() {
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Zapamatovat si volbu Zobrazit nízkopodlžnosti v JŘ", Modifier.weight(1F))
+                                Text("Zapamatovat si volbu Zobrazit nízkopodlažnosti v JŘ", Modifier.weight(1F))
 
                                 Switch(
                                     checked = nastaveni.zachovavatNizkopodlaznost,
@@ -185,19 +187,24 @@ class NastaveniActivity : AppCompatActivity() {
                                     Modifier.weight(1F),
                                     contentAlignment = Alignment.CenterEnd
                                 ) {
-                                    Button(
-                                        onClick = {
+                                    Button(onClick = {
+
+                                        if (isOnline)
                                             startActivity(Intent(this@NastaveniActivity, LoadingActivity::class.java).apply {
                                                 flags = FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
                                                 putExtra("update", true)
                                             })
-                                        }
+                                        else
+                                            Toast.makeText(this@NastaveniActivity, "Jste offline!", Toast.LENGTH_SHORT).show()
+                                    }
                                     ) {
                                         Text("Aktualizovat data")
                                     }
                                 }
-                                //if (BuildConfig.DEBUG) Text("Aktuální verze dat: ${repo.verze}")
                             }
+                            Text("Aktuální verze dat: ${repo.verze}")
+                            Text("Aktuální verze Aplikace: ${BuildConfig.VERSION_NAME}")
+                            Text("2019-2023 RO studios; Za zobrazená data neručíme")
                         }
                     }
                 }

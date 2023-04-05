@@ -351,7 +351,7 @@ class LoadingActivity : AppCompatActivity() {
                 )
         }
 
-        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schéma MHD (5/5)"
+        infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)"
         progress = 0F
 
         val schemaTask = schemaRef.getFile(schemaFile)
