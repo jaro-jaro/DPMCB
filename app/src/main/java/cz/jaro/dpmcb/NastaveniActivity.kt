@@ -148,7 +148,7 @@ class NastaveniActivity : AppCompatActivity() {
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text("Zapamatovat si volbu Zobrazit nízkopodlžnosti v JŘ", Modifier.weight(1F))
+                                Text("Zapamatovat si volbu Zobrazit nízkopodlažnosti v JŘ", Modifier.weight(1F))
 
                                 Switch(
                                     checked = nastaveni.zachovavatNizkopodlaznost,
