@@ -91,9 +91,9 @@ class OdjezdyViewModel(
                     if (filtrovanejSeznam.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
                         scrollovat(
-                            filtrovanejSeznam.indexOfFirst { zast ->
+                            filtrovanejSeznam.withIndex().firstOrNull { (_, zast) ->
                                 zast.cas >= state.cas
-                            }
+                            }?.index ?: filtrovanejSeznam.lastIndex
                         )
                     }
                 }
@@ -187,9 +187,9 @@ class OdjezdyViewModel(
             while (!::scrollovat.isInitialized) Unit
             withContext(Dispatchers.Main) {
                 scrollovat(
-                    seznam.value!!.indexOfFirst { zast ->
+                    seznam.value!!.withIndex().firstOrNull { (_, zast) ->
                         zast.cas >= cas
-                    }
+                    }?.index ?: seznam.value!!.lastIndex
                 )
             }
         }
