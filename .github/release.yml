@@ -1,0 +1,17 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - PR
+    authors:
+      - github-actions[bot]
+  categories:
+    - title: Novninky
+      labels:
+        - Vylepšení
+    - title: Bugfixy
+      labels:
+        - bug
+    - title: Ostatní změny
+      labels:
+        - "*"
