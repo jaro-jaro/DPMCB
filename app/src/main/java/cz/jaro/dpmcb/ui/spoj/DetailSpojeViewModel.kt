@@ -51,9 +51,11 @@ class DetailSpojeViewModel(
     private val _uiEvent = Channel<UiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    val vyska = _state.combine(Cas.tedFlow) { state, ted ->
+    val vyska = combine(_state, Cas.tedFlow, repo.datum) { state, ted, datum ->
 
         val prejetychUseku = when {
+            datum > Datum.dnes -> 0
+            datum < Datum.dnes -> state.zastavky.lastIndex
             state.zastavkyNaJihu != null && state.zpozdeni != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
             state.zastavky.last().cas < ted -> state.zastavky.lastIndex
             else -> state.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
