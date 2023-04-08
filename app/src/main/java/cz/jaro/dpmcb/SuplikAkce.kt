@@ -19,7 +19,7 @@ import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
 import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
-import cz.jaro.dpmcb.ui.destinations.PraveJedouciScreenDestination
+import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 
 
@@ -75,7 +75,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                PraveJedouciScreenDestination()
+                PraveJedouciDestination()
             )
             zavrit()
         }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.datum_cas.Cas
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,7 +30,7 @@ class PraveJedouciViewModel : ViewModel() {
     private val _nacitaSe = MutableStateFlow(false)
     val nacitaSe = _nacitaSe.asStateFlow()
 
-    fun upravitFiltry(upravit: MutableList<Int>.() -> Unit) {
+    fun upravitFiltry(upravit: MutateListLambda<Int>) {
         _filtry.value = buildList {
             addAll(filtry.value)
             apply(upravit)
