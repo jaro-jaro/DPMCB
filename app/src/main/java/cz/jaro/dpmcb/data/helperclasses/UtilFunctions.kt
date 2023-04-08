@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Datum
 import cz.jaro.datum_cas.Trvani
@@ -127,3 +128,11 @@ object UtilFunctions {
             )
         }
 }
+
+typealias NavigateFunction = (Direction) -> Unit
+
+typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit
+typealias MutateListLambda<T> = MutableList<T>.() -> Unit
+
+typealias MutateFunction<T> = (MutateLambda<T>) -> Unit
+typealias MutateLambda<T> = (T) -> T
