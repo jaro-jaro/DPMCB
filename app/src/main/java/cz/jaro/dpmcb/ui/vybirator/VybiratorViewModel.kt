@@ -8,7 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
-import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
+import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -106,7 +106,7 @@ class VybiratorViewModel(
             when (typ) {
                 TypAdapteru.ZASTAVKY -> _uiEvent.send(
                     UiEvent.Navigovat(
-                        OdjezdyScreenDestination(
+                        OdjezdyDestination(
                             zastavka = vysledek,
                         )
                     )

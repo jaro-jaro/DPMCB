@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -41,6 +42,7 @@ import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
@@ -54,10 +56,9 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Destination
 @Composable
-fun OdjezdyScreen(
+fun Odjezdy(
     zastavka: String,
     cas: Cas = Cas.ted,
     viewModel: OdjezdyViewModel = koinViewModel {
@@ -102,7 +103,37 @@ fun OdjezdyScreen(
         }
     }
 
-    if (filtrovanejSeznam == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+
+    OdjezdyScreen(
+        state = state,
+        seznam = filtrovanejSeznam,
+        zastavka = zastavka,
+        zmenitCas = viewModel::zmenitCas,
+        zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
+        listState = listState,
+        zrusil = viewModel::zrusil,
+        kliklNaDetailSpoje = viewModel::kliklNaDetailSpoje,
+        navigate = navigator::navigate,
+        jeOnline = jeOnline,
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun OdjezdyScreen(
+    state: OdjezdyViewModel.OdjezdyState,
+    seznam: List<KartickaState>?,
+    zastavka: String,
+    zmenitCas: (Cas) -> Unit,
+    zmenilKompaktniRezim: () -> Unit,
+    listState: LazyListState,
+    zrusil: (TypAdapteru) -> Unit,
+    kliklNaDetailSpoje: (KartickaState) -> Unit,
+    jeOnline: Boolean,
+    navigate: NavigateFunction,
+) {
+    if (seznam == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
     Column(
         modifier = Modifier
@@ -115,7 +146,7 @@ fun OdjezdyScreen(
         ) {
             TextButton(
                 onClick = {
-                    navigator.navigate(VybiratorScreenDestination(TypAdapteru.ZASTAVKY))
+                    navigate(VybiratorScreenDestination(TypAdapteru.ZASTAVKY))
                 }
             ) {
                 Text(
@@ -129,7 +160,7 @@ fun OdjezdyScreen(
                     zobrazitDialog = false
                 },
                 onTimeChange = {
-                    viewModel.zmenitCas(it.toCas())
+                    zmenitCas(it.toCas())
                     zobrazitDialog = false
                 },
                 title = {
@@ -147,11 +178,9 @@ fun OdjezdyScreen(
             }
             Spacer(modifier = Modifier.weight(1F))
 
-            val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
-
             Text("Zjednodušit")
             Switch(checked = state.kompaktniRezim, onCheckedChange = {
-                viewModel.zmenilKompaktniRezim()
+                zmenilKompaktniRezim()
             }, Modifier.padding(all = 8.dp), enabled = jeOnline)
         }
 
@@ -172,7 +201,7 @@ fun OdjezdyScreen(
                 readOnly = true,
                 trailingIcon = {
                     if (state.filtrLinky != null) IconButton(onClick = {
-                        viewModel.zrusil(TypAdapteru.LINKA_ZPET)
+                        zrusil(TypAdapteru.LINKA_ZPET)
                     }) {
                         IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                     }
@@ -184,7 +213,7 @@ fun OdjezdyScreen(
             )
             val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (linkaPressedState is PressInteraction.Release) {
-                navigator.navigate(
+                navigate(
                     VybiratorScreenDestination(
                         typ = TypAdapteru.LINKA_ZPET,
                     )
@@ -205,7 +234,7 @@ fun OdjezdyScreen(
                 readOnly = true,
                 trailingIcon = {
                     if (state.filtrZastavky != null) IconButton(onClick = {
-                        viewModel.zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                        zrusil(TypAdapteru.ZASTAVKA_ZPET)
                     }) {
                         IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                     }
@@ -218,7 +247,7 @@ fun OdjezdyScreen(
             )
             val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (zastavkaPressedState is PressInteraction.Release) {
-                navigator.navigate(
+                navigate(
                     VybiratorScreenDestination(
                         typ = TypAdapteru.ZASTAVKA_ZPET,
                     )
@@ -226,7 +255,7 @@ fun OdjezdyScreen(
                 zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
         }
-        if (filtrovanejSeznam == null) Row(
+        if (seznam == null) Row(
             Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
@@ -234,7 +263,7 @@ fun OdjezdyScreen(
         ) {
             CircularProgressIndicator()
         }
-        else if (filtrovanejSeznam!!.isEmpty()) Row(
+        else if (seznam.isEmpty()) Row(
             Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
@@ -253,11 +282,11 @@ fun OdjezdyScreen(
             modifier = Modifier.padding(top = 16.dp)
         ) {
             items(
-                items = filtrovanejSeznam!!,
+                items = seznam,
                 key = { it.idSpoje to it.cas },
                 itemContent = { karticka ->
                     Karticka(
-                        karticka, viewModel::kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                        karticka, kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
                             .animateContentSize()
                             .animateItemPlacement()
                     )

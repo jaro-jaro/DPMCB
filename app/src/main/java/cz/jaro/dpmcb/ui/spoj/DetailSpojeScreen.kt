@@ -61,7 +61,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.UiEvent
-import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
+import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
@@ -155,7 +155,7 @@ fun DetailSpojeScreen(
                                     modifier = Modifier
                                         .clickable {
                                             navigator.navigate(
-                                                OdjezdyScreenDestination(
+                                                OdjezdyDestination(
                                                     cas = it.cas,
                                                     zastavka = it.nazev,
                                                 )
@@ -172,7 +172,7 @@ fun DetailSpojeScreen(
                                     modifier = Modifier
                                         .clickable {
                                             navigator.navigate(
-                                                OdjezdyScreenDestination(
+                                                OdjezdyDestination(
                                                     cas = it.cas,
                                                     zastavka = it.nazev,
                                                 )
@@ -192,7 +192,7 @@ fun DetailSpojeScreen(
                                         modifier = Modifier
                                             .clickable {
                                                 navigator.navigate(
-                                                    OdjezdyScreenDestination(
+                                                    OdjezdyDestination(
                                                         cas = zastavka.cas,
                                                         zastavka = zastavka.nazev,
                                                     )
