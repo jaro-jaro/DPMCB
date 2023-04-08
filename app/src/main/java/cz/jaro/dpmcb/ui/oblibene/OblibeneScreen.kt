@@ -31,6 +31,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
@@ -45,11 +46,10 @@ import java.util.Calendar.THURSDAY
 import java.util.Calendar.TUESDAY
 import java.util.Calendar.WEDNESDAY
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Destination
 @RootNavGraph(start = true)
 @Composable
-fun OblibeneScreen(
+fun Oblibene(
     navigator: DestinationsNavigator,
     viewModel: OblibeneViewModel = koinViewModel(),
 ) {
@@ -57,6 +57,19 @@ fun OblibeneScreen(
     vybrano = SuplikAkce.Oblibene
 
     val oblibene by viewModel.state.collectAsStateWithLifecycle()
+
+    OblibeneScreen(
+        oblibene = oblibene,
+        navigate = navigator::navigate
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OblibeneScreen(
+    oblibene: OblibeneViewModel.OblibeneState,
+    navigate: NavigateFunction,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -99,7 +112,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
+                    navigate(DetailSpojeScreenDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -177,7 +190,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
+                    navigate(DetailSpojeScreenDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()

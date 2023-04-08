@@ -46,7 +46,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                OblibeneScreenDestination()
+                cz.jaro.dpmcb.ui.destinations.OblibeneDestination()
             )
             zavrit()
         }
