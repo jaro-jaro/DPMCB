@@ -17,8 +17,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
-import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
+import cz.jaro.dpmcb.ui.destinations.MapaDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
 
@@ -103,7 +102,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                MapaScreenDestination()
+                MapaDestination()
             )
             zavrit()
         }
