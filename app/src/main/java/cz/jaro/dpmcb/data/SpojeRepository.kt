@@ -219,7 +219,7 @@ private fun Datum.jedeDnes(pevneKody: String) = pevneKody
     .split(" ")
     .mapNotNull {
         when (it) {
-            "1" -> toCalendar()[DAY_OF_WEEK] in 2..6 // jede v pracovních dnech
+            "1" -> toCalendar()[DAY_OF_WEEK] in 2..6 && !jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v pracovních dnech
             "2" -> toCalendar()[DAY_OF_WEEK] == 1 || jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v neděli a ve státem uznané svátky
             "3" -> toCalendar()[DAY_OF_WEEK] == 2 // jede v pondělí
             "4" -> toCalendar()[DAY_OF_WEEK] == 3 // jede v úterý
