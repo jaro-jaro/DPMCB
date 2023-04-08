@@ -17,6 +17,7 @@ import cz.jaro.datum_cas.sek
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.ui.UiEvent
@@ -51,19 +52,23 @@ class DetailSpojeViewModel(
     private val _uiEvent = Channel<UiEvent>()
     val uiEvent = _uiEvent.receiveAsFlow()
 
-    val vyska = combine(_state, Cas.tedFlow, repo.datum) { state, ted, datum ->
-
-        val prejetychUseku = when {
+    val projetychUseku = combine(_state, Cas.tedFlow, repo.datum) { state, ted, datum ->
+        when {
             datum > Datum.dnes -> 0
             datum < Datum.dnes -> state.zastavky.lastIndex
             state.zastavkyNaJihu != null && state.zpozdeni != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
             state.zastavky.last().cas < ted -> state.zastavky.lastIndex
             else -> state.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
-        }
+        }.funguj()
+    }
 
-        val casOdjezduPosledni = state.zastavky[prejetychUseku].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
+    val vyska = combine(_state, Cas.tedFlow, projetychUseku) { state, ted, projetychUseku ->
 
-        val casPrijezduDoPristi = state.zastavky.getOrNull(prejetychUseku + 1)?.cas?.plus(state.zpozdeni?.min ?: Trvani.zadne)
+        if (projetychUseku == 0) return@combine 0F
+
+        val casOdjezduPosledni = state.zastavky[projetychUseku].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
+
+        val casPrijezduDoPristi = state.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni?.min ?: Trvani.zadne)
 
         val dobaJizdy = casPrijezduDoPristi?.minus(casOdjezduPosledni) ?: Trvani.nekonecne
 
@@ -71,15 +76,15 @@ class DetailSpojeViewModel(
 
         UtilFunctions.funguj(
             ted,
-            prejetychUseku,
+            projetychUseku,
             casOdjezduPosledni,
             casPrijezduDoPristi,
             dobaJizdy,
             ubehlo,
             (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F),
-            prejetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
+            projetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
         )
-        prejetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
+        projetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
     }
 
     init {

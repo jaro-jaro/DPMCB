@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
+import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
@@ -56,7 +57,7 @@ class DopravaRepository(
         while (currentCoroutineContext().isActive) {
             while (lock) Unit
             emit(
-                if (repo.onlineMod.value)
+                if (repo.onlineMod.value && repo.datum.value == Datum.dnes)
                     api.ziskatData("/service/position") ?: emptyList()
                 else emptyList()
             )
@@ -81,7 +82,7 @@ class DopravaRepository(
                 while (currentCoroutineContext().isActive) {
                     while (lock) Unit
                     emit(
-                        if (repo.onlineMod.value)
+                        if (repo.onlineMod.value && repo.datum.value == Datum.dnes)
                             api.ziskatData("/servicedetail?id=$spojId")
                         else null
                     )

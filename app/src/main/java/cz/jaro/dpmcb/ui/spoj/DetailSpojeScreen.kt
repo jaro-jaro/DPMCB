@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.datum_cas.Cas.Companion.ted
 import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
@@ -212,6 +211,7 @@ fun DetailSpojeScreen(
                         val zastavek = state.zastavky.count()
 
                         val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
+                        val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
                         val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
 
                         Canvas(
@@ -238,10 +238,7 @@ fun DetailSpojeScreen(
 
                                 repeat(zastavek) { i ->
                                     translate(top = i * rowHeight) {
-                                        val projel = if (state.zastavkyNaJihu != null && state.zpozdeni != null)
-                                            state.zastavkyNaJihu!![i].passed
-                                        else
-                                            state.zastavky[i].cas < ted
+                                        val projel = projetychUseku >= i
 
                                         drawCircle(
                                             color = if (projel) projetaBarva else barvaPozadi,
