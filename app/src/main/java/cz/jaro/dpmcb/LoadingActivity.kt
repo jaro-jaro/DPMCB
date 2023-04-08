@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +31,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -80,7 +84,7 @@ import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
 
-    private var infoText by mutableStateOf("Načítání dat")
+    private var infoText by mutableStateOf("")
     private var progress by mutableStateOf(null as Float?)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,6 +97,7 @@ class LoadingActivity : AppCompatActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    Icons.Default.Print
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -101,10 +106,14 @@ class LoadingActivity : AppCompatActivity() {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Image(
-                            painter = painterResource(R.drawable.logo_transparent),
+                            painter = painterResource(
+                                if (isSystemInDarkTheme().takeIf { nastaveni.dmPodleSystemu } ?: nastaveni.dm)
+                                    R.drawable.logo_dark_foreground else R.drawable.logo_white_foreground
+                            ),
                             contentDescription = "Logo JARO",
                             contentScale = ContentScale.FillWidth,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colorFilter = ColorFilter.colorMatrix(ColorMatrix())
                         )
                         Text(infoText, textAlign = TextAlign.Center)
                         if (progress == null) {
