@@ -203,7 +203,7 @@ class MainActivity : AppCompatActivity() {
                                                             TextButton(onClick = {
                                                                 startActivity(Intent().apply {
                                                                     action = Intent.ACTION_VIEW
-                                                                    data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases")
+                                                                    data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
                                                                 })
                                                             }) {
                                                                 Text(text = "Přejít na GitHub")
