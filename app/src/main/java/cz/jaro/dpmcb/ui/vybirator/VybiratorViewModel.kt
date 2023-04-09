@@ -8,7 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.UiEvent
-import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
+import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import kotlinx.coroutines.Dispatchers
@@ -114,7 +114,7 @@ class VybiratorViewModel(
                     withContext(Dispatchers.Main) {
                         navigate(
                             if (pz.size == 1)
-                                JizdniRadyScreenDestination(
+                                JizdniRadyDestination(
                                     cisloLinky = cisloLinky,
                                     zastavka = vysledek,
                                     pristiZastavka = pz.first(),
@@ -131,7 +131,7 @@ class VybiratorViewModel(
             }
 
             TypAdapteru.PRISTI_ZASTAVKA -> navigate(
-                JizdniRadyScreenDestination(
+                JizdniRadyDestination(
                     cisloLinky = cisloLinky,
                     zastavka = zastavka!!,
                     pristiZastavka = vysledek,
