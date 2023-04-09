@@ -13,10 +13,6 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
         maven { url = uri("https://jcenter.bintray.com") }
-
-        flatDir {
-            dirs("app/libs")
-        }
     }
 }
 rootProject.name = "DPMCB"

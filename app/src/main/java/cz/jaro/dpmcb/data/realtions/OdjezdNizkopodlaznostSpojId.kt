@@ -1,9 +1,9 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.datum_cas.Cas
+import java.time.LocalTime
 
 data class OdjezdNizkopodlaznostSpojId(
-    val odjezd: Cas,
+    val odjezd: LocalTime,
     val nizkopodlaznost: Boolean,
     val spojId: String,
     val pevneKody: String,

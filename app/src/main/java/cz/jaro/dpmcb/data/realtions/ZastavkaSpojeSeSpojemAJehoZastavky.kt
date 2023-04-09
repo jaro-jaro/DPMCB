@@ -1,13 +1,13 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.datum_cas.Cas
+import java.time.LocalTime
 
 data class ZastavkaSpojeSeSpojemAJehoZastavky(
     val nazev: String,
-    val cas: Cas,
+    val cas: LocalTime,
     val indexZastavkyNaLince: Int,
     val spojId: String,
     val linka: Int,
     val nizkopodlaznost: Boolean,
-    val zastavkySpoje: List<Pair<String, Cas>>,
+    val zastavkySpoje: List<Pair<String, LocalTime?>>,
 )

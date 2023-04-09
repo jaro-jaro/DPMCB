@@ -5,8 +5,6 @@ import androidx.room.Insert
 import androidx.room.MapInfo
 import androidx.room.Query
 import androidx.room.Transaction
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
@@ -17,6 +15,7 @@ import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojem
+import java.time.LocalDate
 
 @Dao
 interface Dao {
@@ -45,8 +44,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :tahleZastavka
             AND zastavkaspoje.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )   
         ),
         indexyTyhleZastavky AS (
@@ -66,8 +65,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
             AND spoj.smer <> :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY -zastavkaSpoje.indexZastavkyNaLince
@@ -81,8 +80,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
             AND spoj.smer = :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
@@ -94,7 +93,7 @@ interface Dao {
         FROM negativni
     """
     )
-    suspend fun pristiZastavky(linka: Int, tahleZastavka: String, nikdy: Cas = Cas.nikdy, pozitivni: Smer = Smer.POZITIVNI): List<String>
+    suspend fun pristiZastavky(linka: Int, tahleZastavka: String, pozitivni: Smer = Smer.POZITIVNI): List<String>
 
     @Query(
         """
@@ -117,8 +116,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :zastavka
             AND spoj.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             GROUP BY spoj.id
         ),
@@ -131,8 +130,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :zastavka
             AND spoj.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             AND ((
                 caskod.jede 
@@ -171,8 +170,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
             AND spoj.smer <> :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY -zastavkaSpoje.indexZastavkyNaLince
@@ -186,8 +185,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
             AND spoj.smer = :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
@@ -207,8 +206,7 @@ interface Dao {
         linka: Int,
         zastavka: String,
         pristiZastavka: String,
-        datum: Datum,
-        nikdy: Cas = Cas.nikdy,
+        datum: LocalDate,
         pozitivni: Smer = Smer.POZITIVNI,
     ): List<OdjezdNizkopodlaznostSpojId>
 
@@ -216,15 +214,15 @@ interface Dao {
     @Query(
         """
         SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
-            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
         JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.linka = zastavkaspoje.linka AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
         JOIN caskod ON caskod.linka = zastavkaspoje.linka AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
         WHERE (
-            NOT zastavkaspoje.odjezd = :nikdy
-            OR NOT zastavkaspoje.prijezd = :nikdy
+            NOT zastavkaspoje.odjezd = null
+            OR NOT zastavkaspoje.prijezd = null
         )
         AND spoj.id = :spojId
         ORDER BY CASE
@@ -233,7 +231,7 @@ interface Dao {
         END
     """
     )
-    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, nikdy: Cas = Cas.nikdy, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojId>
+    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojId>
 
     @Query(
         """
@@ -243,8 +241,8 @@ interface Dao {
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             WHERE zastavka.nazevZastavky = :zastavka
             AND (
-                NOT zastavkaspoje.odjezd = :nikdy
-                OR NOT zastavkaspoje.prijezd = :nikdy
+                NOT zastavkaspoje.odjezd = null
+                OR NOT zastavkaspoje.prijezd = null
             )
         ),
         indexyTyhleZastavky AS (
@@ -256,7 +254,7 @@ interface Dao {
         ),
         tahleZastavka AS (
             SELECT zastavka.nazevZastavky nazev, spoj.pevneKody, CASE
-                WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+                WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
                 ELSE zastavkaspoje.odjezd
             END cas, zastavkaspoje.indexZastavkyNaLince, spoj.cisloSpoje, spoj.linka, (spoj.pevnekody LIKE '%24%') nizkopodlaznost 
             FROM zastavkaspoje
@@ -271,22 +269,22 @@ interface Dao {
     """
     )
     suspend fun spojeZastavujiciNaIndexechZastavky(
-        zastavka: String, nikdy: Cas = Cas.nikdy,
+        zastavka: String,
     ): List<ZastavkaSpojeSeSpojem>
 
     @Transaction
     @Query(
         """
         SELECT spoj.*, CASE
-            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, zastavka.nazevZastavky nazev FROM spoj
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
         WHERE spoj.id = :spojId
         AND (
-            NOT zastavkaspoje.odjezd = :nikdy
-            OR NOT zastavkaspoje.prijezd = :nikdy
+            NOT zastavkaspoje.odjezd = null
+            OR NOT zastavkaspoje.prijezd = null
         )
         ORDER BY CASE
            WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
@@ -294,14 +292,14 @@ interface Dao {
         END
     """
     )
-    suspend fun spojSeZastavkamiPodleId(spojId: String, pozitivni: Smer = Smer.POZITIVNI, nikdy: Cas = Cas.nikdy): Map<Spoj, List<NazevACas>>
+    suspend fun spojSeZastavkamiPodleId(spojId: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
 
     @Transaction
     @MapInfo(keyColumn = "id")
     @Query(
         """
         SELECT spoj.id, CASE
-            WHEN zastavkaspoje.odjezd = NULL OR zastavkaspoje.odjezd = :nikdy THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, zastavka.nazevZastavky nazev FROM spoj
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
@@ -313,7 +311,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, pozitivni: Smer = Smer.POZITIVNI, nikdy: Cas = Cas.nikdy): Map<String, List<NazevACas>>
+    suspend fun zastavkySpoju(spojIds: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevACas>>
 
     @Insert
     suspend fun vlozitZastavkySpoje(vararg zastavky: ZastavkaSpoje)

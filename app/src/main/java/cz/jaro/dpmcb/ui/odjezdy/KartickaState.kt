@@ -1,16 +1,16 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Trvani
+import java.time.Duration
+import java.time.LocalTime
 
 data class KartickaState(
     val konecna: String,
-    val aktualniNasledujiciZastavka: Pair<String, Cas>?,
+    val aktualniNasledujiciZastavka: Pair<String, LocalTime>?,
     val cisloLinky: Int,
-    val cas: Cas,
+    val cas: LocalTime,
     val idSpoje: String,
     val nizkopodlaznost: Boolean,
     val zpozdeni: Int?,
     val jedePres: List<String>,
-    val jedeZa: Trvani?,
+    val jedeZa: Duration?,
 )

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
@@ -22,6 +21,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
+import java.time.LocalDate
 
 class DopravaRepository(
     app: Application,
@@ -57,7 +57,7 @@ class DopravaRepository(
         while (currentCoroutineContext().isActive) {
             while (lock) Unit
             emit(
-                if (repo.onlineMod.value && repo.datum.value == Datum.dnes)
+                if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                     api.ziskatData("/service/position") ?: emptyList()
                 else emptyList()
             )
@@ -82,7 +82,7 @@ class DopravaRepository(
                 while (currentCoroutineContext().isActive) {
                     while (lock) Unit
                     emit(
-                        if (repo.onlineMod.value && repo.datum.value == Datum.dnes)
+                        if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                             api.ziskatData("/servicedetail?id=$spojId")
                         else null
                     )

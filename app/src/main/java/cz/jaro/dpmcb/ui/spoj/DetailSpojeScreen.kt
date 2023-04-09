@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
@@ -196,7 +195,7 @@ fun DetailSpojeScreen(
                                 .zip(zastavkyNaJihu)
                                 .forEach { (zastavka, zastavkaNaJihu) ->
                                     Text(
-                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas + zpozdeni.min).toString() else "",
+                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.toLong())).toString() else "",
                                         color = barvaZpozdeniTextu(zpozdeni),
                                         modifier = Modifier
                                             .clickable {

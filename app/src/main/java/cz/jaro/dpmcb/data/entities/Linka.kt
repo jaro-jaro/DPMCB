@@ -2,9 +2,9 @@ package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.helperclasses.TypLinky
 import cz.jaro.dpmcb.data.helperclasses.TypVozidla
+import java.time.LocalDate
 
 @Entity
 data class Linka(
@@ -13,8 +13,8 @@ data class Linka(
     val typVozidla: TypVozidla,
     val typLinky: TypLinky,
     val maVyluku: Boolean,
-    val platnostOd: Datum,
-    val platnostDo: Datum,
+    val platnostOd: LocalDate,
+    val platnostDo: LocalDate,
 
     val kratkeCislo: Int = cislo - 325_000,
 )

@@ -151,7 +151,7 @@ fun JizdniRadyScreen(
                 repeat(24) { h ->
                     RadekOdjezdu(
                         navigate = navigate,
-                        vysledek = state.data.filter { it.odjezd.h == h },
+                        vysledek = state.data.filter { it.odjezd.hour == h },
                         zobrazitNizkopodlaznost = zobrazitNizkopodlaznosti
                     )
                 }
@@ -174,7 +174,7 @@ fun RadekOdjezdu(
     ) {
         vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
             Text(
-                text = odjezd.min.let { if ("$it".length <= 1) "0$it" else "$it" },
+                text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
                         navigate(DetailSpojeDestination(spojId = spojId))
