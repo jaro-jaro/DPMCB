@@ -4,13 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Trvani
 import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
-import cz.jaro.dpmcb.ui.vybirator.Vysledek
+import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -103,7 +102,7 @@ class OdjezdyViewModel(
 
     fun kliklNaDetailSpoje(spoj: KartickaState) {
         navigovat(
-            DetailSpojeScreenDestination(
+            DetailSpojeDestination(
                 spoj.idSpoje
             )
         )
@@ -160,26 +159,6 @@ class OdjezdyViewModel(
             )
         }
     }
-
-    data class KartickaState(
-        val konecna: String,
-        val aktualniNasledujiciZastavka: Pair<String, Cas>?,
-        val cisloLinky: Int,
-        val cas: Cas,
-        val idSpoje: String,
-        val nizkopodlaznost: Boolean,
-        val zpozdeni: Int?,
-        val jedePres: List<String>,
-        val jedeZa: Trvani?,
-    )
-
-    data class OdjezdyState(
-        val cas: Cas,
-        val indexScrollovani: Int = 0,
-        val filtrLinky: Int? = null,
-        val filtrZastavky: String? = null,
-        val kompaktniRezim: Boolean = false,
-    )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

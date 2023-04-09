@@ -36,14 +36,15 @@ import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
 @Destination
 @Composable
-fun JizdniRadyScreen(
+fun JizdniRady(
     cisloLinky: Int,
     zastavka: String,
     pristiZastavka: String,
@@ -57,6 +58,23 @@ fun JizdniRadyScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    JizdniRadyScreen(
+        cisloLinky = cisloLinky,
+        zastavka = zastavka,
+        pristiZastavka = pristiZastavka,
+        state = state,
+        navigate = navigator::navigate,
+    )
+}
+
+@Composable
+fun JizdniRadyScreen(
+    cisloLinky: Int,
+    zastavka: String,
+    pristiZastavka: String,
+    state: JizdniRadyState,
+    navigate: NavigateFunction,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -98,14 +116,14 @@ fun JizdniRadyScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state == JizdniRadyViewModel.JizdniRadyState.Loading) Box(
+        if (state == JizdniRadyState.Loading) Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter
         ) {
             CircularProgressIndicator()
         }
 
-        if (state is JizdniRadyViewModel.JizdniRadyState.Success) Row(
+        if (state is JizdniRadyState.Success) Row(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState()),
         ) {
@@ -132,8 +150,8 @@ fun JizdniRadyScreen(
             ) {
                 repeat(24) { h ->
                     RadekOdjezdu(
-                        navigator = navigator,
-                        vysledek = (state as JizdniRadyViewModel.JizdniRadyState.Success).data.filter { it.odjezd.h == h },
+                        navigate = navigate,
+                        vysledek = state.data.filter { it.odjezd.h == h },
                         zobrazitNizkopodlaznost = zobrazitNizkopodlaznosti
                     )
                 }
@@ -145,7 +163,7 @@ fun JizdniRadyScreen(
 
 @Composable
 fun RadekOdjezdu(
-    navigator: DestinationsNavigator,
+    navigate: NavigateFunction,
     vysledek: List<OdjezdNizkopodlaznostSpojId>,
     zobrazitNizkopodlaznost: Boolean,
 ) {
@@ -159,7 +177,7 @@ fun RadekOdjezdu(
                 text = odjezd.min.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
-                        navigator.navigate(DetailSpojeScreenDestination(spojId = spojId))
+                        navigate(DetailSpojeDestination(spojId = spojId))
                     }
                     //.width(32.dp)
                     .padding(4.dp),

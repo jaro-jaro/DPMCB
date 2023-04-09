@@ -33,7 +33,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,78 +53,88 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.UiEvent
-import cz.jaro.dpmcb.ui.destinations.OdjezdyScreenDestination
+import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
+import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Destination
 @Composable
-fun DetailSpojeScreen(
+fun DetailSpoje(
     spojId: String,
     viewModel: DetailSpojeViewModel = koinViewModel {
         ParametersHolder(mutableListOf(spojId))
     },
     navigator: DestinationsNavigator,
 ) {
-
     title = R.string.detail_spoje
     App.vybrano = null
 
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val info by viewModel.info.collectAsStateWithLifecycle()
+    val stateZJihu by viewModel.stateZJihu.collectAsStateWithLifecycle()
+    val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
+    val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
 
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.Navigovat -> {
-                    navigator.navigate(event.kam)
-                }
+    DetailSpojeScreen(
+        info = info,
+        zpozdeni = stateZJihu.zpozdeni,
+        zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
+        projetychUseku = projetychUseku,
+        vyska = vyska,
+        navigate = navigator::navigate
+    )
+}
 
-                else -> {}
-            }
-        }
-    }
-
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun DetailSpojeScreen(
+    info: DetailSpojeInfo?,
+    zpozdeni: Int?,
+    zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
+    projetychUseku: Int,
+    vyska: Float,
+    navigate: NavigateFunction,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        if (state.nacitaSe) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
+        if (info == null) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
         else {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp), verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Linka ${state.cisloLinky}")
+                Text("Linka ${info.cisloLinky}")
                 IconWithTooltip(
-                    state.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                    info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                 )
-                if (state.zpozdeni != null) Badge(
-                    containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeni!!),
-                    contentColor = barvaZpozdeniBublinyText(state.zpozdeni!!),
+                if (zpozdeni != null) Badge(
+                    containerColor = barvaZpozdeniBublinyKontejner(zpozdeni),
+                    contentColor = barvaZpozdeniBublinyText(zpozdeni),
                 ) {
                     Text(
-                        text = state.zpozdeni!!.run {
+                        text = zpozdeni.run {
                             "${toSign()}$this min"
                         },
                     )
                 }
                 Spacer(Modifier.weight(1F))
                 val oblibene by repo.oblibene.collectAsStateWithLifecycle()
-                FilledIconToggleButton(checked = spojId in oblibene, onCheckedChange = {
+                FilledIconToggleButton(checked = info.spojId in oblibene, onCheckedChange = {
                     if (it) {
-                        repo.pridatOblibeny(spojId)
+                        repo.pridatOblibeny(info.spojId)
                     } else {
-                        repo.odebratOblibeny(spojId)
+                        repo.odebratOblibeny(info.spojId)
                     }
                 }) {
                     IconWithTooltip(Icons.Default.Star, "Oblíbené")
@@ -149,13 +158,13 @@ fun DetailSpojeScreen(
                             .padding(12.dp)
                     ) {
                         Column {
-                            state.zastavky.forEach {
+                            info.zastavky.forEach {
                                 Text(
                                     text = it.nazev,
                                     modifier = Modifier
                                         .clickable {
-                                            navigator.navigate(
-                                                OdjezdyScreenDestination(
+                                            navigate(
+                                                OdjezdyDestination(
                                                     cas = it.cas,
                                                     zastavka = it.nazev,
                                                 )
@@ -166,13 +175,13 @@ fun DetailSpojeScreen(
                             }
                         }
                         Column(Modifier.padding(start = 8.dp)) {
-                            state.zastavky.forEach {
+                            info.zastavky.forEach {
                                 Text(
                                     text = it.cas.toString(),
                                     modifier = Modifier
                                         .clickable {
-                                            navigator.navigate(
-                                                OdjezdyScreenDestination(
+                                            navigate(
+                                                OdjezdyDestination(
                                                     cas = it.cas,
                                                     zastavka = it.nazev,
                                                 )
@@ -182,17 +191,17 @@ fun DetailSpojeScreen(
                                 )
                             }
                         }
-                        if (state.zpozdeni != null && state.zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
-                            state.zastavky
-                                .zip(state.zastavkyNaJihu!!)
+                        if (zpozdeni != null && zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+                            info.zastavky
+                                .zip(zastavkyNaJihu)
                                 .forEach { (zastavka, zastavkaNaJihu) ->
                                     Text(
-                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas + state.zpozdeni!!.min).toString() else "",
-                                        color = barvaZpozdeniTextu(state.zpozdeni!!),
+                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas + zpozdeni.min).toString() else "",
+                                        color = barvaZpozdeniTextu(zpozdeni),
                                         modifier = Modifier
                                             .clickable {
-                                                navigator.navigate(
-                                                    OdjezdyScreenDestination(
+                                                navigate(
+                                                    OdjezdyDestination(
                                                         cas = zastavka.cas,
                                                         zastavka = zastavka.nazev,
                                                     )
@@ -202,16 +211,14 @@ fun DetailSpojeScreen(
                                     )
                                 }
                         }
-                        val neNaMape = state.zpozdeni != null && state.zastavkyNaJihu != null
+                        val neNaMape = zpozdeni != null && zastavkyNaJihu != null
 
                         val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                         val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         val barvaPozadi = MaterialTheme.colorScheme.surface
                         val baravCary = MaterialTheme.colorScheme.surfaceVariant
-                        val zastavek = state.zastavky.count()
+                        val zastavek = info.zastavky.count()
 
-                        val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
-                        val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
                         val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
 
                         Canvas(
@@ -283,7 +290,7 @@ fun DetailSpojeScreen(
                     TextButton(onClick = {
                         zobrazitMenu = true
                     }) {
-                        Text("id: $spojId")
+                        Text("id: ${info.spojId}")
                         DropdownMenu(
                             expanded = zobrazitMenu,
                             onDismissRequest = {
@@ -299,12 +306,12 @@ fun DetailSpojeScreen(
                             )
                             DropdownMenuItem(
                                 text = {
-                                    Text("ID: $spojId")
+                                    Text("ID: ${info.spojId}")
                                 },
                                 onClick = {
                                     context.startActivity(Intent.createChooser(Intent().apply {
                                         action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, spojId)
+                                        putExtra(Intent.EXTRA_TEXT, info.spojId)
                                         type = "text/plain"
                                     }, "Sdílet ID spoje"))
                                     zobrazitMenu = false
@@ -320,7 +327,7 @@ fun DetailSpojeScreen(
                                 onClick = {
                                     context.startActivity(Intent.createChooser(Intent().apply {
                                         action = Intent.ACTION_VIEW
-                                        data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=$spojId")
+                                        data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${info.spojId}")
                                     }, "Sdílet ID spoje"))
                                     zobrazitMenu = false
                                 },
@@ -330,12 +337,12 @@ fun DetailSpojeScreen(
                             )
                             DropdownMenuItem(
                                 text = {
-                                    Text("Název: ${state.nazevSpoje}")
+                                    Text("Název: ${info.nazevSpoje}")
                                 },
                                 onClick = {
                                     context.startActivity(Intent.createChooser(Intent().apply {
                                         action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
+                                        putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
                                         type = "text/plain"
                                     }, "Sdílet název spoje"))
                                     zobrazitMenu = false
@@ -351,7 +358,7 @@ fun DetailSpojeScreen(
                                 onClick = {
                                     context.startActivity(Intent.createChooser(Intent().apply {
                                         action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
+                                        putExtra(Intent.EXTRA_TEXT, info.deeplink)
                                         type = "text/uri-list"
                                     }, "Sdílet deeplink"))
                                     zobrazitMenu = false
@@ -365,10 +372,10 @@ fun DetailSpojeScreen(
 
                 }
                 Column {
-                    state.pevneKody.forEach {
+                    info.pevneKody.forEach {
                         Text(it)
                     }
-                    state.caskody.forEach {
+                    info.caskody.forEach {
                         Text(it)
                     }
                 }
