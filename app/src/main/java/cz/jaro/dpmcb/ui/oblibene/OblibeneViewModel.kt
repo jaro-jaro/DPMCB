@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.oblibene
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.datum_cas.Cas
 import cz.jaro.datum_cas.Datum
 import cz.jaro.datum_cas.dni
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
@@ -65,24 +64,4 @@ class OblibeneViewModel : ViewModel() {
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OblibeneState(nacitaSe = true, nejake = false, dnes = emptyList(), jindy = emptyList()))
-
-    data class OblibeneState(
-        val nacitaSe: Boolean,
-        val nejake: Boolean,
-        val dnes: List<KartickaState>,
-        val jindy: List<KartickaState>,
-    )
-
-    data class KartickaState(
-        val spojId: String,
-        val linka: Int,
-        val zpozdeni: Int?,
-        val vychoziZastavka: String,
-        val vychoziZastavkaCas: Cas,
-        val aktualniZastavka: String?,
-        val aktualniZastavkaCas: Cas?,
-        val cilovaZastavka: String,
-        val cilovaZastavkaCas: Cas,
-        val dalsiPojede: Datum?,
-    )
 }

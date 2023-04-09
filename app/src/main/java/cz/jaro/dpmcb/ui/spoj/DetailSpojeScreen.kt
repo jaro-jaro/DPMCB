@@ -95,7 +95,7 @@ fun DetailSpoje(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DetailSpojeScreen(
-    info: DetailSpojeViewModel.DetailSpojeInfo?,
+    info: DetailSpojeInfo?,
     zpozdeni: Int?,
     zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
     projetychUseku: Int,

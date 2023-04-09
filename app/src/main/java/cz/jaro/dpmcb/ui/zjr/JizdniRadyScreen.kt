@@ -72,7 +72,7 @@ fun JizdniRadyScreen(
     cisloLinky: Int,
     zastavka: String,
     pristiZastavka: String,
-    state: JizdniRadyViewModel.JizdniRadyState,
+    state: JizdniRadyState,
     navigate: NavigateFunction,
 ) {
     Column(
@@ -116,14 +116,14 @@ fun JizdniRadyScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state == JizdniRadyViewModel.JizdniRadyState.Loading) Box(
+        if (state == JizdniRadyState.Loading) Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopCenter
         ) {
             CircularProgressIndicator()
         }
 
-        if (state is JizdniRadyViewModel.JizdniRadyState.Success) Row(
+        if (state is JizdniRadyState.Success) Row(
             modifier = Modifier
                 .verticalScroll(state = rememberScrollState()),
         ) {

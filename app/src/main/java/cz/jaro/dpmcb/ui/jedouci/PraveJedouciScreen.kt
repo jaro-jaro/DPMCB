@@ -56,7 +56,7 @@ fun PraveJedouci(
 @Composable
 fun PraveJedouciScreen(
     cislaLinek: List<Int>?,
-    seznam: List<Triple<Int, String, List<PraveJedouciViewModel.JedouciSpoj>>>,
+    seznam: List<Triple<Int, String, List<JedouciSpoj>>>,
     filtry: List<Int>,
     upravitFiltry: MutateListFunction<Int>,
     nacitaSe: Boolean,

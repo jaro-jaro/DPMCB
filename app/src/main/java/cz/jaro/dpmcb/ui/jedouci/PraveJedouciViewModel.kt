@@ -6,7 +6,6 @@ import cz.jaro.datum_cas.Cas
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
-import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,13 +102,4 @@ class PraveJedouciViewModel : ViewModel() {
         emit(repo.cislaLinek())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    data class JedouciSpoj(
-        val cisloLinky: Int,
-        val spojId: String,
-        val cilovaZastavka: Pair<String, Cas>,
-        val pristiZastavka: Pair<String, Cas>,
-        val zpozdeni: Int,
-        val indexNaLince: Int,
-        val smer: Smer,
-    )
 }

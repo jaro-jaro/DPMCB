@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.ui.zjr
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -21,9 +20,4 @@ class JizdniRadyViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = JizdniRadyState.Loading
     )
-
-    sealed interface JizdniRadyState {
-        object Loading : JizdniRadyState
-        data class Success(val data: List<OdjezdNizkopodlaznostSpojId>) : JizdniRadyState
-    }
 }

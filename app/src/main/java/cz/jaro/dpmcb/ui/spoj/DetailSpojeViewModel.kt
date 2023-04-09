@@ -5,7 +5,6 @@ import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.WheelchairPickup
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.datum_cas.Cas
@@ -17,8 +16,6 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
-import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
-import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -108,20 +105,4 @@ class DetailSpojeViewModel(
         )
         projetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
     }
-
-    data class DetailSpojeInfo(
-        val spojId: String,
-        val zastavky: List<CasNazevSpojId>,
-        val cisloLinky: Int,
-        val nizkopodlaznost: ImageVector,
-        val caskody: List<String>,
-        val pevneKody: List<String>,
-        val nazevSpoje: String,
-        val deeplink: String,
-    )
-
-    data class DetailSpojeStateZJihu(
-        val zpozdeni: Int? = null,
-        val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>? = null,
-    )
 }

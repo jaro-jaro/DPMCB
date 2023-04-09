@@ -49,7 +49,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
-import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -122,7 +121,7 @@ fun Odjezdy(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OdjezdyScreen(
-    state: OdjezdyViewModel.OdjezdyState,
+    state: OdjezdyState,
     seznam: List<KartickaState>?,
     zastavka: String,
     zmenitCas: (Cas) -> Unit,

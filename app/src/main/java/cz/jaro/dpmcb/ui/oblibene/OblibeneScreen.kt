@@ -67,7 +67,7 @@ fun Oblibene(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OblibeneScreen(
-    oblibene: OblibeneViewModel.OblibeneState,
+    oblibene: OblibeneState,
     navigate: NavigateFunction,
 ) {
     LazyColumn(
