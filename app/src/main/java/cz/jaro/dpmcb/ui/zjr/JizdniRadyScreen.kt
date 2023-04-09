@@ -37,7 +37,7 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
@@ -159,7 +159,7 @@ fun RadekOdjezdu(
                 text = odjezd.min.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
-                        navigator.navigate(DetailSpojeScreenDestination(spojId = spojId))
+                        navigator.navigate(DetailSpojeDestination(spojId = spojId))
                     }
                     //.width(32.dp)
                     .padding(4.dp),

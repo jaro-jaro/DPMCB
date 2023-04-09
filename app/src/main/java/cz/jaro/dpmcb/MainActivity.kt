@@ -65,7 +65,7 @@ import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.ui.NavGraphs
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
 
@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                     link?.let {
                         navController.navigate(
                             when {
-                                it.startsWith("/spoj") -> DetailSpojeScreenDestination(it.split("/").last())
+                                it.startsWith("/spoj") -> DetailSpojeDestination(it.split("/").last())
                                 else -> return@let
                             }
                         )

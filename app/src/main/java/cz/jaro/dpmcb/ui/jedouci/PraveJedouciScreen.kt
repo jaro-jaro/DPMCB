@@ -23,7 +23,7 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -109,7 +109,7 @@ else Column {
                     .animateItemPlacement(),
                 onClick = {
                     if (spoje.size == 1) {
-                        navigate(DetailSpojeScreenDestination(spojId = spoje.first().spojId))
+                        navigate(DetailSpojeDestination(spojId = spoje.first().spojId))
                     }
                 }
             ) {
@@ -136,7 +136,7 @@ else Column {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    navigate(DetailSpojeScreenDestination(spojId = spoj.spojId))
+                                    navigate(DetailSpojeDestination(spojId = spoj.spojId))
                                 }
                         ) {
                             Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
