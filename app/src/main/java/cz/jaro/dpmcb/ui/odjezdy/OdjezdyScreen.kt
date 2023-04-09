@@ -47,9 +47,9 @@ import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
+import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel.KartickaState
-import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -65,7 +65,7 @@ fun Odjezdy(
         ParametersHolder(mutableListOf(zastavka, cas))
     },
     navigator: DestinationsNavigator,
-    resultRecipient: ResultRecipient<VybiratorScreenDestination, Vysledek>,
+    resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,
 ) {
     resultRecipient.onNavResult { result ->
         when (result) {
@@ -143,7 +143,7 @@ fun OdjezdyScreen(
     ) {
         TextButton(
             onClick = {
-                navigate(VybiratorScreenDestination(TypAdapteru.ZASTAVKY))
+                navigate(VybiratorDestination(TypAdapteru.ZASTAVKY))
             }
         ) {
             Text(
@@ -211,7 +211,7 @@ fun OdjezdyScreen(
         val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
         if (linkaPressedState is PressInteraction.Release) {
             navigate(
-                VybiratorScreenDestination(
+                VybiratorDestination(
                     typ = TypAdapteru.LINKA_ZPET,
                 )
             )
@@ -245,7 +245,7 @@ fun OdjezdyScreen(
         val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
         if (zastavkaPressedState is PressInteraction.Release) {
             navigate(
-                VybiratorScreenDestination(
+                VybiratorDestination(
                     typ = TypAdapteru.ZASTAVKA_ZPET,
                 )
             )

@@ -130,6 +130,7 @@ object UtilFunctions {
 }
 
 typealias NavigateFunction = (Direction) -> Unit
+typealias NavigateBackFunction<R> = (R) -> Unit
 
 typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit
 typealias MutateListLambda<T> = MutableList<T>.() -> Unit

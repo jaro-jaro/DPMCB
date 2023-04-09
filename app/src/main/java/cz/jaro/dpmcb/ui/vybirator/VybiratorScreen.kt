@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,35 +35,29 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
-import cz.jaro.dpmcb.FakeNavigator
+import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.ui.UiEvent
+import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 
-data class Vysledek(val value: String, val typAdapteru: TypAdapteru) : java.io.Serializable
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Destination
 @Composable
-fun VybiratorScreen(
+fun Vybirator(
     navigator: DestinationsNavigator,
     resultNavigator: ResultBackNavigator<Vysledek>,
     typ: TypAdapteru,
     cisloLinky: Int = -1,
     zastavka: String? = null,
     viewModel: VybiratorViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, resultNavigator))
+        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, { it: Direction -> navigator.navigate(it) }, { it: Vysledek -> resultNavigator.navigateBack(it) }))
     },
 ) {
-
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
     title = when (typ) {
         TypAdapteru.ZASTAVKY -> R.string.vyberte_zastavku
         TypAdapteru.LINKY -> R.string.vyberte_linku
@@ -86,31 +79,47 @@ fun VybiratorScreen(
         TypAdapteru.ZASTAVKA_ZPET -> SuplikAkce.Odjezdy
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect { event ->
-            when (event) {
-                is UiEvent.Navigovat -> navigator.navigate(event.kam)
-                else -> {}
-            }
-        }
-    }
+    val hledani by viewModel.hledani.collectAsStateWithLifecycle()
+    val seznam by viewModel.seznam.collectAsStateWithLifecycle()
 
+    VybiratorScreen(
+        typ = typ,
+        info = viewModel.info,
+        hledani = hledani,
+        napsalNeco = viewModel::napsalNeco,
+        kliklEnter = viewModel::kliklEnter,
+        kliklNaVecZeSeznamu = viewModel::kliklNaVecZeSeznamu,
+        seznam = seznam,
+    )
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun VybiratorScreen(
+    typ: TypAdapteru,
+    info: String,
+    hledani: String,
+    napsalNeco: (String) -> Unit,
+    kliklEnter: () -> Unit,
+    kliklNaVecZeSeznamu: (String) -> Unit,
+    seznam: List<String>,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        Text(text = state.info)
+        Text(text = info)
         val focusNaTextField = remember { FocusRequester() }
         TextField(
-            value = state.hledani,
-            onValueChange = { viewModel.poslatEvent(VybiratorEvent.NapsalNeco(it)) },
+            value = hledani,
+            onValueChange = { napsalNeco(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(all = 16.dp)
                 .focusRequester(focusNaTextField)
                 .onKeyEvent {
                     if (it.key == Key.Enter) {
-                        viewModel.poslatEvent(VybiratorEvent.KliklEnter)
+                        kliklEnter()
                     }
                     return@onKeyEvent it.key == Key.Enter
                 },
@@ -141,7 +150,7 @@ fun VybiratorScreen(
             ),
             keyboardActions = KeyboardActions(
                 onAny = {
-                    viewModel.poslatEvent(VybiratorEvent.KliklEnter)
+                    kliklEnter()
                 }
             ),
             singleLine = true,
@@ -161,13 +170,13 @@ fun VybiratorScreen(
                 .fillMaxWidth()
                 .imePadding(),
         ) {
-            items(state.seznam.toList()) { item ->
+            items(seznam) { item ->
                 DropdownMenuItem(
                     text = { Text(item) },
                     modifier = Modifier
                         .padding(all = 8.dp),
                     onClick = {
-                        viewModel.poslatEvent(VybiratorEvent.KliklNaSeznam(item))
+                        kliklNaVecZeSeznamu(item)
                     },
                 )
             }
@@ -181,9 +190,13 @@ fun VybiratorPreview() {
     MaterialTheme {
         Surface {
             VybiratorScreen(
-                navigator = FakeNavigator,
-                resultNavigator = FakeNavigator,
-                typ = TypAdapteru.ZASTAVKY
+                typ = TypAdapteru.ZASTAVKY,
+                info = "",
+                hledani = "u ko",
+                napsalNeco = {},
+                kliklEnter = {},
+                kliklNaVecZeSeznamu = {},
+                seznam = listOf("U Koníčka"),
             )
         }
     }

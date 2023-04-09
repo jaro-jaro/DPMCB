@@ -46,7 +46,7 @@ class App : Application() {
                     JizdniRadyViewModel(it.component1(), it.component2(), it.component3())
                 }
                 viewModel {
-                    VybiratorViewModel(it.component1(), it.component2(), it.component3(), it.component4())
+                    VybiratorViewModel(it.component1(), it.component2(), it.component3(), it.component4(), it.component5())
                 }
                 viewModel {
                     DetailSpojeViewModel(it.component1())
