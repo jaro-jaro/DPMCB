@@ -7,8 +7,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
-import java.io.InputStream
+import cz.jaro.dpmcb.data.App.Companion.vybrano
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
 
 @Destination
 @Composable
@@ -16,16 +18,13 @@ fun MapaScreen(
 
 ) {
     title = R.string.mapa_linek
+    vybrano = SuplikAkce.Mapa
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             PDFView(context, null).apply {
-
-                val assetManager = context.assets
-                val inputStream: InputStream = assetManager.open("Schema 2022_01.pdf")
-
-                fromStream(inputStream).load()
+                fromFile(context.schemaFile).load()
             }
         }
     )

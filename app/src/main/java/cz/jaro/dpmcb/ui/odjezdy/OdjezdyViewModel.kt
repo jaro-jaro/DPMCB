@@ -2,181 +2,196 @@ package cz.jaro.dpmcb.ui.odjezdy
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.datum_cas.Cas
+import cz.jaro.datum_cas.Trvani
+import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Cas
-import cz.jaro.dpmcb.data.helperclasses.Cas.Companion.toCas
-import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.Trvani.Companion.min
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.pristiZastavka
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.reversedIf
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.vsechnyIndexy
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.zastavkySpoje
-import cz.jaro.dpmcb.ui.UiEvent
+import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
-import cz.jaro.dpmcb.ui.destinations.JizdniRadyScreenDestination
-import kotlinx.coroutines.Deferred
+import cz.jaro.dpmcb.ui.vybirator.Vysledek
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalTime
 
 class OdjezdyViewModel(
-    zastavka: String,
-    cas: String? = null,
-    private val doba: Int = 5,
+    val zastavka: String,
+    cas: Cas = Cas.ted,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(
-        OdjezdyState(
-            zacatek = cas.toCas(),
-            konec = cas.toCas() + doba.min,
-            zastavka = zastavka,
-            indexScrollovani = Int.MAX_VALUE / 2
-        )
-    )
+    lateinit var scrollovat: suspend (Int) -> Unit
+    lateinit var navigovat: (Direction) -> Unit
+
+    private val _state = MutableStateFlow(OdjezdyState(cas = cas))
     val state = _state.asStateFlow()
 
-    private val _uiEvent = Channel<UiEvent>()
-    val uiEvent = _uiEvent.receiveAsFlow()
-
-    fun poslatEvent(event: OdjezdyEvent) {
-        when (event) {
-            is OdjezdyEvent.ZmensitCas -> {
-                _state.update {
-                    it.copy(zacatek = it.zacatek - 5.min)
+    val seznam = repo.datum
+        .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
+            println(LocalTime.now().toNanoOfDay())
+            repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
+                .map {
+                    val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
+                    it to spojNaMape
                 }
-            }
-
-            is OdjezdyEvent.ZvetsitCas -> {
-                _state.update {
-                    it.copy(zacatek = it.zacatek + 5.min)
+                .sortedBy { (zast, spojNaMape) ->
+                    zast.cas + (spojNaMape?.delay?.min ?: 0.min)
                 }
-            }
+                .map { (zastavka, spojNaMape) ->
 
-            is OdjezdyEvent.ZmenitCas -> {
-                _state.update {
-                    it.copy(zacatek = event.novejCas, konec = event.novejCas + doba.min)
-                }
-            }
+                    val posledniZastavka = zastavka.zastavkySpoje.last { it.second != Cas.nikdy }
+                    val aktualniNasledujiciZastavka = spojNaMape?.delay?.let { zpozdeni ->
+                        zastavka.zastavkySpoje.find { (it.second + zpozdeni.min) > Cas.ted }
+                    }
 
-            is OdjezdyEvent.KliklNaDetailSpoje -> {
-                viewModelScope.launch {
-                    _uiEvent.send(
-                        UiEvent.Navigovat(
-                            kam = DetailSpojeScreenDestination(
-                                event.spoj
-                            )
-                        )
+                    KartickaState(
+                        konecna = posledniZastavka.first,
+                        cisloLinky = zastavka.linka,
+                        cas = zastavka.cas,
+                        aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
+                        idSpoje = zastavka.spojId,
+                        nizkopodlaznost = zastavka.nizkopodlaznost,
+                        zpozdeni = spojNaMape?.delay,
+                        jedePres = zastavka.zastavkySpoje.map { it.first },
+                        jedeZa = spojNaMape?.delay?.min?.let { zastavka.cas + it - Cas.ted },
                     )
+                }.also {
+                    println(LocalTime.now().toNanoOfDay() to 2)
                 }
-            }
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-            is OdjezdyEvent.KliklNaZjr -> {
-                viewModelScope.launch(Dispatchers.IO) {
-                    _uiEvent.send(
-                        UiEvent.Navigovat(
-                            kam = JizdniRadyScreenDestination(
-                                cisloLinky = event.spoj.cisloLinky,
-                                zastavka = state.value.zastavka,
-                                pristiZastavka = event.spoj.pristiZastavka,
-                            )
+    val filtrovanejSeznam = _state
+        .runningFold(null as Pair<OdjezdyState?, OdjezdyState>?) { minuly, novy ->
+            minuly?.second to novy
+        }
+        .filterNotNull()
+        .combine(seznam) { (minulyState, state), seznam ->
+            seznam
+                ?.filter {
+                    state.filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
+                }
+                ?.filter {
+                    state.filtrZastavky?.let { filtr -> it.jedePres.contains(filtr) } ?: true
+                }
+                ?.also { filtrovanejSeznam ->
+                    if (minulyState == null) return@also
+                    if (minulyState.cas == state.cas && minulyState.filtrZastavky == state.filtrZastavky && minulyState.filtrLinky == state.filtrLinky) return@also
+                    if (filtrovanejSeznam.isEmpty()) return@also
+                    viewModelScope.launch(Dispatchers.Main) {
+                        scrollovat(
+                            filtrovanejSeznam.withIndex().firstOrNull { (_, zast) ->
+                                zast.cas >= state.cas
+                            }?.index ?: filtrovanejSeznam.lastIndex
                         )
-                    )
+                    }
                 }
-            }
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-            is OdjezdyEvent.NacistDalsi -> {
-                _state.update {
-                    it.copy(konec = it.konec + doba.min)
-                }
-            }
+    fun kliklNaDetailSpoje(spoj: KartickaState) {
+        navigovat(
+            DetailSpojeScreenDestination(
+                spoj.idSpoje
+            )
+        )
+    }
 
-            is OdjezdyEvent.NacistPredchozi -> {
-                _state.update {
-                    it.copy(zacatek = it.zacatek - doba.min)
+    fun zmenitCas(cas: Cas) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.update { oldState ->
+                oldState.copy(
+                    cas = cas,
+                )
+            }
+        }
+    }
+
+    fun scrolluje(i: Int) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.update {
+                it.copy(
+                    indexScrollovani = i
+                )
+            }
+        }
+    }
+
+    fun vybral(vysledek: Vysledek) {
+        viewModelScope.launch(Dispatchers.Main) {
+            _state.update { oldState ->
+                when (vysledek.typAdapteru) {
+                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
+                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
+                    else -> return@launch
                 }
             }
         }
     }
 
+    fun zrusil(typAdapteru: TypAdapteru) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _state.update { oldState ->
+                when (typAdapteru) {
+                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
+                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
+                    else -> return@launch
+                }
+            }
+        }
+    }
+
+    fun zmenilKompaktniRezim() {
+        _state.update {
+            it.copy(
+                kompaktniRezim = !it.kompaktniRezim
+            )
+        }
+    }
+
     data class KartickaState(
         val konecna: String,
-        val pristiZastavka: String,
+        val aktualniNasledujiciZastavka: Pair<String, Cas>?,
         val cisloLinky: Int,
         val cas: Cas,
-        val JePosledniZastavka: Boolean,
-        val idSpoje: Long,
+        val idSpoje: String,
         val nizkopodlaznost: Boolean,
-        val zpozdeni: Flow<Int?>,
+        val zpozdeni: Int?,
+        val jedePres: List<String>,
+        val jedeZa: Trvani?,
     )
 
     data class OdjezdyState(
-        val zacatek: Cas,
-        val konec: Cas,
-        val zastavka: String,
-        val seznam: List<Deferred<KartickaState>> = emptyList(),
-        val nacitaSe: Boolean = false,
-        val indexScrollovani: Int,
+        val cas: Cas,
+        val indexScrollovani: Int = 0,
+        val filtrLinky: Int? = null,
+        val filtrZastavky: String? = null,
+        val kompaktniRezim: Boolean = false,
     )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.typDne.zip(state) { typDne, state -> typDne to state }
-                .collect { (typDne, state) ->
-                    println("Collecting!")
-
-                    val spojeAZastavky = repo
-                        .spojeJedouciVTypDneZastavujiciNaZastavceSeZastavkySpoje(typDne, state.zastavka)
-                        .flatMap { (spoj, zastavkySpoje) ->
-                            zastavkySpoje.vsechnyIndexy(state.zastavka).map { index ->
-                                spoj to zastavkySpoje[index]
-                            }
-                        }
-                        .sortedBy { (_, zast) ->
-                            zast.cas
-                        }
-                    println(spojeAZastavky)
-
-                    val indexScrollovani = spojeAZastavky.indexOfFirst { (_, zast) ->
-                        zast.cas >= state.zacatek
-                    } + ((Int.MAX_VALUE / 2) / spojeAZastavky.size) * spojeAZastavky.size
-                    println(indexScrollovani)
-
-                    _state.update { odjezdyState ->
-                        odjezdyState.copy(
-                            seznam = spojeAZastavky.map { (spoj, zastavka) ->
-                                async {
-                                    val index = zastavka.indexNaLince
-                                    val zastavky = spoj.zastavkySpoje()
-                                    val poslZast = zastavky.reversedIf { spoj.smer == Smer.NEGATIVNI }.last { it.cas != Cas.nikdy }
-                                    val spojNaMape = dopravaRepo.spojNaMapePodleSpojeNeboUlozenehoId(spoj, zastavky)
-
-                                    KartickaState(
-                                        konecna = poslZast.nazevZastavky,
-                                        cisloLinky = spoj.cisloLinky,
-                                        cas = zastavka.cas,
-                                        JePosledniZastavka = zastavky.indexOf(poslZast) == index,
-                                        pristiZastavka = zastavky.pristiZastavka(spoj.smer, index)?.nazevZastavky ?: poslZast.nazevZastavky,
-                                        idSpoje = spoj.id,
-                                        nizkopodlaznost = spoj.nizkopodlaznost,
-                                        zpozdeni = spojNaMape.map { it?.delay },
-                                    )
-                                }
-                            }/*.awaitAll()*/,
-                            nacitaSe = false,
-                            indexScrollovani = indexScrollovani
-                        )
-                    }
-                    println("state updated")
-                }
+            while (seznam.value.isNullOrEmpty()) Unit
+            while (!::scrollovat.isInitialized) Unit
+            withContext(Dispatchers.Main) {
+                scrollovat(
+                    seznam.value!!.withIndex().firstOrNull { (_, zast) ->
+                        zast.cas >= cas
+                    }?.index ?: seznam.value!!.lastIndex
+                )
+            }
         }
     }
 }
