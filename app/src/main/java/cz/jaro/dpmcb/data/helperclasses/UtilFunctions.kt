@@ -23,6 +23,7 @@ import cz.jaro.datum_cas.hod
 import cz.jaro.dpmcb.BuildConfig
 import kotlinx.coroutines.flow.Flow
 import java.io.File
+import java.time.LocalDate
 import kotlin.math.sign
 
 object UtilFunctions {
@@ -127,6 +128,8 @@ object UtilFunctions {
                 NetworkCapabilities.TRANSPORT_ETHERNET
             )
         }
+
+    fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 }
 
 typealias NavigateFunction = (Direction) -> Unit
