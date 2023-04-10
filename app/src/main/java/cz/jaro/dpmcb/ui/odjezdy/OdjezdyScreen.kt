@@ -33,10 +33,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Trvani
-import cz.jaro.datum_cas.min
-import cz.jaro.datum_cas.toCas
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
@@ -45,8 +41,8 @@ import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import kotlinx.coroutines.Dispatchers
@@ -54,12 +50,14 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import java.time.Duration
+import java.time.LocalTime
 
 @Destination
 @Composable
 fun Odjezdy(
     zastavka: String,
-    cas: Cas = Cas.ted,
+    cas: LocalTime = ted,
     viewModel: OdjezdyViewModel = koinViewModel {
         ParametersHolder(mutableListOf(zastavka, cas))
     },
@@ -124,7 +122,7 @@ fun OdjezdyScreen(
     state: OdjezdyState,
     seznam: List<KartickaState>?,
     zastavka: String,
-    zmenitCas: (Cas) -> Unit,
+    zmenitCas: (LocalTime) -> Unit,
     zmenilKompaktniRezim: () -> Unit,
     listState: LazyListState,
     zrusil: (TypAdapteru) -> Unit,
@@ -156,13 +154,13 @@ fun OdjezdyScreen(
                 zobrazitDialog = false
             },
             onTimeChange = {
-                zmenitCas(it.toCas())
+                zmenitCas(it)
                 zobrazitDialog = false
             },
             title = {
                 Text("Změnit čas")
             },
-            initialTime = state.cas.toLocalTime()
+            initialTime = state.cas
         )
 
         TextButton(
@@ -342,16 +340,16 @@ private fun Karticka(
                     fontSize = 20.sp
                 )
                 if (zjednodusit) Text(
-                    text = if (jedeZa == null || jedeZa < Trvani.zadne) "${kartickaState.cas}"
+                    text = if (jedeZa == null || jedeZa < Duration.ZERO) "${kartickaState.cas}"
                     else jedeZa.asString(),
-                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Trvani.zadne) MaterialTheme.colorScheme.onSurface
+                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface
                     else barvaZpozdeniTextu(zpozdeni),
                 ) else {
                     Text(
                         text = "${kartickaState.cas}"
                     )
                     if (zpozdeni != null) Text(
-                        text = "${kartickaState.cas + zpozdeni.min}",
+                        text = "${kartickaState.cas.plusMinutes(zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     )
@@ -376,5 +374,17 @@ private fun Karticka(
                 }
             }
         }
+    }
+}
+
+fun Duration.asString(): String {
+    val hodin = toHours()
+    val minut = (toMinutes() % 60).toInt()
+
+    return when {
+        hodin == 0L && minut == 0 -> "<1 min"
+        hodin == 0L -> "$minut min"
+        minut == 0 -> "$hodin hod"
+        else -> "$hodin hod $minut min"
     }
 }

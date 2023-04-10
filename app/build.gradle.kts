@@ -19,7 +19,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.1.0-alpha.1"
+        versionName = "1.1.0-alpha.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -182,6 +182,4 @@ dependencies {
     implementation("com.marosseleng.android:compose-material3-datetime-pickers:0.7.0")
 
     implementation("org.jsoup:jsoup:1.15.1")
-
-    implementation(files("./libs/datum-cas.aar"))
 }

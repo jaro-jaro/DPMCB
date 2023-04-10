@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.datum_cas.Cas
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
@@ -75,10 +74,8 @@ class PraveJedouciViewModel : ViewModel() {
                         JedouciSpoj(
                             cisloLinky = spoj.linka - 325_000,
                             spojId = spoj.id,
-                            cilovaZastavka = zastavky
-                                .last { it.cas != Cas.nikdy }
-                                .let { it.nazev to it.cas },
-                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas },
+                            cilovaZastavka = zastavky.last().let { it.nazev to it.cas!! },
+                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas!! },
                             zpozdeni = spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer

@@ -15,7 +15,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.flowlayout.FlowRow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
@@ -144,7 +143,7 @@ else Column {
                                 text = (spoj.pristiZastavka.second).toString(),
                             )
                             Text(
-                                text = (spoj.pristiZastavka.second + spoj.zpozdeni.min).toString(),
+                                text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
                                 color = barvaZpozdeniTextu(spoj.zpozdeni),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
