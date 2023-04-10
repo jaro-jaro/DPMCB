@@ -200,6 +200,7 @@ interface Dao {
         LEFT JOIN negativni ON negativni.cisloSpoje = spoj.cisloSpoje AND negativni.indexTyhleNaLince = zastavkaspoje.indexZastavkyNaLince
         WHERE (spoj.smer = :pozitivni AND pozitivni.nazevZastavky = :pristiZastavka)
         OR (spoj.smer <> :pozitivni AND negativni.nazevZastavky = :pristiZastavka)
+        AND NOT zastavkaspoje.odjezd IS null
     """
     )
     suspend fun zastavkyJedouciVDatumSPristiZastavkou(
