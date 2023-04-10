@@ -182,6 +182,4 @@ dependencies {
     implementation("com.marosseleng.android:compose-material3-datetime-pickers:0.7.0")
 
     implementation("org.jsoup:jsoup:1.15.1")
-
-    implementation(files("./libs/datum-cas.aar"))
 }

@@ -24,8 +24,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.datum_cas.Datum
-import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.repo
@@ -59,7 +57,7 @@ fun Oblibene(
     OblibeneScreen(
         oblibene = oblibene,
         navigate = navigator::navigate,
-        vybranyDatum = datum.toLocalDate(),
+        vybranyDatum = datum,
     )
 }
 
@@ -155,7 +153,7 @@ fun OblibeneScreen(
                         Text(text = it.aktualniZastavka)
                         Spacer(modifier = Modifier.weight(1F))
                         Text(
-                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                             color = barvaZpozdeniTextu(it.zpozdeni),
                             modifier = Modifier.padding(start = 8.dp)
                         )
@@ -169,7 +167,7 @@ fun OblibeneScreen(
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it.zpozdeni != null) Text(
-                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
@@ -233,7 +231,7 @@ fun OblibeneScreen(
                         Text(text = it.aktualniZastavka)
                         Spacer(modifier = Modifier.weight(1F))
                         Text(
-                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                             color = barvaZpozdeniTextu(it.zpozdeni),
                             modifier = Modifier.padding(start = 8.dp)
                         )
@@ -247,7 +245,7 @@ fun OblibeneScreen(
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it.zpozdeni != null) Text(
-                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
@@ -264,7 +262,7 @@ fun OblibeneScreen(
     }
 }
 
-private fun LocalDate.hezky() = Datum.dnes.toLocalDate().until(this, ChronoUnit.DAYS).let { za ->
+private fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
     when (za) {
         0L -> "dnes"
         1L -> "zítra"

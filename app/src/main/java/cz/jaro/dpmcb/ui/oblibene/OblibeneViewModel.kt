@@ -38,7 +38,7 @@ class OblibeneViewModel : ViewModel() {
                     emit(emptyList())
                 }
         }
-        .combine(repo.datumLocal) { spoje, datum ->
+        .combine(repo.datum) { spoje, datum ->
             spoje.filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV) ->
                 KartickaState(
                     spojId = info.spojId,

@@ -57,18 +57,17 @@ import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.navigation.navigate
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.toDatum
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -131,8 +130,8 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             actions = {
-                                val cas by Cas.tedFlow.collectAsStateWithLifecycle()
-                                Text(cas.toString(true))
+                                val cas by tedFlow.collectAsStateWithLifecycle()
+                                Text(cas.toString())
 
                                 val jeOnline by repo.isOnline.collectAsStateWithLifecycle()
                                 val onlineMod by repo.onlineMod.collectAsStateWithLifecycle()
@@ -236,7 +235,7 @@ class MainActivity : AppCompatActivity() {
                                                 val datum by repo.datum.collectAsStateWithLifecycle()
 
                                                 Text(
-                                                    text = "Používané datum: $datum",
+                                                    text = "Používané datum: ${datum.asString()}",
                                                     modifier = Modifier.padding(all = 16.dp)
                                                 )
                                                 var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
@@ -245,13 +244,13 @@ class MainActivity : AppCompatActivity() {
                                                         zobrazitDialog = false
                                                     },
                                                     onDateChange = {
-                                                        repo.upravitDatum(it.toDatum())
+                                                        repo.upravitDatum(it)
                                                         zobrazitDialog = false
                                                     },
                                                     title = {
                                                         Text("Vybrat nové datum")
                                                     },
-                                                    initialDate = datum.toLocalDate()
+                                                    initialDate = datum
                                                 )
 
                                                 Spacer(

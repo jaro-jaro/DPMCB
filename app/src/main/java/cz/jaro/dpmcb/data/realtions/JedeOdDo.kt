@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.datum_cas.DatumRange
+import java.time.LocalDate
 
 data class JedeOdDo(
     val jede: Boolean,
-    val v: DatumRange,
+    val v: ClosedRange<LocalDate>,
 )
