@@ -44,8 +44,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :tahleZastavka
             AND zastavkaspoje.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )   
         ),
         indexyTyhleZastavky AS (
@@ -65,8 +65,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
             AND spoj.smer <> :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY -zastavkaSpoje.indexZastavkyNaLince
@@ -80,8 +80,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
             AND spoj.smer = :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
@@ -116,8 +116,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :zastavka
             AND spoj.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             GROUP BY spoj.id
         ),
@@ -130,8 +130,8 @@ interface Dao {
             WHERE zastavka.nazevZastavky = :zastavka
             AND spoj.linka = :linka
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             AND ((
                 caskod.jede 
@@ -170,8 +170,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
             AND spoj.smer <> :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY -zastavkaSpoje.indexZastavkyNaLince
@@ -185,8 +185,8 @@ interface Dao {
             WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
             AND spoj.smer = :pozitivni
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
@@ -214,15 +214,15 @@ interface Dao {
     @Query(
         """
         SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
-            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
         JOIN spoj ON spoj.linka = zastavkaspoje.linka AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.linka = zastavkaspoje.linka AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
         JOIN caskod ON caskod.linka = zastavkaspoje.linka AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
         WHERE (
-            NOT zastavkaspoje.odjezd = null
-            OR NOT zastavkaspoje.prijezd = null
+            NOT zastavkaspoje.odjezd IS null
+            OR NOT zastavkaspoje.prijezd IS null
         )
         AND spoj.id = :spojId
         ORDER BY CASE
@@ -241,8 +241,8 @@ interface Dao {
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             WHERE zastavka.nazevZastavky = :zastavka
             AND (
-                NOT zastavkaspoje.odjezd = null
-                OR NOT zastavkaspoje.prijezd = null
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
             )
         ),
         indexyTyhleZastavky AS (
@@ -254,7 +254,7 @@ interface Dao {
         ),
         tahleZastavka AS (
             SELECT zastavka.nazevZastavky nazev, spoj.pevneKody, CASE
-                WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
+                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
                 ELSE zastavkaspoje.odjezd
             END cas, zastavkaspoje.indexZastavkyNaLince, spoj.cisloSpoje, spoj.linka, (spoj.pevnekody LIKE '%24%') nizkopodlaznost 
             FROM zastavkaspoje
@@ -276,15 +276,15 @@ interface Dao {
     @Query(
         """
         SELECT spoj.*, CASE
-            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, zastavka.nazevZastavky nazev FROM spoj
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
         WHERE spoj.id = :spojId
         AND (
-            NOT zastavkaspoje.odjezd = null
-            OR NOT zastavkaspoje.prijezd = null
+            NOT zastavkaspoje.odjezd IS null
+            OR NOT zastavkaspoje.prijezd IS null
         )
         ORDER BY CASE
            WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
@@ -299,7 +299,7 @@ interface Dao {
     @Query(
         """
         SELECT spoj.id, CASE
-            WHEN zastavkaspoje.odjezd = null THEN zastavkaspoje.prijezd
+            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
         END cas, zastavka.nazevZastavky nazev FROM spoj
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.linka = spoj.linka
