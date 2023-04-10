@@ -85,7 +85,7 @@ fun OblibeneScreen(
         }
         else if (!oblibene.nejake) item {
             Text(
-                text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+                text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
