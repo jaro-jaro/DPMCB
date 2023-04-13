@@ -58,6 +58,7 @@ fun Oblibene(
         oblibene = oblibene,
         navigate = navigator::navigate,
         vybranyDatum = datum,
+        zmenitDatum = repo::upravitDatum,
     )
 }
 
@@ -67,6 +68,7 @@ fun OblibeneScreen(
     oblibene: OblibeneState,
     navigate: NavigateFunction,
     vybranyDatum: LocalDate,
+    zmenitDatum: (LocalDate) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
@@ -188,6 +190,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
+                    zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
                     navigate(DetailSpojeDestination(it.spojId))
                 },
                 Modifier
