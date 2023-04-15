@@ -343,7 +343,11 @@ class LoadingActivity : AppCompatActivity() {
         spoje.forEachIndexed { index, spoj ->
             progress = index.toFloat() / spoje.count()
 
-            val zast = zastavkySpoje.filter { it.cisloSpoje == spoj.cisloSpoje }.sortedBy { it.indexZastavkyNaLince }.filter { it.cas != null }
+            val zast = zastavkySpoje
+                .filter { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka }
+                .sortedBy { it.indexZastavkyNaLince }
+                .filter { it.cas != null }
+
             spoje[index] =
                 spoj.copy(smer = if (zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
 
