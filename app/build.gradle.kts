@@ -19,7 +19,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.1.0-alpha.6"
+        versionName = "1.1.0-alpha.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -80,7 +80,7 @@ ksp {
 
 dependencies {
 
-    implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.core:core-ktx:1.10.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0-beta01")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
@@ -122,18 +122,18 @@ dependencies {
 
     // Compose
     implementation("androidx.activity:activity-compose:1.7.0")
-    implementation("androidx.compose.material3:material3:1.1.0-beta01")
+    implementation("androidx.compose.material3:material3:1.1.0-beta02")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
-    implementation("androidx.compose.ui:ui:1.4.0")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.4.0")
+    implementation("androidx.compose.ui:ui:1.4.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.4.1")
 //    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
 //    debugImplementation("androidx.compose.ui:ui-tooling:1.3.3")
 //    debugImplementation("androidx.compose.ui:ui-test-manifest:1.3.3")
     implementation("androidx.navigation:navigation-compose:2.5.3")
-    implementation("androidx.compose.foundation:foundation:1.4.0")
-    implementation("androidx.compose.material:material-icons-core:1.4.0")
-    implementation("androidx.compose.material:material-icons-extended:1.4.0")
+    implementation("androidx.compose.foundation:foundation:1.4.1")
+    implementation("androidx.compose.material:material-icons-core:1.4.1")
+    implementation("androidx.compose.material:material-icons-extended:1.4.1")
 //    implementation("androidx.compose.runtime:runtime-livedata:1.3.3")
 //    implementation("androidx.compose.runtime:runtime-rxjava2:1.3.3")
 //    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.3.3")
