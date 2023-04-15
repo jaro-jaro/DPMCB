@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,7 @@ class DetailSpojeViewModel(
                 caskody = caskody.filterNot {
                     !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
                 }.groupBy({ it.jede }, {
-                    if (it.v.start != it.v.endInclusive) "od ${it.v.start} do ${it.v.endInclusive}" else "${it.v.start}"
+                    if (it.v.start != it.v.endInclusive) "od ${it.v.start.asString()} do ${it.v.endInclusive.asString()}" else it.v.start.asString()
                 }).map { (jede, terminy) ->
                     (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
                 },
