@@ -24,6 +24,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import org.koin.androidx.compose.koinViewModel
+import java.time.LocalDate
 
 @Composable
 @Destination
@@ -47,7 +48,8 @@ fun PraveJedouci(
         upravitFiltry = viewModel::upravitFiltry,
         nacitaSe = nacitaSe,
         jeOnline = jeOnline,
-        navigate = navigator::navigate
+        navigate = navigator::navigate,
+        zmenitDatum = repo::upravitDatum,
     )
 }
 
@@ -61,6 +63,7 @@ fun PraveJedouciScreen(
     nacitaSe: Boolean,
     jeOnline: Boolean,
     navigate: NavigateFunction,
+    zmenitDatum: (LocalDate) -> Unit,
 ) = if (!jeOnline) Text(
     text = "Jste offline :(",
     modifier = Modifier.padding(all = 16.dp),
@@ -135,6 +138,7 @@ else Column {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
+                                    zmenitDatum(LocalDate.now())
                                     navigate(DetailSpojeDestination(spojId = spoj.spojId))
                                 }
                         ) {
