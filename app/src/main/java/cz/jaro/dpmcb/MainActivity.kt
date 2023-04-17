@@ -68,6 +68,7 @@ import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class MainActivity : AppCompatActivity() {
 
@@ -161,6 +162,7 @@ class MainActivity : AppCompatActivity() {
                             drawerContent = {
                                 ModalDrawerSheet {
                                     SuplikAkce.values().forEach { akce ->
+                                        val datum by repo.datum.collectAsStateWithLifecycle()
                                         when (akce) {
                                             SuplikAkce.ZpetnaVazba -> {
                                                 var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
@@ -232,8 +234,6 @@ class MainActivity : AppCompatActivity() {
                                                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                                                 verticalAlignment = CenterVertically
                                             ) {
-                                                val datum by repo.datum.collectAsStateWithLifecycle()
-
                                                 Text(
                                                     text = "Používané datum: ${datum.asString()}",
                                                     modifier = Modifier.padding(all = 16.dp)
@@ -266,7 +266,7 @@ class MainActivity : AppCompatActivity() {
                                                 }
                                             }
 
-                                            else -> NavigationDrawerItem(
+                                            else -> if (akce != SuplikAkce.PraveJedouci || datum == LocalDate.now()) NavigationDrawerItem(
                                                 label = {
                                                     Text(stringResource(akce.jmeno))
                                                 },
