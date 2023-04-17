@@ -12,4 +12,5 @@ data class DetailSpojeInfo(
     val pevneKody: List<String>,
     val nazevSpoje: String,
     val deeplink: String,
+    val vyluka: Boolean,
 )

@@ -214,6 +214,8 @@ class SpojeRepository(ctx: Application) {
     val maPristupKJihu = isOnline.combine(onlineMod) { jeOnline, onlineMod ->
         jeOnline && onlineMod
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+
+    suspend fun maVyluku(spojId: String) = dao.vyluka(spojId.split("-")[1].toInt())
 }
 
 private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody

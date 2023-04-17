@@ -36,6 +36,7 @@ class DetailSpojeViewModel(
     init {
         viewModelScope.launch {
             val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId)
+            val vyluka = repo.maVyluku(spojId)
             _info.value = DetailSpojeInfo(
                 spojId = spojId,
                 zastavky = zastavky,
@@ -56,6 +57,7 @@ class DetailSpojeViewModel(
                 pevneKody = pevneKody,
                 nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
                 deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+                vyluka = vyluka,
             )
         }
     }
