@@ -43,31 +43,27 @@ interface Dao {
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             WHERE zastavka.nazevZastavky = :tahleZastavka
             AND zastavkaspoje.linka = :linka
-            AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
-            )   
+            AND NOT zastavkaspoje.odjezd IS null
         ),
         indexyTyhleZastavky AS (
-            SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince FROM zastavkaSpoje
-             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
-             JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka =  zastavkaspoje.linka
-             WHERE zastavkaSpoje.linka = :linka
-             AND zastavka.nazevZastavky = :tahleZastavka
-             ORDER BY zastavkaSpoje.indexZastavkyNaLince 
+            SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince, odjezd, zastavkaspoje.cisloSpoje, zastavkaspoje.linka FROM zastavkaSpoje
+            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
+            JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka =  zastavkaspoje.linka
+            WHERE zastavkaSpoje.linka = :linka
+            AND zastavka.nazevZastavky = :tahleZastavka
+            AND NOT zastavkaspoje.odjezd IS null
+            ORDER BY zastavkaSpoje.indexZastavkyNaLince 
         ), 
         negativni(max, nazevZastavky, indexNaLince, linka, cisloSpoje) AS (
             SELECT DISTINCT MAX(zastavkaSpoje.indexZastavkyNaLince), zastavka.nazevZastavky, zastavkaspoje.indexZastavkyNaLince, :linka, spoj.cisloSpoje
             FROM zastavkaspoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
-            CROSS JOIN indexyTyhleZastavky tahleZastavka
+            JOIN indexyTyhleZastavky tahleZastavka ON tahleZastavka.cisloSpoje = zastavkaspoje.cisloSpoje AND tahleZastavka.linka = zastavkaspoje.linka
             WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
             AND spoj.smer <> :pozitivni
-            AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
-            )
+            AND NOT zastavkaspoje.prijezd IS null
+            AND NOT tahleZastavka.odjezd IS null
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY -zastavkaSpoje.indexZastavkyNaLince
         ),
@@ -76,13 +72,11 @@ interface Dao {
             FROM zastavkaspoje
             JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.linka = zastavkaspoje.linka
             JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.linka = zastavkaspoje.linka
-            CROSS JOIN indexyTyhleZastavky tahleZastavka
+            JOIN indexyTyhleZastavky tahleZastavka ON tahleZastavka.cisloSpoje = zastavkaspoje.cisloSpoje AND tahleZastavka.linka = zastavkaspoje.linka
             WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
             AND spoj.smer = :pozitivni
-            AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
-            )
+            AND NOT zastavkaspoje.prijezd IS null
+            AND NOT tahleZastavka.odjezd IS null
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
         )
