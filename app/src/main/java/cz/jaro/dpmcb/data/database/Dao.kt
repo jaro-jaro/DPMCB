@@ -308,6 +308,15 @@ interface Dao {
     )
     suspend fun zastavkySpoju(spojIds: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevACas>>
 
+    @Query(
+        """
+        SELECT maVyluku FROM linka
+        WHERE cislo = :linka
+        LIMIT 1
+    """
+    )
+    suspend fun vyluka(linka: Int): Boolean
+
     @Insert
     suspend fun vlozitZastavkySpoje(vararg zastavky: ZastavkaSpoje)
 
