@@ -176,7 +176,7 @@ class NastaveniActivity : AppCompatActivity() {
                                         onClick = {
                                             startActivity(Intent().apply {
                                                 action = Intent.ACTION_VIEW
-                                                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases")
+                                                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/latest")
                                             })
                                         }
                                     ) {
@@ -202,7 +202,7 @@ class NastaveniActivity : AppCompatActivity() {
                                     }
                                 }
                             }
-                            Text("Aktuální verze dat: ${repo.verze}")
+                            Text("Aktuální verze dat: 3.${repo.verze}")
                             Text("Aktuální verze Aplikace: ${BuildConfig.VERSION_NAME}")
                             Text("2019-2023 RO studios; Za zobrazená data neručíme")
                         }
