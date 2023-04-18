@@ -31,6 +31,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.sign
+import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
@@ -136,6 +137,7 @@ object UtilFunctions {
         .flowOn(Dispatchers.IO)
         .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
 
+    operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())
 }
 
 typealias NavigateFunction = (Direction) -> Unit
