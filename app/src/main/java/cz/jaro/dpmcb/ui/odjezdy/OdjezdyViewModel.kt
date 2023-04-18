@@ -6,6 +6,7 @@ import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalTime
+import kotlin.time.Duration.Companion.minutes
 
 class OdjezdyViewModel(
     val zastavka: String,
@@ -65,7 +67,7 @@ class OdjezdyViewModel(
                         nizkopodlaznost = zastavka.nizkopodlaznost,
                         zpozdeni = spojNaMape?.delay,
                         jedePres = zastavka.zastavkySpoje.map { it.first },
-                        jedeZa = spojNaMape?.delay?.let { Duration.between(zastavka.cas.plusMinutes(it.toLong()), ted) },
+                        jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
                     )
                 }.also {
                     println(ted.toNanoOfDay() to 2)
