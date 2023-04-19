@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.realtions.CaskodSPevnymiKody
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
@@ -227,6 +228,16 @@ interface Dao {
     """
     )
     suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojId>
+
+    @Transaction
+    @Query(
+        """
+        SELECT spoj.pevneKody, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM caskod
+        JOIN spoj ON spoj.linka = caskod.linka AND spoj.cisloSpoje = caskod.cisloSpoje
+        WHERE spoj.id = :spojId
+    """
+    )
+    suspend fun pevneKodyCaskody(spojId: String): List<CaskodSPevnymiKody>
 
     @Query(
         """

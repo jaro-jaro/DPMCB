@@ -1,8 +1,6 @@
-package cz.jaro.dpmcb
+package cz.jaro.dpmcb.ui.main
 
-import android.content.Intent
-import android.media.AudioManager
-import android.media.MediaPlayer
+import android.app.Activity
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DepartureBoard
@@ -16,17 +14,24 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.spec.Direction
+import cz.jaro.dpmcb.NastaveniActivity
+import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
+import kotlin.reflect.KClass
 
 
 enum class SuplikAkce(
     @StringRes val jmeno: Int,
     val icon: ImageVector,
     val multiselect: Boolean,
-    val onClick: (navigate: (direction: Direction) -> Unit, zavrit: () -> Unit, activity: MainActivity) -> Unit,
+    inline val onClick: (
+        navigate: (direction: Direction) -> Unit,
+        zavrit: () -> Unit,
+        startActivity: (KClass<out Activity>) -> Unit,
+    ) -> Unit,
 ) {
     /*Spojeni(
         R.string.vyhledat_spojeni,
@@ -117,10 +122,8 @@ enum class SuplikAkce(
         R.string.nastaveni,
         Icons.Default.Settings,
         false,
-        onClick = { _, _, activity ->
-
-            val intent = Intent(activity, NastaveniActivity::class.java)
-            activity.startActivity(intent)
+        onClick = { _, _, startActivity ->
+            startActivity(NastaveniActivity::class as KClass<out Activity>)
         }
     ),
     ZpetnaVazba(
@@ -133,41 +136,6 @@ enum class SuplikAkce(
         R.string.vypnout_aplikaci,
         Icons.Default.PowerSettingsNew,
         false,
-        onClick = { _, zavrit, activity ->
-
-            val mp = MediaPlayer.create(activity, R.raw.koncime)
-            mp.start()
-
-            val audioManager = activity.getSystemService(AudioManager::class.java)
-
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-
-            mp.setOnCompletionListener {
-
-                activity.finish()
-                zavrit()
-            }
-        }
+        onClick = { _, _, _ -> }
     )
 }

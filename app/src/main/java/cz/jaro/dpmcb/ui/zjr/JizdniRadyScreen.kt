@@ -32,13 +32,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 

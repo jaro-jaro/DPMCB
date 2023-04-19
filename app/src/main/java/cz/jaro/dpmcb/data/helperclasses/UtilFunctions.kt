@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavHostController
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +34,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.sign
+import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
@@ -136,6 +140,11 @@ object UtilFunctions {
         .flowOn(Dispatchers.IO)
         .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
 
+    operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
+    operator fun LocalDate.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
+
+    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it) }
+    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it) }
 }
 
 typealias NavigateFunction = (Direction) -> Unit

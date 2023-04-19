@@ -216,6 +216,18 @@ class SpojeRepository(ctx: Application) {
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
 
     suspend fun maVyluku(spojId: String) = dao.vyluka(spojId.split("-")[1].toInt())
+
+    suspend fun spojJedeV(id: String): (LocalDate) -> Boolean {
+        val seznam = dao.pevneKodyCaskody(id).map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
+        return { datum: LocalDate ->
+
+            listOf(
+                (seznam.map { it.first }.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+                seznam.map { it.first }.filter { !it.jede }.none { datum in it.v },
+                datum.jedeDnes(seznam.first().second),
+            ).all { it }
+        }
+    }
 }
 
 private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
