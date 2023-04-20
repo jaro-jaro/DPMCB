@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.Room
-import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -34,7 +33,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.util.Calendar.DAY_OF_WEEK
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.Month
 
 class SpojeRepository(ctx: Application) {
 
@@ -67,7 +68,7 @@ class SpojeRepository(ctx: Application) {
 
     private val db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
 
-    private val _datum = MutableStateFlow(Datum.dnes)
+    private val _datum = MutableStateFlow(LocalDate.now())
     val datum = _datum.asStateFlow()
 
     private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
@@ -104,7 +105,7 @@ class SpojeRepository(ctx: Application) {
             Triple(
                 first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                 map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-            ) { datum: Datum ->
+            ) { datum: LocalDate ->
                 listOf(
                     (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
                     caskody.filter { !it.jede }.none { datum in it.v },
@@ -117,7 +118,7 @@ class SpojeRepository(ctx: Application) {
 
     suspend fun pristiZastavky(linka: Int, tahleZastavka: String) = dao.pristiZastavky(linka + 325_000, tahleZastavka)
 
-    suspend fun zastavkyJedouciVDatumSPristiZastavkou(linka: Int, zastavka: String, pristiZastavka: String, datum: Datum) =
+    suspend fun zastavkyJedouciVDatumSPristiZastavkou(linka: Int, zastavka: String, pristiZastavka: String, datum: LocalDate) =
         dao.zastavkyJedouciVDatumSPristiZastavkou(linka + 325_000, zastavka, pristiZastavka, datum)
             .filter { (_, _, _, pevneKody) ->
                 datum.jedeDnes(pevneKody)
@@ -144,7 +145,7 @@ class SpojeRepository(ctx: Application) {
         db.clearAllTables()
     }
 
-    fun upravitDatum(datum: Datum) {
+    fun upravitDatum(datum: LocalDate) {
         _datum.update { datum }
     }
 
@@ -172,7 +173,7 @@ class SpojeRepository(ctx: Application) {
         ostatni = ostatni.copy(oblibene = _oblibene.value)
     }
 
-    suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum: Datum, zastavka: String): List<ZastavkaSpojeSeSpojemAJehoZastavky> =
+    suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum: LocalDate, zastavka: String): List<ZastavkaSpojeSeSpojemAJehoZastavky> =
         dao.spojeZastavujiciNaIndexechZastavky(zastavka).funguj { 0 }
             .groupBy { "S-${it.linka}-${it.cisloSpoje}" to it.indexZastavkyNaLince }
             .map { Triple(it.key.first, it.key.second, it.value) }.funguj { 2 }
@@ -213,20 +214,22 @@ class SpojeRepository(ctx: Application) {
     val maPristupKJihu = isOnline.combine(onlineMod) { jeOnline, onlineMod ->
         jeOnline && onlineMod
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+
+    suspend fun maVyluku(spojId: String) = dao.vyluka(spojId.split("-")[1].toInt())
 }
 
-private fun Datum.jedeDnes(pevneKody: String) = pevneKody
+private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
     .split(" ")
     .mapNotNull {
         when (it) {
-            "1" -> toCalendar()[DAY_OF_WEEK] in 2..6 && !jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v pracovních dnech
-            "2" -> toCalendar()[DAY_OF_WEEK] == 1 || jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v neděli a ve státem uznané svátky
-            "3" -> toCalendar()[DAY_OF_WEEK] == 2 // jede v pondělí
-            "4" -> toCalendar()[DAY_OF_WEEK] == 3 // jede v úterý
-            "5" -> toCalendar()[DAY_OF_WEEK] == 4 // jede ve středu
-            "6" -> toCalendar()[DAY_OF_WEEK] == 5 // jede ve čtvrtek
-            "7" -> toCalendar()[DAY_OF_WEEK] == 6 // jede v pátek
-            "8" -> toCalendar()[DAY_OF_WEEK] == 7 // jede v sobotu
+            "1" -> dayOfWeek in DayOfWeek.MONDAY..DayOfWeek.FRIDAY && !jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v pracovních dnech
+            "2" -> dayOfWeek == DayOfWeek.SUNDAY || jeStatniSvatekNeboDenPracovnihoKlidu(this) // jede v neděli a ve státem uznané svátky
+            "3" -> dayOfWeek == DayOfWeek.MONDAY // jede v pondělí
+            "4" -> dayOfWeek == DayOfWeek.TUESDAY // jede v úterý
+            "5" -> dayOfWeek == DayOfWeek.WEDNESDAY // jede ve středu
+            "6" -> dayOfWeek == DayOfWeek.THURSDAY // jede ve čtvrtek
+            "7" -> dayOfWeek == DayOfWeek.FRIDAY // jede v pátek
+            "8" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
             "14" -> null // bezbariérově přístupná zastávka
             "19" -> null // ???
             "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce
@@ -235,30 +238,30 @@ private fun Datum.jedeDnes(pevneKody: String) = pevneKody
         }
     }.any { it }
 
-private fun jeStatniSvatekNeboDenPracovnihoKlidu(datum: Datum) = listOf(
-    Datum(1, 1, 1), // Den obnovy samostatného českého státu
-    Datum(1, 1, 1), // Nový rok
-    Datum(1, 5, 1), // Svátek práce
-    Datum(8, 5, 1), // Den vítězství
-    Datum(5, 7, 1), // Den slovanských věrozvěstů Cyrila a Metoděje,
-    Datum(6, 7, 1), // Den upálení mistra Jana Husa
-    Datum(28, 9, 1), // Den české státnosti
-    Datum(28, 10, 1), // Den vzniku samostatného československého státu
-    Datum(17, 11, 1), // Den boje za svobodu a demokracii
-    Datum(24, 12, 1), // Štědrý den
-    Datum(25, 12, 1), // 1. svátek vánoční
-    Datum(26, 12, 1), // 2. svátek vánoční
+private fun jeStatniSvatekNeboDenPracovnihoKlidu(datum: LocalDate) = listOf(
+    LocalDate.of(1, 1, 1), // Den obnovy samostatného českého státu
+    LocalDate.of(1, 1, 1), // Nový rok
+    LocalDate.of(1, 5, 1), // Svátek práce
+    LocalDate.of(1, 5, 8), // Den vítězství
+    LocalDate.of(1, 7, 5), // Den slovanských věrozvěstů Cyrila a Metoděje,
+    LocalDate.of(1, 7, 6), // Den upálení mistra Jana Husa
+    LocalDate.of(1, 9, 28), // Den české státnosti
+    LocalDate.of(1, 10, 28), // Den vzniku samostatného československého státu
+    LocalDate.of(1, 11, 17), // Den boje za svobodu a demokracii
+    LocalDate.of(1, 12, 24), // Štědrý den
+    LocalDate.of(1, 12, 25), // 1. svátek vánoční
+    LocalDate.of(1, 12, 26), // 2. svátek vánoční
 ).any {
-    it.den == datum.den && it.mesic == datum.mesic
+    it.dayOfMonth == datum.dayOfMonth && it.month == datum.month
 } || jeVelkyPatekNeboVelikonocniPondeli(datum)
 
-private fun jeVelkyPatekNeboVelikonocniPondeli(datum: Datum): Boolean {
-    val (velkyPatek, velikonocniPondeli) = polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(datum.rok) ?: return false
+private fun jeVelkyPatekNeboVelikonocniPondeli(datum: LocalDate): Boolean {
+    val (velkyPatek, velikonocniPondeli) = polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(datum.year) ?: return false
 
     return datum == velikonocniPondeli || datum == velkyPatek
 }
 
-fun polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(rok: Int): Pair<Datum, Datum>? {
+fun polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(rok: Int): Pair<LocalDate, LocalDate>? {
 
     // Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data_Velikonoc
 
@@ -283,16 +286,10 @@ fun polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(rok: Int): Pair<Datum, Datum>? 
     val velikonocniNedeleOdZacatkuBrezna = 22 + d + e
 
     val velkyPatekOdZacatkuBrezna = velikonocniNedeleOdZacatkuBrezna - 2
-    val velkyPatekOdZacatkuDubna = velkyPatekOdZacatkuBrezna - 31
-    val velkyPatekJeVDubnu = velkyPatekOdZacatkuDubna > 0
-    val velkyPatek =
-        if (velkyPatekJeVDubnu) Datum(velkyPatekOdZacatkuDubna, 4, rok) else Datum(velkyPatekOdZacatkuBrezna, 3, rok)
+    val velkyPatek = LocalDate.of(rok, Month.MARCH, 1).plusDays(velkyPatekOdZacatkuBrezna - 1L)
 
     val velikonocniPondeliOdZacatkuBrezna = velikonocniNedeleOdZacatkuBrezna + 1
-    val velikonocniPondeliOdZacatkuDubna = velikonocniPondeliOdZacatkuBrezna - 31
-    val velikonocniPondeliJeVDubnu = velikonocniPondeliOdZacatkuDubna > 0
-    val velikonocniPondeli =
-        if (velikonocniPondeliJeVDubnu) Datum(velikonocniPondeliOdZacatkuDubna, 4, rok) else Datum(velikonocniPondeliOdZacatkuBrezna, 3, rok)
+    val velikonocniPondeli = LocalDate.of(rok, Month.MARCH, 1).plusDays(velikonocniPondeliOdZacatkuBrezna - 1L)
 
     return velkyPatek to velikonocniPondeli
 }

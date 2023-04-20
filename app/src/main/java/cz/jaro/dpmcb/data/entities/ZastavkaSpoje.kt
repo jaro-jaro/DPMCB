@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import cz.jaro.datum_cas.Cas
+import java.time.LocalTime
 
 @Entity(primaryKeys = ["linka", "cisloSpoje", "indexZastavkyNaLince"])
 data class ZastavkaSpoje(
@@ -10,8 +10,8 @@ data class ZastavkaSpoje(
     val indexZastavkyNaLince: Int,
     val cisloZastavky: Int,
     val kmOdStartu: Int,
-    val prijezd: Cas?,
-    val odjezd: Cas?,
+    val prijezd: LocalTime?,
+    val odjezd: LocalTime?,
 ) {
-    val cas get() = odjezd ?: prijezd ?: Cas.nikdy
+    val cas get() = odjezd ?: prijezd
 }

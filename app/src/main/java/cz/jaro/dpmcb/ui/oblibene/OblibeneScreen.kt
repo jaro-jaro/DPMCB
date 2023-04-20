@@ -24,32 +24,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.datum_cas.Datum
-import cz.jaro.datum_cas.dni
-import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SuplikAkce
+import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import org.koin.androidx.compose.koinViewModel
-import java.util.Calendar.DAY_OF_WEEK
-import java.util.Calendar.FRIDAY
-import java.util.Calendar.MONDAY
-import java.util.Calendar.SATURDAY
-import java.util.Calendar.SUNDAY
-import java.util.Calendar.THURSDAY
-import java.util.Calendar.TUESDAY
-import java.util.Calendar.WEDNESDAY
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Destination
 @RootNavGraph(start = true)
 @Composable
-fun OblibeneScreen(
+fun Oblibene(
     navigator: DestinationsNavigator,
     viewModel: OblibeneViewModel = koinViewModel(),
 ) {
@@ -57,6 +51,25 @@ fun OblibeneScreen(
     vybrano = SuplikAkce.Oblibene
 
     val oblibene by viewModel.state.collectAsStateWithLifecycle()
+
+    val datum by repo.datum.collectAsStateWithLifecycle()
+
+    OblibeneScreen(
+        oblibene = oblibene,
+        navigate = navigator::navigate,
+        vybranyDatum = datum,
+        zmenitDatum = repo::upravitDatum,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OblibeneScreen(
+    oblibene: OblibeneState,
+    navigate: NavigateFunction,
+    vybranyDatum: LocalDate,
+    zmenitDatum: (LocalDate) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -72,7 +85,7 @@ fun OblibeneScreen(
         }
         else if (!oblibene.nejake) item {
             Text(
-                text = "Zatím nemáte žádná oblíbená spojení. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+                text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
@@ -80,7 +93,7 @@ fun OblibeneScreen(
         }
         else if (oblibene.dnes.isEmpty()) item {
             Text(
-                text = "Dnes nejede žádný z vašich oblíbených spojů",
+                text = "${vybranyDatum.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
@@ -88,7 +101,7 @@ fun OblibeneScreen(
         }
         else item {
             Text(
-                text = "Jede dnes",
+                text = "Jede ${vybranyDatum.hezky()}",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
@@ -99,7 +112,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
+                    navigate(DetailSpojeDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -142,7 +155,7 @@ fun OblibeneScreen(
                         Text(text = it.aktualniZastavka)
                         Spacer(modifier = Modifier.weight(1F))
                         Text(
-                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                             color = barvaZpozdeniTextu(it.zpozdeni),
                             modifier = Modifier.padding(start = 8.dp)
                         )
@@ -156,7 +169,7 @@ fun OblibeneScreen(
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it.zpozdeni != null) Text(
-                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
@@ -177,7 +190,8 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigator.navigate(DetailSpojeScreenDestination(it.spojId))
+                    zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
+                    navigate(DetailSpojeDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -220,7 +234,7 @@ fun OblibeneScreen(
                         Text(text = it.aktualniZastavka)
                         Spacer(modifier = Modifier.weight(1F))
                         Text(
-                            text = "${it.aktualniZastavkaCas + it.zpozdeni.min}",
+                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                             color = barvaZpozdeniTextu(it.zpozdeni),
                             modifier = Modifier.padding(start = 8.dp)
                         )
@@ -234,14 +248,14 @@ fun OblibeneScreen(
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it.zpozdeni != null) Text(
-                        text = "${it.cilovaZastavkaCas + it.zpozdeni.min}",
+                        text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
                 }
                 if (it.dalsiPojede != null) {
                     Text(
-                        text = "Další pojede ${it.dalsiPojede.hezky()}", Modifier
+                        text = "Další pojede ${if (vybranyDatum != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
@@ -251,21 +265,21 @@ fun OblibeneScreen(
     }
 }
 
-private fun Datum.hezky() = (this - Datum.dnes).let { za ->
-    when {
-        za == 1.dni -> "zítra"
-        za == 2.dni -> "pozítří"
-        za < 7.dni -> when (toCalendar()[DAY_OF_WEEK]) {
-            MONDAY -> "v pondělí"
-            TUESDAY -> "v úterý"
-            WEDNESDAY -> "ve středu"
-            THURSDAY -> "ve čtvrtek"
-            FRIDAY -> "v pátek"
-            SATURDAY -> "v sobotu"
-            SUNDAY -> "v neděli"
-            else -> throw IllegalArgumentException("WTF")
+private fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    when (za) {
+        0L -> "dnes"
+        1L -> "zítra"
+        2L -> "pozítří"
+        in 3L..7L -> when (dayOfWeek!!) {
+            DayOfWeek.MONDAY -> "v pondělí"
+            DayOfWeek.TUESDAY -> "v úterý"
+            DayOfWeek.WEDNESDAY -> "ve středu"
+            DayOfWeek.THURSDAY -> "ve čtvrtek"
+            DayOfWeek.FRIDAY -> "v pátek"
+            DayOfWeek.SATURDAY -> "v sobotu"
+            DayOfWeek.SUNDAY -> "v neděli"
         }
 
-        else -> toString()
+        else -> asString()
     }
 }

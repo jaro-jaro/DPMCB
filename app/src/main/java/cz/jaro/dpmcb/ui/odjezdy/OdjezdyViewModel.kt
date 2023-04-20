@@ -3,14 +3,13 @@ package cz.jaro.dpmcb.ui.odjezdy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Trvani
-import cz.jaro.datum_cas.min
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeScreenDestination
-import cz.jaro.dpmcb.ui.vybirator.Vysledek
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
+import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,11 +22,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Duration
 import java.time.LocalTime
+import kotlin.time.Duration.Companion.minutes
 
 class OdjezdyViewModel(
     val zastavka: String,
-    cas: Cas = Cas.ted,
+    cas: LocalTime = ted,
 ) : ViewModel() {
 
     lateinit var scrollovat: suspend (Int) -> Unit
@@ -38,20 +39,23 @@ class OdjezdyViewModel(
 
     val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
-            println(LocalTime.now().toNanoOfDay())
+            println(ted.toNanoOfDay())
             repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
                 .map {
                     val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
                     it to spojNaMape
                 }
                 .sortedBy { (zast, spojNaMape) ->
-                    zast.cas + (spojNaMape?.delay?.min ?: 0.min)
+                    zast.cas.plusMinutes(spojNaMape?.delay?.toLong() ?: 0L)
                 }
                 .map { (zastavka, spojNaMape) ->
 
-                    val posledniZastavka = zastavka.zastavkySpoje.last { it.second != Cas.nikdy }
+                    val posledniZastavka = zastavka.zastavkySpoje.last { it.second != null }
                     val aktualniNasledujiciZastavka = spojNaMape?.delay?.let { zpozdeni ->
-                        zastavka.zastavkySpoje.find { (it.second + zpozdeni.min) > Cas.ted }
+                        zastavka.zastavkySpoje
+                            .filter { it.second != null }
+                            .find { it.second!!.plusMinutes(zpozdeni.toLong()) > ted }
+                            ?.let { it.first to it.second!! }
                     }
 
                     KartickaState(
@@ -63,10 +67,10 @@ class OdjezdyViewModel(
                         nizkopodlaznost = zastavka.nizkopodlaznost,
                         zpozdeni = spojNaMape?.delay,
                         jedePres = zastavka.zastavkySpoje.map { it.first },
-                        jedeZa = spojNaMape?.delay?.min?.let { zastavka.cas + it - Cas.ted },
+                        jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
                     )
                 }.also {
-                    println(LocalTime.now().toNanoOfDay() to 2)
+                    println(ted.toNanoOfDay() to 2)
                 }
         }
         .flowOn(Dispatchers.IO)
@@ -103,13 +107,13 @@ class OdjezdyViewModel(
 
     fun kliklNaDetailSpoje(spoj: KartickaState) {
         navigovat(
-            DetailSpojeScreenDestination(
+            DetailSpojeDestination(
                 spoj.idSpoje
             )
         )
     }
 
-    fun zmenitCas(cas: Cas) {
+    fun zmenitCas(cas: LocalTime) {
         viewModelScope.launch(Dispatchers.Main) {
             _state.update { oldState ->
                 oldState.copy(
@@ -160,26 +164,6 @@ class OdjezdyViewModel(
             )
         }
     }
-
-    data class KartickaState(
-        val konecna: String,
-        val aktualniNasledujiciZastavka: Pair<String, Cas>?,
-        val cisloLinky: Int,
-        val cas: Cas,
-        val idSpoje: String,
-        val nizkopodlaznost: Boolean,
-        val zpozdeni: Int?,
-        val jedePres: List<String>,
-        val jedeZa: Trvani?,
-    )
-
-    data class OdjezdyState(
-        val cas: Cas,
-        val indexScrollovani: Int = 0,
-        val filtrLinky: Int? = null,
-        val filtrZastavky: String? = null,
-        val kompaktniRezim: Boolean = false,
-    )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

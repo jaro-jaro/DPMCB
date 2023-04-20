@@ -2,137 +2,108 @@ package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.AccessibleForward
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.WheelchairPickup
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Datum
-import cz.jaro.datum_cas.Trvani
-import cz.jaro.datum_cas.min
-import cz.jaro.datum_cas.sek
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
-import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
-import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
-import cz.jaro.dpmcb.ui.UiEvent
-import kotlinx.coroutines.channels.Channel
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.LocalDate
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 
 class DetailSpojeViewModel(
     spojId: String,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(
-        DetailSpojeState(
-            zastavky = emptyList(),
-            cisloLinky = -1,
-            nizkopodlaznost = Icons.Default.AccessibleForward,
-            zpozdeni = null,
-            zastavkyNaJihu = null,
-            caskody = emptyList(),
-            pevneKody = emptyList(),
-            nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
-            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId"
-        )
-    )
-    val state = _state.asStateFlow()
-
-    private val _uiEvent = Channel<UiEvent>()
-    val uiEvent = _uiEvent.receiveAsFlow()
-
-    val projetychUseku = combine(_state, Cas.tedFlow, repo.datum) { state, ted, datum ->
-        when {
-            datum > Datum.dnes -> 0
-            datum < Datum.dnes -> state.zastavky.lastIndex
-            state.zastavkyNaJihu != null && state.zpozdeni != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
-            state.zastavky.last().cas < ted -> state.zastavky.lastIndex
-            else -> state.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
-        }.funguj()
-    }
-
-    val vyska = combine(_state, Cas.tedFlow, projetychUseku) { state, ted, projetychUseku ->
-
-        if (projetychUseku == 0) return@combine 0F
-
-        val casOdjezduPosledni = state.zastavky[projetychUseku].cas.plus(state.zpozdeni?.min ?: Trvani.zadne)
-
-        val casPrijezduDoPristi = state.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni?.min ?: Trvani.zadne)
-
-        val dobaJizdy = casPrijezduDoPristi?.minus(casOdjezduPosledni) ?: Trvani.nekonecne
-
-        val ubehlo = ted.minus(casOdjezduPosledni).coerceAtLeast(0.sek)
-
-        UtilFunctions.funguj(
-            ted,
-            projetychUseku,
-            casOdjezduPosledni,
-            casPrijezduDoPristi,
-            dobaJizdy,
-            ubehlo,
-            (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F),
-            projetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
-        )
-        projetychUseku + (ubehlo / dobaJizdy).toFloat().coerceAtMost(1F)
-    }
+    private val _info = MutableStateFlow(null as DetailSpojeInfo?)
+    val info = _info.asStateFlow()
 
     init {
         viewModelScope.launch {
             val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId)
-            _state.update { state ->
-                state.copy(
-                    zastavky = zastavky,
-                    cisloLinky = spoj.linka,
-                    nizkopodlaznost = when {
-                        Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                        spoj.nizkopodlaznost -> Icons.Default.Accessible
-                        Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
-                        else -> Icons.Default.NotAccessible
-                    },
-                    caskody = caskody.filterNot {
-                        !it.jede && it.v.start == Datum(0, 0, 0) && it.v.endInclusive == Datum(0, 0, 0)
-                    }.groupBy({ it.jede }, {
-                        if (it.v.start != it.v.endInclusive) "od ${it.v.start} do ${it.v.endInclusive}" else "${it.v.start}"
-                    }).map { (jede, terminy) ->
-                        (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
-                    },
-                    pevneKody = pevneKody,
-                    nacitaSe = false,
-                )
-            }
-
-            App.dopravaRepo.spojPodleId(spojId).collect { (spojNaMape, detailSpoje) ->
-                _state.update {
-                    it.copy(
-                        zpozdeni = spojNaMape?.delay,
-                        zastavkyNaJihu = detailSpoje?.stations
-                    )
-                }
-            }
+            val vyluka = repo.maVyluku(spojId)
+            _info.value = DetailSpojeInfo(
+                spojId = spojId,
+                zastavky = zastavky,
+                cisloLinky = spoj.linka,
+                nizkopodlaznost = when {
+                    Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                    spoj.nizkopodlaznost -> Icons.Default.Accessible
+                    Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
+                    else -> Icons.Default.NotAccessible
+                },
+                caskody = caskody.filterNot {
+                    !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
+                }.groupBy({ it.jede }, {
+                    if (it.v.start != it.v.endInclusive) "od ${it.v.start.asString()} do ${it.v.endInclusive.asString()}" else it.v.start.asString()
+                }).map { (jede, terminy) ->
+                    (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
+                },
+                pevneKody = pevneKody,
+                nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
+                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+                vyluka = vyluka,
+            )
         }
     }
 
-    data class DetailSpojeState(
-        val zastavky: List<CasNazevSpojId>,
-        val cisloLinky: Int,
-        val nizkopodlaznost: ImageVector,
-        val zpozdeni: Int?,
-        val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
-        val nacitaSe: Boolean = true,
-        val caskody: List<String>,
-        val pevneKody: List<String>,
-        val nazevSpoje: String,
-        val deeplink: String,
-    )
+    val stateZJihu = App.dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
+        DetailSpojeStateZJihu(
+            zpozdeni = spojNaMape?.delay,
+            zastavkyNaJihu = detailSpoje?.stations
+        )
+    }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailSpojeStateZJihu())
+
+    val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
+        when {
+            info == null -> 0
+            datum > LocalDate.now() -> 0
+            datum < LocalDate.now() -> info.zastavky.lastIndex
+            state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            info.zastavky.last().cas < ted -> info.zastavky.lastIndex
+            else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
+        }
+    }
+
+    val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
+
+        if (projetychUseku == 0 || info == null) return@combine 0F
+
+        val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0).minutes
+
+        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni?.minutes ?: 0.minutes)
+
+        val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(casOdjezduPosledni, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
+
+        val ubehlo = Duration.between(casOdjezduPosledni, ted).coerceAtLeast(Duration.ZERO)
+
+//        UtilFunctions.funguj(
+//            ted,
+//            projetychUseku,
+//            casOdjezduPosledni,
+//            casPrijezduDoPristi,
+//            dobaJizdy,
+//            ubehlo,
+//            (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F),
+//            projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
+//        )
+        projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
+    }
 }

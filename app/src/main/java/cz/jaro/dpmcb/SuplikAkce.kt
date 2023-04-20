@@ -17,10 +17,9 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
-import cz.jaro.dpmcb.ui.destinations.MapaScreenDestination
-import cz.jaro.dpmcb.ui.destinations.OblibeneScreenDestination
-import cz.jaro.dpmcb.ui.destinations.PraveJedouciScreenDestination
-import cz.jaro.dpmcb.ui.destinations.VybiratorScreenDestination
+import cz.jaro.dpmcb.ui.destinations.MapaDestination
+import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
+import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 
 
 enum class SuplikAkce(
@@ -47,7 +46,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                OblibeneScreenDestination()
+                cz.jaro.dpmcb.ui.destinations.OblibeneDestination()
             )
             zavrit()
         }
@@ -59,7 +58,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                VybiratorScreenDestination(
+                VybiratorDestination(
                     typ = TypAdapteru.ZASTAVKY,
                     cisloLinky = -1,
                     zastavka = null
@@ -75,7 +74,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                PraveJedouciScreenDestination()
+                PraveJedouciDestination()
             )
             zavrit()
         }
@@ -87,7 +86,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                VybiratorScreenDestination(
+                VybiratorDestination(
                     typ = TypAdapteru.LINKY,
                     cisloLinky = -1,
                     zastavka = null,
@@ -103,7 +102,7 @@ enum class SuplikAkce(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                MapaScreenDestination()
+                MapaDestination()
             )
             zavrit()
         }

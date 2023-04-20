@@ -2,10 +2,9 @@ package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.datum_cas.Cas
 import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +28,7 @@ class PraveJedouciViewModel : ViewModel() {
     private val _nacitaSe = MutableStateFlow(false)
     val nacitaSe = _nacitaSe.asStateFlow()
 
-    fun upravitFiltry(upravit: MutableList<Int>.() -> Unit) {
+    fun upravitFiltry(upravit: MutateListLambda<Int>) {
         _filtry.value = buildList {
             addAll(filtry.value)
             apply(upravit)
@@ -75,10 +74,8 @@ class PraveJedouciViewModel : ViewModel() {
                         JedouciSpoj(
                             cisloLinky = spoj.linka - 325_000,
                             spojId = spoj.id,
-                            cilovaZastavka = zastavky
-                                .last { it.cas != Cas.nikdy }
-                                .let { it.nazev to it.cas },
-                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas },
+                            cilovaZastavka = zastavky.last().let { it.nazev to it.cas!! },
+                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas!! },
                             zpozdeni = spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer
@@ -102,13 +99,4 @@ class PraveJedouciViewModel : ViewModel() {
         emit(repo.cislaLinek())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    data class JedouciSpoj(
-        val cisloLinky: Int,
-        val spojId: String,
-        val cilovaZastavka: Pair<String, Cas>,
-        val pristiZastavka: Pair<String, Cas>,
-        val zpozdeni: Int,
-        val indexNaLince: Int,
-        val smer: Smer,
-    )
 }

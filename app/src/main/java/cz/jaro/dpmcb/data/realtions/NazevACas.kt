@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.datum_cas.Cas
+import java.time.LocalTime
 
 data class NazevACas(
     val nazev: String,
-    val cas: Cas,
+    val cas: LocalTime?,
 )

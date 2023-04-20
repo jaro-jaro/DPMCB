@@ -14,15 +14,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Datum
-import cz.jaro.datum_cas.Trvani
-import cz.jaro.datum_cas.cas
-import cz.jaro.datum_cas.hod
+import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import java.io.File
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import kotlin.math.sign
+import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
@@ -93,22 +102,10 @@ object UtilFunctions {
         kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
 
     fun String?.toCasDivne() = this?.run {
-        slice(0..1).toInt() cas slice(2..3).toInt()
-    } ?: Cas.ted
+        LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())
+    } ?: ted
 
-    fun String.toDatumDivne() = Datum(slice(0..1).toInt(), slice(2..3).toInt(), slice(4..7).toInt())
-
-    fun Trvani.asString(): String {
-        val hodin = hod.toInt()
-        val minut = minus(hodin.hod).min.toInt()
-
-        return when {
-            hodin == 0 && minut == 0 -> "<1 min"
-            hodin == 0 -> "$minut min"
-            minut == 0 -> "$hodin hod"
-            else -> "$hodin hod $minut min"
-        }
-    }
+    fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())
 
     val Context.schemaFile get() = File(filesDir, "schema.pdf")
 
@@ -126,4 +123,28 @@ object UtilFunctions {
                 NetworkCapabilities.TRANSPORT_ETHERNET
             )
         }
+
+    fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
+
+    val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)
+
+    val tedFlow = flow {
+        while (currentCoroutineContext().isActive) {
+            delay(500)
+            emit(LocalTime.now().truncatedTo(ChronoUnit.SECONDS))
+        }
+    }
+        .flowOn(Dispatchers.IO)
+        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
+
+    operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())
 }
+
+typealias NavigateFunction = (Direction) -> Unit
+typealias NavigateBackFunction<R> = (R) -> Unit
+
+typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit
+typealias MutateListLambda<T> = MutableList<T>.() -> Unit
+
+typealias MutateFunction<T> = (MutateLambda<T>) -> Unit
+typealias MutateLambda<T> = (T) -> T

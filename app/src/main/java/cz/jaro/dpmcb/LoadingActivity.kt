@@ -44,8 +44,6 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
-import cz.jaro.datum_cas.Cas
-import cz.jaro.datum_cas.Datum
 import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.VsechnoOstatni
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -80,6 +78,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.time.LocalDate
 import kotlin.system.exitProcess
 
 class LoadingActivity : AppCompatActivity() {
@@ -290,8 +289,8 @@ class LoadingActivity : AppCompatActivity() {
                                 indexZastavkyNaLince = radek[2].toInt(),
                                 cisloZastavky = radek[3].toInt(),
                                 kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
-                                prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne() ?: Cas.nikdy,
-                                odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne() ?: Cas.nikdy,
+                                prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
                             )
 
                             Zastavky -> zastavky += Zastavka(
@@ -344,9 +343,13 @@ class LoadingActivity : AppCompatActivity() {
         spoje.forEachIndexed { index, spoj ->
             progress = index.toFloat() / spoje.count()
 
-            val zast = zastavkySpoje.filter { it.cisloSpoje == spoj.cisloSpoje }.sortedBy { it.indexZastavkyNaLince }
+            val zast = zastavkySpoje
+                .filter { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka }
+                .sortedBy { it.indexZastavkyNaLince }
+                .filter { it.cas != null }
+
             spoje[index] =
-                spoj.copy(smer = if (zast.first().cas <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
+                spoj.copy(smer = if (zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
 
             if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka })
                 casKody += CasKod(
@@ -355,8 +358,8 @@ class LoadingActivity : AppCompatActivity() {
                     kod = 0,
                     indexTerminu = 0,
                     jede = false,
-                    platiOd = Datum(0, 0, 0),
-                    platiDo = Datum(0, 0, 0)
+                    platiOd = LocalDate.of(0, 1, 1),
+                    platiDo = LocalDate.of(0, 1, 1),
                 )
         }
 
