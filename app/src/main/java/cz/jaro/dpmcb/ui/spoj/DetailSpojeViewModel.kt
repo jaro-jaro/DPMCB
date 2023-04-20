@@ -9,9 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 
 class DetailSpojeViewModel(
     spojId: String,
@@ -79,31 +79,31 @@ class DetailSpojeViewModel(
             state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
             info.zastavky.last().cas < ted -> info.zastavky.lastIndex
             else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
-        }.funguj()
+        }
     }
 
     val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
 
         if (projetychUseku == 0 || info == null) return@combine 0F
 
-        val casOdjezduPosledni = info.zastavky[projetychUseku].cas.plusMinutes(state.zpozdeni?.toLong() ?: 0L)
+        val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0).minutes
 
-        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plusMinutes(state.zpozdeni?.toLong() ?: 0L)
+        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni?.minutes ?: 0.minutes)
 
-        val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(it, casOdjezduPosledni) } ?: Duration.ofSeconds(Long.MAX_VALUE)
+        val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(casOdjezduPosledni, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
 
-        val ubehlo = Duration.between(ted, casOdjezduPosledni).coerceAtLeast(Duration.ZERO)
+        val ubehlo = Duration.between(casOdjezduPosledni, ted).coerceAtLeast(Duration.ZERO)
 
-        UtilFunctions.funguj(
-            ted,
-            projetychUseku,
-            casOdjezduPosledni,
-            casPrijezduDoPristi,
-            dobaJizdy,
-            ubehlo,
-            (ubehlo.seconds / dobaJizdy.seconds).toFloat().coerceAtMost(1F),
-            projetychUseku + (ubehlo.seconds / dobaJizdy.seconds).toFloat().coerceAtMost(1F)
-        )
-        projetychUseku + (ubehlo.seconds / dobaJizdy.seconds).toFloat().coerceAtMost(1F)
+//        UtilFunctions.funguj(
+//            ted,
+//            projetychUseku,
+//            casOdjezduPosledni,
+//            casPrijezduDoPristi,
+//            dobaJizdy,
+//            ubehlo,
+//            (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F),
+//            projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
+//        )
+        projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
     }
 }
