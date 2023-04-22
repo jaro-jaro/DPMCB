@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
+import kotlin.math.roundToInt
 
 class PraveJedouciViewModel : ViewModel() {
 
@@ -76,7 +77,7 @@ class PraveJedouciViewModel : ViewModel() {
                             spojId = spoj.id,
                             cilovaZastavka = zastavky.last().let { it.nazev to it.cas!! },
                             pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas!! },
-                            zpozdeni = spojNaMape.delay,
+                            zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer
                         )

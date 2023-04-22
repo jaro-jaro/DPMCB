@@ -25,6 +25,7 @@ import java.time.Duration
 import java.time.LocalDate
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class DetailSpojeViewModel(
     spojId: String,
@@ -64,7 +65,7 @@ class DetailSpojeViewModel(
 
     val stateZJihu = App.dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         DetailSpojeStateZJihu(
-            zpozdeni = spojNaMape?.delay,
+            zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
             zastavkyNaJihu = detailSpoje?.stations
         )
     }
@@ -86,9 +87,9 @@ class DetailSpojeViewModel(
 
         if (projetychUseku == 0 || info == null) return@combine 0F
 
-        val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0).minutes
+        val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 
-        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni?.minutes ?: 0.minutes)
+        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni ?: 0.minutes)
 
         val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(casOdjezduPosledni, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
 

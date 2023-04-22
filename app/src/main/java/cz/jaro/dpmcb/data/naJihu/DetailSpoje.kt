@@ -41,4 +41,5 @@ data class DetailSpoje(
     val serviceNumber: Int?,
     val stations: List<ZastavkaSpojeNaJihu>,
     val vehicleType: String,
+    val realneZpozdeni: Float?,
 )
