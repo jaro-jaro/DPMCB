@@ -67,7 +67,7 @@ class App : Application() {
                     MainViewModel(it.component1(), it.component2(), it.component3())
                 }
                 viewModel {
-                    NastaveniViewModel()
+                    NastaveniViewModel(it[0], it[1], it[2])
                 }
             })
         }
