@@ -14,7 +14,7 @@ Jasný a stručný popis chyby
 Vypište kroky, jak problém reprodukovat
 1. Jděte na '...'
 2. Klikněte na '....'
-3. Sxroolujte k '....'
+3. Scrollujte k '....'
 4. Zde vidíte chybu
 
 **Očekávané chování**
