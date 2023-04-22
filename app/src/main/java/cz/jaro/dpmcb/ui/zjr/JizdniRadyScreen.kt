@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -57,6 +56,8 @@ fun JizdniRady(
     vybrano = SuplikAkce.JizdniRady
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val zobrazitNizkopodlaznostZMinule by viewModel.zobrazitNizkopodlaznostZMinule.collectAsStateWithLifecycle()
+    val nastaveni by viewModel.nstaveni.collectAsStateWithLifecycle()
 
     JizdniRadyScreen(
         cisloLinky = cisloLinky,
@@ -64,6 +65,9 @@ fun JizdniRady(
         pristiZastavka = pristiZastavka,
         state = state,
         navigate = navigator::navigate,
+        zobrazitNizkopodlaznostZMinule = zobrazitNizkopodlaznostZMinule,
+        zachovatNizkopodlaznosti = nastaveni.zachovavatNizkopodlaznost,
+        upravitZobrazeniNizkopodlaznosti = viewModel.upravitZobrazeniNizkopodlaznosti,
     )
 }
 
@@ -74,6 +78,9 @@ fun JizdniRadyScreen(
     pristiZastavka: String,
     state: JizdniRadyState,
     navigate: NavigateFunction,
+    zobrazitNizkopodlaznostZMinule: Boolean,
+    zachovatNizkopodlaznosti: Boolean,
+    upravitZobrazeniNizkopodlaznosti: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -96,21 +103,20 @@ fun JizdniRadyScreen(
             )
         }
 
-        val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
-        val zobrazit by repo.zobrazitNizkopodlaznost.collectAsStateWithLifecycle()
-
-        var zobrazitNizkopodlaznosti by remember { mutableStateOf(if (nastaveni.zachovavatNizkopodlaznost) zobrazit else false) }
+        var zobrazitNizkopodlaznosti by remember {
+            mutableStateOf(if (zachovatNizkopodlaznosti) zobrazitNizkopodlaznostZMinule else false)
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = zobrazitNizkopodlaznosti, onCheckedChange = {
                 zobrazitNizkopodlaznosti = it
-                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
+                upravitZobrazeniNizkopodlaznosti(zobrazitNizkopodlaznosti)
             })
             Text("Zobrazit nízkopodlažnost", Modifier.clickable {
                 zobrazitNizkopodlaznosti = !zobrazitNizkopodlaznosti
-                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
+                upravitZobrazeniNizkopodlaznosti(zobrazitNizkopodlaznosti)
             })
         }
 

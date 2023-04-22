@@ -35,7 +35,6 @@ import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
@@ -100,7 +99,7 @@ fun Odjezdy(
         }
     }
 
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
         state = state,

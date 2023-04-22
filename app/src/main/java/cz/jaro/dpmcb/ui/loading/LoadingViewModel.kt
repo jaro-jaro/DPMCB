@@ -9,7 +9,7 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.VsechnoOstatni
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -38,6 +38,7 @@ import java.io.File
 import java.time.LocalDate
 
 class LoadingViewModel(
+    private val repo: SpojeRepository,
     private val uri: String?,
     private val update: Boolean,
     private val chyba: (() -> Unit) -> Unit,

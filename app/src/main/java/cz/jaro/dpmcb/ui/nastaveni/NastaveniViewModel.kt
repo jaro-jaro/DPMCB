@@ -3,9 +3,10 @@ package cz.jaro.dpmcb.ui.nastaveni
 import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.SpojeRepository
 
 class NastaveniViewModel(
+    private val repo: SpojeRepository,
     private val startActivity: (Intent) -> Unit,
     private val finish: () -> Unit,
     private val loadingActivityIntent: Intent,

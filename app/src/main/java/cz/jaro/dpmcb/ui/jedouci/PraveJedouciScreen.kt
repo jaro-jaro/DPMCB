@@ -17,7 +17,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
@@ -39,7 +38,7 @@ fun PraveJedouci(
     val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
     val filtry by viewModel.filtry.collectAsStateWithLifecycle()
     val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     PraveJedouciScreen(
         cislaLinek = cislaLinek,
@@ -49,7 +48,7 @@ fun PraveJedouci(
         nacitaSe = nacitaSe,
         jeOnline = jeOnline,
         navigate = navigator::navigate,
-        zmenitDatum = repo::upravitDatum,
+        zmenitDatum = viewModel.upravitDatum,
     )
 }
 

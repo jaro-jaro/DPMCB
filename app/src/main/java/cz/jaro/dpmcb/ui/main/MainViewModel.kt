@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.ui.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 
 class MainViewModel(
+    private val repo: SpojeRepository,
     val closeDrawer: () -> Unit,
     link: String?,
     navigate: NavigateFunction,
