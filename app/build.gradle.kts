@@ -5,7 +5,7 @@ plugins {
     id("com.google.gms.google-services")
     //id("dagger.hilt.android.plugin")
 //    id("kotlin-kapt")
-    id("com.google.devtools.ksp") version "1.8.10-1.0.9"
+    id("com.google.devtools.ksp") version "1.8.20-1.0.11"
     id("org.jetbrains.kotlin.plugin.serialization")
     id("kotlin-parcelize")
 }
@@ -53,7 +53,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.2"
+        kotlinCompilerExtensionVersion = "1.4.6"
     }
     packaging {
         resources {
