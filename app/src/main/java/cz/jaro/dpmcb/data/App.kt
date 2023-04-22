@@ -24,50 +24,52 @@ import org.koin.dsl.module
 class App : Application() {
 
     companion object {
-
         var title by mutableStateOf(R.string.app_name)
         var vybrano by mutableStateOf(null as SuplikAkce?)
-
-        lateinit var repo: SpojeRepository
-        lateinit var dopravaRepo: DopravaRepository
     }
 
     override fun onCreate() {
         super.onCreate()
-        repo = SpojeRepository(this)
-        dopravaRepo = DopravaRepository(this)
 
         startKoin {
             androidLogger()
             androidContext(this@App)
             modules(module {
 
+                single {
+                    SpojeRepository(this@App)
+                }
+
+                single {
+                    DopravaRepository(get(), this@App)
+                }
+
                 viewModel {
-                    OdjezdyViewModel(it.component1(), it.component2())
+                    OdjezdyViewModel(get(), get(), it[0], it[1])
                 }
                 viewModel {
-                    JizdniRadyViewModel(it.component1(), it.component2(), it.component3())
+                    JizdniRadyViewModel(get(), it[0], it[1], it[2])
                 }
                 viewModel {
-                    VybiratorViewModel(it.component1(), it.component2(), it.component3(), it.component4(), it.component5())
+                    VybiratorViewModel(get(), it[0], it[1], it[2], it[3], it[4])
                 }
                 viewModel {
-                    DetailSpojeViewModel(it.component1())
+                    DetailSpojeViewModel(get(), get(), it[0])
                 }
                 viewModel {
-                    PraveJedouciViewModel()
+                    PraveJedouciViewModel(get(), get())
                 }
                 viewModel {
-                    OblibeneViewModel()
+                    OblibeneViewModel(get(), get())
                 }
                 viewModel {
-                    LoadingViewModel(it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7], it[8], it[9], it[10], it[11])
+                    LoadingViewModel(get(), it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7], it[8], it[9], it[10], it[11])
                 }
                 viewModel {
-                    MainViewModel(it.component1(), it.component2(), it.component3())
+                    MainViewModel(get(), it[0], it[1], it[2])
                 }
                 viewModel {
-                    NastaveniViewModel(it[0], it[1], it[2], it[3])
+                    NastaveniViewModel(get(), it[0], it[1], it[2], it[3])
                 }
             })
         }

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +23,7 @@ import kotlinx.coroutines.isActive
 import java.time.LocalDate
 
 class DopravaRepository(
+    private val repo: SpojeRepository,
     app: Application,
 ) {
 
