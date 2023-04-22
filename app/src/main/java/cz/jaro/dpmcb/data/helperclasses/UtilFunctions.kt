@@ -104,11 +104,11 @@ object UtilFunctions {
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
 
-    fun String?.toCasDivne() = this?.run {
+    fun String?.toCasDivne() = (this?.run {
         LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())
-    } ?: ted
+    } ?: ted)
 
-    fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())
+    fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
 
     val Context.schemaFile get() = File(filesDir, "schema.pdf")
 
@@ -129,7 +129,7 @@ object UtilFunctions {
 
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
-    val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)
+    val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
 
     val tedFlow = flow {
         while (currentCoroutineContext().isActive) {
@@ -141,7 +141,7 @@ object UtilFunctions {
         .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
 
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
-    operator fun LocalDate.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
+    operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
     inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it) }
     inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it) }
