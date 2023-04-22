@@ -5,12 +5,9 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.darkMode
 import cz.jaro.dpmcb.ui.main.Main
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 
@@ -24,9 +21,8 @@ class MainActivity : AppCompatActivity() {
         val link = intent?.getStringExtra("link")
 
         setContent {
-            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
             DPMCBTheme(
-                if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
+                darkMode()
             ) {
                 Main(link)
             }

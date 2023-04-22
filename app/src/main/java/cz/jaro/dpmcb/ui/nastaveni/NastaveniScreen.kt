@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
-import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.data.Nastaveni
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
@@ -36,7 +35,9 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun Nastaveni() {
+fun Nastaveni(
+    finish: () -> Unit,
+) {
 
     val ctx = LocalContext.current
 
@@ -45,6 +46,7 @@ fun Nastaveni() {
             { intent: Intent ->
                 ctx.startActivity(intent)
             },
+            finish,
             Intent(ctx, LoadingActivity::class.java),
             {
                 Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
@@ -55,11 +57,7 @@ fun Nastaveni() {
     val nastaveni by viewModel.nastaveni.collectAsStateWithLifecycle()
 
     NastaveniScreen(
-        navigateBack = {
-            ctx.startActivity(Intent(ctx, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            })
-        },
+        navigateBack = finish,
         nastaveni = nastaveni,
         aktualizovatAplikaci = viewModel::aktualizovatAplikaci,
         aktualizovatData = viewModel::aktualizovatData,

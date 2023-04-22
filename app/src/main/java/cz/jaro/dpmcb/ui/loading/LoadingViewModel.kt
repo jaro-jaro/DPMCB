@@ -19,15 +19,18 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -43,6 +46,7 @@ class LoadingViewModel(
     private val schemaFile: File,
     private val jrFile: File,
     private val mainActivityIntent: Intent,
+    private val loadingActivityIntent: Intent,
     private val startActivity: (Intent) -> Unit,
     private val packageName: String,
     private val exit: () -> Nothing,
@@ -70,8 +74,11 @@ class LoadingViewModel(
                 fungujeVse()
             } catch (e: Exception) {
                 e.printStackTrace()
+                e.funguj()
                 ukazatChybaDialog()
+                5.funguj()
             }
+            1.funguj()
 
             if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
                 otevriDetailAplikace()
@@ -119,17 +126,22 @@ class LoadingViewModel(
         return null
     }
 
-    private suspend fun ukazatChybaDialog() {
-        var lock = true
+    private suspend fun ukazatChybaDialog(): Nothing {
+        4.funguj()
         coroutineScope {
-            chyba {
-                launch(Dispatchers.IO) {
-                    stahnoutNoveJizdniRady()
-                    lock = false
+            withContext(Dispatchers.Main) {
+                chyba {
+                    startActivity(loadingActivityIntent.apply {
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+                        putExtra("update", true)
+                    })
+                    finish()
                 }
             }
         }
-        while (lock) Unit
+        2.funguj()
+        while (true) Unit
+        3.funguj()
     }
 
     private fun otevriDetailAplikace(): Nothing {
@@ -148,8 +160,12 @@ class LoadingViewModel(
 
     private suspend fun stahnoutNoveJizdniRady() {
 
-        if (!repo.isOnline.value) {
-            potrebaInternet()
+        repo.isOnline.first()
+
+        if (repo.isOnline.value) {
+            withContext(Dispatchers.Main) {
+                potrebaInternet()
+            }
             exit()
         }
 

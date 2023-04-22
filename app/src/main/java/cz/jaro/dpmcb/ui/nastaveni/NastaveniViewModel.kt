@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.App.Companion.repo
 
 class NastaveniViewModel(
     private val startActivity: (Intent) -> Unit,
+    private val finish: () -> Unit,
     private val loadingActivityIntent: Intent,
     private val jsteOfflineToast: () -> Unit,
 ) : ViewModel() {
@@ -23,12 +24,13 @@ class NastaveniViewModel(
     }
 
     fun aktualizovatData() {
-        if (repo.isOnline.value)
+        if (repo.isOnline.value) {
             startActivity(loadingActivityIntent.apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
                 putExtra("update", true)
             })
-        else
+            finish()
+        } else
             jsteOfflineToast()
     }
 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.ExitActivity
+import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
@@ -66,6 +67,7 @@ fun Loading(
             ctx.schemaFile,
             File(ctx.cacheDir, "jr-dpmcb.jaro"),
             Intent(ctx, MainActivity::class.java),
+            Intent(ctx, LoadingActivity::class.java),
             { it: Intent ->
                 ctx.startActivity(it)
             },
@@ -79,10 +81,14 @@ fun Loading(
 
     if (chybaDialog) AlertDialog(
         onDismissRequest = {
-            chybaDialog = false
+            ExitActivity.exitApplication(ctx)
+            exitProcess(0)
         },
         confirmButton = {
-            TextButton(onClick = callback) {
+            TextButton(onClick = {
+                chybaDialog = false
+                callback()
+            }) {
                 Text(text = "Ano")
             }
         },
@@ -99,7 +105,7 @@ fun Loading(
         },
         text = {
             Text(text = "Zdá se, ža vaše jizdní řády uložené v zařízení jsou poškozené! Chcete stáhnout nové?")
-        },
+        }
     )
 
     val state by viewModel.state.collectAsStateWithLifecycle()

@@ -61,13 +61,13 @@ class App : Application() {
                     OblibeneViewModel()
                 }
                 viewModel {
-                    LoadingViewModel(it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7], it[8], it[9], it[10])
+                    LoadingViewModel(it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7], it[8], it[9], it[10], it[11])
                 }
                 viewModel {
                     MainViewModel(it.component1(), it.component2(), it.component3())
                 }
                 viewModel {
-                    NastaveniViewModel(it[0], it[1], it[2])
+                    NastaveniViewModel(it[0], it[1], it[2], it[3])
                 }
             })
         }

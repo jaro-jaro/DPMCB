@@ -42,29 +42,7 @@ class SpojeRepository(ctx: Application) {
     private val scope = MainScope()
 
     private val coroutineScope = MainScope()
-    private val sharedPref: SharedPreferences =
-        ctx.getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-    private lateinit var ostatniField: VsechnoOstatni
-
-    private var ostatni: VsechnoOstatni
-        get() {
-            return if (::ostatniField.isInitialized) ostatniField
-            else sharedPref.getString("ostatni", "{}").let { it ?: "{}" }.let {
-                try {
-                    Json.decodeFromString(it)
-                } catch (e: RuntimeException) {
-                    e.printStackTrace()
-                    return@let VsechnoOstatni()
-                }
-            }
-        }
-        set(value) {
-            val json = Json.encodeToString(value)
-            sharedPref.edit {
-                putString("ostatni", json)
-            }
-            ostatniField = value
-        }
+    private var ostatni by ctx::ostatni
 
     private val db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
 
@@ -74,8 +52,8 @@ class SpojeRepository(ctx: Application) {
     private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
     val onlineMod = _onlineMod.asStateFlow()
 
-    private val _nastaveni = MutableStateFlow(ostatni.nastaveni)
-    val nastaveni = _nastaveni.asStateFlow()
+    private val _nastaveni by ctx::_nastaveni
+    val nastaveni by ctx::nastaveni
 
     private val _zobrazitNizkopodlaznost = MutableStateFlow(ostatni.zobrazitNizkopodlaznost)
     val zobrazitNizkopodlaznost = _zobrazitNizkopodlaznost.asStateFlow()
@@ -325,3 +303,37 @@ private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
             else -> null
         }
     }
+
+private val Context.sharedPref: SharedPreferences
+    get() =
+        getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
+
+private lateinit var ostatniField: VsechnoOstatni
+
+private var Context.ostatni: VsechnoOstatni
+    get() {
+        return if (::ostatniField.isInitialized) ostatniField
+        else sharedPref.getString("ostatni", "{}").let { it ?: "{}" }.let {
+            try {
+                Json.decodeFromString(it)
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                return@let VsechnoOstatni()
+            }
+        }
+    }
+    set(value) {
+        val json = Json.encodeToString(value)
+        sharedPref.edit {
+            putString("ostatni", json)
+        }
+        ostatniField = value
+    }
+
+private lateinit var _nastaveniField: MutableStateFlow<Nastaveni>
+
+private val Context._nastaveni
+    get() = if (::_nastaveniField.isInitialized) _nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
+        _nastaveniField = it
+    }
+val Context.nastaveni get() = _nastaveni.asStateFlow()
