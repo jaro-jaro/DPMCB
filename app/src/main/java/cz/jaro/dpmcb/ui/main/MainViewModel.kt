@@ -11,8 +11,8 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 
 class MainViewModel(
-    private val repo: SpojeRepository,
-    val closeDrawer: () -> Unit,
+    repo: SpojeRepository,
+    closeDrawer: () -> Unit,
     link: String?,
     navigate: NavigateFunction,
 ) : ViewModel() {

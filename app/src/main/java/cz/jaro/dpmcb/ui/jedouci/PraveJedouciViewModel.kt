@@ -28,7 +28,7 @@ class PraveJedouciViewModel(
     private val _filtry = MutableStateFlow(emptyList<Int>())
     val filtry = _filtry.asStateFlow()
 
-    private val _nacitaSe = MutableStateFlow(false)
+    private val _nacitaSe = MutableStateFlow(true)
     val nacitaSe = _nacitaSe.asStateFlow()
 
     val upravitDatum = repo::upravitDatum

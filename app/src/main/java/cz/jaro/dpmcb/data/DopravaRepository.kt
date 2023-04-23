@@ -1,9 +1,6 @@
 package cz.jaro.dpmcb.data
 
-import android.app.Activity
 import android.app.Application
-import android.app.Application.ActivityLifecycleCallbacks
-import android.os.Bundle
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -26,26 +23,6 @@ class DopravaRepository(
     private val repo: SpojeRepository,
     app: Application,
 ) {
-
-    private var lock = true
-
-    init {
-        app.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityStopped(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {
-                lock = false
-            }
-
-            override fun onActivityPaused(activity: Activity) {
-                lock = true
-            }
-        })
-    }
-
     private val scope = MainScope()
 
     private val api = DopravaApi(
@@ -55,7 +32,6 @@ class DopravaRepository(
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
-            while (lock) Unit
             emit(
                 if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                     api.ziskatData("/service/position") ?: emptyList()
@@ -80,7 +56,6 @@ class DopravaRepository(
         detailSpojeFlowMap.getOrPut(spojId) {
             flow<DetailSpoje?> {
                 while (currentCoroutineContext().isActive) {
-                    while (lock) Unit
                     emit(
                         if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                             api.ziskatData("/servicedetail?id=$spojId")
