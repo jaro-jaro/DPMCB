@@ -112,6 +112,7 @@ else Column {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(top = 8.dp)
                     ) {
                         Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
                         Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
