@@ -66,6 +66,7 @@ import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import kotlin.math.roundToInt
 
 @Destination
 @Composable
@@ -87,7 +88,7 @@ fun DetailSpoje(
 
     DetailSpojeScreen(
         info = info,
-        zpozdeni = stateZJihu.zpozdeni,
+        zpozdeni = stateZJihu.zpozdeni?.inWholeSeconds?.div(60F)?.roundToInt(),
         zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
         projetychUseku = projetychUseku,
         vyska = vyska,

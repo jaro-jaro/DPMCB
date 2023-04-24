@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
+import kotlin.math.roundToInt
 
 class OblibeneViewModel(
     private val repo: SpojeRepository,
@@ -49,7 +50,7 @@ class OblibeneViewModel(
                 KartickaState(
                     spojId = info.spojId,
                     linka = info.linka,
-                    zpozdeni = spojNaMape?.delay,
+                    zpozdeni = detailSpoje?.realneZpozdeni?.roundToInt() ?: spojNaMape?.delay,
                     vychoziZastavka = zastavky.first().nazev,
                     vychoziZastavkaCas = zastavky.first().cas,
                     aktualniZastavka = detailSpoje?.stations?.indexOfFirst { !it.passed }?.let { i -> zastavky[i].nazev },

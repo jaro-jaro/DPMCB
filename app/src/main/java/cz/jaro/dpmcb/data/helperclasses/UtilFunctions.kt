@@ -68,6 +68,12 @@ object UtilFunctions {
         else -> ""
     }
 
+    fun Float.toSign() = when (sign) {
+        -1F -> "-"
+        1F -> "+"
+        else -> ""
+    }
+
     @Composable
     fun barvaZpozdeniTextu(zpozdeni: Int) = when {
         zpozdeni > 5 -> Color.Red
@@ -110,7 +116,12 @@ object UtilFunctions {
         kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
 
     fun String?.toCasDivne() = (this?.run {
-        LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())
+        LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())!!
+    } ?: ted)
+
+    fun String?.toCas() = (this?.run {
+        val list = split(":").map(String::toInt)
+        LocalTime.of(list[0], list[1])!!
     } ?: ted)
 
     fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
@@ -135,6 +146,7 @@ object UtilFunctions {
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
     val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
+    val presneTed get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
 
     val tedFlow = flow {
         while (currentCoroutineContext().isActive) {

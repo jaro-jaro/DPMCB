@@ -1,6 +1,8 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -14,9 +16,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
+import java.time.Duration
 import java.time.LocalDate
 
 class DopravaRepository(
@@ -64,6 +68,30 @@ class DopravaRepository(
                     delay(5000)
                 }
             }
+                .runningFold(null as DetailSpoje?) { minule, nove ->
+                    val ted = presneTed
+                    when {
+                        minule == null -> return@runningFold nove
+                        nove == null -> return@runningFold null
+                        else -> {
+                            val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
+                            val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
+                            return@runningFold if (indexMinulePristiZastavky == indexNovePristiZastavky) nove.copy(
+                                realneZpozdeni = minule.realneZpozdeni
+                            )
+                            else if (indexNovePristiZastavky < 1) nove.copy(
+                                realneZpozdeni = minule.realneZpozdeni
+                            )
+                            else {
+                                val praveOdhlasenaZastavka = nove.stations[indexNovePristiZastavky - 1]
+                                nove.copy(
+                                    realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
+                                )
+                            }
+                        }
+                    }
+
+                }
                 .flowOn(Dispatchers.IO)
                 .shareIn(
                     scope = scope,
