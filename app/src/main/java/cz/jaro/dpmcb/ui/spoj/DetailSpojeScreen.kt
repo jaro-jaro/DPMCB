@@ -54,7 +54,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
@@ -85,6 +84,7 @@ fun DetailSpoje(
     val stateZJihu by viewModel.stateZJihu.collectAsStateWithLifecycle()
     val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
     val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
+    val oblibene by viewModel.oblibene.collectAsStateWithLifecycle()
 
     DetailSpojeScreen(
         info = info,
@@ -92,7 +92,10 @@ fun DetailSpoje(
         zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
         projetychUseku = projetychUseku,
         vyska = vyska,
-        navigate = navigator::navigate
+        navigate = navigator::navigate,
+        oblibene = oblibene,
+        pridatOblibeny = viewModel.pridatOblibeny,
+        odebratOblibeny = viewModel.odebratOblibeny,
     )
 }
 
@@ -105,6 +108,9 @@ fun DetailSpojeScreen(
     projetychUseku: Int,
     vyska: Float,
     navigate: NavigateFunction,
+    oblibene: List<String>,
+    pridatOblibeny: (String) -> Unit,
+    odebratOblibeny: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -133,12 +139,11 @@ fun DetailSpojeScreen(
                     )
                 }
                 Spacer(Modifier.weight(1F))
-                val oblibene by repo.oblibene.collectAsStateWithLifecycle()
                 FilledIconToggleButton(checked = info.spojId in oblibene, onCheckedChange = {
                     if (it) {
-                        repo.pridatOblibeny(info.spojId)
+                        pridatOblibeny(info.spojId)
                     } else {
-                        repo.odebratOblibeny(info.spojId)
+                        odebratOblibeny(info.spojId)
                     }
                 }) {
                     IconWithTooltip(Icons.Default.Star, "Oblíbené")

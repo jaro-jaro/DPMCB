@@ -37,11 +37,11 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder

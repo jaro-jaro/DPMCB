@@ -25,8 +25,6 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -35,6 +33,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -52,13 +51,13 @@ fun Oblibene(
 
     val oblibene by viewModel.state.collectAsStateWithLifecycle()
 
-    val datum by repo.datum.collectAsStateWithLifecycle()
+    val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     OblibeneScreen(
         oblibene = oblibene,
         navigate = navigator::navigate,
         vybranyDatum = datum,
-        zmenitDatum = repo::upravitDatum,
+        zmenitDatum = viewModel.upravitDatum,
     )
 }
 

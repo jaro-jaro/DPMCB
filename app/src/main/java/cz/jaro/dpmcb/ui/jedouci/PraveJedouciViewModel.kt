@@ -2,8 +2,8 @@ package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,13 +21,19 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
 import kotlin.math.roundToInt
 
-class PraveJedouciViewModel : ViewModel() {
+class PraveJedouciViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
+) : ViewModel() {
 
     private val _filtry = MutableStateFlow(emptyList<Int>())
     val filtry = _filtry.asStateFlow()
 
-    private val _nacitaSe = MutableStateFlow(false)
+    private val _nacitaSe = MutableStateFlow(true)
     val nacitaSe = _nacitaSe.asStateFlow()
+
+    val upravitDatum = repo::upravitDatum
+    val maPristupKJihu = repo.maPristupKJihu
 
     fun upravitFiltry(upravit: MutateListLambda<Int>) {
         _filtry.value = buildList {

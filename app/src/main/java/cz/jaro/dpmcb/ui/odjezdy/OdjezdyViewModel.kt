@@ -3,8 +3,8 @@ package cz.jaro.dpmcb.ui.odjezdy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
@@ -27,6 +27,8 @@ import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
 class OdjezdyViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
     val zastavka: String,
     cas: LocalTime = ted,
 ) : ViewModel() {
@@ -36,6 +38,8 @@ class OdjezdyViewModel(
 
     private val _state = MutableStateFlow(OdjezdyState(cas = cas))
     val state = _state.asStateFlow()
+
+    val maPristupKJihu = repo.maPristupKJihu
 
     val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->

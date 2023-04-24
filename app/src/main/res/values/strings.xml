@@ -37,4 +37,5 @@
     <string name="prukazka">Průkazka</string>
     <string name="doprava_na_jihu">Doprava na jihu</string>
     <string name="prave_jedouci">Právě jedoucí</string>
+    <string name="title_activity_exit">ExitActivity</string>
 </resources>

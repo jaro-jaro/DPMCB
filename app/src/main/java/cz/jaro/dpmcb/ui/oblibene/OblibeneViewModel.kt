@@ -2,8 +2,8 @@ package cz.jaro.dpmcb.ui.oblibene
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +15,13 @@ import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlin.math.roundToInt
 
-class OblibeneViewModel : ViewModel() {
+class OblibeneViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
+) : ViewModel() {
+
+    val datum = repo.datum
+    val upravitDatum = repo::upravitDatum
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = repo.oblibene

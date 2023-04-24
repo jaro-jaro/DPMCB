@@ -16,13 +16,12 @@ import com.google.accompanist.flowlayout.FlowRow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 
@@ -39,7 +38,7 @@ fun PraveJedouci(
     val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
     val filtry by viewModel.filtry.collectAsStateWithLifecycle()
     val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     PraveJedouciScreen(
         cislaLinek = cislaLinek,
@@ -49,7 +48,7 @@ fun PraveJedouci(
         nacitaSe = nacitaSe,
         jeOnline = jeOnline,
         navigate = navigator::navigate,
-        zmenitDatum = repo::upravitDatum,
+        zmenitDatum = viewModel.upravitDatum,
     )
 }
 
@@ -93,36 +92,27 @@ else Column {
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 16.dp)
+            .padding(horizontal = 8.dp),
+        contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         if (seznam.isEmpty() && filtry.isEmpty()) item {
-            Text("Není vybraná žádná linka", modifier = Modifier.padding(all = 8.dp))
+            Text("Není vybraná žádná linka")
         }
         if (seznam.isEmpty() && filtry.isNotEmpty()) item {
             Text(
-                if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede",
-                modifier = Modifier.padding(all = 8.dp)
+                if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede"
             )
         }
-        items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
-            OutlinedCard(
-                modifier = Modifier
-                    .animateItemPlacement()
-                    .padding(all = 8.dp)
-                    .animateItemPlacement(),
-                onClick = {
-                    if (spoje.size == 1) {
-                        navigate(DetailSpojeDestination(spojId = spoje.first().spojId))
-                    }
-                }
-            ) {
+        seznam.forEach { (cislo, cil, spoje) ->
+            stickyHeader(key = cislo to cil) {
                 Column(
-                    modifier = Modifier
-                        .padding(all = 8.dp)
+                    Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(top = 8.dp)
                     ) {
                         Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
                         Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
@@ -133,29 +123,49 @@ else Column {
                             .height(1.dp)
                             .background(MaterialTheme.colorScheme.onSurface)
                     )
-                    spoje.forEach { spoj ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    zmenitDatum(LocalDate.now())
-                                    navigate(DetailSpojeDestination(spojId = spoj.spojId))
-                                }
-                        ) {
-                            Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
-                            Text(
-                                text = (spoj.pristiZastavka.second).toString(),
-                            )
-                            Text(
-                                text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
-                                color = barvaZpozdeniTextu(spoj.zpozdeni),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                }
+            }
+            items(spoje, key = { it.spojId }) { spoj ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            zmenitDatum(LocalDate.now())
+                            navigate(DetailSpojeDestination(spojId = spoj.spojId))
                         }
-                    }
+                ) {
+                    Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
+                    Text(
+                        text = (spoj.pristiZastavka.second).toString(),
+                    )
+                    Text(
+                        text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
+                        color = barvaZpozdeniTextu(spoj.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
         }
+//        items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
+//            OutlinedCard(
+//                modifier = Modifier
+//                    .animateItemPlacement()
+//                    .animateItemPlacement(),
+//                onClick = {
+//                    if (spoje.size == 1) {
+//                        navigate(DetailSpojeDestination(spojId = spoje.first().spojId))
+//                    }
+//                }
+//            ) {
+//                Column(
+//                    modifier = Modifier
+//                        .padding(all = 8.dp)
+//                ) {
+//                    spoje.forEach { spoj ->
+//                    }
+//                }
+//            }
+//        }
     }
 }
 

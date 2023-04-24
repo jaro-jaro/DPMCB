@@ -7,8 +7,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.WheelchairPickup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
@@ -28,11 +28,17 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class DetailSpojeViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
     spojId: String,
 ) : ViewModel() {
 
     private val _info = MutableStateFlow(null as DetailSpojeInfo?)
     val info = _info.asStateFlow()
+
+    val oblibene = repo.oblibene
+    val pridatOblibeny = repo::pridatOblibeny
+    val odebratOblibeny = repo::odebratOblibeny
 
     init {
         viewModelScope.launch {
@@ -63,7 +69,7 @@ class DetailSpojeViewModel(
         }
     }
 
-    val stateZJihu = App.dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
+    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         DetailSpojeStateZJihu(
             zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
             zastavkyNaJihu = detailSpoje?.stations

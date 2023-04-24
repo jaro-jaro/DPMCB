@@ -89,6 +89,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
+    implementation(platform("androidx.compose:compose-bom:2022.10.00"))
+    implementation("androidx.compose.ui:ui-graphics")
 //    implementation("androidx.preference:preference-ktx:1.2.0")
 
     // Tests
@@ -141,7 +143,11 @@ dependencies {
     // Room
     implementation("androidx.room:room-ktx:2.5.1")
     implementation("androidx.room:room-runtime:2.5.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2022.10.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     annotationProcessor("androidx.room:room-compiler:2.5.1")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     ksp("androidx.room:room-compiler:2.5.1")
     //ksp("androidx.room:room-compiler:2.4.3")
 

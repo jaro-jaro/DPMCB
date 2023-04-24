@@ -34,9 +34,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
@@ -45,6 +43,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -100,7 +99,7 @@ fun Odjezdy(
         }
     }
 
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
         state = state,
@@ -183,6 +182,7 @@ fun OdjezdyScreen(
             .padding(horizontal = 16.dp)
     ) {
         val linkaSource = remember { MutableInteractionSource() }
+        val containerColor = MaterialTheme.colorScheme.onSurfaceVariant
         TextField(
             value = state.filtrLinky?.toString() ?: "Všechny",
             onValueChange = {},
@@ -200,9 +200,12 @@ fun OdjezdyScreen(
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
             },
-            colors = TextFieldDefaults.textFieldColors(
+            colors = TextFieldDefaults.colors(
                 focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
             ),
         )
         val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -234,9 +237,12 @@ fun OdjezdyScreen(
                 }
             },
             interactionSource = zastavkaSource,
-            colors = TextFieldDefaults.textFieldColors(
+            colors = TextFieldDefaults.colors(
                 focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
             ),
         )
         val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))

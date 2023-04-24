@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.ui.vybirator
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import java.text.Normalizer
 
 class VybiratorViewModel(
+    private val repo: SpojeRepository,
     private val typ: TypAdapteru,
     private val cisloLinky: Int = -1,
     private val zastavka: String?,
