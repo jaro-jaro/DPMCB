@@ -371,7 +371,9 @@ class LoadingViewModel(
                     spoje = spoje.distinctBy { it.linka to it.cisloSpoje }.toTypedArray(),
                     ostatni = VsechnoOstatni(
                         verze = verze,
-                        oblibene = repo.oblibene.value
+                        oblibene = repo.oblibene.value,
+                        nastaveni = repo.nastaveni.value,
+                        zobrazitNizkopodlaznost = repo.zobrazitNizkopodlaznost.value
                     )
                 )
             }.join()
