@@ -9,7 +9,7 @@ import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,13 +30,15 @@ class OdjezdyViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
     val zastavka: String,
-    cas: LocalTime = ted,
+    cas: LocalTime,
+    linka: Int?,
+    pres: String?,
 ) : ViewModel() {
 
     lateinit var scrollovat: suspend (Int) -> Unit
     lateinit var navigovat: (Direction) -> Unit
 
-    private val _state = MutableStateFlow(OdjezdyState(cas = cas))
+    private val _state = MutableStateFlow(OdjezdyState(cas = cas, filtrLinky = linka, filtrZastavky = pres))
     val state = _state.asStateFlow()
 
     val maPristupKJihu = repo.maPristupKJihu
@@ -107,9 +109,9 @@ class OdjezdyViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    fun kliklNaDetailSpoje(spoj: KartickaState) {
+    fun kliklNaSpoj(spoj: KartickaState) {
         navigovat(
-            DetailSpojeDestination(
+            SpojDestination(
                 spoj.idSpoje
             )
         )

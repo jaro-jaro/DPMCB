@@ -12,7 +12,7 @@ import cz.jaro.dpmcb.ui.main.SuplikAkce
 import cz.jaro.dpmcb.ui.nastaveni.NastaveniViewModel
 import cz.jaro.dpmcb.ui.oblibene.OblibeneViewModel
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyViewModel
-import cz.jaro.dpmcb.ui.spoj.DetailSpojeViewModel
+import cz.jaro.dpmcb.ui.spoj.SpojViewModel
 import cz.jaro.dpmcb.ui.vybirator.VybiratorViewModel
 import cz.jaro.dpmcb.ui.zjr.JizdniRadyViewModel
 import org.koin.android.ext.koin.androidContext
@@ -45,7 +45,7 @@ class App : Application() {
                 }
 
                 viewModel {
-                    OdjezdyViewModel(get(), get(), it[0], it[1])
+                    OdjezdyViewModel(get(), get(), it[0], it[1], it[2], it[3])
                 }
                 viewModel {
                     JizdniRadyViewModel(get(), it[0], it[1], it[2])
@@ -54,10 +54,10 @@ class App : Application() {
                     VybiratorViewModel(get(), it[0], it[1], it[2], it[3], it[4])
                 }
                 viewModel {
-                    DetailSpojeViewModel(get(), get(), it[0])
+                    SpojViewModel(get(), get(), it[0])
                 }
                 viewModel {
-                    PraveJedouciViewModel(get(), get())
+                    PraveJedouciViewModel(get(), get(), it[0])
                 }
                 viewModel {
                     OblibeneViewModel(get(), get())

@@ -31,15 +31,19 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
 @Composable
 @Destination
 fun PraveJedouci(
-    viewModel: PraveJedouciViewModel = koinViewModel(),
+    filtry: IntArray = intArrayOf(),
+    viewModel: PraveJedouciViewModel = koinViewModel {
+        parametersOf(filtry.toList())
+    },
     navigator: DestinationsNavigator,
 ) {
     App.title = R.string.doprava_na_jihu
@@ -47,14 +51,14 @@ fun PraveJedouci(
 
     val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
     val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
-    val filtry by viewModel.filtry.collectAsStateWithLifecycle()
+    val realneFiltry by viewModel.filtry.collectAsStateWithLifecycle()
     val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
     val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     PraveJedouciScreen(
         cislaLinek = cislaLinek,
         seznam = seznam,
-        filtry = filtry,
+        filtry = realneFiltry,
         upravitFiltry = viewModel::upravitFiltry,
         nacitaSe = nacitaSe,
         jeOnline = jeOnline,
@@ -142,7 +146,7 @@ else Column {
                         .fillMaxWidth()
                         .clickable {
                             zmenitDatum(LocalDate.now())
-                            navigate(DetailSpojeDestination(spojId = spoj.spojId))
+                            navigate(SpojDestination(spojId = spoj.spojId))
                         }
                 ) {
                     Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
@@ -164,7 +168,7 @@ else Column {
 //                    .animateItemPlacement(),
 //                onClick = {
 //                    if (spoje.size == 1) {
-//                        navigate(DetailSpojeDestination(spojId = spoje.first().spojId))
+//                        navigate(SpojDestination(spojId = spoje.first().spojId))
 //                    }
 //                }
 //            ) {

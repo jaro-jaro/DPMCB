@@ -56,6 +56,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
@@ -72,9 +73,11 @@ import java.time.LocalTime
 @Composable
 fun Odjezdy(
     zastavka: String,
-    cas: LocalTime = ted,
+    cas: LocalTime? = null,
+    linka: Int? = null,
+    pres: String? = null,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas))
+        ParametersHolder(mutableListOf(zastavka, cas ?: ted, linka, pres))
     },
     navigator: DestinationsNavigator,
     resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,
@@ -100,9 +103,7 @@ fun Odjezdy(
         viewModel.scrollovat = {
             listState.scrollToItem(it)
         }
-        viewModel.navigovat = {
-            navigator.navigate(it)
-        }
+        viewModel.navigovat = navigator.navigateFunction
     }
 
     LaunchedEffect(listState) {
@@ -125,7 +126,7 @@ fun Odjezdy(
         zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
         listState = listState,
         zrusil = viewModel::zrusil,
-        kliklNaDetailSpoje = viewModel::kliklNaDetailSpoje,
+        kliklNaSpoj = viewModel::kliklNaSpoj,
         navigate = navigator::navigate,
         jeOnline = jeOnline,
     )
@@ -141,7 +142,7 @@ fun OdjezdyScreen(
     zmenilKompaktniRezim: () -> Unit,
     listState: LazyListState,
     zrusil: (TypAdapteru) -> Unit,
-    kliklNaDetailSpoje: (KartickaState) -> Unit,
+    kliklNaSpoj: (KartickaState) -> Unit,
     jeOnline: Boolean,
     navigate: NavigateFunction,
 ) = Column(
@@ -302,7 +303,7 @@ fun OdjezdyScreen(
             key = { it.idSpoje to it.cas },
             itemContent = { karticka ->
                 Karticka(
-                    karticka, kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                    karticka, kliklNaSpoj, state.kompaktniRezim, modifier = Modifier
                         .animateContentSize()
                         .animateItemPlacement()
                 )

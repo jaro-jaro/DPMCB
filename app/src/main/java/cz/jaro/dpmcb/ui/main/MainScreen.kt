@@ -96,7 +96,7 @@ fun Main(
     }
 
     val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController.navigateFunction)
+        parametersOf(closeDrawer, link, navController)
     }
 
     val ctx = LocalContext.current

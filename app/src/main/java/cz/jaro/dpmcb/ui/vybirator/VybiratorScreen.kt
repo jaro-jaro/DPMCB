@@ -35,11 +35,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.delay
@@ -55,7 +55,7 @@ fun Vybirator(
     cisloLinky: Int = -1,
     zastavka: String? = null,
     viewModel: VybiratorViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, { it: Direction -> navigator.navigate(it) }, { it: Vysledek -> resultNavigator.navigateBack(it) }))
+        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, navigator.navigateFunction, { it: Vysledek -> resultNavigator.navigateBack(it) }))
     },
 ) {
     title = when (typ) {

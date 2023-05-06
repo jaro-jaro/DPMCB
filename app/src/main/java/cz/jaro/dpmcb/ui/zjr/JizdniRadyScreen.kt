@@ -35,8 +35,9 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -64,7 +65,7 @@ fun JizdniRady(
         zastavka = zastavka,
         pristiZastavka = pristiZastavka,
         state = state,
-        navigate = navigator::navigate,
+        navigate = navigator.navigateFunction,
         zobrazitNizkopodlaznostZMinule = zobrazitNizkopodlaznostZMinule,
         zachovatNizkopodlaznosti = nastaveni.zachovavatNizkopodlaznost,
         upravitZobrazeniNizkopodlaznosti = viewModel.upravitZobrazeniNizkopodlaznosti,
@@ -183,7 +184,7 @@ fun RadekOdjezdu(
                 text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
-                        navigate(DetailSpojeDestination(spojId = spojId))
+                        navigate(SpojDestination(spojId = spojId))
                     }
                     //.width(32.dp)
                     .padding(4.dp),

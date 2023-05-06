@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.ui.spoj
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 
-data class DetailSpojeInfo(
+data class SpojInfo(
     val spojId: String,
     val zastavky: List<CasNazevSpojId>,
     val cisloLinky: Int,

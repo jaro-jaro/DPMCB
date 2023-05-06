@@ -25,7 +25,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-class DetailSpojeViewModel(
+class SpojViewModel(
     private val repo: SpojeRepository,
     dopravaRepo: DopravaRepository,
     spojId: String,
@@ -35,7 +35,7 @@ class DetailSpojeViewModel(
         val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
         val vyluka = repo.maVyluku(spojId, datum)
         val platnost = repo.platnostLinky(spojId, datum)
-        DetailSpojeInfo(
+        SpojInfo(
             spojId = spojId,
             zastavky = zastavky,
             cisloLinky = spoj.linka,
@@ -64,14 +64,14 @@ class DetailSpojeViewModel(
     val pridatOblibeny = repo::pridatOblibeny
     val odebratOblibeny = repo::odebratOblibeny
 
-    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
-        DetailSpojeStateZJihu(
-            zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
-            zastavkyNaJihu = detailSpoje?.stations
+    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, Spoj) ->
+        SpojStateZJihu(
+            zpozdeni = Spoj?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
+            zastavkyNaJihu = Spoj?.stations
         )
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailSpojeStateZJihu())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpojStateZJihu())
 
     val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
         when {

@@ -32,7 +32,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import java.time.DayOfWeek
@@ -111,7 +111,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigate(DetailSpojeDestination(it.spojId))
+                    navigate(SpojDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -190,7 +190,7 @@ fun OblibeneScreen(
             OutlinedCard(
                 onClick = {
                     zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
-                    navigate(DetailSpojeDestination(it.spojId))
+                    navigate(SpojDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
