@@ -31,6 +31,7 @@ import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.Nastaveni
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -64,7 +65,7 @@ fun Nastaveni(
         upravit = viewModel.upravitNastaveni,
         verze = BuildConfig.VERSION_NAME,
         verzeDat = viewModel.verze,
-        metaVerzeDat = 3,
+        metaVerzeDat = LoadingViewModel.META_VERZE_DAT,
     )
 }
 

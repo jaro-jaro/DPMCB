@@ -19,14 +19,12 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -53,6 +51,10 @@ class LoadingViewModel(
     private val exit: () -> Nothing,
 ) : ViewModel() {
 
+    companion object {
+        const val META_VERZE_DAT = 4
+    }
+
     private val _state = MutableStateFlow("" to (null as Float?))
     val state = _state.asStateFlow()
 
@@ -75,11 +77,8 @@ class LoadingViewModel(
                 fungujeVse()
             } catch (e: Exception) {
                 e.printStackTrace()
-                e.funguj()
                 ukazatChybaDialog()
-                5.funguj()
             }
-            1.funguj()
 
             if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
                 otevriDetailAplikace()
@@ -104,7 +103,7 @@ class LoadingViewModel(
             }
 
             val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-            val reference = database.getReference("data3/verze")
+            val reference = database.getReference("data${META_VERZE_DAT}/verze")
 
             val onlineVerze = withTimeoutOrNull(3_000) {
                 reference.get().await().getValue<Int>()
@@ -118,7 +117,7 @@ class LoadingViewModel(
     }
 
     private suspend fun fungujeVse(): Nothing? {
-        repo.cislaLinek().ifEmpty {
+        repo.cislaLinek(LocalDate.now()).ifEmpty {
             throw Exception()
         }
         if (!schemaFile.exists()) {
@@ -128,7 +127,6 @@ class LoadingViewModel(
     }
 
     private suspend fun ukazatChybaDialog(): Nothing {
-        4.funguj()
         coroutineScope {
             withContext(Dispatchers.Main) {
                 chyba {
@@ -140,9 +138,8 @@ class LoadingViewModel(
                 }
             }
         }
-        2.funguj()
+        println() // !!! DO NOT REMOVE !!! DOESN'T WORK WITHOUT IT !!! *** !!! NEODSTRAŇOVAT !!! BEZ TOHO TO NEFUNGUJE !!!
         while (true) Unit
-        3.funguj()
     }
 
     private fun otevriDetailAplikace(): Nothing {
@@ -155,15 +152,9 @@ class LoadingViewModel(
         exit()
     }
 
-    private fun fungujdeVse() {
-
-    }
-
     private suspend fun stahnoutNoveJizdniRady() {
 
-        repo.isOnline.first()
-
-        if (repo.isOnline.value) {
+        if (!repo.isOnline.value) {
             withContext(Dispatchers.Main) {
                 potrebaInternet()
             }
@@ -183,8 +174,8 @@ class LoadingViewModel(
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val storage = Firebase.storage
         val schemaRef = storage.reference.child("schema.pdf")
-        val jrRef = storage.reference.child("jr-dpmcb.json")
-        val referenceVerze = database.getReference("data3/verze")
+        val jrRef = storage.reference.child("data${META_VERZE_DAT}/jr-dpmcb.json")
+        val referenceVerze = database.getReference("data${META_VERZE_DAT}/verze")
 
         _state.update {
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to 0F
@@ -235,9 +226,8 @@ class LoadingViewModel(
         }
 
         data
-            .map { it.key.toInt() to it.value }
-            .sortedBy { it.first }
-            .forEach { (_, dataLinky) ->
+            .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
+            .forEach { (tab, dataLinky) ->
                 dataLinky.forEach { (typTabulky, tabulka) ->
                     tabulka.forEach radek@{ radek ->
                         indexRadku++
@@ -255,6 +245,7 @@ class LoadingViewModel(
                                 kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
                                 prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
                                 odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                tab = tab,
                             )
 
                             TypyTabulek.Zastavky -> zastavky += Zastavka(
@@ -262,6 +253,7 @@ class LoadingViewModel(
                                 cisloZastavky = radek[1].toInt(),
                                 nazevZastavky = radek[2],
                                 pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                tab = tab,
                             )
 
                             TypyTabulek.Caskody -> casKody += CasKod(
@@ -272,6 +264,7 @@ class LoadingViewModel(
                                 jede = radek[4] == "1",
                                 platiOd = radek[5].toDatumDivne(),
                                 platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
+                                tab = tab,
                             )
 
                             TypyTabulek.Linky -> linky += Linka(
@@ -282,13 +275,15 @@ class LoadingViewModel(
                                 maVyluku = radek[5] != "0",
                                 platnostOd = radek[13].toDatumDivne(),
                                 platnostDo = radek[14].toDatumDivne(),
+                                tab = tab,
                             )
 
                             TypyTabulek.Spoje -> spoje += Spoj(
                                 linka = radek[0].toInt(),
                                 cisloSpoje = radek[1].toInt(),
                                 pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                smer = Smer.POZITIVNI // POZOR!!! DOČASNÁ HODNOTA!!!
+                                smer = Smer.POZITIVNI, // POZOR!!! DOČASNÁ HODNOTA!!!
+                                tab = tab,
                             )
 
                             TypyTabulek.Pevnykod -> Unit
@@ -312,14 +307,14 @@ class LoadingViewModel(
             }
 
             val zast = zastavkySpoje
-                .filter { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka }
+                .filter { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab }
                 .sortedBy { it.indexZastavkyNaLince }
                 .filter { it.cas != null }
 
             spoje[index] =
                 spoj.copy(smer = if (zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
 
-            if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.linka == spoj.linka })
+            if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab })
                 casKody += CasKod(
                     linka = spoj.linka,
                     cisloSpoje = spoj.cisloSpoje,
@@ -328,6 +323,7 @@ class LoadingViewModel(
                     jede = false,
                     platiOd = LocalDate.of(0, 1, 1),
                     platiDo = LocalDate.of(0, 1, 1),
+                    tab = spoj.tab,
                 )
         }
 
@@ -364,14 +360,16 @@ class LoadingViewModel(
         coroutineScope {
             launch {
                 repo.zapsat(
-                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.linka, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
-                    zastavky = zastavky.distinctBy { it.linka to it.cisloZastavky }.toTypedArray(),
-                    casKody = casKody.distinctBy { Quadruple(it.linka, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
-                    linky = linky.distinctBy { it.cislo }.toTypedArray(),
-                    spoje = spoje.distinctBy { it.linka to it.cisloSpoje }.toTypedArray(),
+                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.tab, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
+                    zastavky = zastavky.distinctBy { it.tab to it.cisloZastavky }.toTypedArray(),
+                    casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
+                    linky = linky.distinctBy { it.tab }.toTypedArray(),
+                    spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
                     ostatni = VsechnoOstatni(
                         verze = verze,
-                        oblibene = repo.oblibene.value
+                        oblibene = repo.oblibene.value,
+                        nastaveni = repo.nastaveni.value,
+                        zobrazitNizkopodlaznost = repo.zobrazitNizkopodlaznost.value
                     )
                 )
             }.join()

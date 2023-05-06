@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.compare
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
@@ -12,13 +13,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
 import java.time.Duration
 import java.time.LocalDate
@@ -68,25 +68,29 @@ class DopravaRepository(
                     delay(5000)
                 }
             }
-                .runningFold(null as DetailSpoje?) { minule, nove ->
+                .compare(null) { minule, nove ->
                     val ted = presneTed
                     when {
-                        minule == null -> return@runningFold nove
-                        nove == null -> return@runningFold null
+                        minule == null -> nove
+                        nove == null -> null
                         else -> {
                             val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
                             val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
-                            return@runningFold if (indexMinulePristiZastavky == indexNovePristiZastavky) nove.copy(
-                                realneZpozdeni = minule.realneZpozdeni
-                            )
-                            else if (indexNovePristiZastavky < 1) nove.copy(
-                                realneZpozdeni = minule.realneZpozdeni
-                            )
-                            else {
-                                val praveOdhlasenaZastavka = nove.stations[indexNovePristiZastavky - 1]
-                                nove.copy(
-                                    realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
+                            when {
+                                indexMinulePristiZastavky == indexNovePristiZastavky -> nove.copy(
+                                    realneZpozdeni = minule.realneZpozdeni
                                 )
+
+                                indexNovePristiZastavky < 1 -> nove.copy(
+                                    realneZpozdeni = minule.realneZpozdeni
+                                )
+
+                                else -> {
+                                    val praveOdhlasenaZastavka = nove.stations[indexNovePristiZastavky - 1]
+                                    nove.copy(
+                                        realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
+                                    )
+                                }
                             }
                         }
                     }
@@ -127,13 +131,13 @@ class DopravaRepository(
         }
 
     fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
-        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+        spojDPMCBNaMapePodleId(id).combine(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
 
     @JvmName("spojPodleIdAllowNull")
     fun spojPodleId(id: String?): Flow<Pair<SpojNaMape?, DetailSpoje?>> = id?.let {
-        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+        spojDPMCBNaMapePodleId(id).combine(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
     } ?: flowOf(null to null)

@@ -43,7 +43,6 @@ class OdjezdyViewModel(
 
     val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
-            println(ted.toNanoOfDay())
             repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
                 .map {
                     val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
@@ -73,8 +72,6 @@ class OdjezdyViewModel(
                         jedePres = zastavka.zastavkySpoje.map { it.first },
                         jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
                     )
-                }.also {
-                    println(ted.toNanoOfDay() to 2)
                 }
         }
         .flowOn(Dispatchers.IO)

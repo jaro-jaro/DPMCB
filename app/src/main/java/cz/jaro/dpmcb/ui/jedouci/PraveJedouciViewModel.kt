@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
 class PraveJedouciViewModel(
@@ -77,7 +78,7 @@ class PraveJedouciViewModel(
                 }
                 .asFlow()
                 .mapNotNull { (spojNaMape, detailSpoje) ->
-                    repo.spojSeZastavkamiPodleId(spojNaMape.id).let { (spoj, zastavky) ->
+                    repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now()).let { (spoj, zastavky) ->
                         JedouciSpoj(
                             cisloLinky = spoj.linka - 325_000,
                             spojId = spoj.id,
@@ -103,7 +104,7 @@ class PraveJedouciViewModel(
         }
 
     val cislaLinek = flow {
-        emit(repo.cislaLinek())
+        emit(repo.cislaLinek(LocalDate.now()))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
 }

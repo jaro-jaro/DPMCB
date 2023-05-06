@@ -33,7 +33,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,7 +55,6 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
-import com.ramcosta.composedestinations.navigation.navigate
 import cz.jaro.dpmcb.ExitActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
@@ -75,10 +76,10 @@ fun Main(
 ) {
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
-    val keyboardController = LocalSoftwareKeyboardController.current!!
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    val drawerState = DrawerState(DrawerValue.Open) {
-        keyboardController.hide()
+    val drawerState = rememberDrawerState(DrawerValue.Open) {
+        keyboardController?.hide()
 
         true
     }
@@ -100,9 +101,9 @@ fun Main(
 
     val ctx = LocalContext.current
 
-    val jeOnline by viewModel.jeOnline.collectAsStateWithLifecycle()
-    val onlineMod by viewModel.onlineMod.collectAsStateWithLifecycle()
-    val datum by viewModel.datum.collectAsStateWithLifecycle()
+    val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
+    val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
+    val datum = viewModel.datum.collectAsStateWithLifecycle()
 
     MainScreen(
         startActivity = {
@@ -111,13 +112,13 @@ fun Main(
         startIntent = ctx::startActivity,
         drawerState = drawerState,
         toggleDrawer = {
-            keyboardController.hide()
+            keyboardController?.hide()
             if (drawerState.isClosed) openDrawer() else closeDrawer()
         },
         closeDrawer = closeDrawer,
         jeOnline = jeOnline,
         onlineMod = onlineMod,
-        navigate = navController::navigate,
+        navigate = navController.navigateFunction,
         showToast = { text, duration ->
             Toast.makeText(ctx, text, duration).show()
         },
@@ -154,13 +155,13 @@ fun MainScreen(
     drawerState: DrawerState,
     toggleDrawer: () -> Unit,
     closeDrawer: () -> Unit,
-    jeOnline: Boolean,
-    onlineMod: Boolean,
+    jeOnline: State<Boolean>,
+    onlineMod: State<Boolean>,
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
     tuDuDum: () -> Unit,
     upravitOnlineMod: (Boolean) -> Unit,
-    datum: LocalDate,
+    datum: State<LocalDate>,
     upravitDatum: (LocalDate) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -187,18 +188,18 @@ fun MainScreen(
                     Text(cas.toString())
 
                     IconButton(onClick = {
-                        if (!jeOnline) return@IconButton
+                        if (!jeOnline.value) return@IconButton
 
-                        upravitOnlineMod(!onlineMod)
+                        upravitOnlineMod(!onlineMod.value)
                     }) {
                         UtilFunctions.IconWithTooltip(
-                            imageVector = if (jeOnline && onlineMod) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            imageVector = if (jeOnline.value && onlineMod.value) Icons.Default.Wifi else Icons.Default.WifiOff,
                             contentDescription = when {
-                                jeOnline && onlineMod -> "Online, kliknutím přepnete do offline módu"
-                                jeOnline && !onlineMod -> "Offline, kliknutím vypnete offline méó"
+                                jeOnline.value && onlineMod.value -> "Online, kliknutím přepnete do offline módu"
+                                jeOnline.value && !onlineMod.value -> "Offline, kliknutím vypnete offline méó"
                                 else -> "Offline, nejste připojeni k internetu"
                             },
-                            tint = if (jeOnline) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                            tint = if (jeOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                         )
                     }
                 })
@@ -270,7 +271,7 @@ fun MainScreen(
                                         },
                                         selected = false,
                                         onClick = {
-                                            if (jeOnline)
+                                            if (jeOnline.value)
                                                 zobrazitDialog = true
                                             else
                                                 showToast("Jste offline!", Toast.LENGTH_SHORT)
@@ -300,7 +301,7 @@ fun MainScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Používané datum: ${datum.asString()}",
+                                        text = "Používané datum: ${datum.value.asString()}",
                                         modifier = Modifier.padding(all = 16.dp)
                                     )
                                     var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
@@ -315,7 +316,7 @@ fun MainScreen(
                                         title = {
                                             Text("Vybrat nové datum")
                                         },
-                                        initialDate = datum
+                                        initialDate = datum.value
                                     )
 
                                     Spacer(
@@ -331,7 +332,7 @@ fun MainScreen(
                                     }
                                 }
 
-                                else -> if (akce != SuplikAkce.PraveJedouci || datum == LocalDate.now()) NavigationDrawerItem(
+                                else -> if (akce != SuplikAkce.PraveJedouci || datum.value == LocalDate.now()) NavigationDrawerItem(
                                     label = {
                                         Text(stringResource(akce.jmeno))
                                     },

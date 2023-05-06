@@ -13,14 +13,12 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import kotlin.random.Random
@@ -29,45 +27,42 @@ import kotlin.time.Duration.Companion.seconds
 
 class DetailSpojeViewModel(
     private val repo: SpojeRepository,
-    private val dopravaRepo: DopravaRepository,
+    dopravaRepo: DopravaRepository,
     spojId: String,
 ) : ViewModel() {
 
-    private val _info = MutableStateFlow(null as DetailSpojeInfo?)
-    val info = _info.asStateFlow()
+    val info = repo.datum.map { datum ->
+        val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
+        val vyluka = repo.maVyluku(spojId, datum)
+        val platnost = repo.platnostLinky(spojId, datum)
+        DetailSpojeInfo(
+            spojId = spojId,
+            zastavky = zastavky,
+            cisloLinky = spoj.linka,
+            nizkopodlaznost = when {
+                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                spoj.nizkopodlaznost -> Icons.Default.Accessible
+                Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
+                else -> Icons.Default.NotAccessible
+            },
+            caskody = caskody.filterNot {
+                !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
+            }.groupBy({ it.jede }, {
+                if (it.v.start != it.v.endInclusive) "od ${it.v.start.asString()} do ${it.v.endInclusive.asString()}" else it.v.start.asString()
+            }).map { (jede, terminy) ->
+                (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
+            },
+            pevneKody = pevneKody,
+            linkaKod = "JŘ linky platí od ${platnost.platnostOd.asString()} do ${platnost.platnostDo.asString()}",
+            nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
+            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+            vyluka = vyluka,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     val oblibene = repo.oblibene
     val pridatOblibeny = repo::pridatOblibeny
     val odebratOblibeny = repo::odebratOblibeny
-
-    init {
-        viewModelScope.launch {
-            val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId)
-            val vyluka = repo.maVyluku(spojId)
-            _info.value = DetailSpojeInfo(
-                spojId = spojId,
-                zastavky = zastavky,
-                cisloLinky = spoj.linka,
-                nizkopodlaznost = when {
-                    Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                    spoj.nizkopodlaznost -> Icons.Default.Accessible
-                    Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
-                    else -> Icons.Default.NotAccessible
-                },
-                caskody = caskody.filterNot {
-                    !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
-                }.groupBy({ it.jede }, {
-                    if (it.v.start != it.v.endInclusive) "od ${it.v.start.asString()} do ${it.v.endInclusive.asString()}" else it.v.start.asString()
-                }).map { (jede, terminy) ->
-                    (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
-                },
-                pevneKody = pevneKody,
-                nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
-                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
-                vyluka = vyluka,
-            )
-        }
-    }
 
     val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         DetailSpojeStateZJihu(

@@ -10,6 +10,7 @@ data class DetailSpojeInfo(
     val nizkopodlaznost: ImageVector,
     val caskody: List<String>,
     val pevneKody: List<String>,
+    val linkaKod: String,
     val nazevSpoje: String,
     val deeplink: String,
     val vyluka: Boolean,
