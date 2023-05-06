@@ -12,17 +12,18 @@ import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.Normalizer
+import java.time.LocalDate
 
 class VybiratorViewModel(
     private val repo: SpojeRepository,
@@ -33,16 +34,16 @@ class VybiratorViewModel(
     private val navigateBack: NavigateBackFunction<Vysledek>,
 ) : ViewModel() {
 
-    private val puvodniSeznam = viewModelScope.async {
+    private val puvodniSeznam = repo.datum.map { datum ->
         when (typ) {
-            TypAdapteru.ZASTAVKY -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            TypAdapteru.LINKY -> repo.cislaLinek().sorted().map { it.toString() }
-            TypAdapteru.ZASTAVKY_LINKY -> repo.nazvyZastavekLinky(cisloLinky).distinct()
-            TypAdapteru.PRISTI_ZASTAVKA -> pristiZastavky(cisloLinky, zastavka!!)
-            TypAdapteru.ZASTAVKY_ZPET_1 -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            TypAdapteru.ZASTAVKA_ZPET_2 -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            TypAdapteru.LINKA_ZPET -> repo.cislaLinek().sorted().map { it.toString() }
-            TypAdapteru.ZASTAVKA_ZPET -> repo.zastavky().sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+            TypAdapteru.ZASTAVKY -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+            TypAdapteru.LINKY -> repo.cislaLinek(datum).sorted().map { it.toString() }
+            TypAdapteru.ZASTAVKY_LINKY -> repo.nazvyZastavekLinky(cisloLinky, datum).distinct()
+            TypAdapteru.PRISTI_ZASTAVKA -> repo.pristiZastavky(cisloLinky, zastavka!!, datum)
+            TypAdapteru.ZASTAVKY_ZPET_1 -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+            TypAdapteru.ZASTAVKA_ZPET_2 -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+            TypAdapteru.LINKA_ZPET -> repo.cislaLinek(datum).sorted().map { it.toString() }
+            TypAdapteru.ZASTAVKA_ZPET -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
         }
     }
 
@@ -53,16 +54,16 @@ class VybiratorViewModel(
         _hledani.value = hledani
     }
 
-    val seznam = _hledani.map { filtr ->
-        if (filtr.isBlank()) puvodniSeznam.await()
-        else puvodniSeznam.await().filter { polozka ->
+    val seznam = _hledani.combine(puvodniSeznam) { filtr, puvodniSeznam ->
+        if (filtr.isBlank()) puvodniSeznam
+        else puvodniSeznam.filter { polozka ->
             filtr.lowercase().oddelatDiakritiku().split(" ").all { slovoHledani ->
                 polozka.lowercase().oddelatDiakritiku().split(" ").any { slovoPolozky ->
                     slovoPolozky.startsWith(slovoHledani)
                 }
             }
         }.also { seznam ->
-            if (seznam.count() == 1) hotovo(seznam.first())
+            if (seznam.count() == 1) hotovo(seznam.first(), repo.datum.value)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -79,19 +80,15 @@ class VybiratorViewModel(
         _hledani.value = co.replace("\n", "")
     }
 
-    fun kliklNaVecZeSeznamu(vec: String) = hotovo(vec)
+    fun kliklNaVecZeSeznamu(vec: String) = hotovo(vec, repo.datum.value)
 
-    fun kliklEnter() = hotovo(seznam.value.first())
+    fun kliklEnter() = hotovo(seznam.value.first(), repo.datum.value)
 
     private fun String.oddelatDiakritiku() = Normalizer.normalize(this, Normalizer.Form.NFD).replace("\\p{Mn}+".toRegex(), "")
 
-    private suspend fun pristiZastavky(
-        cisloLinky: Int,
-        zastavka: String,
-    ) = repo.pristiZastavky(cisloLinky, zastavka)
-
     private fun hotovo(
         vysledek: String,
+        datum: LocalDate,
     ) {
 //        if (job != null && typ.name.contains("ZPET")) return
         when (typ) {
@@ -111,7 +108,7 @@ class VybiratorViewModel(
             )
 
             TypAdapteru.ZASTAVKY_LINKY -> viewModelScope.launch(Dispatchers.IO) {
-                pristiZastavky(cisloLinky, vysledek).let { pz: List<String> ->
+                repo.pristiZastavky(cisloLinky, vysledek, datum).let { pz: List<String> ->
                     withContext(Dispatchers.Main) {
                         navigate(
                             if (pz.size == 1)

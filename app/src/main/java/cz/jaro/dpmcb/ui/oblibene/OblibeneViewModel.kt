@@ -28,13 +28,15 @@ class OblibeneViewModel(
         .flatMapLatest { oblibene ->
             oblibene
                 .map { id ->
-                    println(id)
                     dopravaRepo.spojPodleId(id)
                 }
                 .combine {
+                    it
+                }
+                .combine(repo.datum) { it, datum ->
                     it.zip(oblibene) { (spojNaMape, detailSpoje), id ->
                         val spoj = try {
-                            repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id)
+                            repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, datum)
                         } catch (e: Exception) {
                             return@zip null
                         }

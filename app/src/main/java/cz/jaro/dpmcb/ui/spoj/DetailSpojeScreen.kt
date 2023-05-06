@@ -404,6 +404,7 @@ fun DetailSpojeScreen(
                     info.caskody.forEach {
                         Text(it)
                     }
+                    Text(info.linkaKod)
                 }
             }
         }

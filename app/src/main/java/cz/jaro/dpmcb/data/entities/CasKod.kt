@@ -3,12 +3,15 @@ package cz.jaro.dpmcb.data.entities
 import androidx.room.Entity
 import java.time.LocalDate
 
-@Entity(primaryKeys = ["linka", "cisloSpoje", "kod", "indexTerminu"])
+@Entity(primaryKeys = ["tab", "cisloSpoje", "kod", "indexTerminu"])
 data class CasKod(
-    val linka: Int,
+// Primary keys
+    val tab: String,
     val cisloSpoje: Int,
     val kod: Int,
     val indexTerminu: Int,
+// Other
+    val linka: Int,
     val jede: Boolean,
     val platiOd: LocalDate,
     val platiDo: LocalDate,

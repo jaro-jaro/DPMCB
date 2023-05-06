@@ -3,11 +3,14 @@ package cz.jaro.dpmcb.data.entities
 import androidx.room.Entity
 import java.time.LocalTime
 
-@Entity(primaryKeys = ["linka", "cisloSpoje", "indexZastavkyNaLince"])
+@Entity(primaryKeys = ["tab", "cisloSpoje", "indexZastavkyNaLince"])
 data class ZastavkaSpoje(
-    val linka: Int,
+// Primary keys
+    val tab: String,
     val cisloSpoje: Int,
     val indexZastavkyNaLince: Int,
+// Other
+    val linka: Int,
     val cisloZastavky: Int,
     val kmOdStartu: Int,
     val prijezd: LocalTime?,
