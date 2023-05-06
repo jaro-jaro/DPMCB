@@ -86,7 +86,7 @@ class SpojViewModel(
 
     val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
 
-        if (projetychUseku == 0 || info == null) return@combine 0F
+        if (info == null) return@combine 0F
 
         val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 
