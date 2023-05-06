@@ -161,9 +161,7 @@ class LoadingViewModel(
 
     private suspend fun stahnoutNoveJizdniRady() {
 
-        repo.isOnline.first()
-
-        if (repo.isOnline.value) {
+        if (!repo.isOnline.value) {
             withContext(Dispatchers.Main) {
                 potrebaInternet()
             }
