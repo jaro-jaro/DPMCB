@@ -4,7 +4,13 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -13,7 +19,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +56,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
@@ -56,9 +73,11 @@ import java.time.LocalTime
 @Composable
 fun Odjezdy(
     zastavka: String,
-    cas: LocalTime = ted,
+    cas: LocalTime? = null,
+    linka: Int? = null,
+    pres: String? = null,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas))
+        ParametersHolder(mutableListOf(zastavka, cas ?: ted, linka, pres))
     },
     navigator: DestinationsNavigator,
     resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,
@@ -84,9 +103,7 @@ fun Odjezdy(
         viewModel.scrollovat = {
             listState.scrollToItem(it)
         }
-        viewModel.navigovat = {
-            navigator.navigate(it)
-        }
+        viewModel.navigovat = navigator.navigateFunction
     }
 
     LaunchedEffect(listState) {
@@ -109,7 +126,7 @@ fun Odjezdy(
         zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
         listState = listState,
         zrusil = viewModel::zrusil,
-        kliklNaDetailSpoje = viewModel::kliklNaDetailSpoje,
+        kliklNaSpoj = viewModel::kliklNaSpoj,
         navigate = navigator::navigate,
         jeOnline = jeOnline,
     )
@@ -125,7 +142,7 @@ fun OdjezdyScreen(
     zmenilKompaktniRezim: () -> Unit,
     listState: LazyListState,
     zrusil: (TypAdapteru) -> Unit,
-    kliklNaDetailSpoje: (KartickaState) -> Unit,
+    kliklNaSpoj: (KartickaState) -> Unit,
     jeOnline: Boolean,
     navigate: NavigateFunction,
 ) = Column(
@@ -271,9 +288,9 @@ fun OdjezdyScreen(
     ) {
         Text(
             if (state.filtrZastavky == null && state.filtrLinky == null) "Přes tuto zastávku nic nejede"
-            else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který zastavuje na zastávce ${state.filtrZastavky}"
+            else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${state.filtrZastavky}"
             else if (state.filtrZastavky == null) "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}"
-            else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který zastavuje na zastávce ${state.filtrZastavky}",
+            else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který bude zastavovat na zastávce ${state.filtrZastavky}",
             Modifier.padding(horizontal = 16.dp)
         )
     }
@@ -286,7 +303,7 @@ fun OdjezdyScreen(
             key = { it.idSpoje to it.cas },
             itemContent = { karticka ->
                 Karticka(
-                    karticka, kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                    karticka, kliklNaSpoj, state.kompaktniRezim, modifier = Modifier
                         .animateContentSize()
                         .animateItemPlacement()
                 )

@@ -2,19 +2,23 @@ package cz.jaro.dpmcb.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class MainViewModel(
     repo: SpojeRepository,
     closeDrawer: () -> Unit,
     link: String?,
-    navigate: NavigateFunction,
+    navController: NavHostController,
 ) : ViewModel() {
 
     val jeOnline = repo.isOnline
@@ -23,21 +27,37 @@ class MainViewModel(
     val datum = repo.datum
     val upravitDatum = repo::upravitDatum
 
+    private fun encodeLink(link: String) = link.split("?").let { segments ->
+        val path = segments[0].split("/").joinToString("/") {
+            URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
+        }
+        val args = segments[1].split("&").joinToString("&") { argument ->
+            argument.split("=").let {
+                val name = it[0]
+                val value = URLEncoder.encode(it[1], StandardCharsets.UTF_8.toString())
+                "$name=$value"
+            }
+        }
+        "$path?$args".replace("%2520", "%20").replace("%2502", "%02").replace("%2503", "%03")
+    }
+
+    private val NavController.graphOrNull: NavGraph?
+        get() = try {
+            graph
+        } catch (e: IllegalStateException) {
+            null
+        }
+
     init {
         link?.let {
-            if (!link.startsWith("/spoj")) return@let
-            val id = link.split("/").last()
-
-            viewModelScope.launch {
-                val jedeV = repo.spojJedeV(id)
-
-                val datum = repo.datum.value
-                repo.upravitDatum(List(365) { datum + it.days }.firstOrNull { jedeV(it) } ?: return@launch)
-
-                navigate(DetailSpojeDestination(id))
-
-                App.vybrano = null
-                closeDrawer()
+            viewModelScope.launch(Dispatchers.IO) {
+                val url = encodeLink(link.removePrefix("/"))
+                while (navController.graphOrNull == null) Unit
+                withContext(Dispatchers.Main) {
+                    App.vybrano = null
+                    navController.navigateToRouteFunction(url)
+                    closeDrawer()
+                }
             }
         }
     }

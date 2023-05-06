@@ -11,6 +11,6 @@ data class KartickaState(
     val idSpoje: String,
     val nizkopodlaznost: Boolean,
     val zpozdeni: Int?,
-    val jedePres: List<String>,
+    val pojedePres: List<String>,
     val jedeZa: Duration?,
 )

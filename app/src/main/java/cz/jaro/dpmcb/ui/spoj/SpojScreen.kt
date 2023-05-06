@@ -61,6 +61,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
@@ -70,9 +71,9 @@ import kotlin.math.roundToInt
 
 @Destination
 @Composable
-fun DetailSpoje(
+fun Spoj(
     spojId: String,
-    viewModel: DetailSpojeViewModel = koinViewModel {
+    viewModel: SpojViewModel = koinViewModel {
         ParametersHolder(mutableListOf(spojId))
     },
     navigator: DestinationsNavigator,
@@ -86,13 +87,13 @@ fun DetailSpoje(
     val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
     val oblibene by viewModel.oblibene.collectAsStateWithLifecycle()
 
-    DetailSpojeScreen(
+    SpojScreen(
         info = info,
         zpozdeni = stateZJihu.zpozdeni?.inWholeSeconds?.div(60F)?.roundToInt(),
         zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
         projetychUseku = projetychUseku,
         vyska = vyska,
-        navigate = navigator::navigate,
+        navigate = navigator.navigateFunction,
         oblibene = oblibene,
         pridatOblibeny = viewModel.pridatOblibeny,
         odebratOblibeny = viewModel.odebratOblibeny,
@@ -101,8 +102,8 @@ fun DetailSpoje(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun DetailSpojeScreen(
-    info: DetailSpojeInfo?,
+fun SpojScreen(
+    info: SpojInfo?,
     zpozdeni: Int?,
     zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
     projetychUseku: Int,

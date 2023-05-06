@@ -25,9 +25,10 @@ import kotlin.math.roundToInt
 class PraveJedouciViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
+    puvodniFiltry: List<Int>,
 ) : ViewModel() {
 
-    private val _filtry = MutableStateFlow(emptyList<Int>())
+    private val _filtry = MutableStateFlow(puvodniFiltry)
     val filtry = _filtry.asStateFlow()
 
     private val _nacitaSe = MutableStateFlow(true)
