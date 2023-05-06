@@ -38,6 +38,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
+import kotlin.experimental.ExperimentalTypeInference
 import kotlin.math.sign
 import kotlin.time.toJavaDuration
 
@@ -142,6 +143,18 @@ object UtilFunctions {
                 NetworkCapabilities.TRANSPORT_ETHERNET
             )
         }
+
+    @OptIn(ExperimentalTypeInference::class)
+    fun <T> Flow<T>.compare(initial: T, @BuilderInference comparation: suspend (oldValue: T, newValue: T) -> T): Flow<T> {
+        var oldValue: T = initial
+        return flow {
+            emit(oldValue)
+            collect { newValue ->
+                oldValue = comparation(oldValue, newValue)
+                emit(oldValue)
+            }
+        }
+    }
 
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
