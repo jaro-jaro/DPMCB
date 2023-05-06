@@ -6,12 +6,15 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
@@ -60,6 +63,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
@@ -177,7 +181,7 @@ fun MainScreen(
                             toggleDrawer()
                         }
                     ) {
-                        UtilFunctions.IconWithTooltip(
+                        IconWithTooltip(
                             imageVector = Icons.Filled.Menu,
                             contentDescription = "Otevřít"
                         )
@@ -192,7 +196,7 @@ fun MainScreen(
 
                         upravitOnlineMod(!onlineMod.value)
                     }) {
-                        UtilFunctions.IconWithTooltip(
+                        IconWithTooltip(
                             imageVector = if (jeOnline.value && onlineMod.value) Icons.Default.Wifi else Icons.Default.WifiOff,
                             contentDescription = when {
                                 jeOnline.value && onlineMod.value -> "Online, kliknutím přepnete do offline módu"
@@ -267,7 +271,7 @@ fun MainScreen(
                                             Text(stringResource(akce.jmeno))
                                         },
                                         icon = {
-                                            UtilFunctions.IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                                            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
                                         },
                                         selected = false,
                                         onClick = {
@@ -286,7 +290,7 @@ fun MainScreen(
                                             Text(stringResource(akce.jmeno))
                                         },
                                         icon = {
-                                            UtilFunctions.IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                                            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
                                         },
                                         selected = false,
                                         onClick = {
@@ -314,9 +318,23 @@ fun MainScreen(
                                             zobrazitDialog = false
                                         },
                                         title = {
-                                            Text("Vybrat nové datum")
+                                            Row(
+                                                Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("Vybrat nové datum")
+                                                IconButton(
+                                                    onClick = {
+                                                        upravitDatum(LocalDate.now())
+                                                        zobrazitDialog = false
+                                                    }
+                                                ) {
+                                                    IconWithTooltip(Icons.Default.CalendarToday, "Nastavit dnes")
+                                                }
+                                            }
                                         },
-                                        initialDate = datum.value
+                                        initialDate = datum.value,
                                     )
 
                                     Spacer(
@@ -328,7 +346,7 @@ fun MainScreen(
                                             zobrazitDialog = true
                                         }
                                     ) {
-                                        UtilFunctions.IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
+                                        IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
                                     }
                                 }
 
@@ -337,7 +355,7 @@ fun MainScreen(
                                         Text(stringResource(akce.jmeno))
                                     },
                                     icon = {
-                                        UtilFunctions.IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                                        IconWithTooltip(akce.icon, stringResource(akce.jmeno))
                                     },
                                     selected = App.vybrano == akce,
                                     onClick = {
