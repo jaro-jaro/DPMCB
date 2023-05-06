@@ -53,23 +53,24 @@ class OdjezdyViewModel(
                 }
                 .map { (zastavka, spojNaMape) ->
 
-                    val posledniZastavka = zastavka.zastavkySpoje.last { it.second != null }
+                    val posledniZastavka = zastavka.zastavkySpoje.last { it.cas != null }
                     val aktualniNasledujiciZastavka = spojNaMape?.delay?.let { zpozdeni ->
                         zastavka.zastavkySpoje
-                            .filter { it.second != null }
-                            .find { it.second!!.plusMinutes(zpozdeni.toLong()) > ted }
-                            ?.let { it.first to it.second!! }
+                            .filter { it.cas != null }
+                            .find { it.cas!!.plusMinutes(zpozdeni.toLong()) > ted }
+                            ?.let { it.nazev to it.cas!! }
                     }
+                    val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
 
                     KartickaState(
-                        konecna = posledniZastavka.first,
+                        konecna = posledniZastavka.nazev,
                         cisloLinky = zastavka.linka,
                         cas = zastavka.cas,
                         aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
                         idSpoje = zastavka.spojId,
                         nizkopodlaznost = zastavka.nizkopodlaznost,
                         zpozdeni = spojNaMape?.delay,
-                        jedePres = zastavka.zastavkySpoje.map { it.first },
+                        pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i > indexTyhle },
                         jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
                     )
                 }
@@ -88,7 +89,7 @@ class OdjezdyViewModel(
                     state.filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
                 }
                 ?.filter {
-                    state.filtrZastavky?.let { filtr -> it.jedePres.contains(filtr) } ?: true
+                    state.filtrZastavky?.let { filtr -> it.pojedePres.contains(filtr) } ?: true
                 }
                 ?.also { filtrovanejSeznam ->
                     if (minulyState == null) return@also

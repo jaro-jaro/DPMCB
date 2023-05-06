@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.realtions.CaskodSPevnymiKody
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
+import cz.jaro.dpmcb.data.realtions.NazevCasAIndex
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.Platnost
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojem
@@ -326,7 +327,7 @@ interface Dao {
         SELECT spoj.id, CASE
             WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
-        END cas, zastavka.nazevZastavky nazev FROM spoj
+        END cas, zastavka.nazevZastavky nazev, zastavkaspoje.indexZastavkyNaLince FROM spoj
         JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.tab = spoj.tab
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
         WHERE spoj.id IN (:spojIds)
@@ -337,7 +338,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevACas>>
+    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevCasAIndex>>
 
     @Query(
         """

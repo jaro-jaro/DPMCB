@@ -224,7 +224,7 @@ class SpojeRepository(ctx: Application) {
                     spojId = spojId,
                     linka = info.linka - 325_000,
                     nizkopodlaznost = info.nizkopodlaznost,
-                    zastavkySpoje = zastavky.map { it.nazev to it.cas }
+                    zastavkySpoje = zastavky
                 )
             }
 
