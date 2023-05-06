@@ -29,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
             fun fromSmer(value: Smer) = value.ordinal
 
             @TypeConverter
-            fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)
+            fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)!!
 
             @TypeConverter
             fun fromLocalDate(value: LocalDate) = value.toEpochDay()

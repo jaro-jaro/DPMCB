@@ -384,10 +384,11 @@ private var Context.ostatni: VsechnoOstatni
         ostatniField = value
     }
 
-private lateinit var _nastaveniField: MutableStateFlow<Nastaveni>
+private lateinit var nastaveniField: MutableStateFlow<Nastaveni>
 
+@Suppress("ObjectPropertyName")
 private val Context._nastaveni
-    get() = if (::_nastaveniField.isInitialized) _nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
-        _nastaveniField = it
+    get() = if (::nastaveniField.isInitialized) nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
+        nastaveniField = it
     }
 val Context.nastaveni get() = _nastaveni.asStateFlow()

@@ -152,10 +152,6 @@ class LoadingViewModel(
         exit()
     }
 
-    private fun fungujdeVse() {
-
-    }
-
     private suspend fun stahnoutNoveJizdniRady() {
 
         if (!repo.isOnline.value) {
