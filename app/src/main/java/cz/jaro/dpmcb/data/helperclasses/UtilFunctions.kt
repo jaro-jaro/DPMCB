@@ -136,11 +136,11 @@ object UtilFunctions {
 
             return activeNetwork.hasTransport(
                 NetworkCapabilities.TRANSPORT_WIFI
-            ).funguj() || activeNetwork.hasTransport(
+            ) || activeNetwork.hasTransport(
                 NetworkCapabilities.TRANSPORT_CELLULAR
-            ).funguj() || activeNetwork.hasTransport(
+            ) || activeNetwork.hasTransport(
                 NetworkCapabilities.TRANSPORT_ETHERNET
-            ).funguj()
+            )
         }
 
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
