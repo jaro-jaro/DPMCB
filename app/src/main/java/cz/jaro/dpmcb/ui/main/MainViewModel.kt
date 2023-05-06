@@ -7,6 +7,7 @@ import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +39,7 @@ class MainViewModel(
                 "$name=$value"
             }
         }
-        "$path?$args".replace("%2520", "%20").replace("%2502", "%02").replace("%2503", "%03")
+        "$path?$args".funguj().replace(Regex("%25([0-9A-F]{2})"), "%$1").funguj()
     }
 
     private val NavController.graphOrNull: NavGraph?

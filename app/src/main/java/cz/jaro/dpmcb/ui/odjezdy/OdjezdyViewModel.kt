@@ -171,11 +171,11 @@ class OdjezdyViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            while (seznam.value.isNullOrEmpty()) Unit
+            while (filtrovanejSeznam.value.isNullOrEmpty()) Unit
             while (!::scrollovat.isInitialized) Unit
             withContext(Dispatchers.Main) {
                 scrollovat(
-                    seznam.value!!.withIndex().firstOrNull { (_, zast) ->
+                    filtrovanejSeznam.value!!.withIndex().firstOrNull { (_, zast) ->
                         zast.cas >= cas
                     }?.index ?: seznam.value!!.lastIndex
                 )
