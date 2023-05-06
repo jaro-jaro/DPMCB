@@ -219,7 +219,9 @@ fun NastaveniScreen(
                 }
                 Text("Aktuální verze dat: $metaVerzeDat.$verzeDat")
                 Text("Aktuální verze aplikace: $verze")
-                Text("2019-2023 JARO; Za zobrazená data neručíme")
+                Text("2021-2023 RO studios, člen skupiny JARO")
+                Text("2019-2023 JARO")
+                Text("Za zobrazená data neručíme")
             }
         }
     }
