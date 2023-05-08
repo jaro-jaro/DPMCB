@@ -6,6 +6,7 @@ import java.time.LocalTime
 data class KartickaState(
     val konecna: String,
     val aktualniNasledujiciZastavka: Pair<String, LocalTime>?,
+    val pristiZastavka: String?,
     val cisloLinky: Int,
     val cas: LocalTime,
     val idSpoje: String,

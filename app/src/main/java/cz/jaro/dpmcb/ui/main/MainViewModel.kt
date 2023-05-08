@@ -32,14 +32,14 @@ class MainViewModel(
         val path = segments[0].split("/").joinToString("/") {
             URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
         }
-        val args = segments[1].split("&").joinToString("&") { argument ->
+        val args = segments.getOrNull(1)?.split("&")?.joinToString("&") { argument ->
             argument.split("=").let {
                 val name = it[0]
                 val value = URLEncoder.encode(it[1], StandardCharsets.UTF_8.toString())
                 "$name=$value"
             }
-        }
-        "$path?$args".funguj().replace(Regex("%25([0-9A-F]{2})"), "%$1").funguj()
+        }?.let { "?$it" } ?: ""
+        "$path$args".funguj().replace(Regex("%25([0-9A-F]{2})"), "%$1").funguj()
     }
 
     private val NavController.graphOrNull: NavGraph?

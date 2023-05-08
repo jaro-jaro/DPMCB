@@ -6,8 +6,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -40,9 +41,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
@@ -64,9 +67,11 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
+import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import java.time.LocalTime
 import kotlin.math.roundToInt
 
 @Destination
@@ -175,9 +180,11 @@ fun SpojScreen(
                     }
                     Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
                 }
-                OutlinedCard(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)) {
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -186,35 +193,25 @@ fun SpojScreen(
                     ) {
                         Column {
                             info.zastavky.forEach {
-                                Text(
+                                MujText(
                                     text = it.nazev,
-                                    modifier = Modifier
-                                        .clickable {
-                                            navigate(
-                                                OdjezdyDestination(
-                                                    cas = it.cas,
-                                                    zastavka = it.nazev,
-                                                )
-                                            )
-                                        }
-                                        .height(24.dp)
+                                    navigate = navigate,
+                                    cas = it.cas,
+                                    zastavka = it.nazev,
+                                    pristiZastavka = it.pristiZastavka,
+                                    linka = it.linka,
                                 )
                             }
                         }
                         Column(Modifier.padding(start = 8.dp)) {
                             info.zastavky.forEach {
-                                Text(
+                                MujText(
                                     text = it.cas.toString(),
-                                    modifier = Modifier
-                                        .clickable {
-                                            navigate(
-                                                OdjezdyDestination(
-                                                    cas = it.cas,
-                                                    zastavka = it.nazev,
-                                                )
-                                            )
-                                        }
-                                        .height(24.dp)
+                                    navigate = navigate,
+                                    cas = it.cas,
+                                    zastavka = it.nazev,
+                                    pristiZastavka = it.pristiZastavka,
+                                    linka = it.linka,
                                 )
                             }
                         }
@@ -222,19 +219,14 @@ fun SpojScreen(
                             info.zastavky
                                 .zip(zastavkyNaJihu)
                                 .forEach { (zastavka, zastavkaNaJihu) ->
-                                    Text(
+                                    MujText(
                                         text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.toLong())).toString() else "",
                                         color = barvaZpozdeniTextu(zpozdeni),
-                                        modifier = Modifier
-                                            .clickable {
-                                                navigate(
-                                                    OdjezdyDestination(
-                                                        cas = zastavka.cas,
-                                                        zastavka = zastavka.nazev,
-                                                    )
-                                                )
-                                            }
-                                            .height(24.dp)
+                                        navigate = navigate,
+                                        cas = zastavka.cas,
+                                        zastavka = zastavka.nazev,
+                                        pristiZastavka = zastavka.pristiZastavka,
+                                        linka = zastavka.linka,
                                     )
                                 }
                         }
@@ -410,4 +402,61 @@ fun SpojScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MujText(
+    text: String,
+    color: Color = Color.Unspecified,
+    navigate: NavigateFunction,
+    cas: LocalTime,
+    zastavka: String,
+    pristiZastavka: String?,
+    linka: Int,
+) = Box {
+    var showDropDown by rememberSaveable { mutableStateOf(false) }
+    pristiZastavka?.let {
+        DropdownMenu(
+            expanded = showDropDown,
+            onDismissRequest = {
+                showDropDown = false
+            }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text("Zobrazit zastávkové JŘ")
+                },
+                onClick = {
+                    navigate(
+                        JizdniRadyDestination(
+                            cisloLinky = linka,
+                            zastavka = zastavka,
+                            pristiZastavka = pristiZastavka,
+                        )
+                    )
+                    showDropDown = false
+                },
+            )
+        }
+    }
+    Text(
+        text = text,
+        color = color,
+        modifier = Modifier
+            .combinedClickable(
+                onClick = {
+                    navigate(
+                        OdjezdyDestination(
+                            cas = cas,
+                            zastavka = zastavka,
+                        )
+                    )
+                },
+                onLongClick = {
+                    showDropDown = true
+                },
+            )
+            .height(24.dp),
+    )
 }

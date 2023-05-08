@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.odjezdy
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -127,6 +130,7 @@ fun Odjezdy(
         listState = listState,
         zrusil = viewModel::zrusil,
         kliklNaSpoj = viewModel::kliklNaSpoj,
+        kliklNaZjr = viewModel::kliklNaZjr,
         navigate = navigator::navigate,
         jeOnline = jeOnline,
     )
@@ -143,6 +147,7 @@ fun OdjezdyScreen(
     listState: LazyListState,
     zrusil: (TypAdapteru) -> Unit,
     kliklNaSpoj: (KartickaState) -> Unit,
+    kliklNaZjr: (KartickaState) -> Unit,
     jeOnline: Boolean,
     navigate: NavigateFunction,
 ) = Column(
@@ -303,7 +308,7 @@ fun OdjezdyScreen(
             key = { it.idSpoje to it.cas },
             itemContent = { karticka ->
                 Karticka(
-                    karticka, kliklNaSpoj, state.kompaktniRezim, modifier = Modifier
+                    karticka, kliklNaSpoj, kliklNaZjr, state.kompaktniRezim, modifier = Modifier
                         .animateContentSize()
                         .animateItemPlacement()
                 )
@@ -312,21 +317,45 @@ fun OdjezdyScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun Karticka(
     kartickaState: KartickaState,
     detailSpoje: (KartickaState) -> Unit,
+    zjr: (KartickaState) -> Unit,
     zjednodusit: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Divider(modifier)
+    var showDropDown by rememberSaveable { mutableStateOf(false) }
     Surface(
-        onClick = {
-            detailSpoje(kartickaState)
-        },
-        modifier = modifier
+        modifier = modifier.combinedClickable(
+            onClick = {
+                detailSpoje(kartickaState)
+            },
+            onLongClick = {
+                showDropDown = true
+            }
+        )
     ) {
+        kartickaState.pristiZastavka?.let {
+            DropdownMenu(
+                expanded = showDropDown,
+                onDismissRequest = {
+                    showDropDown = false
+                }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text("Zobrazit zastávkové JŘ")
+                    },
+                    onClick = {
+                        zjr(kartickaState)
+                        showDropDown = false
+                    },
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)

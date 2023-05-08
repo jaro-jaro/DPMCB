@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
@@ -107,10 +108,34 @@ class SpojeRepository(ctx: Application) {
 
     suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String, datum: LocalDate) =
         dao.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!).run {
+            val bezkodu = distinctBy {
+                it.copy(pevneKody = "", jede = false, od = LocalDate.now(), `do` = LocalDate.now())
+            }
             Quadruple(
-                first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
-                map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() },
+                first().let {
+                    LinkaNizkopodlaznostSpojId(
+                        nizkopodlaznost = it.nizkopodlaznost,
+                        linka = it.linka - 325_000,
+                        spojId = it.spojId
+                    )
+                },
+                bezkodu.mapIndexed { i, it ->
+                    CasNazevSpojIdLInkaPristi(
+                        cas = it.cas,
+                        nazev = it.nazev,
+                        linka = it.linka - 325_000,
+                        pristiZastavka = bezkodu.getOrNull(i + 1)?.nazev,
+                        spojId = it.spojId
+                    )
+                }.distinct(),
+                map {
+                    JedeOdDo(
+                        jede = it.jede,
+                        v = it.od..it.`do`
+                    )
+                }.distinctBy {
+                    it.jede to it.v.toString()
+                },
                 zcitelnitPevneKody(first().pevneKody),
             )
         }

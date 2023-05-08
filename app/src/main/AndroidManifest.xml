@@ -6,6 +6,7 @@
 
     <application
         android:hardwareAccelerated="true"
+        android:enableOnBackInvokedCallback="true"
         android:largeHeap="true"
         android:name=".data.App"
         android:allowBackup="true"
@@ -14,7 +15,7 @@
         android:roundIcon="${logoRound}"
         android:supportsRtl="true"
         android:theme="@style/Theme.DPMCB"
-        tools:targetApi="31">
+        tools:targetApi="33">
         <activity
             android:name=".ExitActivity"
             android:exported="false"
