@@ -9,6 +9,7 @@ import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,6 +75,7 @@ class OdjezdyViewModel(
                         zpozdeni = spojNaMape?.delay,
                         pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i > indexTyhle },
                         jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
+                        pristiZastavka = zastavka.zastavkySpoje.map { it.nazev }.getOrNull(indexTyhle + 1)
                     )
                 }
         }
@@ -115,6 +117,18 @@ class OdjezdyViewModel(
                 spoj.idSpoje
             )
         )
+    }
+
+    fun kliklNaZjr(spoj: KartickaState) {
+        spoj.pristiZastavka?.let {
+            navigovat(
+                JizdniRadyDestination(
+                    cisloLinky = spoj.cisloLinky,
+                    zastavka = zastavka,
+                    pristiZastavka = spoj.pristiZastavka,
+                )
+            )
+        }
     }
 
     fun zmenitCas(cas: LocalTime) {

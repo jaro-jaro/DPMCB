@@ -64,10 +64,10 @@ class SpojViewModel(
     val pridatOblibeny = repo::pridatOblibeny
     val odebratOblibeny = repo::odebratOblibeny
 
-    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, Spoj) ->
+    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(
-            zpozdeni = Spoj?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
-            zastavkyNaJihu = Spoj?.stations
+            zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
+            zastavkyNaJihu = detailSpoje?.stations
         )
     }
         .flowOn(Dispatchers.IO)
