@@ -9,6 +9,7 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.VsechnoOstatni
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -21,6 +22,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
+import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +34,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.jsoup.Jsoup
 import java.io.File
+import java.net.SocketTimeoutException
 import java.time.LocalDate
 
 class LoadingViewModel(
@@ -53,6 +57,9 @@ class LoadingViewModel(
 
     companion object {
         const val META_VERZE_DAT = 4
+        const val EXTRA_KEY_AKTUALIZOVAT_DATA = "aktualizovat-data"
+        const val EXTRA_KEY_AKTUALIZOVAT_APLIKACI = "aktualizovat-aplikaci"
+        const val EXTRA_KEY_DEEPLINK = "link"
     }
 
     private val _state = MutableStateFlow("" to (null as Float?))
@@ -80,15 +87,7 @@ class LoadingViewModel(
                 ukazatChybaDialog()
             }
 
-            if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
-                otevriDetailAplikace()
-            }
-
-            val intent = mainActivityIntent
-
-            uri?.let {
-                intent.putExtra("link", it.removePrefix("/DPMCB"))
-            }
+            val intent = vyresitOdkaz(mainActivityIntent)
 
             if (!repo.isOnline.value || !repo.nastaveni.value.kontrolaAktualizaci) {
                 finish()
@@ -96,20 +95,12 @@ class LoadingViewModel(
                 return@launch
             }
 
-            val mistniVerze = repo.verze
-
             _state.update {
                 "Kontrola dostupnosti aktualizací" to null
             }
 
-            val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-            val reference = database.getReference("data${META_VERZE_DAT}/verze")
-
-            val onlineVerze = withTimeoutOrNull(3_000) {
-                reference.get().await().getValue<Int>()
-            } ?: -2
-
-            intent.putExtra("update", mistniVerze < onlineVerze)
+            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_DATA, jePotrebaAktualizovatData())
+            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_APLIKACI, jePotrebaAktualizovatAplikaci())
 
             finish()
             startActivity(intent)
@@ -142,6 +133,18 @@ class LoadingViewModel(
         while (true) Unit
     }
 
+    private fun vyresitOdkaz(baseIntent: Intent): Intent {
+        if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
+            otevriDetailAplikace()
+        }
+
+        uri?.let {
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
+        }
+
+        return baseIntent
+    }
+
     private fun otevriDetailAplikace(): Nothing {
         finish()
         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -150,6 +153,44 @@ class LoadingViewModel(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         })
         exit()
+    }
+
+    private suspend fun jePotrebaAktualizovatData(): Boolean {
+        val mistniVerze = repo.verze
+
+        val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+        val reference = database.getReference("data${META_VERZE_DAT}/verze")
+
+        val onlineVerze = withTimeoutOrNull(3_000) {
+            reference.get().await().getValue<Int>()
+        } ?: -2
+
+        return mistniVerze < onlineVerze
+    }
+
+    private suspend fun jePotrebaAktualizovatAplikaci(): Boolean {
+        val jeDebug = BuildConfig.DEBUG
+
+        if (jeDebug) return false
+
+        val response = try {
+            withContext(Dispatchers.IO) {
+                Jsoup
+                    .connect("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
+                    .ignoreContentType(true)
+                    .maxBodySize(0)
+                    .execute()
+            }
+        } catch (e: SocketTimeoutException) {
+            return false
+        }
+
+        if (response.statusCode() != 200) return false
+
+        val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
+        val nejnovejsiVerze = response.body().toVersion(false)
+
+        return mistniVerze < nejnovejsiVerze
     }
 
     private suspend fun stahnoutNoveJizdniRady() {

@@ -66,7 +66,7 @@ class App : Application() {
                     LoadingViewModel(get(), it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7], it[8], it[9], it[10], it[11])
                 }
                 viewModel {
-                    MainViewModel(get(), it[0], it[1], it[2])
+                    MainViewModel(get(), it[0], it[1], it[2], it[3], it[4])
                 }
                 viewModel {
                     NastaveniViewModel(get(), it[0], it[1], it[2], it[3])

@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.ui.main
 
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -12,6 +14,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
+import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -20,6 +24,8 @@ class MainViewModel(
     closeDrawer: () -> Unit,
     link: String?,
     navController: NavHostController,
+    loadingActivityIntent: Intent,
+    startActivity: (Intent) -> Unit,
 ) : ViewModel() {
 
     val jeOnline = repo.isOnline
@@ -61,5 +67,37 @@ class MainViewModel(
                 }
             }
         }
+    }
+
+    val aktualizovatData = {
+        startActivity(loadingActivityIntent.apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+            putExtra("update", true)
+        })
+    }
+    val aktualizovatAplikaci = {
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = try {
+                withContext(Dispatchers.IO) {
+                    Jsoup
+                        .connect("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
+                        .ignoreContentType(true)
+                        .maxBodySize(0)
+                        .execute()
+                }
+            } catch (e: SocketTimeoutException) {
+                return@launch
+            }
+
+            if (response.statusCode() != 200) return@launch
+
+            val nejnovejsiVerze = response.body()
+
+            startActivity(Intent().apply {
+                action = Intent.ACTION_VIEW
+                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$nejnovejsiVerze/DPMCB-v$nejnovejsiVerze.apk")
+            })
+        }
+        Unit
     }
 }
