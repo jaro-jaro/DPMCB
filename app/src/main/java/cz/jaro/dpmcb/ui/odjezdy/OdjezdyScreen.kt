@@ -204,7 +204,7 @@ fun OdjezdyScreen(
             .padding(horizontal = 16.dp)
     ) {
         val linkaSource = remember { MutableInteractionSource() }
-        val containerColor = MaterialTheme.colorScheme.onSurfaceVariant
+        val containerColor = MaterialTheme.colorScheme.surfaceVariant
         TextField(
             value = state.filtrLinky?.toString() ?: "Všechny",
             onValueChange = {},
@@ -223,8 +223,8 @@ fun OdjezdyScreen(
                 }
             },
             colors = TextFieldDefaults.colors(
-                focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 focusedContainerColor = containerColor,
                 unfocusedContainerColor = containerColor,
                 disabledContainerColor = containerColor,
