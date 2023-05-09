@@ -13,14 +13,13 @@ plugins {
 android {
     namespace = "cz.jaro.dpmcb"
     compileSdk = 33
-    compileSdkPreview = "UpsideDownCake"
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.2.0-alpha.8"
+        versionName = "1.2.0-alpha.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -83,7 +82,7 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.10.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.10.0-alpha02")
+    implementation("com.google.android.material:material:1.9.0-bet01")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
 //    implementation("androidx.legacy:legacy-support-v4:1.0.0")
 //    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.0")
