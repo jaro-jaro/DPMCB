@@ -203,13 +203,13 @@ class LoadingViewModel(
         }
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
         }
 
         repo.odstranitVse()
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
         }
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
@@ -219,7 +219,7 @@ class LoadingViewModel(
         val referenceVerze = database.getReference("data${META_VERZE_DAT}/verze")
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
         }
 
         val jrFile = jrFile
@@ -239,7 +239,7 @@ class LoadingViewModel(
         jrTask.await()
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
         }
 
         val json = jrFile.readText()
@@ -263,113 +263,111 @@ class LoadingViewModel(
         var indexRadku = 0F
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
         }
 
         data
             .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
             .forEach { (tab, dataLinky) ->
-                dataLinky.forEach { (typTabulky, tabulka) ->
-                    tabulka.forEach radek@{ radek ->
-                        indexRadku++
+                val zastavkySpojeTabulky: MutableList<ZastavkaSpoje> = mutableListOf()
+                val casKodyTabulky: MutableList<CasKod> = mutableListOf()
+                dataLinky
+                    .toList()
+                    .sortedBy { (typTabulky, _) ->
+                        TypyTabulek.values().indexOf(TypyTabulek.valueOf(typTabulky))
+                    }
+                    .forEach { (typTabulky, tabulka) ->
+                        tabulka.forEach radek@{ radek ->
+                            indexRadku++
 
-                        _state.update {
-                            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/6)" to indexRadku / pocetRadku
-                        }
+                            _state.update {
+                                it.first to indexRadku / pocetRadku
+                            }
 
-                        when (TypyTabulek.valueOf(typTabulky)) {
-                            TypyTabulek.Zasspoje -> zastavkySpoje += ZastavkaSpoje(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                indexZastavkyNaLince = radek[2].toInt(),
-                                cisloZastavky = radek[3].toInt(),
-                                kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
-                                prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
-                                odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
-                                tab = tab,
-                            )
+                            when (TypyTabulek.valueOf(typTabulky)) {
+                                TypyTabulek.Zasspoje -> zastavkySpojeTabulky += ZastavkaSpoje(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    indexZastavkyNaLince = radek[2].toInt(),
+                                    cisloZastavky = radek[3].toInt(),
+                                    kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
+                                    prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                    odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Zastavky -> zastavky += Zastavka(
-                                linka = radek[0].toInt(),
-                                cisloZastavky = radek[1].toInt(),
-                                nazevZastavky = radek[2],
-                                pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                tab = tab,
-                            )
+                                TypyTabulek.Zastavky -> zastavky += Zastavka(
+                                    linka = radek[0].toInt(),
+                                    cisloZastavky = radek[1].toInt(),
+                                    nazevZastavky = radek[2],
+                                    pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Caskody -> casKody += CasKod(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                kod = radek[3].toInt(),
-                                indexTerminu = radek[2].toInt(),
-                                jede = radek[4] == "1",
-                                platiOd = radek[5].toDatumDivne(),
-                                platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
-                                tab = tab,
-                            )
+                                TypyTabulek.Caskody -> casKodyTabulky += CasKod(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    kod = radek[3].toInt(),
+                                    indexTerminu = radek[2].toInt(),
+                                    jede = radek[4] == "1",
+                                    platiOd = radek[5].toDatumDivne(),
+                                    platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Linky -> linky += Linka(
-                                cislo = radek[0].toInt(),
-                                trasa = radek[1],
-                                typVozidla = Json.decodeFromString("\"${radek[4]}\""),
-                                typLinky = Json.decodeFromString("\"${radek[3]}\""),
-                                maVyluku = radek[5] != "0",
-                                platnostOd = radek[13].toDatumDivne(),
-                                platnostDo = radek[14].toDatumDivne(),
-                                tab = tab,
-                            )
+                                TypyTabulek.Linky -> linky += Linka(
+                                    cislo = radek[0].toInt(),
+                                    trasa = radek[1],
+                                    typVozidla = Json.decodeFromString("\"${radek[4]}\""),
+                                    typLinky = Json.decodeFromString("\"${radek[3]}\""),
+                                    maVyluku = radek[5] != "0",
+                                    platnostOd = radek[13].toDatumDivne(),
+                                    platnostDo = radek[14].toDatumDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Spoje -> spoje += Spoj(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                smer = Smer.POZITIVNI, // POZOR!!! DOČASNÁ HODNOTA!!!
-                                tab = tab,
-                            )
+                                TypyTabulek.Spoje -> spoje += Spoj(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    smer = zastavkySpojeTabulky
+                                        .filter { it.cisloSpoje == radek[1].toInt() }
+                                        .sortedBy { it.indexZastavkyNaLince }
+                                        .filter { it.cas != null }
+                                        .let { zast ->
+                                            Smer.fromBoolean(zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu)
+                                        },
+                                    tab = tab,
+                                ).also { spoj ->
+                                    if (casKodyTabulky.none { it.cisloSpoje == spoj.cisloSpoje })
+                                        casKodyTabulky += CasKod(
+                                            linka = spoj.linka,
+                                            cisloSpoje = spoj.cisloSpoje,
+                                            kod = 0,
+                                            indexTerminu = 0,
+                                            jede = false,
+                                            platiOd = LocalDate.of(0, 1, 1),
+                                            platiDo = LocalDate.of(0, 1, 1),
+                                            tab = spoj.tab,
+                                        )
+                                }
 
-                            TypyTabulek.Pevnykod -> Unit
-                            TypyTabulek.Zaslinky -> Unit
-                            TypyTabulek.VerzeJDF -> Unit
-                            TypyTabulek.Dopravci -> Unit
-                            TypyTabulek.LinExt -> Unit
-                            TypyTabulek.Udaje -> Unit
+                                TypyTabulek.Pevnykod -> Unit
+                                TypyTabulek.Zaslinky -> Unit
+                                TypyTabulek.VerzeJDF -> Unit
+                                TypyTabulek.Dopravci -> Unit
+                                TypyTabulek.LinExt -> Unit
+                                TypyTabulek.Udaje -> Unit
+                            }
                         }
                     }
-                }
+
+                zastavkySpoje += zastavkySpojeTabulky
+                casKody += casKodyTabulky
             }
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (5/6)" to 0F
-        }
-
-        spoje.forEachIndexed { index, spoj ->
-            _state.update {
-                it.first to index.toFloat() / spoje.count()
-            }
-
-            val zast = zastavkySpoje
-                .filter { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab }
-                .sortedBy { it.indexZastavkyNaLince }
-                .filter { it.cas != null }
-
-            spoje[index] =
-                spoj.copy(smer = if (zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
-
-            if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab })
-                casKody += CasKod(
-                    linka = spoj.linka,
-                    cisloSpoje = spoj.cisloSpoje,
-                    kod = 0,
-                    indexTerminu = 0,
-                    jede = false,
-                    platiOd = LocalDate.of(0, 1, 1),
-                    platiDo = LocalDate.of(0, 1, 1),
-                    tab = spoj.tab,
-                )
-        }
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
         }
 
         val schemaTask = schemaRef.getFile(schemaFile)
