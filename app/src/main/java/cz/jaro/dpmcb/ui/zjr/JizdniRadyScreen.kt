@@ -40,7 +40,7 @@ import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 
 @Destination
 @Composable
@@ -49,7 +49,13 @@ fun JizdniRady(
     zastavka: String,
     pristiZastavka: String,
     viewModel: JizdniRadyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(cisloLinky, zastavka, pristiZastavka))
+        parametersOf(
+            JizdniRadyViewModel.Parameters(
+                cisloLinky = cisloLinky,
+                zastavka = zastavka,
+                pristiZastavka = pristiZastavka
+            )
+        )
     },
     navigator: DestinationsNavigator,
 ) {

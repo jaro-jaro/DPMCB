@@ -7,31 +7,31 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
-import cz.jaro.dpmcb.ui.UiEvent
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.text.Normalizer
 import java.time.LocalDate
 
+@KoinViewModel
 class VybiratorViewModel(
     private val repo: SpojeRepository,
-    private val typ: TypAdapteru,
-    private val cisloLinky: Int = -1,
-    private val zastavka: String?,
-    private val navigate: NavigateFunction,
-    private val navigateBack: NavigateBackFunction<Vysledek>,
+    @InjectedParam private val typ: TypAdapteru,
+    @InjectedParam private val cisloLinky: Int = -1,
+    @InjectedParam private val zastavka: String?,
+    @InjectedParam private val navigate: NavigateFunction,
+    @InjectedParam private val navigateBack: NavigateBackFunction<Vysledek>,
 ) : ViewModel() {
 
     private val puvodniSeznam = repo.datum.map { datum ->
@@ -72,9 +72,6 @@ class VybiratorViewModel(
         TypAdapteru.PRISTI_ZASTAVKA -> "$cisloLinky: $zastavka -> ?"
         else -> ""
     }
-
-    private val _uiEvent = Channel<UiEvent>()
-    val uiEvent = _uiEvent.receiveAsFlow()
 
     fun napsalNeco(co: String) {
         _hledani.value = co.replace("\n", "")

@@ -19,13 +19,16 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
+@KoinViewModel
 class PraveJedouciViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
-    puvodniFiltry: List<Int>,
+    @InjectedParam puvodniFiltry: List<Int>,
 ) : ViewModel() {
 
     private val _filtry = MutableStateFlow(puvodniFiltry)

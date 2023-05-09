@@ -15,17 +15,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+@KoinViewModel
 class MainViewModel(
     repo: SpojeRepository,
-    closeDrawer: () -> Unit,
-    link: String?,
-    navController: NavHostController,
-    loadingActivityIntent: Intent,
-    startActivity: (Intent) -> Unit,
+    @InjectedParam closeDrawer: () -> Unit,
+    @InjectedParam link: String?,
+    @InjectedParam navController: NavHostController,
+    @InjectedParam loadingActivityIntent: Intent,
+    @InjectedParam startActivity: (Intent) -> Unit,
 ) : ViewModel() {
 
     val jeOnline = repo.isOnline

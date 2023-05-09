@@ -33,10 +33,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.koin.core.annotation.Single
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Month
 
+@Single
 class SpojeRepository(ctx: Application) {
 
     private val scope = MainScope()

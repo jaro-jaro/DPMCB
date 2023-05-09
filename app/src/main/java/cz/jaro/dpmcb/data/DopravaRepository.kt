@@ -20,9 +20,11 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
+import org.koin.core.annotation.Single
 import java.time.Duration
 import java.time.LocalDate
 
+@Single
 class DopravaRepository(
     private val repo: SpojeRepository,
     app: Application,

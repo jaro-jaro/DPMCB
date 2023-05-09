@@ -68,7 +68,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
 
@@ -80,7 +80,14 @@ fun Odjezdy(
     linka: Int? = null,
     pres: String? = null,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas ?: ted, linka, pres))
+        parametersOf(
+            OdjezdyViewModel.Parameters(
+                zastavka = zastavka,
+                cas = cas ?: ted,
+                linka = linka,
+                pres = pres
+            )
+        )
     },
     navigator: DestinationsNavigator,
     resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,

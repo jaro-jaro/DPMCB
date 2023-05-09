@@ -35,25 +35,32 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.io.File
 import java.net.SocketTimeoutException
 import java.time.LocalDate
 
+@KoinViewModel
 class LoadingViewModel(
     private val repo: SpojeRepository,
-    private val uri: String?,
-    private val update: Boolean,
-    private val chyba: (() -> Unit) -> Unit,
-    private val potrebaInternet: () -> Unit,
-    private val finish: () -> Unit,
-    private val schemaFile: File,
-    private val jrFile: File,
-    private val mainActivityIntent: Intent,
-    private val loadingActivityIntent: Intent,
-    private val startActivity: (Intent) -> Unit,
-    private val packageName: String,
-    private val exit: () -> Nothing,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
+
+    data class Parameters(
+        val uri: String?,
+        val update: Boolean,
+        val chyba: (() -> Unit) -> Unit,
+        val potrebaInternet: () -> Unit,
+        val finish: () -> Unit,
+        val schemaFile: File,
+        val jrFile: File,
+        val mainActivityIntent: Intent,
+        val loadingActivityIntent: Intent,
+        val startActivity: (Intent) -> Unit,
+        val packageName: String,
+        val exit: () -> Nothing,
+    )
 
     companion object {
         const val META_VERZE_DAT = 4
@@ -70,13 +77,13 @@ class LoadingViewModel(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                update || repo.verze == -1
+                params.update || repo.verze == -1
             } catch (e: Exception) {
                 e.printStackTrace()
                 ukazatChybaDialog()
             }
 
-            if (update || repo.verze == -1) {
+            if (params.update || repo.verze == -1) {
                 stahnoutNoveJizdniRady()
             }
 
@@ -87,11 +94,11 @@ class LoadingViewModel(
                 ukazatChybaDialog()
             }
 
-            val intent = vyresitOdkaz(mainActivityIntent)
+            val intent = vyresitOdkaz(params.mainActivityIntent)
 
             if (!repo.isOnline.value || !repo.nastaveni.value.kontrolaAktualizaci) {
-                finish()
-                startActivity(intent)
+                params.finish()
+                params.startActivity(intent)
                 return@launch
             }
 
@@ -102,8 +109,8 @@ class LoadingViewModel(
             intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_DATA, jePotrebaAktualizovatData())
             intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_APLIKACI, jePotrebaAktualizovatAplikaci())
 
-            finish()
-            startActivity(intent)
+            params.finish()
+            params.startActivity(intent)
         }
     }
 
@@ -111,7 +118,7 @@ class LoadingViewModel(
         repo.cislaLinek(LocalDate.now()).ifEmpty {
             throw Exception()
         }
-        if (!schemaFile.exists()) {
+        if (!params.schemaFile.exists()) {
             throw Exception()
         }
         return null
@@ -120,12 +127,12 @@ class LoadingViewModel(
     private suspend fun ukazatChybaDialog(): Nothing {
         coroutineScope {
             withContext(Dispatchers.Main) {
-                chyba {
-                    startActivity(loadingActivityIntent.apply {
+                params.chyba {
+                    params.startActivity(params.loadingActivityIntent.apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
                         putExtra("update", true)
                     })
-                    finish()
+                    params.finish()
                 }
             }
         }
@@ -134,11 +141,11 @@ class LoadingViewModel(
     }
 
     private fun vyresitOdkaz(baseIntent: Intent): Intent {
-        if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
+        if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
             otevriDetailAplikace()
         }
 
-        uri?.let {
+        params.uri?.let {
             baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
         }
 
@@ -146,13 +153,13 @@ class LoadingViewModel(
     }
 
     private fun otevriDetailAplikace(): Nothing {
-        finish()
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", packageName, null)
+        params.finish()
+        params.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", params.packageName, null)
             addCategory(Intent.CATEGORY_DEFAULT)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         })
-        exit()
+        params.exit()
     }
 
     private suspend fun jePotrebaAktualizovatData(): Boolean {
@@ -197,9 +204,9 @@ class LoadingViewModel(
 
         if (!repo.isOnline.value) {
             withContext(Dispatchers.Main) {
-                potrebaInternet()
+                params.potrebaInternet()
             }
-            exit()
+            params.exit()
         }
 
         _state.update {
@@ -222,7 +229,7 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
         }
 
-        val jrFile = jrFile
+        val jrFile = params.jrFile
 
         val jrTask = jrRef.getFile(jrFile)
 
@@ -370,7 +377,7 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
         }
 
-        val schemaTask = schemaRef.getFile(schemaFile)
+        val schemaTask = schemaRef.getFile(params.schemaFile)
 
         schemaTask.addOnFailureListener {
             throw it

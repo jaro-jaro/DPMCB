@@ -133,8 +133,10 @@ dependencies {
 
     // Koin
     implementation("io.insert-koin:koin-android:3.3.0")
+    implementation("io.insert-koin:koin-annotations:1.2.0")
     implementation("io.insert-koin:koin-androidx-navigation:3.3.0")
     implementation("io.insert-koin:koin-androidx-compose:3.3.0")
+    ksp("io.insert-koin:koin-ksp-compiler:1.2.0")
 
     // Compose Destinations
     implementation("io.github.raamcosta.compose-destinations:core:1.8.33-beta")

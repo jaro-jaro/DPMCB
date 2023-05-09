@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
+import org.koin.android.annotation.KoinViewModel
 import kotlin.math.roundToInt
 
+@KoinViewModel
 class OblibeneViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
