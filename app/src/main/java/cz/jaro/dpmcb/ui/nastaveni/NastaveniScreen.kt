@@ -44,14 +44,16 @@ fun Nastaveni(
 
     val viewModel: NastaveniViewModel = koinViewModel {
         parametersOf(
-            { intent: Intent ->
-                ctx.startActivity(intent)
-            },
-            finish,
-            Intent(ctx, LoadingActivity::class.java),
-            {
-                Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
-            },
+            NastaveniViewModel.Parameters(
+                startActivity = { intent: Intent ->
+                    ctx.startActivity(intent)
+                },
+                finish = finish,
+                loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
+                jsteOfflineToast = {
+                    Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
+                },
+            )
         )
     }
 

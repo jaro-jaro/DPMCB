@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -59,6 +60,7 @@ import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import cz.jaro.dpmcb.ExitActivity
+import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -77,6 +79,8 @@ import kotlin.reflect.KClass
 @Composable
 fun Main(
     link: String?,
+    jePotrebaAktualizovatData: Boolean,
+    jePotrebaAktualizovatAplikaci: Boolean,
 ) {
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
@@ -99,11 +103,11 @@ fun Main(
         }
     }
 
-    val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController)
-    }
-
     val ctx = LocalContext.current
+
+    val viewModel: MainViewModel = koinViewModel {
+        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) })
+    }
 
     val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
     val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
@@ -142,7 +146,11 @@ fun Main(
                     adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
                 }
             }
-        }
+        },
+        jePotrebaAktualizovatAplikaci = jePotrebaAktualizovatAplikaci,
+        aktualizovatAplikaci = viewModel.aktualizovatAplikaci,
+        jePotrebaAktualizovatData = jePotrebaAktualizovatData,
+        aktualizovatData = viewModel.aktualizovatData
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -167,6 +175,10 @@ fun MainScreen(
     upravitOnlineMod: (Boolean) -> Unit,
     datum: State<LocalDate>,
     upravitDatum: (LocalDate) -> Unit,
+    jePotrebaAktualizovatData: Boolean,
+    jePotrebaAktualizovatAplikaci: Boolean,
+    aktualizovatData: () -> Unit,
+    aktualizovatAplikaci: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -213,6 +225,74 @@ fun MainScreen(
             modifier = Modifier
                 .padding(paddingValues)
         ) {
+            if (jePotrebaAktualizovatData) {
+                var zobrazitDialog by remember { mutableStateOf(true) }
+
+                if (zobrazitDialog) AlertDialog(
+                    onDismissRequest = {
+                        zobrazitDialog = false
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                zobrazitDialog = false
+                                aktualizovatData()
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.ano))
+                        }
+                    },
+                    title = {
+                        Text(stringResource(id = R.string.aktualizace_jr))
+                    },
+                    text = {
+                        Text(stringResource(id = R.string.chcete_aktualizovat))
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                zobrazitDialog = false
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.ne))
+                        }
+                    },
+                )
+            }
+            if (jePotrebaAktualizovatAplikaci) {
+                var zobrazitDialog by remember { mutableStateOf(true) }
+
+                if (zobrazitDialog) AlertDialog(
+                    onDismissRequest = {
+                        zobrazitDialog = false
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                zobrazitDialog = false
+                                aktualizovatAplikaci()
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.ano))
+                        }
+                    },
+                    title = {
+                        Text("Aktualizace aplikace")
+                    },
+                    text = {
+                        Text("Je k dispozici nová verze aplikace, chcete ji aktualizovat?")
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                zobrazitDialog = false
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.ne))
+                        }
+                    },
+                )
+            }
             ModalNavigationDrawer(
                 drawerContent = {
                     ModalDrawerSheet {

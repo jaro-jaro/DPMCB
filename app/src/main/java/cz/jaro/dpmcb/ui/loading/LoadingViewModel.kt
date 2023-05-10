@@ -9,6 +9,7 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.VsechnoOstatni
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -21,6 +22,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
+import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,27 +34,39 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.jsoup.Jsoup
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.io.File
+import java.net.SocketTimeoutException
 import java.time.LocalDate
 
+@KoinViewModel
 class LoadingViewModel(
     private val repo: SpojeRepository,
-    private val uri: String?,
-    private val update: Boolean,
-    private val chyba: (() -> Unit) -> Unit,
-    private val potrebaInternet: () -> Unit,
-    private val finish: () -> Unit,
-    private val schemaFile: File,
-    private val jrFile: File,
-    private val mainActivityIntent: Intent,
-    private val loadingActivityIntent: Intent,
-    private val startActivity: (Intent) -> Unit,
-    private val packageName: String,
-    private val exit: () -> Nothing,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
+
+    data class Parameters(
+        val uri: String?,
+        val update: Boolean,
+        val chyba: (() -> Unit) -> Unit,
+        val potrebaInternet: () -> Unit,
+        val finish: () -> Unit,
+        val schemaFile: File,
+        val jrFile: File,
+        val mainActivityIntent: Intent,
+        val loadingActivityIntent: Intent,
+        val startActivity: (Intent) -> Unit,
+        val packageName: String,
+        val exit: () -> Nothing,
+    )
 
     companion object {
         const val META_VERZE_DAT = 4
+        const val EXTRA_KEY_AKTUALIZOVAT_DATA = "aktualizovat-data"
+        const val EXTRA_KEY_AKTUALIZOVAT_APLIKACI = "aktualizovat-aplikaci"
+        const val EXTRA_KEY_DEEPLINK = "link"
     }
 
     private val _state = MutableStateFlow("" to (null as Float?))
@@ -63,13 +77,13 @@ class LoadingViewModel(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                update || repo.verze == -1
+                params.update || repo.verze == -1
             } catch (e: Exception) {
                 e.printStackTrace()
                 ukazatChybaDialog()
             }
 
-            if (update || repo.verze == -1) {
+            if (params.update || repo.verze == -1) {
                 stahnoutNoveJizdniRady()
             }
 
@@ -80,39 +94,23 @@ class LoadingViewModel(
                 ukazatChybaDialog()
             }
 
-            if (uri?.removePrefix("/DPMCB").equals("/app-details")) {
-                otevriDetailAplikace()
-            }
-
-            val intent = mainActivityIntent
-
-            uri?.let {
-                intent.putExtra("link", it.removePrefix("/DPMCB"))
-            }
+            val intent = vyresitOdkaz(params.mainActivityIntent)
 
             if (!repo.isOnline.value || !repo.nastaveni.value.kontrolaAktualizaci) {
-                finish()
-                startActivity(intent)
+                params.finish()
+                params.startActivity(intent)
                 return@launch
             }
-
-            val mistniVerze = repo.verze
 
             _state.update {
                 "Kontrola dostupnosti aktualizací" to null
             }
 
-            val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-            val reference = database.getReference("data${META_VERZE_DAT}/verze")
+            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_DATA, jePotrebaAktualizovatData())
+            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_APLIKACI, jePotrebaAktualizovatAplikaci())
 
-            val onlineVerze = withTimeoutOrNull(3_000) {
-                reference.get().await().getValue<Int>()
-            } ?: -2
-
-            intent.putExtra("update", mistniVerze < onlineVerze)
-
-            finish()
-            startActivity(intent)
+            params.finish()
+            params.startActivity(intent)
         }
     }
 
@@ -120,7 +118,7 @@ class LoadingViewModel(
         repo.cislaLinek(LocalDate.now()).ifEmpty {
             throw Exception()
         }
-        if (!schemaFile.exists()) {
+        if (!params.schemaFile.exists()) {
             throw Exception()
         }
         return null
@@ -129,12 +127,12 @@ class LoadingViewModel(
     private suspend fun ukazatChybaDialog(): Nothing {
         coroutineScope {
             withContext(Dispatchers.Main) {
-                chyba {
-                    startActivity(loadingActivityIntent.apply {
+                params.chyba {
+                    params.startActivity(params.loadingActivityIntent.apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
                         putExtra("update", true)
                     })
-                    finish()
+                    params.finish()
                 }
             }
         }
@@ -142,33 +140,83 @@ class LoadingViewModel(
         while (true) Unit
     }
 
+    private fun vyresitOdkaz(baseIntent: Intent): Intent {
+        if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
+            otevriDetailAplikace()
+        }
+
+        params.uri?.let {
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
+        }
+
+        return baseIntent
+    }
+
     private fun otevriDetailAplikace(): Nothing {
-        finish()
-        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", packageName, null)
+        params.finish()
+        params.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", params.packageName, null)
             addCategory(Intent.CATEGORY_DEFAULT)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
         })
-        exit()
+        params.exit()
+    }
+
+    private suspend fun jePotrebaAktualizovatData(): Boolean {
+        val mistniVerze = repo.verze
+
+        val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+        val reference = database.getReference("data${META_VERZE_DAT}/verze")
+
+        val onlineVerze = withTimeoutOrNull(3_000) {
+            reference.get().await().getValue<Int>()
+        } ?: -2
+
+        return mistniVerze < onlineVerze
+    }
+
+    private suspend fun jePotrebaAktualizovatAplikaci(): Boolean {
+        val jeDebug = BuildConfig.DEBUG
+
+        if (jeDebug) return false
+
+        val response = try {
+            withContext(Dispatchers.IO) {
+                Jsoup
+                    .connect("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
+                    .ignoreContentType(true)
+                    .maxBodySize(0)
+                    .execute()
+            }
+        } catch (e: SocketTimeoutException) {
+            return false
+        }
+
+        if (response.statusCode() != 200) return false
+
+        val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
+        val nejnovejsiVerze = response.body().toVersion(false)
+
+        return mistniVerze < nejnovejsiVerze
     }
 
     private suspend fun stahnoutNoveJizdniRady() {
 
         if (!repo.isOnline.value) {
             withContext(Dispatchers.Main) {
-                potrebaInternet()
+                params.potrebaInternet()
             }
-            exit()
+            params.exit()
         }
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
         }
 
         repo.odstranitVse()
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
         }
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
@@ -178,10 +226,10 @@ class LoadingViewModel(
         val referenceVerze = database.getReference("data${META_VERZE_DAT}/verze")
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
         }
 
-        val jrFile = jrFile
+        val jrFile = params.jrFile
 
         val jrTask = jrRef.getFile(jrFile)
 
@@ -198,7 +246,7 @@ class LoadingViewModel(
         jrTask.await()
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/6)" to null
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
         }
 
         val json = jrFile.readText()
@@ -222,116 +270,114 @@ class LoadingViewModel(
         var indexRadku = 0F
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
         }
 
         data
             .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
             .forEach { (tab, dataLinky) ->
-                dataLinky.forEach { (typTabulky, tabulka) ->
-                    tabulka.forEach radek@{ radek ->
-                        indexRadku++
+                val zastavkySpojeTabulky: MutableList<ZastavkaSpoje> = mutableListOf()
+                val casKodyTabulky: MutableList<CasKod> = mutableListOf()
+                dataLinky
+                    .toList()
+                    .sortedBy { (typTabulky, _) ->
+                        TypyTabulek.values().indexOf(TypyTabulek.valueOf(typTabulky))
+                    }
+                    .forEach { (typTabulky, tabulka) ->
+                        tabulka.forEach radek@{ radek ->
+                            indexRadku++
 
-                        _state.update {
-                            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/6)" to indexRadku / pocetRadku
-                        }
+                            _state.update {
+                                it.first to indexRadku / pocetRadku
+                            }
 
-                        when (TypyTabulek.valueOf(typTabulky)) {
-                            TypyTabulek.Zasspoje -> zastavkySpoje += ZastavkaSpoje(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                indexZastavkyNaLince = radek[2].toInt(),
-                                cisloZastavky = radek[3].toInt(),
-                                kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
-                                prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
-                                odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
-                                tab = tab,
-                            )
+                            when (TypyTabulek.valueOf(typTabulky)) {
+                                TypyTabulek.Zasspoje -> zastavkySpojeTabulky += ZastavkaSpoje(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    indexZastavkyNaLince = radek[2].toInt(),
+                                    cisloZastavky = radek[3].toInt(),
+                                    kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
+                                    prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                    odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Zastavky -> zastavky += Zastavka(
-                                linka = radek[0].toInt(),
-                                cisloZastavky = radek[1].toInt(),
-                                nazevZastavky = radek[2],
-                                pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                tab = tab,
-                            )
+                                TypyTabulek.Zastavky -> zastavky += Zastavka(
+                                    linka = radek[0].toInt(),
+                                    cisloZastavky = radek[1].toInt(),
+                                    nazevZastavky = radek[2],
+                                    pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Caskody -> casKody += CasKod(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                kod = radek[3].toInt(),
-                                indexTerminu = radek[2].toInt(),
-                                jede = radek[4] == "1",
-                                platiOd = radek[5].toDatumDivne(),
-                                platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
-                                tab = tab,
-                            )
+                                TypyTabulek.Caskody -> casKodyTabulky += CasKod(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    kod = radek[3].toInt(),
+                                    indexTerminu = radek[2].toInt(),
+                                    jede = radek[4] == "1",
+                                    platiOd = radek[5].toDatumDivne(),
+                                    platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Linky -> linky += Linka(
-                                cislo = radek[0].toInt(),
-                                trasa = radek[1],
-                                typVozidla = Json.decodeFromString("\"${radek[4]}\""),
-                                typLinky = Json.decodeFromString("\"${radek[3]}\""),
-                                maVyluku = radek[5] != "0",
-                                platnostOd = radek[13].toDatumDivne(),
-                                platnostDo = radek[14].toDatumDivne(),
-                                tab = tab,
-                            )
+                                TypyTabulek.Linky -> linky += Linka(
+                                    cislo = radek[0].toInt(),
+                                    trasa = radek[1],
+                                    typVozidla = Json.decodeFromString("\"${radek[4]}\""),
+                                    typLinky = Json.decodeFromString("\"${radek[3]}\""),
+                                    maVyluku = radek[5] != "0",
+                                    platnostOd = radek[13].toDatumDivne(),
+                                    platnostDo = radek[14].toDatumDivne(),
+                                    tab = tab,
+                                )
 
-                            TypyTabulek.Spoje -> spoje += Spoj(
-                                linka = radek[0].toInt(),
-                                cisloSpoje = radek[1].toInt(),
-                                pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                smer = Smer.POZITIVNI, // POZOR!!! DOČASNÁ HODNOTA!!!
-                                tab = tab,
-                            )
+                                TypyTabulek.Spoje -> spoje += Spoj(
+                                    linka = radek[0].toInt(),
+                                    cisloSpoje = radek[1].toInt(),
+                                    pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    smer = zastavkySpojeTabulky
+                                        .filter { it.cisloSpoje == radek[1].toInt() }
+                                        .sortedBy { it.indexZastavkyNaLince }
+                                        .filter { it.cas != null }
+                                        .let { zast ->
+                                            Smer.fromBoolean(zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu)
+                                        },
+                                    tab = tab,
+                                ).also { spoj ->
+                                    if (casKodyTabulky.none { it.cisloSpoje == spoj.cisloSpoje })
+                                        casKodyTabulky += CasKod(
+                                            linka = spoj.linka,
+                                            cisloSpoje = spoj.cisloSpoje,
+                                            kod = 0,
+                                            indexTerminu = 0,
+                                            jede = false,
+                                            platiOd = LocalDate.of(0, 1, 1),
+                                            platiDo = LocalDate.of(0, 1, 1),
+                                            tab = spoj.tab,
+                                        )
+                                }
 
-                            TypyTabulek.Pevnykod -> Unit
-                            TypyTabulek.Zaslinky -> Unit
-                            TypyTabulek.VerzeJDF -> Unit
-                            TypyTabulek.Dopravci -> Unit
-                            TypyTabulek.LinExt -> Unit
-                            TypyTabulek.Udaje -> Unit
+                                TypyTabulek.Pevnykod -> Unit
+                                TypyTabulek.Zaslinky -> Unit
+                                TypyTabulek.VerzeJDF -> Unit
+                                TypyTabulek.Dopravci -> Unit
+                                TypyTabulek.LinExt -> Unit
+                                TypyTabulek.Udaje -> Unit
+                            }
                         }
                     }
-                }
+
+                zastavkySpoje += zastavkySpojeTabulky
+                casKody += casKodyTabulky
             }
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (5/6)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
         }
 
-        spoje.forEachIndexed { index, spoj ->
-            _state.update {
-                it.first to index.toFloat() / spoje.count()
-            }
-
-            val zast = zastavkySpoje
-                .filter { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab }
-                .sortedBy { it.indexZastavkyNaLince }
-                .filter { it.cas != null }
-
-            spoje[index] =
-                spoj.copy(smer = if (zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu) Smer.POZITIVNI else Smer.NEGATIVNI)
-
-            if (casKody.none { it.cisloSpoje == spoj.cisloSpoje && it.tab == spoj.tab })
-                casKody += CasKod(
-                    linka = spoj.linka,
-                    cisloSpoje = spoj.cisloSpoje,
-                    kod = 0,
-                    indexTerminu = 0,
-                    jede = false,
-                    platiOd = LocalDate.of(0, 1, 1),
-                    platiDo = LocalDate.of(0, 1, 1),
-                    tab = spoj.tab,
-                )
-        }
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
-        }
-
-        val schemaTask = schemaRef.getFile(schemaFile)
+        val schemaTask = schemaRef.getFile(params.schemaFile)
 
         schemaTask.addOnFailureListener {
             throw it

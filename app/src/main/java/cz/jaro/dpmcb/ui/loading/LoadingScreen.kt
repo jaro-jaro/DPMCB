@@ -54,28 +54,30 @@ fun Loading(
 
     val viewModel: LoadingViewModel = koinViewModel {
         parametersOf(
-            uri,
-            update,
-            { it: () -> Unit ->
-                callback = it
-                chybaDialog = true
-            },
-            {
-                Toast.makeText(ctx, "Na stažení jizdních řádů je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
-            },
-            finish,
-            ctx.schemaFile,
-            File(ctx.cacheDir, "jr-dpmcb.jaro"),
-            Intent(ctx, MainActivity::class.java),
-            Intent(ctx, LoadingActivity::class.java),
-            { it: Intent ->
-                ctx.startActivity(it)
-            },
-            ctx.packageName,
-            {
-                ExitActivity.exitApplication(ctx)
-                exitProcess(0)
-            }
+            LoadingViewModel.Parameters(
+                uri = uri,
+                update = update,
+                chyba = { it: () -> Unit ->
+                    callback = it
+                    chybaDialog = true
+                },
+                potrebaInternet = {
+                    Toast.makeText(ctx, "Na stažení jizdních řádů je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
+                },
+                finish = finish,
+                schemaFile = ctx.schemaFile,
+                jrFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
+                mainActivityIntent = Intent(ctx, MainActivity::class.java),
+                loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
+                startActivity = { it: Intent ->
+                    ctx.startActivity(it)
+                },
+                packageName = ctx.packageName,
+                exit = {
+                    ExitActivity.exitApplication(ctx)
+                    exitProcess(0)
+                }
+            )
         )
     }
 

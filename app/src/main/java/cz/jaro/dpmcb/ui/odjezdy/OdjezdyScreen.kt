@@ -68,7 +68,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
 
@@ -80,7 +80,14 @@ fun Odjezdy(
     linka: Int? = null,
     pres: String? = null,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas ?: ted, linka, pres))
+        parametersOf(
+            OdjezdyViewModel.Parameters(
+                zastavka = zastavka,
+                cas = cas ?: ted,
+                linka = linka,
+                pres = pres
+            )
+        )
     },
     navigator: DestinationsNavigator,
     resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,
@@ -204,7 +211,7 @@ fun OdjezdyScreen(
             .padding(horizontal = 16.dp)
     ) {
         val linkaSource = remember { MutableInteractionSource() }
-        val containerColor = MaterialTheme.colorScheme.onSurfaceVariant
+        val containerColor = MaterialTheme.colorScheme.surfaceVariant
         TextField(
             value = state.filtrLinky?.toString() ?: "Všechny",
             onValueChange = {},
@@ -223,8 +230,8 @@ fun OdjezdyScreen(
                 }
             },
             colors = TextFieldDefaults.colors(
-                focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 focusedContainerColor = containerColor,
                 unfocusedContainerColor = containerColor,
                 disabledContainerColor = containerColor,

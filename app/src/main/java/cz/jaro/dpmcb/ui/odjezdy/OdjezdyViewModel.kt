@@ -23,30 +23,37 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
+@KoinViewModel
 class OdjezdyViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
-    val zastavka: String,
-    cas: LocalTime,
-    linka: Int?,
-    pres: String?,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
+
+    data class Parameters(
+        val zastavka: String,
+        val cas: LocalTime,
+        val linka: Int?,
+        val pres: String?,
+    )
 
     lateinit var scrollovat: suspend (Int) -> Unit
     lateinit var navigovat: (Direction) -> Unit
 
-    private val _state = MutableStateFlow(OdjezdyState(cas = cas, filtrLinky = linka, filtrZastavky = pres))
+    private val _state = MutableStateFlow(OdjezdyState(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
     val state = _state.asStateFlow()
 
     val maPristupKJihu = repo.maPristupKJihu
 
     val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
-            repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
+            repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, params.zastavka)
                 .map {
                     val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
                     it to spojNaMape
@@ -124,7 +131,7 @@ class OdjezdyViewModel(
             navigovat(
                 JizdniRadyDestination(
                     cisloLinky = spoj.cisloLinky,
-                    zastavka = zastavka,
+                    zastavka = params.zastavka,
                     pristiZastavka = spoj.pristiZastavka,
                 )
             )
@@ -190,7 +197,7 @@ class OdjezdyViewModel(
             withContext(Dispatchers.Main) {
                 scrollovat(
                     filtrovanejSeznam.value!!.withIndex().firstOrNull { (_, zast) ->
-                        zast.cas >= cas
+                        zast.cas >= params.cas
                     }?.index ?: seznam.value!!.lastIndex
                 )
             }

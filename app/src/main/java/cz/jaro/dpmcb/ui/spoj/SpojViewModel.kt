@@ -19,16 +19,19 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
+@KoinViewModel
 class SpojViewModel(
     private val repo: SpojeRepository,
     dopravaRepo: DopravaRepository,
-    spojId: String,
+    @InjectedParam spojId: String,
 ) : ViewModel() {
 
     val info = repo.datum.map { datum ->
