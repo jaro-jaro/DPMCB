@@ -56,7 +56,6 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
@@ -64,6 +63,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
+import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -152,7 +152,7 @@ fun OdjezdyScreen(
     zmenitCas: (LocalTime) -> Unit,
     zmenilKompaktniRezim: () -> Unit,
     listState: LazyListState,
-    zrusil: (TypAdapteru) -> Unit,
+    zrusil: (TypVybiratoru) -> Unit,
     kliklNaSpoj: (KartickaState) -> Unit,
     kliklNaZjr: (KartickaState) -> Unit,
     jeOnline: Boolean,
@@ -168,7 +168,7 @@ fun OdjezdyScreen(
     ) {
         TextButton(
             onClick = {
-                navigate(VybiratorDestination(TypAdapteru.ZASTAVKY))
+                navigate(VybiratorDestination(TypVybiratoru.ZASTAVKY))
             }
         ) {
             Text(
@@ -224,7 +224,7 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (state.filtrLinky != null) IconButton(onClick = {
-                    zrusil(TypAdapteru.LINKA_ZPET)
+                    zrusil(TypVybiratoru.LINKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
@@ -241,7 +241,7 @@ fun OdjezdyScreen(
         if (linkaPressedState is PressInteraction.Release) {
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.LINKA_ZPET,
+                    typ = TypVybiratoru.LINKA_ZPET,
                 )
             )
             linkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -260,7 +260,7 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (state.filtrZastavky != null) IconButton(onClick = {
-                    zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                    zrusil(TypVybiratoru.ZASTAVKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
@@ -278,7 +278,7 @@ fun OdjezdyScreen(
         if (zastavkaPressedState is PressInteraction.Release) {
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.ZASTAVKA_ZPET,
+                    typ = TypVybiratoru.ZASTAVKA_ZPET,
                 )
             )
             zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))

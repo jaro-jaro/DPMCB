@@ -360,6 +360,16 @@ interface Dao {
 
     @Query(
         """
+        SELECT id FROM spoj
+        WHERE tab = :tab
+        AND id = :spojId
+        LIMIT 1
+    """
+    )
+    suspend fun existujeSpoj(spojId: String, tab: String): String?
+
+    @Query(
+        """
         SELECT * FROM linka
         WHERE cislo = :linka
     """

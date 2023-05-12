@@ -35,10 +35,15 @@ class SpojViewModel(
 ) : ViewModel() {
 
     val info = repo.datum.map { datum ->
-        val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
+        val existuje = repo.existujeSpoj(spojId, datum)
+        if (!existuje) return@map SpojInfo.Neexistuje(spojId)
+        val (spoj, zastavky, caskody, pevneKody, jedeDnes)
+                = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
+        if (!jedeDnes) return@map SpojInfo.Neexistuje(spojId)
+
         val vyluka = repo.maVyluku(spojId, datum)
         val platnost = repo.platnostLinky(spojId, datum)
-        SpojInfo(
+        SpojInfo.OK(
             spojId = spojId,
             zastavky = zastavky,
             cisloLinky = spoj.linka,
@@ -61,9 +66,10 @@ class SpojViewModel(
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
             vyluka = vyluka,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojInfo.Loading)
 
     val oblibene = repo.oblibene
+    val datum = repo.datum
     val pridatOblibeny = repo::pridatOblibeny
     val odebratOblibeny = repo::odebratOblibeny
 
@@ -78,7 +84,7 @@ class SpojViewModel(
 
     val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
         when {
-            info == null -> 0
+            info !is SpojInfo.OK -> 0
             datum > LocalDate.now() -> 0
             datum < LocalDate.now() -> info.zastavky.lastIndex
             state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
@@ -89,7 +95,7 @@ class SpojViewModel(
 
     val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
 
-        if (info == null) return@combine 0F
+        if (info !is SpojInfo.OK) return@combine 0F
 
         val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 

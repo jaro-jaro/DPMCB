@@ -35,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -69,6 +70,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -159,7 +161,7 @@ fun Main(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     startActivity: (KClass<out Activity>) -> Unit,
@@ -297,167 +299,254 @@ fun MainScreen(
                 drawerContent = {
                     ModalDrawerSheet {
                         SuplikAkce.values().forEach { akce ->
-                            when (akce) {
-                                SuplikAkce.ZpetnaVazba -> {
-                                    var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-                                    var hodnoceni by rememberSaveable { mutableStateOf(-1) }
-
-                                    if (zobrazitDialog) AlertDialog(
-                                        onDismissRequest = {
-                                            zobrazitDialog = false
-                                        },
-                                        title = {
-                                            Text("Ohodnotit aplikaci")
-                                        },
-                                        confirmButton = {
-                                            TextButton(onClick = {
-                                                val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-                                                val ref = database.getReference("hodnoceni")
-                                                ref.push().setValue("${hodnoceni + 1}/5")
-                                                hodnoceni = -1
-                                                zobrazitDialog = false
-                                            }) {
-                                                Text("Odeslat")
-                                            }
-                                        },
-                                        text = {
-                                            Column {
-                                                Row {
-                                                    repeat(5) { i ->
-                                                        IconButton(onClick = {
-                                                            hodnoceni = if (hodnoceni == i) -1 else i
-                                                        }, Modifier.weight(1F)) {
-                                                            if (hodnoceni >= i)
-                                                                Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
-                                                            else
-                                                                Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
-                                                        }
-                                                    }
-                                                }
-                                                Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
-                                                TextButton(onClick = {
-                                                    startIntent(Intent().apply {
-                                                        action = Intent.ACTION_VIEW
-                                                        data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
-                                                    })
-                                                }) {
-                                                    Text(text = "Přejít na GitHub")
-                                                }
-                                            }
-                                        }
-                                    )
-                                    NavigationDrawerItem(
-                                        label = {
-                                            Text(stringResource(akce.jmeno))
-                                        },
-                                        icon = {
-                                            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
-                                        },
-                                        selected = false,
-                                        onClick = {
-                                            if (jeOnline.value)
-                                                zobrazitDialog = true
-                                            else
-                                                showToast("Jste offline!", Toast.LENGTH_SHORT)
-                                        },
-                                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                                    )
-                                }
-
-                                SuplikAkce.Vypnout -> {
-                                    NavigationDrawerItem(
-                                        label = {
-                                            Text(stringResource(akce.jmeno))
-                                        },
-                                        icon = {
-                                            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
-                                        },
-                                        selected = false,
-                                        onClick = {
-                                            tuDuDum()
-                                        },
-                                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                                    )
-                                }
-
-                                SuplikAkce.Datum -> Row(
-                                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Používané datum: ${datum.value.asString()}",
-                                        modifier = Modifier.padding(all = 16.dp)
-                                    )
-                                    var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-                                    if (zobrazitDialog) DatePickerDialog(
-                                        onDismissRequest = {
-                                            zobrazitDialog = false
-                                        },
-                                        onDateChange = {
-                                            upravitDatum(it)
-                                            zobrazitDialog = false
-                                        },
-                                        title = {
-                                            Row(
-                                                Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("Vybrat nové datum")
-                                                IconButton(
-                                                    onClick = {
-                                                        upravitDatum(LocalDate.now())
-                                                        zobrazitDialog = false
-                                                    }
-                                                ) {
-                                                    IconWithTooltip(Icons.Default.CalendarToday, "Nastavit dnes")
-                                                }
-                                            }
-                                        },
-                                        initialDate = datum.value,
-                                    )
-
-                                    Spacer(
-                                        modifier = Modifier.weight(1F)
-                                    )
-
-                                    IconButton(
-                                        onClick = {
-                                            zobrazitDialog = true
-                                        }
-                                    ) {
-                                        IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
-                                    }
-                                }
-
-                                else -> if (akce != SuplikAkce.PraveJedouci || datum.value == LocalDate.now()) NavigationDrawerItem(
-                                    label = {
-                                        Text(stringResource(akce.jmeno))
-                                    },
-                                    icon = {
-                                        IconWithTooltip(akce.icon, stringResource(akce.jmeno))
-                                    },
-                                    selected = App.vybrano == akce,
-                                    onClick = {
-                                        if (akce.multiselect)
-                                            App.vybrano = akce
-
-                                        akce.onClick(
-                                            navigate,
-                                            { closeDrawer() },
-                                            { startActivity(it) },
-                                        )
-                                    },
-                                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                                )
-                            }
+                            VecZeSupliku(
+                                akce = akce,
+                                navigate = navigate,
+                                startIntent = startIntent,
+                                jeOnline = jeOnline,
+                                showToast = showToast,
+                                datum = datum,
+                                upravitDatum = upravitDatum,
+                                tuDuDum = tuDuDum,
+                                closeDrawer = closeDrawer,
+                                startActivity = startActivity
+                            )
                         }
                     }
                 },
                 drawerState = drawerState,
-            ) {
-                content()
-            }
+                content = content
+            )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@Composable
+fun VecZeSupliku(
+    akce: SuplikAkce,
+    navigate: NavigateFunction,
+    startIntent: (Intent) -> Unit,
+    jeOnline: State<Boolean>,
+    showToast: (String, Int) -> Unit,
+    datum: State<LocalDate>,
+    upravitDatum: (LocalDate) -> Unit,
+    tuDuDum: () -> Unit,
+    closeDrawer: () -> Unit,
+    startActivity: (KClass<out Activity>) -> Unit,
+) = when (akce) {
+    SuplikAkce.ZpetnaVazba -> {
+        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+        var hodnoceni by rememberSaveable { mutableStateOf(-1) }
+
+        if (zobrazitDialog) AlertDialog(
+            onDismissRequest = {
+                zobrazitDialog = false
+            },
+            title = {
+                Text("Ohodnotit aplikaci")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    val ref = database.getReference("hodnoceni")
+                    ref.push().setValue("${hodnoceni + 1}/5")
+                    hodnoceni = -1
+                    zobrazitDialog = false
+                }) {
+                    Text("Odeslat")
+                }
+            },
+            text = {
+                Column {
+                    Row {
+                        repeat(5) { i ->
+                            IconButton(onClick = {
+                                hodnoceni = if (hodnoceni == i) -1 else i
+                            }, Modifier.weight(1F)) {
+                                if (hodnoceni >= i)
+                                    Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
+                                else
+                                    Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
+                            }
+                        }
+                    }
+                    Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
+                    TextButton(onClick = {
+                        startIntent(Intent().apply {
+                            action = Intent.ACTION_VIEW
+                            data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
+                        })
+                    }) {
+                        Text(text = "Přejít na GitHub")
+                    }
+                }
+            }
+        )
+        NavigationDrawerItem(
+            label = {
+                Text(stringResource(akce.jmeno))
+            },
+            icon = {
+                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+            },
+            selected = false,
+            onClick = {
+                if (jeOnline.value)
+                    zobrazitDialog = true
+                else
+                    showToast("Jste offline!", Toast.LENGTH_SHORT)
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+    }
+
+    SuplikAkce.SpojPodleId -> {
+        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+        var id by rememberSaveable { mutableStateOf("") }
+
+        if (zobrazitDialog) AlertDialog(
+            onDismissRequest = {
+                zobrazitDialog = false
+                id = ""
+            },
+            title = {
+                Text(stringResource(id = R.string.spoj_podle_id))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    navigate(
+                        SpojDestination(
+                            spojId = id
+                        )
+                    )
+                    zobrazitDialog = false
+                    closeDrawer()
+                    id = ""
+                }) {
+                    Text("Vyhledat")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    zobrazitDialog = false
+                    id = ""
+                }) {
+                    Text("Zrušit")
+                }
+            },
+            text = {
+                TextField(
+                    value = id,
+                    onValueChange = {
+                        id = it
+                    },
+                    Modifier.fillMaxWidth(),
+                    label = {
+                        Text("Zadejte ID")
+                    },
+                )
+            }
+        )
+        NavigationDrawerItem(
+            label = {
+                Text(stringResource(akce.jmeno))
+            },
+            icon = {
+                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+            },
+            selected = App.vybrano == akce,
+            onClick = {
+                zobrazitDialog = true
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+    }
+
+    SuplikAkce.Vypnout -> {
+        NavigationDrawerItem(
+            label = {
+                Text(stringResource(akce.jmeno))
+            },
+            icon = {
+                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+            },
+            selected = false,
+            onClick = {
+                tuDuDum()
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+    }
+
+    SuplikAkce.Datum -> Row(
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Používané datum: ${datum.value.asString()}",
+            modifier = Modifier.padding(all = 16.dp)
+        )
+        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+        if (zobrazitDialog) DatePickerDialog(
+            onDismissRequest = {
+                zobrazitDialog = false
+            },
+            onDateChange = {
+                upravitDatum(it)
+                zobrazitDialog = false
+            },
+            title = {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Vybrat nové datum")
+                    IconButton(
+                        onClick = {
+                            upravitDatum(LocalDate.now())
+                            zobrazitDialog = false
+                        }
+                    ) {
+                        IconWithTooltip(Icons.Default.CalendarToday, "Nastavit dnes")
+                    }
+                }
+            },
+            initialDate = datum.value,
+        )
+
+        Spacer(
+            modifier = Modifier.weight(1F)
+        )
+
+        IconButton(
+            onClick = {
+                zobrazitDialog = true
+            }
+        ) {
+            IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
+        }
+    }
+
+    else -> if (akce != SuplikAkce.PraveJedouci || datum.value == LocalDate.now()) NavigationDrawerItem(
+        label = {
+            Text(stringResource(akce.jmeno))
+        },
+        icon = {
+            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+        },
+        selected = App.vybrano == akce,
+        onClick = {
+            if (akce.multiselect)
+                App.vybrano = akce
+
+            akce.onClick(
+                navigate,
+                { closeDrawer() },
+                { startActivity(it) },
+            )
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    ) else Unit
 }

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
@@ -16,10 +17,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.NastaveniActivity
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.ui.destinations.MapaDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
+import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlin.reflect.KClass
 
 
@@ -64,7 +65,7 @@ enum class SuplikAkce(
 
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.ZASTAVKY,
+                    typ = TypVybiratoru.ZASTAVKY,
                     cisloLinky = -1,
                     zastavka = null
                 )
@@ -92,13 +93,19 @@ enum class SuplikAkce(
 
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.LINKY,
+                    typ = TypVybiratoru.LINKY,
                     cisloLinky = -1,
                     zastavka = null,
                 )
             )
             zavrit()
         }
+    ),
+    SpojPodleId(
+        R.string.spoj_podle_id,
+        Icons.Default.Search,
+        true,
+        onClick = { _, _, _ -> }
     ),
     Mapa(
         R.string.mapa_linek,

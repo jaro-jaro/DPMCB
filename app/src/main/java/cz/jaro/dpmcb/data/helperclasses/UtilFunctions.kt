@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import java.io.File
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
@@ -44,6 +45,25 @@ import kotlin.math.sign
 import kotlin.time.toJavaDuration
 
 object UtilFunctions {
+
+    fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+        when (za) {
+            0L -> "dnes"
+            1L -> "zítra"
+            2L -> "pozítří"
+            in 3L..7L -> when (dayOfWeek!!) {
+                DayOfWeek.MONDAY -> "v pondělí"
+                DayOfWeek.TUESDAY -> "v úterý"
+                DayOfWeek.WEDNESDAY -> "ve středu"
+                DayOfWeek.THURSDAY -> "ve čtvrtek"
+                DayOfWeek.FRIDAY -> "v pátek"
+                DayOfWeek.SATURDAY -> "v sobotu"
+                DayOfWeek.SUNDAY -> "v neděli"
+            }
+
+            else -> asString()
+        }
+    }
 
     fun Smer.toInt(): Int = when (this) {
         Smer.POZITIVNI -> 1

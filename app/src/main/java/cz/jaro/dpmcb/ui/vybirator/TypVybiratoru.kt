@@ -1,6 +1,6 @@
-package cz.jaro.dpmcb.data.helperclasses
+package cz.jaro.dpmcb.ui.vybirator
 
-enum class TypAdapteru {
+enum class TypVybiratoru {
     ZASTAVKY,
     LINKY,
     ZASTAVKY_LINKY,

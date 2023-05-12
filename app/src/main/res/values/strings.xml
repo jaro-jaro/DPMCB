@@ -38,4 +38,5 @@
     <string name="doprava_na_jihu">Doprava na jihu</string>
     <string name="prave_jedouci">Právě jedoucí</string>
     <string name="title_activity_exit">ExitActivity</string>
+    <string name="spoj_podle_id">Najít spoj podle ID</string>
 </resources>
