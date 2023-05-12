@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
@@ -113,7 +114,15 @@ class SpojeRepository(ctx: Application) {
             val bezkodu = distinctBy {
                 it.copy(pevneKody = "", jede = false, od = LocalDate.now(), `do` = LocalDate.now())
             }
-            Quadruple(
+            val caskody = map {
+                JedeOdDo(
+                    jede = it.jede,
+                    v = it.od..it.`do`
+                )
+            }.distinctBy {
+                it.jede to it.v.toString()
+            }
+            Quintuple(
                 first().let {
                     LinkaNizkopodlaznostSpojId(
                         nizkopodlaznost = it.nizkopodlaznost,
@@ -130,15 +139,13 @@ class SpojeRepository(ctx: Application) {
                         spojId = it.spojId
                     )
                 }.distinct(),
-                map {
-                    JedeOdDo(
-                        jede = it.jede,
-                        v = it.od..it.`do`
-                    )
-                }.distinctBy {
-                    it.jede to it.v.toString()
-                },
+                caskody,
                 zcitelnitPevneKody(first().pevneKody),
+                listOf(
+                    (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+                    caskody.filter { !it.jede }.none { datum in it.v },
+                    datum.jedeDnes(first().pevneKody),
+                ).all { it }
             )
         }
 
@@ -276,6 +283,9 @@ class SpojeRepository(ctx: Application) {
 
     suspend fun platnostLinky(spojId: String, datum: LocalDate) =
         dao.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+
+    suspend fun existujeSpoj(spojId: String, datum: LocalDate) =
+        dao.existujeSpoj(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!) != null
 
     fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = { datum ->
         val seznam = dao.pevneKodyCaskody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)

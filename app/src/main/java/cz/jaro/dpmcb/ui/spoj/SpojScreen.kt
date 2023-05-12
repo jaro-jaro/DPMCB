@@ -64,11 +64,13 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 import java.time.LocalTime
@@ -84,13 +86,14 @@ fun Spoj(
     navigator: DestinationsNavigator,
 ) {
     title = R.string.detail_spoje
-    App.vybrano = null
+    App.vybrano = SuplikAkce.SpojPodleId
 
     val info by viewModel.info.collectAsStateWithLifecycle()
     val stateZJihu by viewModel.stateZJihu.collectAsStateWithLifecycle()
     val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
     val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
     val oblibene by viewModel.oblibene.collectAsStateWithLifecycle()
+    val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     SpojScreen(
         info = info,
@@ -102,13 +105,14 @@ fun Spoj(
         oblibene = oblibene,
         pridatOblibeny = viewModel.pridatOblibeny,
         odebratOblibeny = viewModel.odebratOblibeny,
+        datum = datum.hezky(),
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SpojScreen(
-    info: SpojInfo?,
+    info: SpojInfo,
     zpozdeni: Int?,
     zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
     projetychUseku: Int,
@@ -117,287 +121,303 @@ fun SpojScreen(
     oblibene: List<String>,
     pridatOblibeny: (String) -> Unit,
     odebratOblibeny: (String) -> Unit,
+    datum: String,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        if (info == null) CircularProgressIndicator(modifier = Modifier.fillMaxWidth())
-        else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp), verticalAlignment = Alignment.CenterVertically
+        when (info) {
+            is SpojInfo.Loading -> Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Text("Linka ${info.cisloLinky}")
-                IconWithTooltip(
-                    info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
-                )
-                if (zpozdeni != null) Badge(
-                    containerColor = barvaZpozdeniBublinyKontejner(zpozdeni),
-                    contentColor = barvaZpozdeniBublinyText(zpozdeni),
-                ) {
-                    Text(
-                        text = zpozdeni.run {
-                            "${toSign()}$this min"
-                        },
-                    )
-                }
-                Spacer(Modifier.weight(1F))
-                FilledIconToggleButton(checked = info.spojId in oblibene, onCheckedChange = {
-                    if (it) {
-                        pridatOblibeny(info.spojId)
-                    } else {
-                        odebratOblibeny(info.spojId)
-                    }
-                }) {
-                    IconWithTooltip(Icons.Default.Star, "Oblíbené")
-                }
-//                Button(onClick = {
-//                    viewModel.detailKurzu()
-//                }) {
-//                    Text("Detail kurzu")
-//                }
+                CircularProgressIndicator()
             }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(ScrollState(0))
+
+            is SpojInfo.Neexistuje -> Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                if (info.vyluka) Card(
-                    Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Row(
-                        Modifier.padding(top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.WarningAmber, null, Modifier.padding(horizontal = 8.dp))
-                        Text(text = "Výluka", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
-                    }
-                    Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
-                }
-                OutlinedCard(
+                Text("Tento spoj (ID ${info.spojId}) bohužel $datum nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
+            }
+
+            is SpojInfo.OK -> {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
+                    Text("Linka ${info.cisloLinky}")
+                    IconWithTooltip(
+                        info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                    )
+                    if (zpozdeni != null) Badge(
+                        containerColor = barvaZpozdeniBublinyKontejner(zpozdeni),
+                        contentColor = barvaZpozdeniBublinyText(zpozdeni),
+                    ) {
+                        Text(
+                            text = zpozdeni.run {
+                                "${toSign()}$this min"
+                            },
+                        )
+                    }
+                    Spacer(Modifier.weight(1F))
+                    FilledIconToggleButton(checked = info.spojId in oblibene, onCheckedChange = {
+                        if (it) {
+                            pridatOblibeny(info.spojId)
+                        } else {
+                            odebratOblibeny(info.spojId)
+                        }
+                    }) {
+                        IconWithTooltip(Icons.Default.Star, "Oblíbené")
+                    }
+                    //                Button(onClick = {
+                    //                    viewModel.detailKurzu()
+                    //                }) {
+                    //                    Text("Detail kurzu")
+                    //                }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(ScrollState(0))
+                ) {
+                    if (info.vyluka) Card(
+                        Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Row(
+                            Modifier.padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.WarningAmber, null, Modifier.padding(horizontal = 8.dp))
+                            Text(text = "Výluka", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
+                        }
+                        Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
+                    }
+                    OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(IntrinsicSize.Max)
-                            .padding(12.dp)
+                            .padding(top = 8.dp)
                     ) {
-                        Column {
-                            info.zastavky.forEach {
-                                MujText(
-                                    text = it.nazev,
-                                    navigate = navigate,
-                                    cas = it.cas,
-                                    zastavka = it.nazev,
-                                    pristiZastavka = it.pristiZastavka,
-                                    linka = it.linka,
-                                )
-                            }
-                        }
-                        Column(Modifier.padding(start = 8.dp)) {
-                            info.zastavky.forEach {
-                                MujText(
-                                    text = it.cas.toString(),
-                                    navigate = navigate,
-                                    cas = it.cas,
-                                    zastavka = it.nazev,
-                                    pristiZastavka = it.pristiZastavka,
-                                    linka = it.linka,
-                                )
-                            }
-                        }
-                        if (zpozdeni != null && zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
-                            info.zastavky
-                                .zip(zastavkyNaJihu)
-                                .forEach { (zastavka, zastavkaNaJihu) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Max)
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                info.zastavky.forEach {
                                     MujText(
-                                        text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.toLong())).toString() else "",
-                                        color = barvaZpozdeniTextu(zpozdeni),
+                                        text = it.nazev,
                                         navigate = navigate,
-                                        cas = zastavka.cas,
-                                        zastavka = zastavka.nazev,
-                                        pristiZastavka = zastavka.pristiZastavka,
-                                        linka = zastavka.linka,
+                                        cas = it.cas,
+                                        zastavka = it.nazev,
+                                        pristiZastavka = it.pristiZastavka,
+                                        linka = it.linka,
                                     )
                                 }
-                        }
-                        val neNaMape = zpozdeni != null && zastavkyNaJihu != null
-
-                        val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                        val barvaPozadi = MaterialTheme.colorScheme.surface
-                        val baravCary = MaterialTheme.colorScheme.surfaceVariant
-                        val zastavek = info.zastavky.count()
-
-                        val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
-
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .weight(1F)
-                                .padding(start = 8.dp),
-                            contentDescription = "Poloha spoje"
-                        ) {
-                            val canvasHeight = size.height
-                            val lineWidth = 3.dp.toPx()
-                            val lineXOffset = 7.dp.toPx()
-                            val rowHeight = canvasHeight / zastavek
-                            val circleRadius = 5.5.dp.toPx()
-                            val circleStrokeWidth = 3.dp.toPx()
-
-                            translate(left = lineXOffset, top = rowHeight * .5F) {
-                                drawLine(
-                                    color = baravCary,
-                                    start = Offset(),
-                                    end = Offset(y = canvasHeight - rowHeight),
-                                    strokeWidth = lineWidth,
-                                )
-
-                                repeat(zastavek) { i ->
-                                    translate(top = i * rowHeight) {
-                                        val projel = projetychUseku >= i
-
-                                        drawCircle(
-                                            color = if (projel) projetaBarva else barvaPozadi,
-                                            radius = circleRadius,
-                                            center = Offset(),
-                                            style = Fill
-                                        )
-                                        drawCircle(
-                                            color = if (projel) projetaBarva else baravCary,
-                                            radius = circleRadius,
-                                            center = Offset(),
-                                            style = Stroke(
-                                                width = circleStrokeWidth
-                                            )
+                            }
+                            Column(Modifier.padding(start = 8.dp)) {
+                                info.zastavky.forEach {
+                                    MujText(
+                                        text = it.cas.toString(),
+                                        navigate = navigate,
+                                        cas = it.cas,
+                                        zastavka = it.nazev,
+                                        pristiZastavka = it.pristiZastavka,
+                                        linka = it.linka,
+                                    )
+                                }
+                            }
+                            if (zpozdeni != null && zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+                                info.zastavky
+                                    .zip(zastavkyNaJihu)
+                                    .forEach { (zastavka, zastavkaNaJihu) ->
+                                        MujText(
+                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.toLong())).toString() else "",
+                                            color = barvaZpozdeniTextu(zpozdeni),
+                                            navigate = navigate,
+                                            cas = zastavka.cas,
+                                            zastavka = zastavka.nazev,
+                                            pristiZastavka = zastavka.pristiZastavka,
+                                            linka = zastavka.linka,
                                         )
                                     }
+                            }
+                            val neNaMape = zpozdeni != null && zastavkyNaJihu != null
+
+                            val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                            val barvaPozadi = MaterialTheme.colorScheme.surface
+                            val baravCary = MaterialTheme.colorScheme.surfaceVariant
+                            val zastavek = info.zastavky.count()
+
+                            val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
+
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(1F)
+                                    .padding(start = 8.dp),
+                                contentDescription = "Poloha spoje"
+                            ) {
+                                val canvasHeight = size.height
+                                val lineWidth = 3.dp.toPx()
+                                val lineXOffset = 7.dp.toPx()
+                                val rowHeight = canvasHeight / zastavek
+                                val circleRadius = 5.5.dp.toPx()
+                                val circleStrokeWidth = 3.dp.toPx()
+
+                                translate(left = lineXOffset, top = rowHeight * .5F) {
+                                    drawLine(
+                                        color = baravCary,
+                                        start = Offset(),
+                                        end = Offset(y = canvasHeight - rowHeight),
+                                        strokeWidth = lineWidth,
+                                    )
+
+                                    repeat(zastavek) { i ->
+                                        translate(top = i * rowHeight) {
+                                            val projel = projetychUseku >= i
+
+                                            drawCircle(
+                                                color = if (projel) projetaBarva else barvaPozadi,
+                                                radius = circleRadius,
+                                                center = Offset(),
+                                                style = Fill
+                                            )
+                                            drawCircle(
+                                                color = if (projel) projetaBarva else baravCary,
+                                                radius = circleRadius,
+                                                center = Offset(),
+                                                style = Stroke(
+                                                    width = circleStrokeWidth
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    drawLine(
+                                        color = projetaBarva,
+                                        start = Offset(),
+                                        end = Offset(y = rowHeight * animovanaVyska),
+                                        strokeWidth = lineWidth,
+                                    )
+
+                                    if (vyska > 0F) drawCircle(
+                                        color = barvaBusu,
+                                        radius = circleRadius - circleStrokeWidth * .5F,
+                                        center = Offset(y = rowHeight * animovanaVyska)
+                                    )
                                 }
-
-                                drawLine(
-                                    color = projetaBarva,
-                                    start = Offset(),
-                                    end = Offset(y = rowHeight * animovanaVyska),
-                                    strokeWidth = lineWidth,
-                                )
-
-                                if (vyska > 0F) drawCircle(
-                                    color = barvaBusu,
-                                    radius = circleRadius - circleStrokeWidth * .5F,
-                                    center = Offset(y = rowHeight * animovanaVyska)
-                                )
                             }
                         }
                     }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    var zobrazitMenu by remember { mutableStateOf(false) }
-                    val context = LocalContext.current
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        var zobrazitMenu by remember { mutableStateOf(false) }
+                        val context = LocalContext.current
 
-                    TextButton(onClick = {
-                        zobrazitMenu = true
-                    }) {
-                        Text("id: ${info.spojId}")
-                        DropdownMenu(
-                            expanded = zobrazitMenu,
-                            onDismissRequest = {
-                                zobrazitMenu = false
+                        TextButton(onClick = {
+                            zobrazitMenu = true
+                        }) {
+                            Text("ID: ${info.spojId}")
+                            DropdownMenu(
+                                expanded = zobrazitMenu,
+                                onDismissRequest = {
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Zobrazit v mapě")
+                                    },
+                                    onClick = {},
+                                    enabled = false
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("ID: ${info.spojId}")
+                                    },
+                                    onClick = {
+                                        context.startActivity(Intent.createChooser(Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, info.spojId)
+                                            type = "text/plain"
+                                        }, "Sdílet ID spoje"))
+                                        zobrazitMenu = false
+                                    },
+                                    trailingIcon = {
+                                        IconWithTooltip(Icons.Default.Share, null)
+                                    }
+                                )
+                                if (BuildConfig.DEBUG) DropdownMenuItem(
+                                    text = {
+                                        Text("Detail spoje v api na jihu")
+                                    },
+                                    onClick = {
+                                        context.startActivity(Intent.createChooser(Intent().apply {
+                                            action = Intent.ACTION_VIEW
+                                            data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${info.spojId}")
+                                        }, "Sdílet ID spoje"))
+                                        zobrazitMenu = false
+                                    },
+                                    trailingIcon = {
+                                        IconWithTooltip(Icons.Default.Public, null)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Název: ${info.nazevSpoje}")
+                                    },
+                                    onClick = {
+                                        context.startActivity(Intent.createChooser(Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
+                                            type = "text/plain"
+                                        }, "Sdílet název spoje"))
+                                        zobrazitMenu = false
+                                    },
+                                    trailingIcon = {
+                                        IconWithTooltip(Icons.Default.Share, null)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text("Sdílet deeplink")
+                                    },
+                                    onClick = {
+                                        context.startActivity(Intent.createChooser(Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, info.deeplink)
+                                            type = "text/uri-list"
+                                        }, "Sdílet deeplink"))
+                                        zobrazitMenu = false
+                                    },
+                                    trailingIcon = {
+                                        IconWithTooltip(Icons.Default.Share, null)
+                                    }
+                                )
                             }
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Zobrazit v mapě")
-                                },
-                                onClick = {},
-                                enabled = false
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("ID: ${info.spojId}")
-                                },
-                                onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, info.spojId)
-                                        type = "text/plain"
-                                    }, "Sdílet ID spoje"))
-                                    zobrazitMenu = false
-                                },
-                                trailingIcon = {
-                                    IconWithTooltip(Icons.Default.Share, null)
-                                }
-                            )
-                            if (BuildConfig.DEBUG) DropdownMenuItem(
-                                text = {
-                                    Text("Detail spoje v api na jihu")
-                                },
-                                onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_VIEW
-                                        data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${info.spojId}")
-                                    }, "Sdílet ID spoje"))
-                                    zobrazitMenu = false
-                                },
-                                trailingIcon = {
-                                    IconWithTooltip(Icons.Default.Public, null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Název: ${info.nazevSpoje}")
-                                },
-                                onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
-                                        type = "text/plain"
-                                    }, "Sdílet název spoje"))
-                                    zobrazitMenu = false
-                                },
-                                trailingIcon = {
-                                    IconWithTooltip(Icons.Default.Share, null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Sdílet deeplink")
-                                },
-                                onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, info.deeplink)
-                                        type = "text/uri-list"
-                                    }, "Sdílet deeplink"))
-                                    zobrazitMenu = false
-                                },
-                                trailingIcon = {
-                                    IconWithTooltip(Icons.Default.Share, null)
-                                }
-                            )
                         }
-                    }
 
-                }
-                Column {
-                    info.pevneKody.forEach {
-                        Text(it)
                     }
-                    info.caskody.forEach {
-                        Text(it)
+                    Column {
+                        info.pevneKody.forEach {
+                            Text(it)
+                        }
+                        info.caskody.forEach {
+                            Text(it)
+                        }
+                        Text(info.linkaKod)
                     }
-                    Text(info.linkaKod)
                 }
             }
         }

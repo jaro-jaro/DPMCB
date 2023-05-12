@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
@@ -99,6 +100,12 @@ enum class SuplikAkce(
             )
             zavrit()
         }
+    ),
+    SpojPodleId(
+        R.string.spoj_podle_id,
+        Icons.Default.Search,
+        true,
+        onClick = { _, _, _ -> }
     ),
     Mapa(
         R.string.mapa_linek,

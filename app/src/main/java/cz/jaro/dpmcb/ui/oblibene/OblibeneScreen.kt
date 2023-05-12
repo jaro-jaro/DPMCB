@@ -31,13 +31,12 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 @Destination
 @RootNavGraph(start = true)
@@ -261,24 +260,5 @@ fun OblibeneScreen(
                 }
             }
         }
-    }
-}
-
-private fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
-    when (za) {
-        0L -> "dnes"
-        1L -> "zítra"
-        2L -> "pozítří"
-        in 3L..7L -> when (dayOfWeek!!) {
-            DayOfWeek.MONDAY -> "v pondělí"
-            DayOfWeek.TUESDAY -> "v úterý"
-            DayOfWeek.WEDNESDAY -> "ve středu"
-            DayOfWeek.THURSDAY -> "ve čtvrtek"
-            DayOfWeek.FRIDAY -> "v pátek"
-            DayOfWeek.SATURDAY -> "v sobotu"
-            DayOfWeek.SUNDAY -> "v neděli"
-        }
-
-        else -> asString()
     }
 }
