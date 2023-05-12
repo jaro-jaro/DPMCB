@@ -24,6 +24,7 @@ import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.nastaveni
+import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -106,12 +107,27 @@ object UtilFunctions {
         modifier: Modifier = Modifier,
         tooltipText: String? = contentDescription,
         tint: Color = LocalContentColor.current,
-    ) {
-        if (tooltipText != null) PlainTooltipBox(tooltip = { Text(text = tooltipText) }) {
-            Icon(imageVector, contentDescription, modifier, tint)
+    ) = if (tooltipText != null) PlainTooltipBox(
+        tooltip = {
+            DPMCBTheme {
+                Text(text = tooltipText)
+            }
         }
-        else Icon(imageVector, contentDescription, modifier, tint)
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            modifier = modifier.tooltipAnchor(),
+            tint = tint
+        )
     }
+    else
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            tint = tint
+        )
 
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }

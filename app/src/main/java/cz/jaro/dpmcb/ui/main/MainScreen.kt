@@ -212,7 +212,7 @@ fun MainScreen(
                             imageVector = if (jeOnline.value && onlineMod.value) Icons.Default.Wifi else Icons.Default.WifiOff,
                             contentDescription = when {
                                 jeOnline.value && onlineMod.value -> "Online, kliknutím přepnete do offline módu"
-                                jeOnline.value && !onlineMod.value -> "Offline, kliknutím vypnete offline méó"
+                                jeOnline.value && !onlineMod.value -> "Offline, kliknutím vypnete offline mód"
                                 else -> "Offline, nejste připojeni k internetu"
                             },
                             tint = if (jeOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
