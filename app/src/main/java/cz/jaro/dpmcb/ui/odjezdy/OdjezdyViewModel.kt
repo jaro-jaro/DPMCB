@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -161,21 +161,21 @@ class OdjezdyViewModel(
     fun vybral(vysledek: Vysledek) {
         viewModelScope.launch(Dispatchers.Main) {
             _state.update { oldState ->
-                when (vysledek.typAdapteru) {
-                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
-                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
+                when (vysledek.typVybiratoru) {
+                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
+                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
                     else -> return@launch
                 }
             }
         }
     }
 
-    fun zrusil(typAdapteru: TypAdapteru) {
+    fun zrusil(typVybiratoru: TypVybiratoru) {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { oldState ->
-                when (typAdapteru) {
-                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
-                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
+                when (typVybiratoru) {
+                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
+                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
                     else -> return@launch
                 }
             }
