@@ -137,7 +137,7 @@ object UtilFunctions {
         Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,
-            modifier = modifier.tooltipAnchor(),
+            modifier = modifier.tooltipTrigger(),
             tint = tint
         )
     }
@@ -212,6 +212,8 @@ object UtilFunctions {
     inline val NavHostController.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.funguj().navigate(it.funguj()) }
     inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
+
+    fun List<Boolean>.allTrue() = all { it }
 
     @Composable
     fun darkMode(): Boolean {

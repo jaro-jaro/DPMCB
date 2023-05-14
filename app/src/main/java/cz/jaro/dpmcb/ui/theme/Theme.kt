@@ -77,19 +77,15 @@ fun DPMCBTheme(
 ) {
 
     val colorScheme = when {
-        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> when {
+            useDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
+            else -> dynamicLightColorScheme(LocalContext.current)
         }
 
-        useDarkTheme -> DarkThemeColors
-        else -> LightThemeColors
-    }
-
-    val colors = if (!useDarkTheme) {
-        LightThemeColors
-    } else {
-        DarkThemeColors
+        else -> when {
+            useDarkTheme -> DarkThemeColors
+            else -> LightThemeColors
+        }
     }
 
     MaterialTheme(
