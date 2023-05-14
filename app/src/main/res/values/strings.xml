@@ -34,6 +34,7 @@
     <string name="pouzivane_datum">Používané datum:</string>
     <string name="zjr">Zastávkové jizdní řády</string>
     <string name="oblibena">Oblíbené spoje</string>
+    <string name="oblibena_w">Právě jedoucí oblíbené spoje</string>
     <string name="prukazka">Průkazka</string>
     <string name="doprava_na_jihu">Doprava na jihu</string>
     <string name="prave_jedouci">Právě jedoucí</string>
