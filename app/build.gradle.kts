@@ -17,7 +17,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.2.0-alpha.12"
+        versionName = "1.2.0-pre.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -79,7 +79,7 @@ ksp {
 dependencies {
 
     // Core Android
-    implementation("androidx.core:core-ktx:1.10.0")
+    implementation("androidx.core:core-ktx:1.10.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0-beta01")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
@@ -112,7 +112,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2022.10.00"))
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.activity:activity-compose:1.7.1")
-    implementation("androidx.compose.material3:material3:1.1.0-rc01")
+    implementation("androidx.compose.material3:material3:1.2.0-alpha01")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
     implementation("androidx.compose.ui:ui:1.4.3")
@@ -121,6 +121,8 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.4.3")
     implementation("androidx.compose.material:material-icons-core:1.4.3")
     implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    // Glance
+    implementation("androidx.glance:glance-appwidget:1.0.0-beta01")
     // 3rd-party
     implementation("com.google.accompanist:accompanist-flowlayout:0.27.1")
     implementation("com.google.accompanist:accompanist-placeholder-material:0.28.0")
