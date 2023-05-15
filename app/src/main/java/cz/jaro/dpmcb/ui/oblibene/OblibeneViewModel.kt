@@ -6,6 +6,7 @@ import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -33,10 +34,13 @@ class OblibeneViewModel(
                     dopravaRepo.spojPodleId(id)
                 }
                 .combine {
-                    it
+                    it.nullable()
+                }
+                .onEmpty {
+                    emit(null)
                 }
                 .combine(repo.datum) { it, datum ->
-                    it.zip(oblibene) { (spojNaMape, detailSpoje), id ->
+                    it?.zip(oblibene) { (spojNaMape, detailSpoje), id ->
                         val spoj = try {
                             repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, datum)
                         } catch (e: Exception) {
@@ -45,12 +49,9 @@ class OblibeneViewModel(
                         Quintuple(spojNaMape, detailSpoje, spoj.first, spoj.second, spoj.third)
                     }
                 }
-                .onEmpty {
-                    emit(emptyList())
-                }
         }
         .combine(repo.datum) { spoje, datum ->
-            spoje.filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV) ->
+            (spoje ?: emptyList()).filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV) ->
                 KartickaState(
                     spojId = info.spojId,
                     linka = info.linka,

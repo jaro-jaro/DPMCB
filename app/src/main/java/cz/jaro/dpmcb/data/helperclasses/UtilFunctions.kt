@@ -192,6 +192,8 @@ object UtilFunctions {
         }
     }
 
+    fun <T> T.nullable(): T? = this
+
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
     val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
