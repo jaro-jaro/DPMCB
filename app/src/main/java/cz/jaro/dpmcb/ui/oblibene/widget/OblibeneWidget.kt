@@ -104,7 +104,9 @@ class OblibeneWidget : GlanceAppWidget() {
                                 zastavky.first().cas <= LocalTime.now() + 30.minutes,
                                 zastavky.last().cas >= LocalTime.now(),
                             ).allTrue()
-                        }.filter { it.second }.map { it.first }
+                        }
+                            .filter { it.second }.map { it.first }
+                            .sortedBy { it.vychoziZastavkaCas }
 
                         if (tedJede.isEmpty()) return@state OblibeneWidgetState.PraveNicNejede
 
