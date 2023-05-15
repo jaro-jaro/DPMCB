@@ -284,8 +284,15 @@ class SpojeRepository(ctx: Application) {
     suspend fun platnostLinky(spojId: String, datum: LocalDate) =
         dao.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
 
-    suspend fun existujeSpoj(spojId: String, datum: LocalDate) =
-        dao.existujeSpoj(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!) != null
+    suspend fun existujeSpoj(spojId: String, datum: LocalDate): Boolean {
+        val cisloLinky = try {
+            extrahovatCisloLinky(spojId)
+        } catch (e: Exception) {
+            return false
+        }
+        val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
+        return dao.existujeSpoj(spojId, tabulka) != null
+    }
 
     fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = { datum ->
         val seznam = dao.pevneKodyCaskody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
