@@ -2,6 +2,8 @@ package cz.jaro.dpmcb.ui.loading
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -141,7 +143,7 @@ fun LoadingScreen(
         ) {
             Image(
                 painter = painterResource(
-                    if (darkMode) R.drawable.logo_dark_foreground else R.drawable.logo_white_foreground
+                    if (darkMode) R.drawable.logo_jaro_black else R.drawable.logo_jaro_white
                 ),
                 contentDescription = "Logo JARO",
                 contentScale = ContentScale.FillWidth,
@@ -156,8 +158,9 @@ fun LoadingScreen(
                         .padding(top = 8.dp)
                 )
             } else {
+                val animatedProgress by animateFloatAsState(progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
                 LinearProgressIndicator(
-                    progress = progress, modifier = Modifier
+                    progress = animatedProgress, modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 )

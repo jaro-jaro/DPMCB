@@ -35,8 +35,8 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders += "logo" to "@mipmap/logo_white"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_white_round"
+            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
         }
     }
     compileOptions {
