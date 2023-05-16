@@ -17,7 +17,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.2.0-rc.2"
+        versionName = "1.2.0-rc.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,8 +35,8 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders += "logo" to "@mipmap/logo_white"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_white_round"
+            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
         }
     }
     compileOptions {

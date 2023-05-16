@@ -102,7 +102,7 @@ class OblibeneWidget : GlanceAppWidget() {
                             ) to listOf(
                                 jedeV(LocalDate.now()),
                                 zastavky.first().cas <= LocalTime.now() + 30.minutes,
-                                zastavky.last().cas >= LocalTime.now(),
+                                LocalTime.now() <= zastavky.last().cas + 5.minutes,
                             ).allTrue()
                         }
                             .filter { it.second }.map { it.first }
