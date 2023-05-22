@@ -14,7 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import java.time.LocalDate
 import java.time.LocalTime
 
-@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 16)
+@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 18)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao
@@ -29,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
             fun fromSmer(value: Smer) = value.ordinal
 
             @TypeConverter
-            fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)
+            fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)!!
 
             @TypeConverter
             fun fromLocalDate(value: LocalDate) = value.toEpochDay()

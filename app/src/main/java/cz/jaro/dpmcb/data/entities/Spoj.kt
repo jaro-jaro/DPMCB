@@ -3,10 +3,13 @@ package cz.jaro.dpmcb.data.entities
 import androidx.room.Entity
 import cz.jaro.dpmcb.data.helperclasses.Smer
 
-@Entity(primaryKeys = ["linka", "cisloSpoje"])
+@Entity(primaryKeys = ["tab", "cisloSpoje"])
 data class Spoj(
-    val linka: Int,
+// Primary keys
+    val tab: String,
     val cisloSpoje: Int,
+// Other
+    val linka: Int,
     val pevneKody: String,
     val smer: Smer,
 ) {

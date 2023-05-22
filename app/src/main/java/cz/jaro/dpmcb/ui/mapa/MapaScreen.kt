@@ -7,9 +7,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.github.barteksc.pdfviewer.PDFView
 import com.ramcosta.composedestinations.annotation.Destination
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 
 @Destination
 @Composable

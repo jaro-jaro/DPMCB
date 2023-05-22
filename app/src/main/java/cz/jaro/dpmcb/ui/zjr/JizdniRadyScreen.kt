@@ -32,15 +32,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 
 @Destination
 @Composable
@@ -49,7 +49,13 @@ fun JizdniRady(
     zastavka: String,
     pristiZastavka: String,
     viewModel: JizdniRadyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(cisloLinky, zastavka, pristiZastavka))
+        parametersOf(
+            JizdniRadyViewModel.Parameters(
+                cisloLinky = cisloLinky,
+                zastavka = zastavka,
+                pristiZastavka = pristiZastavka
+            )
+        )
     },
     navigator: DestinationsNavigator,
 ) {
@@ -57,13 +63,18 @@ fun JizdniRady(
     vybrano = SuplikAkce.JizdniRady
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val zobrazitNizkopodlaznostZMinule by viewModel.zobrazitNizkopodlaznostZMinule.collectAsStateWithLifecycle()
+    val nastaveni by viewModel.nstaveni.collectAsStateWithLifecycle()
 
     JizdniRadyScreen(
         cisloLinky = cisloLinky,
         zastavka = zastavka,
         pristiZastavka = pristiZastavka,
         state = state,
-        navigate = navigator::navigate,
+        navigate = navigator.navigateFunction,
+        zobrazitNizkopodlaznostZMinule = zobrazitNizkopodlaznostZMinule,
+        zachovatNizkopodlaznosti = nastaveni.zachovavatNizkopodlaznost,
+        upravitZobrazeniNizkopodlaznosti = viewModel.upravitZobrazeniNizkopodlaznosti,
     )
 }
 
@@ -74,6 +85,9 @@ fun JizdniRadyScreen(
     pristiZastavka: String,
     state: JizdniRadyState,
     navigate: NavigateFunction,
+    zobrazitNizkopodlaznostZMinule: Boolean,
+    zachovatNizkopodlaznosti: Boolean,
+    upravitZobrazeniNizkopodlaznosti: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -96,21 +110,20 @@ fun JizdniRadyScreen(
             )
         }
 
-        val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
-        val zobrazit by repo.zobrazitNizkopodlaznost.collectAsStateWithLifecycle()
-
-        var zobrazitNizkopodlaznosti by remember { mutableStateOf(if (nastaveni.zachovavatNizkopodlaznost) zobrazit else false) }
+        var zobrazitNizkopodlaznosti by remember {
+            mutableStateOf(if (zachovatNizkopodlaznosti) zobrazitNizkopodlaznostZMinule else false)
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = zobrazitNizkopodlaznosti, onCheckedChange = {
                 zobrazitNizkopodlaznosti = it
-                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
+                upravitZobrazeniNizkopodlaznosti(zobrazitNizkopodlaznosti)
             })
             Text("Zobrazit nízkopodlažnost", Modifier.clickable {
                 zobrazitNizkopodlaznosti = !zobrazitNizkopodlaznosti
-                repo.zmenitNizkopodlaznost(zobrazitNizkopodlaznosti)
+                upravitZobrazeniNizkopodlaznosti(zobrazitNizkopodlaznosti)
             })
         }
 
@@ -177,7 +190,7 @@ fun RadekOdjezdu(
                 text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
                 modifier = Modifier
                     .clickable {
-                        navigate(DetailSpojeDestination(spojId = spojId))
+                        navigate(SpojDestination(spojId = spojId))
                     }
                     //.width(32.dp)
                     .padding(4.dp),

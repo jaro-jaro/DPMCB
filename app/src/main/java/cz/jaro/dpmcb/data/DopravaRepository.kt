@@ -1,10 +1,9 @@
 package cz.jaro.dpmcb.data
 
-import android.app.Activity
 import android.app.Application
-import android.app.Application.ActivityLifecycleCallbacks
-import android.os.Bundle
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.compare
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -14,38 +13,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.isActive
+import org.koin.core.annotation.Single
+import java.time.Duration
 import java.time.LocalDate
 
+@Single
 class DopravaRepository(
+    private val repo: SpojeRepository,
     app: Application,
 ) {
-
-    private var lock = true
-
-    init {
-        app.registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
-            override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityStopped(activity: Activity) {}
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
-            override fun onActivityDestroyed(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {
-                lock = false
-            }
-
-            override fun onActivityPaused(activity: Activity) {
-                lock = true
-            }
-        })
-    }
-
     private val scope = MainScope()
 
     private val api = DopravaApi(
@@ -55,7 +38,6 @@ class DopravaRepository(
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
-            while (lock) Unit
             emit(
                 if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                     api.ziskatData("/service/position") ?: emptyList()
@@ -80,7 +62,6 @@ class DopravaRepository(
         detailSpojeFlowMap.getOrPut(spojId) {
             flow<DetailSpoje?> {
                 while (currentCoroutineContext().isActive) {
-                    while (lock) Unit
                     emit(
                         if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
                             api.ziskatData("/servicedetail?id=$spojId")
@@ -89,6 +70,34 @@ class DopravaRepository(
                     delay(5000)
                 }
             }
+                .compare(null) { minule, nove ->
+                    val ted = presneTed
+                    when {
+                        minule == null -> nove
+                        nove == null -> null
+                        else -> {
+                            val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
+                            val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
+                            when {
+                                indexMinulePristiZastavky == indexNovePristiZastavky -> nove.copy(
+                                    realneZpozdeni = minule.realneZpozdeni
+                                )
+
+                                indexNovePristiZastavky < 1 -> nove.copy(
+                                    realneZpozdeni = minule.realneZpozdeni
+                                )
+
+                                else -> {
+                                    val praveOdhlasenaZastavka = nove.stations[indexNovePristiZastavky - 1]
+                                    nove.copy(
+                                        realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                }
                 .flowOn(Dispatchers.IO)
                 .shareIn(
                     scope = scope,
@@ -124,13 +133,13 @@ class DopravaRepository(
         }
 
     fun spojPodleId(id: String): Flow<Pair<SpojNaMape?, DetailSpoje?>> =
-        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+        spojDPMCBNaMapePodleId(id).combine(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
 
     @JvmName("spojPodleIdAllowNull")
     fun spojPodleId(id: String?): Flow<Pair<SpojNaMape?, DetailSpoje?>> = id?.let {
-        spojDPMCBNaMapePodleId(id).zip(detailSpoje(id)) { spojNaMape, detailSpoje ->
+        spojDPMCBNaMapePodleId(id).combine(detailSpoje(id)) { spojNaMape, detailSpoje ->
             spojNaMape to detailSpoje
         }
     } ?: flowOf(null to null)
