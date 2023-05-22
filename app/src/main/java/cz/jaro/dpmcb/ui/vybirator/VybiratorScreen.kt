@@ -44,6 +44,7 @@ import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 
 @Destination
 @Composable
@@ -54,7 +55,13 @@ fun Vybirator(
     cisloLinky: Int = -1,
     zastavka: String? = null,
     viewModel: VybiratorViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, navigator.navigateFunction, { it: Vysledek -> resultNavigator.navigateBack(it) }))
+        parametersOf(VybiratorViewModel.Parameters(
+            typ = typ,
+            cisloLinky = cisloLinky,
+            zastavka = zastavka,
+            navigate = navigator.navigateFunction,
+            navigateBack = { it: Vysledek -> resultNavigator.navigateBack(it) }
+        ))
     },
 ) {
     title = when (typ) {
