@@ -38,6 +38,8 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -89,23 +91,23 @@ fun Spoj(
     App.vybrano = SuplikAkce.SpojPodleId
 
     val info by viewModel.info.collectAsStateWithLifecycle()
-    val stateZJihu by viewModel.stateZJihu.collectAsStateWithLifecycle()
-    val vyska by viewModel.vyska.collectAsStateWithLifecycle(0F)
-    val projetychUseku by viewModel.projetychUseku.collectAsStateWithLifecycle(0)
-    val oblibene by viewModel.oblibene.collectAsStateWithLifecycle()
-    val datum by viewModel.datum.collectAsStateWithLifecycle()
+    val stateZJihu = viewModel.stateZJihu.collectAsStateWithLifecycle()
+    val vyska = viewModel.vyska.collectAsStateWithLifecycle(0F)
+    val projetychUseku = viewModel.projetychUseku.collectAsStateWithLifecycle(0)
+    val oblibene = viewModel.oblibene.collectAsStateWithLifecycle()
+    val datum = viewModel.datum.collectAsStateWithLifecycle()
 
     SpojScreen(
         info = info,
-        zpozdeni = stateZJihu.zpozdeni?.inWholeSeconds?.div(60F)?.roundToInt(),
-        zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
+        zpozdeni = remember(stateZJihu.value) { derivedStateOf { stateZJihu.value.zpozdeni?.inWholeSeconds?.div(60F)?.roundToInt() } },
+        zastavkyNaJihu = remember(stateZJihu.value) { derivedStateOf { stateZJihu.value.zastavkyNaJihu } },
         projetychUseku = projetychUseku,
         vyska = vyska,
         navigate = navigator.navigateFunction,
         oblibene = oblibene,
         pridatOblibeny = viewModel.pridatOblibeny,
         odebratOblibeny = viewModel.odebratOblibeny,
-        datum = datum.hezky(),
+        datum = remember(datum.value) { derivedStateOf { datum.value.hezky() } },
     )
 }
 
@@ -113,15 +115,15 @@ fun Spoj(
 @Composable
 fun SpojScreen(
     info: SpojInfo,
-    zpozdeni: Int?,
-    zastavkyNaJihu: List<ZastavkaSpojeNaJihu>?,
-    projetychUseku: Int,
-    vyska: Float,
+    zpozdeni: State<Int?>,
+    zastavkyNaJihu: State<List<ZastavkaSpojeNaJihu>?>,
+    projetychUseku: State<Int>,
+    vyska: State<Float>,
     navigate: NavigateFunction,
-    oblibene: List<String>,
+    oblibene: State<List<String>>,
     pridatOblibeny: (String) -> Unit,
     odebratOblibeny: (String) -> Unit,
-    datum: String,
+    datum: State<String>,
 ) {
     Column(
         modifier = Modifier
@@ -153,18 +155,18 @@ fun SpojScreen(
                     IconWithTooltip(
                         info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
                     )
-                    if (zpozdeni != null) Badge(
-                        containerColor = barvaZpozdeniBublinyKontejner(zpozdeni),
-                        contentColor = barvaZpozdeniBublinyText(zpozdeni),
+                    if (zpozdeni.value != null) Badge(
+                        containerColor = barvaZpozdeniBublinyKontejner(zpozdeni.value!!),
+                        contentColor = barvaZpozdeniBublinyText(zpozdeni.value!!),
                     ) {
                         Text(
-                            text = zpozdeni.run {
+                            text = zpozdeni.value!!.run {
                                 "${toSign()}$this min"
                             },
                         )
                     }
                     Spacer(Modifier.weight(1F))
-                    FilledIconToggleButton(checked = info.spojId in oblibene, onCheckedChange = {
+                    FilledIconToggleButton(checked = info.spojId in oblibene.value, onCheckedChange = {
                         if (it) {
                             pridatOblibeny(info.spojId)
                         } else {
@@ -234,13 +236,13 @@ fun SpojScreen(
                                     )
                                 }
                             }
-                            if (zpozdeni != null && zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+                            if (zpozdeni.value != null && zastavkyNaJihu.value != null) Column(Modifier.padding(start = 8.dp)) {
                                 info.zastavky
-                                    .zip(zastavkyNaJihu)
+                                    .zip(zastavkyNaJihu.value!!)
                                     .forEach { (zastavka, zastavkaNaJihu) ->
                                         MujText(
-                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.toLong())).toString() else "",
-                                            color = barvaZpozdeniTextu(zpozdeni),
+                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.value!!.toLong())).toString() else "",
+                                            color = barvaZpozdeniTextu(zpozdeni.value!!),
                                             navigate = navigate,
                                             cas = zastavka.cas,
                                             zastavka = zastavka.nazev,
@@ -249,7 +251,7 @@ fun SpojScreen(
                                         )
                                     }
                             }
-                            val neNaMape = zpozdeni != null && zastavkyNaJihu != null
+                            val neNaMape = zpozdeni.value != null && zastavkyNaJihu.value != null
 
                             val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
@@ -257,7 +259,7 @@ fun SpojScreen(
                             val baravCary = MaterialTheme.colorScheme.surfaceVariant
                             val zastavek = info.zastavky.count()
 
-                            val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
+                            val animovanaVyska by animateFloatAsState(vyska.value, label = "HeightAnimation")
 
                             Canvas(
                                 modifier = Modifier
@@ -283,7 +285,7 @@ fun SpojScreen(
 
                                     repeat(zastavek) { i ->
                                         translate(top = i * rowHeight) {
-                                            val projel = projetychUseku >= i
+                                            val projel = projetychUseku.value >= i
 
                                             drawCircle(
                                                 color = if (projel) projetaBarva else barvaPozadi,
@@ -309,7 +311,7 @@ fun SpojScreen(
                                         strokeWidth = lineWidth,
                                     )
 
-                                    if (vyska > 0F) drawCircle(
+                                    if (vyska.value > 0F) drawCircle(
                                         color = barvaBusu,
                                         radius = circleRadius - circleStrokeWidth * .5F,
                                         center = Offset(y = rowHeight * animovanaVyska)
