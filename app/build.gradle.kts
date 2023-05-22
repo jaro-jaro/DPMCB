@@ -3,6 +3,7 @@ plugins {
     kotlin("android")
     id("androidx.navigation.safeargs.kotlin")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     id("com.google.devtools.ksp") version "1.8.20-1.0.11"
     kotlin("plugin.serialization")
     id("kotlin-parcelize")
@@ -104,9 +105,14 @@ dependencies {
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:31.1.0"))
+    implementation("com.google.firebase:firebase-common-ktx")
+    // Realtime
     implementation("com.google.firebase:firebase-database-ktx")
-    implementation("com.google.firebase:firebase-common-ktx:20.3.2")
-    implementation("com.google.firebase:firebase-storage-ktx:20.1.0")
+    // Storage
+    implementation("com.google.firebase:firebase-storage-ktx")
+    // Crashlytics
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Compose
     implementation(platform("androidx.compose:compose-bom:2022.10.00"))
