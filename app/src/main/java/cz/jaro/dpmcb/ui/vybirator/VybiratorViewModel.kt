@@ -26,19 +26,23 @@ import java.time.LocalDate
 @KoinViewModel
 class VybiratorViewModel(
     private val repo: SpojeRepository,
-    @InjectedParam private val typ: TypVybiratoru,
-    @InjectedParam private val cisloLinky: Int = -1,
-    @InjectedParam private val zastavka: String?,
-    @InjectedParam private val navigate: NavigateFunction,
-    @InjectedParam private val navigateBack: NavigateBackFunction<Vysledek>,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
+    data class Parameters(
+        val typ: TypVybiratoru,
+        val cisloLinky: Int = -1,
+        val zastavka: String?,
+        val navigate: NavigateFunction,
+        val navigateBack: NavigateBackFunction<Vysledek>,
+    )
+
     private val puvodniSeznam = repo.datum.map { datum ->
-        when (typ) {
+        when (params.typ) {
             TypVybiratoru.ZASTAVKY -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
             TypVybiratoru.LINKY -> repo.cislaLinek(datum).sorted().map { it.toString() }
-            TypVybiratoru.ZASTAVKY_LINKY -> repo.nazvyZastavekLinky(cisloLinky, datum).distinct()
-            TypVybiratoru.PRISTI_ZASTAVKA -> repo.pristiZastavky(cisloLinky, zastavka!!, datum)
+            TypVybiratoru.ZASTAVKY_LINKY -> repo.nazvyZastavekLinky(params.cisloLinky, datum).distinct()
+            TypVybiratoru.PRISTI_ZASTAVKA -> repo.pristiZastavky(params.cisloLinky, params.zastavka!!, datum)
             TypVybiratoru.ZASTAVKY_ZPET_1 -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
             TypVybiratoru.ZASTAVKA_ZPET_2 -> repo.zastavky(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
             TypVybiratoru.LINKA_ZPET -> repo.cislaLinek(datum).sorted().map { it.toString() }
@@ -66,9 +70,9 @@ class VybiratorViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val info = when (typ) {
-        TypVybiratoru.ZASTAVKY_LINKY -> "$cisloLinky: ? -> ?"
-        TypVybiratoru.PRISTI_ZASTAVKA -> "$cisloLinky: $zastavka -> ?"
+    val info = when (params.typ) {
+        TypVybiratoru.ZASTAVKY_LINKY -> "$params.cisloLinky: ? -> ?"
+        TypVybiratoru.PRISTI_ZASTAVKA -> "$params.cisloLinky: $params.zastavka -> ?"
         else -> ""
     }
 
@@ -87,14 +91,14 @@ class VybiratorViewModel(
         datum: LocalDate,
     ) {
 //        if (job != null && typ.name.contains("ZPET")) return
-        when (typ) {
-            TypVybiratoru.ZASTAVKY -> navigate(
+        when (params.typ) {
+            TypVybiratoru.ZASTAVKY -> params.navigate(
                 OdjezdyDestination(
                     zastavka = vysledek,
                 )
             )
 
-            TypVybiratoru.LINKY -> navigate(
+            TypVybiratoru.LINKY -> params.navigate(
                 VybiratorDestination(
                     cisloLinky = vysledek.toInt(),
                     zastavka = null,
@@ -104,18 +108,18 @@ class VybiratorViewModel(
             )
 
             TypVybiratoru.ZASTAVKY_LINKY -> viewModelScope.launch(Dispatchers.IO) {
-                repo.pristiZastavky(cisloLinky, vysledek, datum).let { pz: List<String> ->
+                repo.pristiZastavky(params.cisloLinky, vysledek, datum).let { pz: List<String> ->
                     withContext(Dispatchers.Main) {
-                        navigate(
+                        params.navigate(
                             if (pz.size == 1)
                                 JizdniRadyDestination(
-                                    cisloLinky = cisloLinky,
+                                    cisloLinky = params.cisloLinky,
                                     zastavka = vysledek,
                                     pristiZastavka = pz.first(),
                                 )
                             else
                                 VybiratorDestination(
-                                    cisloLinky = cisloLinky,
+                                    cisloLinky = params.cisloLinky,
                                     zastavka = vysledek,
                                     typ = TypVybiratoru.PRISTI_ZASTAVKA
                                 )
@@ -124,28 +128,28 @@ class VybiratorViewModel(
                 }
             }
 
-            TypVybiratoru.PRISTI_ZASTAVKA -> navigate(
+            TypVybiratoru.PRISTI_ZASTAVKA -> params.navigate(
                 JizdniRadyDestination(
-                    cisloLinky = cisloLinky,
-                    zastavka = zastavka!!,
+                    cisloLinky = params.cisloLinky,
+                    zastavka = params.zastavka!!,
                     pristiZastavka = vysledek,
                 )
             )
 
             TypVybiratoru.ZASTAVKY_ZPET_1 -> {
-                navigateBack(Vysledek(vysledek, typ))
+                params.navigateBack(Vysledek(vysledek, params.typ))
             }
 
             TypVybiratoru.ZASTAVKA_ZPET_2 -> {
-                navigateBack(Vysledek(vysledek, typ))
+                params.navigateBack(Vysledek(vysledek, params.typ))
             }
 
             TypVybiratoru.LINKA_ZPET -> {
-                navigateBack(Vysledek(vysledek, typ))
+                params.navigateBack(Vysledek(vysledek, params.typ))
             }
 
             TypVybiratoru.ZASTAVKA_ZPET -> {
-                navigateBack(Vysledek(vysledek, typ))
+                params.navigateBack(Vysledek(vysledek, params.typ))
             }
         }
     }
