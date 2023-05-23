@@ -380,7 +380,7 @@ private fun Karticka(
                         kartickaState.nizkopodlaznost -> Icons.Default.Accessible
                         else -> Icons.Default.NotAccessible
                     },
-                    contentDescription = "Invalidní vozík",
+                    contentDescription = if (kartickaState.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
                 )
                 Text(
                     modifier = Modifier.padding(start = 8.dp),

@@ -8,7 +8,7 @@ sealed interface SpojInfo {
         val spojId: String,
         val zastavky: List<CasNazevSpojIdLInkaPristi>,
         val cisloLinky: Int,
-        val nizkopodlaznost: ImageVector,
+        val nizkopodlaznost: Pair<ImageVector, String>,
         val caskody: List<String>,
         val pevneKody: List<String>,
         val linkaKod: String,

@@ -52,7 +52,7 @@ class SpojViewModel(
                 spoj.nizkopodlaznost -> Icons.Default.Accessible
                 Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                 else -> Icons.Default.NotAccessible
-            },
+            } to if (spoj.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
             caskody = caskody.filterNot {
                 !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
             }.groupBy({ it.jede }, {

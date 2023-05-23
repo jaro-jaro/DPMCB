@@ -153,7 +153,7 @@ fun SpojScreen(
                 ) {
                     Text("Linka ${info.cisloLinky}")
                     IconWithTooltip(
-                        info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                        info.nizkopodlaznost.first, info.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
                     )
                     if (zpozdeni.value != null) Badge(
                         containerColor = barvaZpozdeniBublinyKontejner(zpozdeni.value!!),
