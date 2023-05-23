@@ -87,7 +87,8 @@ class SpojViewModel(
             info !is SpojInfo.OK -> 0
             datum > LocalDate.now() -> 0
             datum < LocalDate.now() -> info.zastavky.lastIndex
-            state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            // Je na mapě && má detail spoje
+            state.zpozdeni != null && state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
             info.zastavky.last().cas < ted -> info.zastavky.lastIndex
             else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
         }
@@ -96,6 +97,8 @@ class SpojViewModel(
     val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
 
         if (info !is SpojInfo.OK) return@combine 0F
+
+        if (projetychUseku == 0) return@combine 0F
 
         val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 
