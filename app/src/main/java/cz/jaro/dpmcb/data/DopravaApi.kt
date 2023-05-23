@@ -2,11 +2,12 @@ package cz.jaro.dpmcb.data
 
 import android.content.Context
 import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 
 
@@ -35,7 +36,11 @@ class DopravaApi(
         if (response.statusCode() == 200) {
             val text = response.body()
 
-            return@withContext Gson().fromJson<T>(text, object : TypeToken<T>() {}.type)
+            return@withContext try {
+                Json.decodeFromString<T>(text)
+            } catch (e: SerializationException) {
+                null
+            }
         }
 
         return@withContext null

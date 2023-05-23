@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.naJihu
 
+import kotlinx.serialization.Serializable
+
 /**
  * Reprezentuje 1 zastávku, na které daný spoj staví
  *
@@ -10,6 +12,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @property name Jméno zastávky – Shodné s [DetailZastavky.name]
  * @property passed Indikuje, jestli spoj již na zastávce zastavil
  */
+@Serializable
 data class ZastavkaSpojeNaJihu(
     val arrivalTime: String?,
     val departureTime: String?,

@@ -73,8 +73,8 @@ class DopravaRepository(
                 .compare(null) { minule, nove ->
                     val ted = presneTed
                     when {
+                        nove == null -> minule
                         minule == null -> nove
-                        nove == null -> null
                         else -> {
                             val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
                             val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
@@ -87,8 +87,7 @@ class DopravaRepository(
                                     realneZpozdeni = minule.realneZpozdeni
                                 )
 
-                                else -> {
-                                    val praveOdhlasenaZastavka = nove.stations[indexNovePristiZastavky - 1]
+                                else -> nove.stations[indexNovePristiZastavky - 1].let { praveOdhlasenaZastavka ->
                                     nove.copy(
                                         realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
                                     )

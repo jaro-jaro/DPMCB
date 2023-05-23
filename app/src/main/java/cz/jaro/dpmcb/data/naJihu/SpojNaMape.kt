@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.naJihu
 
+import kotlinx.serialization.Serializable
+
 /**
  * Reprezentuje 1 spoj, co aktuálně jede
  *
@@ -24,6 +26,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @param trainNumber Číslo vlaku
  * @param vehicleType ATV – Shodné s [DetailSpoje.vehicleType] a [ServiceType.vehicleType]
  */
+@Serializable
 data class SpojNaMape(
     val angle: Int,
     val delay: Int,

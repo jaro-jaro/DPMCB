@@ -18,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = 33
         versionCode = 1
-        versionName = "1.2.1-alpha.1"
+        versionName = "1.2.1-alpha.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -150,9 +150,8 @@ dependencies {
     implementation("io.github.raamcosta.compose-destinations:core:1.8.33-beta")
     ksp("io.github.raamcosta.compose-destinations:ksp:1.8.33-beta")
 
-    // Serialization
+    // Kotlinx Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
-    implementation("com.google.code.gson:gson:2.10.1")
 
     // Semantic versioning
     implementation("io.github.z4kn4fein:semver:1.4.2")
