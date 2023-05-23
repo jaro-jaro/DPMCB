@@ -4,11 +4,10 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -31,9 +30,12 @@ import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.Nastaveni
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import java.time.LocalDate
 
 @Composable
 fun Nastaveni(
@@ -100,12 +102,12 @@ fun NastaveniScreen(
                 )
             }
         ) { paddingValues ->
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .padding(paddingValues)
                     .fillMaxSize()
             ) {
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -122,7 +124,7 @@ fun NastaveniScreen(
                         },
                     )
                 }
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -140,7 +142,7 @@ fun NastaveniScreen(
                         enabled = !nastaveni.dmPodleSystemu
                     )
                 }
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -157,7 +159,7 @@ fun NastaveniScreen(
                         },
                     )
                 }
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -174,7 +176,7 @@ fun NastaveniScreen(
                         },
                     )
                 }
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -192,7 +194,7 @@ fun NastaveniScreen(
                     )
                 }
 
-                Row(
+                rowItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -219,11 +221,11 @@ fun NastaveniScreen(
                         }
                     }
                 }
-                Text("Aktuální verze dat: $metaVerzeDat.$verzeDat")
-                Text("Aktuální verze aplikace: $verze")
-                Text("2021-2023 RO studios, člen skupiny JARO")
-                Text("2019-2023 JARO")
-                Text("Za zobrazená data neručíme")
+                textItem("Aktuální verze dat: $metaVerzeDat.$verzeDat")
+                textItem("Aktuální verze aplikace: $verze")
+                textItem("2021-${LocalDate.now().year} RO studios, člen skupiny JARO")
+                textItem("2019-${LocalDate.now().year} JARO")
+                textItem("Za zobrazená data neručíme")
             }
         }
     }

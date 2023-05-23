@@ -5,18 +5,36 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltipBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -222,6 +240,101 @@ object UtilFunctions {
         val nastaveni by LocalContext.current.nastaveni.collectAsStateWithLifecycle()
         return if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
     }
+
+    context(LazyListScope)
+    fun rowItem(
+        modifier: Modifier = Modifier,
+        key: Any? = null,
+        contentType: Any? = null,
+        horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+        verticalAlignment: Alignment.Vertical = Alignment.Top,
+        content: @Composable context(LazyItemScope) RowScope.() -> Unit,
+    ) {
+        item(
+            key = key,
+            contentType = contentType
+        ) {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = horizontalArrangement,
+                verticalAlignment = verticalAlignment
+            ) {
+                content(this)
+            }
+        }
+    }
+
+    context(LazyListScope)
+    fun columnItem(
+        modifier: Modifier = Modifier,
+        key: Any? = null,
+        contentType: Any? = null,
+        verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+        horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+        content: @Composable context(LazyItemScope) ColumnScope.() -> Unit,
+    ) {
+        item(
+            key = key,
+            contentType = contentType
+        ) {
+            Column(
+                modifier = modifier,
+                verticalArrangement = verticalArrangement,
+                horizontalAlignment = horizontalAlignment
+            ) {
+                content(this)
+            }
+        }
+    }
+
+    context(LazyListScope)
+    fun textItem(
+        text: String,
+        modifier: Modifier = Modifier,
+        key: Any? = null,
+        contentType: Any? = null,
+        color: Color = Color.Unspecified,
+        fontSize: TextUnit = TextUnit.Unspecified,
+        fontStyle: FontStyle? = null,
+        fontWeight: FontWeight? = null,
+        fontFamily: FontFamily? = null,
+        letterSpacing: TextUnit = TextUnit.Unspecified,
+        textDecoration: TextDecoration? = null,
+        textAlign: TextAlign? = null,
+        lineHeight: TextUnit = TextUnit.Unspecified,
+        overflow: TextOverflow = TextOverflow.Clip,
+        softWrap: Boolean = true,
+        maxLines: Int = Int.MAX_VALUE,
+        minLines: Int = 1,
+        onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+        style: TextStyle? = null,
+    ) {
+        item(
+            key = key,
+            contentType = contentType
+        ) {
+            Text(
+                text = text,
+                modifier = modifier,
+                color = color,
+                fontSize = fontSize,
+                fontStyle = fontStyle,
+                fontWeight = fontWeight,
+                fontFamily = fontFamily,
+                letterSpacing = letterSpacing,
+                textDecoration = textDecoration,
+                textAlign = textAlign,
+                lineHeight = lineHeight,
+                overflow = overflow,
+                softWrap = softWrap,
+                maxLines = maxLines,
+                minLines = minLines,
+                onTextLayout = onTextLayout,
+                style = style ?: LocalTextStyle.current
+            )
+        }
+    }
+
 }
 
 typealias NavigateFunction = (Direction) -> Unit
