@@ -35,48 +35,54 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultBackNavigator
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 
 @Destination
 @Composable
 fun Vybirator(
     navigator: DestinationsNavigator,
     resultNavigator: ResultBackNavigator<Vysledek>,
-    typ: TypAdapteru,
+    typ: TypVybiratoru,
     cisloLinky: Int = -1,
     zastavka: String? = null,
     viewModel: VybiratorViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(typ, cisloLinky, zastavka, { it: Direction -> navigator.navigate(it) }, { it: Vysledek -> resultNavigator.navigateBack(it) }))
+        parametersOf(VybiratorViewModel.Parameters(
+            typ = typ,
+            cisloLinky = cisloLinky,
+            zastavka = zastavka,
+            navigate = navigator.navigateFunction,
+            navigateBack = { it: Vysledek -> resultNavigator.navigateBack(it) }
+        ))
     },
 ) {
     title = when (typ) {
-        TypAdapteru.ZASTAVKY -> R.string.vyberte_zastavku
-        TypAdapteru.LINKY -> R.string.vyberte_linku
-        TypAdapteru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
-        TypAdapteru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
-        TypAdapteru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
-        TypAdapteru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
-        TypAdapteru.LINKA_ZPET -> R.string.vyberte_linku
-        TypAdapteru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
+        TypVybiratoru.ZASTAVKY -> R.string.vyberte_zastavku
+        TypVybiratoru.LINKY -> R.string.vyberte_linku
+        TypVybiratoru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
+        TypVybiratoru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
+        TypVybiratoru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
+        TypVybiratoru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
+        TypVybiratoru.LINKA_ZPET -> R.string.vyberte_linku
+        TypVybiratoru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
     }
     vybrano = when (typ) {
-        TypAdapteru.ZASTAVKY -> SuplikAkce.Odjezdy
-        TypAdapteru.LINKY -> SuplikAkce.JizdniRady
-        TypAdapteru.ZASTAVKY_LINKY -> SuplikAkce.JizdniRady
-        TypAdapteru.PRISTI_ZASTAVKA -> SuplikAkce.JizdniRady
-        TypAdapteru.ZASTAVKY_ZPET_1 -> null
-        TypAdapteru.ZASTAVKA_ZPET_2 -> null
-        TypAdapteru.LINKA_ZPET -> SuplikAkce.Odjezdy
-        TypAdapteru.ZASTAVKA_ZPET -> SuplikAkce.Odjezdy
+        TypVybiratoru.ZASTAVKY -> SuplikAkce.Odjezdy
+        TypVybiratoru.LINKY -> SuplikAkce.JizdniRady
+        TypVybiratoru.ZASTAVKY_LINKY -> SuplikAkce.JizdniRady
+        TypVybiratoru.PRISTI_ZASTAVKA -> SuplikAkce.JizdniRady
+        TypVybiratoru.ZASTAVKY_ZPET_1 -> null
+        TypVybiratoru.ZASTAVKA_ZPET_2 -> null
+        TypVybiratoru.LINKA_ZPET -> SuplikAkce.Odjezdy
+        TypVybiratoru.ZASTAVKA_ZPET -> SuplikAkce.Odjezdy
     }
 
     val hledani by viewModel.hledani.collectAsStateWithLifecycle()
@@ -96,7 +102,7 @@ fun Vybirator(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun VybiratorScreen(
-    typ: TypAdapteru,
+    typ: TypVybiratoru,
     info: String,
     hledani: String,
     napsalNeco: (String) -> Unit,
@@ -128,24 +134,24 @@ fun VybiratorScreen(
                 autoCorrect = false,
                 capitalization = KeyboardCapitalization.None,
                 keyboardType = when (typ) {
-                    TypAdapteru.ZASTAVKY -> KeyboardType.Text
-                    TypAdapteru.LINKY -> KeyboardType.Number
-                    TypAdapteru.ZASTAVKY_LINKY -> KeyboardType.Text
-                    TypAdapteru.PRISTI_ZASTAVKA -> KeyboardType.Text
-                    TypAdapteru.ZASTAVKY_ZPET_1 -> KeyboardType.Text
-                    TypAdapteru.ZASTAVKA_ZPET_2 -> KeyboardType.Text
-                    TypAdapteru.LINKA_ZPET -> KeyboardType.Number
-                    TypAdapteru.ZASTAVKA_ZPET -> KeyboardType.Text
+                    TypVybiratoru.ZASTAVKY -> KeyboardType.Text
+                    TypVybiratoru.LINKY -> KeyboardType.Number
+                    TypVybiratoru.ZASTAVKY_LINKY -> KeyboardType.Text
+                    TypVybiratoru.PRISTI_ZASTAVKA -> KeyboardType.Text
+                    TypVybiratoru.ZASTAVKY_ZPET_1 -> KeyboardType.Text
+                    TypVybiratoru.ZASTAVKA_ZPET_2 -> KeyboardType.Text
+                    TypVybiratoru.LINKA_ZPET -> KeyboardType.Number
+                    TypVybiratoru.ZASTAVKA_ZPET -> KeyboardType.Text
                 },
                 imeAction = when (typ) {
-                    TypAdapteru.ZASTAVKY -> ImeAction.Search
-                    TypAdapteru.LINKY -> ImeAction.Next
-                    TypAdapteru.ZASTAVKY_LINKY -> ImeAction.Next
-                    TypAdapteru.PRISTI_ZASTAVKA -> ImeAction.Search
-                    TypAdapteru.ZASTAVKY_ZPET_1 -> ImeAction.Done
-                    TypAdapteru.ZASTAVKA_ZPET_2 -> ImeAction.Done
-                    TypAdapteru.LINKA_ZPET -> ImeAction.Done
-                    TypAdapteru.ZASTAVKA_ZPET -> ImeAction.Done
+                    TypVybiratoru.ZASTAVKY -> ImeAction.Search
+                    TypVybiratoru.LINKY -> ImeAction.Next
+                    TypVybiratoru.ZASTAVKY_LINKY -> ImeAction.Next
+                    TypVybiratoru.PRISTI_ZASTAVKA -> ImeAction.Search
+                    TypVybiratoru.ZASTAVKY_ZPET_1 -> ImeAction.Done
+                    TypVybiratoru.ZASTAVKA_ZPET_2 -> ImeAction.Done
+                    TypVybiratoru.LINKA_ZPET -> ImeAction.Done
+                    TypVybiratoru.ZASTAVKA_ZPET -> ImeAction.Done
                 },
             ),
             keyboardActions = KeyboardActions(
@@ -190,7 +196,7 @@ fun VybiratorPreview() {
     MaterialTheme {
         Surface {
             VybiratorScreen(
-                typ = TypAdapteru.ZASTAVKY,
+                typ = TypVybiratoru.ZASTAVKY,
                 info = "",
                 hledani = "u ko",
                 napsalNeco = {},

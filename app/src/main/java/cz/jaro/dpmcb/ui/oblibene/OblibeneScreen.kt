@@ -25,20 +25,18 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 
 @Destination
 @RootNavGraph(start = true)
@@ -52,13 +50,13 @@ fun Oblibene(
 
     val oblibene by viewModel.state.collectAsStateWithLifecycle()
 
-    val datum by repo.datum.collectAsStateWithLifecycle()
+    val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     OblibeneScreen(
         oblibene = oblibene,
         navigate = navigator::navigate,
         vybranyDatum = datum,
-        zmenitDatum = repo::upravitDatum,
+        zmenitDatum = viewModel.upravitDatum,
     )
 }
 
@@ -112,7 +110,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigate(DetailSpojeDestination(it.spojId))
+                    navigate(SpojDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -191,7 +189,7 @@ fun OblibeneScreen(
             OutlinedCard(
                 onClick = {
                     zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
-                    navigate(DetailSpojeDestination(it.spojId))
+                    navigate(SpojDestination(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -262,24 +260,5 @@ fun OblibeneScreen(
                 }
             }
         }
-    }
-}
-
-private fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
-    when (za) {
-        0L -> "dnes"
-        1L -> "zítra"
-        2L -> "pozítří"
-        in 3L..7L -> when (dayOfWeek!!) {
-            DayOfWeek.MONDAY -> "v pondělí"
-            DayOfWeek.TUESDAY -> "v úterý"
-            DayOfWeek.WEDNESDAY -> "ve středu"
-            DayOfWeek.THURSDAY -> "ve čtvrtek"
-            DayOfWeek.FRIDAY -> "v pátek"
-            DayOfWeek.SATURDAY -> "v sobotu"
-            DayOfWeek.SUNDAY -> "v neděli"
-        }
-
-        else -> asString()
     }
 }

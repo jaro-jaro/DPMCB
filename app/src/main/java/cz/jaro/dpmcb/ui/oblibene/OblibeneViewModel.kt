@@ -2,10 +2,11 @@ package cz.jaro.dpmcb.ui.oblibene
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -13,37 +14,48 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
+import org.koin.android.annotation.KoinViewModel
+import kotlin.math.roundToInt
 
-class OblibeneViewModel : ViewModel() {
+@KoinViewModel
+class OblibeneViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
+) : ViewModel() {
+
+    val datum = repo.datum
+    val upravitDatum = repo::upravitDatum
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = repo.oblibene
         .flatMapLatest { oblibene ->
             oblibene
                 .map { id ->
-                    println(id)
                     dopravaRepo.spojPodleId(id)
                 }
                 .combine {
-                    it.zip(oblibene) { (spojNaMape, detailSpoje), id ->
+                    it.nullable()
+                }
+                .onEmpty {
+                    emit(null)
+                }
+                .combine(repo.datum) { it, datum ->
+                    it?.zip(oblibene) { (spojNaMape, detailSpoje), id ->
                         val spoj = try {
-                            repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id)
+                            repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, datum)
                         } catch (e: Exception) {
                             return@zip null
                         }
                         Quintuple(spojNaMape, detailSpoje, spoj.first, spoj.second, spoj.third)
                     }
                 }
-                .onEmpty {
-                    emit(emptyList())
-                }
         }
         .combine(repo.datum) { spoje, datum ->
-            spoje.filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV) ->
+            (spoje ?: emptyList()).filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV) ->
                 KartickaState(
                     spojId = info.spojId,
                     linka = info.linka,
-                    zpozdeni = spojNaMape?.delay,
+                    zpozdeni = detailSpoje?.realneZpozdeni?.roundToInt() ?: spojNaMape?.delay,
                     vychoziZastavka = zastavky.first().nazev,
                     vychoziZastavkaCas = zastavky.first().cas,
                     aktualniZastavka = detailSpoje?.stations?.indexOfFirst { !it.passed }?.let { i -> zastavky[i].nazev },

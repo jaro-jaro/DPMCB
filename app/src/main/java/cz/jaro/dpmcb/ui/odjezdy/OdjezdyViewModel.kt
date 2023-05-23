@@ -3,13 +3,14 @@ package cz.jaro.dpmcb.ui.odjezdy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,25 +23,37 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
+@KoinViewModel
 class OdjezdyViewModel(
-    val zastavka: String,
-    cas: LocalTime = ted,
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
+
+    data class Parameters(
+        val zastavka: String,
+        val cas: LocalTime,
+        val linka: Int?,
+        val pres: String?,
+    )
 
     lateinit var scrollovat: suspend (Int) -> Unit
     lateinit var navigovat: (Direction) -> Unit
 
-    private val _state = MutableStateFlow(OdjezdyState(cas = cas))
+    private val _state = MutableStateFlow(OdjezdyState(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
     val state = _state.asStateFlow()
+
+    val maPristupKJihu = repo.maPristupKJihu
 
     val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
-            println(ted.toNanoOfDay())
-            repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, zastavka)
+            repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, params.zastavka)
                 .map {
                     val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
                     it to spojNaMape
@@ -50,27 +63,27 @@ class OdjezdyViewModel(
                 }
                 .map { (zastavka, spojNaMape) ->
 
-                    val posledniZastavka = zastavka.zastavkySpoje.last { it.second != null }
+                    val posledniZastavka = zastavka.zastavkySpoje.last { it.cas != null }
                     val aktualniNasledujiciZastavka = spojNaMape?.delay?.let { zpozdeni ->
                         zastavka.zastavkySpoje
-                            .filter { it.second != null }
-                            .find { it.second!!.plusMinutes(zpozdeni.toLong()) > ted }
-                            ?.let { it.first to it.second!! }
+                            .filter { it.cas != null }
+                            .find { it.cas!!.plusMinutes(zpozdeni.toLong()) > ted }
+                            ?.let { it.nazev to it.cas!! }
                     }
+                    val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
 
                     KartickaState(
-                        konecna = posledniZastavka.first,
+                        konecna = posledniZastavka.nazev,
                         cisloLinky = zastavka.linka,
                         cas = zastavka.cas,
                         aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
                         idSpoje = zastavka.spojId,
                         nizkopodlaznost = zastavka.nizkopodlaznost,
                         zpozdeni = spojNaMape?.delay,
-                        jedePres = zastavka.zastavkySpoje.map { it.first },
+                        pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i > indexTyhle },
                         jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
+                        pristiZastavka = zastavka.zastavkySpoje.map { it.nazev }.getOrNull(indexTyhle + 1)
                     )
-                }.also {
-                    println(ted.toNanoOfDay() to 2)
                 }
         }
         .flowOn(Dispatchers.IO)
@@ -87,7 +100,7 @@ class OdjezdyViewModel(
                     state.filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
                 }
                 ?.filter {
-                    state.filtrZastavky?.let { filtr -> it.jedePres.contains(filtr) } ?: true
+                    state.filtrZastavky?.let { filtr -> it.pojedePres.contains(filtr) } ?: true
                 }
                 ?.also { filtrovanejSeznam ->
                     if (minulyState == null) return@also
@@ -105,12 +118,24 @@ class OdjezdyViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    fun kliklNaDetailSpoje(spoj: KartickaState) {
+    fun kliklNaSpoj(spoj: KartickaState) {
         navigovat(
-            DetailSpojeDestination(
+            SpojDestination(
                 spoj.idSpoje
             )
         )
+    }
+
+    fun kliklNaZjr(spoj: KartickaState) {
+        spoj.pristiZastavka?.let {
+            navigovat(
+                JizdniRadyDestination(
+                    cisloLinky = spoj.cisloLinky,
+                    zastavka = params.zastavka,
+                    pristiZastavka = spoj.pristiZastavka,
+                )
+            )
+        }
     }
 
     fun zmenitCas(cas: LocalTime) {
@@ -136,21 +161,21 @@ class OdjezdyViewModel(
     fun vybral(vysledek: Vysledek) {
         viewModelScope.launch(Dispatchers.Main) {
             _state.update { oldState ->
-                when (vysledek.typAdapteru) {
-                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
-                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
+                when (vysledek.typVybiratoru) {
+                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
+                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
                     else -> return@launch
                 }
             }
         }
     }
 
-    fun zrusil(typAdapteru: TypAdapteru) {
+    fun zrusil(typVybiratoru: TypVybiratoru) {
         viewModelScope.launch(Dispatchers.IO) {
             _state.update { oldState ->
-                when (typAdapteru) {
-                    TypAdapteru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
-                    TypAdapteru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
+                when (typVybiratoru) {
+                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
+                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
                     else -> return@launch
                 }
             }
@@ -167,12 +192,12 @@ class OdjezdyViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            while (seznam.value.isNullOrEmpty()) Unit
+            while (filtrovanejSeznam.value.isNullOrEmpty()) Unit
             while (!::scrollovat.isInitialized) Unit
             withContext(Dispatchers.Main) {
                 scrollovat(
-                    seznam.value!!.withIndex().firstOrNull { (_, zast) ->
-                        zast.cas >= cas
+                    filtrovanejSeznam.value!!.withIndex().firstOrNull { (_, zast) ->
+                        zast.cas >= params.cas
                     }?.index ?: seznam.value!!.lastIndex
                 )
             }

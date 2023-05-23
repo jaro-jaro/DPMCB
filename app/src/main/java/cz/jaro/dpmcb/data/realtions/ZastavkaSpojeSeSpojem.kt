@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 data class ZastavkaSpojeSeSpojem(
+    val tab: String,
     val nazev: String,
     val cas: LocalTime,
     val indexZastavkyNaLince: Int,

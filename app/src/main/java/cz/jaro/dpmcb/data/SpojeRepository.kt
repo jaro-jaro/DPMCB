@@ -12,9 +12,10 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
+import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
@@ -33,38 +34,17 @@ import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.koin.core.annotation.Single
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Month
 
+@Single
 class SpojeRepository(ctx: Application) {
 
     private val scope = MainScope()
 
-    private val coroutineScope = MainScope()
-    private val sharedPref: SharedPreferences =
-        ctx.getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-    private lateinit var ostatniField: VsechnoOstatni
-
-    private var ostatni: VsechnoOstatni
-        get() {
-            return if (::ostatniField.isInitialized) ostatniField
-            else sharedPref.getString("ostatni", "{}").let { it ?: "{}" }.let {
-                try {
-                    Json.decodeFromString(it)
-                } catch (e: RuntimeException) {
-                    e.printStackTrace()
-                    return@let VsechnoOstatni()
-                }
-            }
-        }
-        set(value) {
-            val json = Json.encodeToString(value)
-            sharedPref.edit {
-                putString("ostatni", json)
-            }
-            ostatniField = value
-        }
+    private var ostatni by ctx::ostatni
 
     private val db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
 
@@ -74,8 +54,8 @@ class SpojeRepository(ctx: Application) {
     private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
     val onlineMod = _onlineMod.asStateFlow()
 
-    private val _nastaveni = MutableStateFlow(ostatni.nastaveni)
-    val nastaveni = _nastaveni.asStateFlow()
+    private val _nastaveni by ctx::_nastaveni
+    val nastaveni by ctx::nastaveni
 
     private val _zobrazitNizkopodlaznost = MutableStateFlow(ostatni.zobrazitNizkopodlaznost)
     val zobrazitNizkopodlaznost = _zobrazitNizkopodlaznost.asStateFlow()
@@ -86,43 +66,123 @@ class SpojeRepository(ctx: Application) {
     private val dao get() = db.dao()
     val verze get() = ostatni.verze
 
-    suspend fun zastavky() = dao.nazvyZastavek()
-    suspend fun cislaLinek() = dao.cislaLinek()
+    private val tabulkyMap = mutableMapOf<LocalDate, MutableMap<Int, String?>>()
 
-    suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String) =
-        dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
-            Quadruple(
-                first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
-                map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() },
-                zcitelnitPevneKody(first().pevneKody),
-            )
+    private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(datum) { mutableMapOf() }.getOrPut(cisloLinky) {
+        val tabulky = dao.tabulkyLinky(cisloLinky)
+
+        if (tabulky.none {
+                it.platnostOd <= datum && datum <= it.platnostDo
+            }) return@getOrPut null
+
+        if (tabulky.size == 1) return@getOrPut tabulky.first().tab
+
+        val tabulky2 =
+            if (tabulky.none { it.maVyluku })
+                tabulky
+            else
+                tabulky.filter { it.maVyluku }
+
+        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
+
+        val tabulky3 = tabulky2.filter {
+            it.platnostOd <= datum && datum <= it.platnostDo
         }
 
-    suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String) =
-        dao.spojSeZastavkySpojeNaKterychStavi(spojId).run {
-            val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
-            Triple(
-                first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
-                map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-            ) { datum: LocalDate ->
+        if (tabulky3.size == 1) return@getOrPut tabulky3.first().tab
+
+        val tabulky4 = tabulky3.sortedByDescending { it.platnostOd }
+
+        return@getOrPut tabulky4.first().tab
+    }
+
+    private suspend fun LocalDate.jeTatoTabulkaPravePouzivana(tab: String): Boolean {
+        val cisloLinky = tab.split("-").first().toInt()
+        return pravePouzivanaTabulka(this, cisloLinky) == tab
+    }
+
+    private suspend fun vsechnyTabulky(datum: LocalDate) =
+        dao.vsechnyLinky().mapNotNull { cisloLinky ->
+            pravePouzivanaTabulka(datum, cisloLinky)
+        }
+
+    suspend fun zastavky(datum: LocalDate) = dao.nazvyZastavek(vsechnyTabulky(datum))
+    suspend fun cislaLinek(datum: LocalDate) = dao.cislaLinek(vsechnyTabulky(datum))
+
+    suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String, datum: LocalDate) =
+        dao.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!).run {
+            val bezkodu = distinctBy {
+                it.copy(pevneKody = "", jede = false, od = LocalDate.now(), `do` = LocalDate.now())
+            }
+            val caskody = map {
+                JedeOdDo(
+                    jede = it.jede,
+                    v = it.od..it.`do`
+                )
+            }.distinctBy {
+                it.jede to it.v.toString()
+            }
+            Quintuple(
+                first().let {
+                    LinkaNizkopodlaznostSpojId(
+                        nizkopodlaznost = it.nizkopodlaznost,
+                        linka = it.linka - 325_000,
+                        spojId = it.spojId
+                    )
+                },
+                bezkodu.mapIndexed { i, it ->
+                    CasNazevSpojIdLInkaPristi(
+                        cas = it.cas,
+                        nazev = it.nazev,
+                        linka = it.linka - 325_000,
+                        pristiZastavka = bezkodu.getOrNull(i + 1)?.nazev,
+                        spojId = it.spojId
+                    )
+                }.distinct(),
+                caskody,
+                zcitelnitPevneKody(first().pevneKody),
                 listOf(
                     (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
                     caskody.filter { !it.jede }.none { datum in it.v },
                     datum.jedeDnes(first().pevneKody),
                 ).all { it }
-            }
+            )
         }
 
-    suspend fun nazvyZastavekLinky(linka: Int) = dao.nazvyZastavekLinky(linka + 325_000)
+    private fun extrahovatCisloLinky(spojId: String) = spojId.split("-")[1].toInt()
 
-    suspend fun pristiZastavky(linka: Int, tahleZastavka: String) = dao.pristiZastavky(linka + 325_000, tahleZastavka)
+    suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String, datum: LocalDate) =
+        dao.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+            .run {
+                val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
+                Triple(
+                    first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
+                    map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
+                ) { datum: LocalDate ->
+                    listOf(
+                        (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+                        caskody.filter { !it.jede }.none { datum in it.v },
+                        datum.jedeDnes(first().pevneKody),
+                    ).all { it }
+                }
+            }
+
+    suspend fun nazvyZastavekLinky(linka: Int, datum: LocalDate) =
+        dao.nazvyZastavekLinky(linka + 325_000, pravePouzivanaTabulka(datum, linka + 325_000)!!)
+
+    suspend fun pristiZastavky(linka: Int, tahleZastavka: String, datum: LocalDate) =
+        dao.pristiZastavky(linka + 325_000, tahleZastavka, pravePouzivanaTabulka(datum, linka + 325_000)!!)
 
     suspend fun zastavkyJedouciVDatumSPristiZastavkou(linka: Int, zastavka: String, pristiZastavka: String, datum: LocalDate) =
-        dao.zastavkyJedouciVDatumSPristiZastavkou(linka + 325_000, zastavka, pristiZastavka, datum)
-            .filter { (_, _, _, pevneKody) ->
-                datum.jedeDnes(pevneKody)
-            }
+        dao.zastavkyJedouciVDatumSPristiZastavkou(
+            linka = linka + 325_000,
+            zastavka = zastavka,
+            pristiZastavka = pristiZastavka,
+            datum = datum,
+            tab = pravePouzivanaTabulka(datum, linka + 325_000)!!
+        ).filter { (_, _, _, pevneKody) ->
+            datum.jedeDnes(pevneKody)
+        }
 
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,
@@ -174,9 +234,9 @@ class SpojeRepository(ctx: Application) {
     }
 
     suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum: LocalDate, zastavka: String): List<ZastavkaSpojeSeSpojemAJehoZastavky> =
-        dao.spojeZastavujiciNaIndexechZastavky(zastavka).funguj { 0 }
+        dao.spojeZastavujiciNaIndexechZastavky(zastavka, vsechnyTabulky(datum))
             .groupBy { "S-${it.linka}-${it.cisloSpoje}" to it.indexZastavkyNaLince }
-            .map { Triple(it.key.first, it.key.second, it.value) }.funguj { 2 }
+            .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, seznam) ->
                 val caskody = seznam.map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
                 listOf(
@@ -184,10 +244,10 @@ class SpojeRepository(ctx: Application) {
                     caskody.filter { !it.jede }.none { datum in it.v },
                     datum.jedeDnes(seznam.first().pevneKody),
                 ).all { it }
-            }.funguj { 3 }
+            }
             .map { Triple(it.first, it.second, it.third.first()) }
             .let { seznam ->
-                val zastavkySpoju = dao.zastavkySpoju(seznam.map { it.first })
+                val zastavkySpoju = dao.zastavkySpoju(seznam.map { it.first }, vsechnyTabulky(datum))
                 seznam.map { Quadruple(it.first, it.second, it.third, zastavkySpoju[it.first]!!) }
             }
             .map { (spojId, indexZastavkyNaLince, info, zastavky) ->
@@ -198,24 +258,52 @@ class SpojeRepository(ctx: Application) {
                     spojId = spojId,
                     linka = info.linka - 325_000,
                     nizkopodlaznost = info.nizkopodlaznost,
-                    zastavkySpoje = zastavky.map { it.nazev to it.cas }
+                    zastavkySpoje = zastavky
                 )
-            }.funguj { 4 }
+            }
 
-    suspend fun spojSeZastavkamiPodleId(spojId: String): Pair<Spoj, List<NazevACas>> = dao.spojSeZastavkamiPodleId(spojId).toList().first()
+    suspend fun spojSeZastavkamiPodleId(spojId: String, datum: LocalDate): Pair<Spoj, List<NazevACas>> =
+        dao.spojSeZastavkamiPodleId(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+            .toList()
+            .first { datum.jeTatoTabulkaPravePouzivana(it.first.tab) }
 
     val isOnline = flow {
         while (currentCoroutineContext().isActive) {
             emit(ctx.isOnline)
             delay(5000)
         }
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline)
 
     val maPristupKJihu = isOnline.combine(onlineMod) { jeOnline, onlineMod ->
         jeOnline && onlineMod
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline && nastaveni.value.autoOnline)
 
-    suspend fun maVyluku(spojId: String) = dao.vyluka(spojId.split("-")[1].toInt())
+    suspend fun maVyluku(spojId: String, datum: LocalDate) =
+        dao.vyluka(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+
+    suspend fun platnostLinky(spojId: String, datum: LocalDate) =
+        dao.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+
+    suspend fun existujeSpoj(spojId: String, datum: LocalDate): Boolean {
+        val cisloLinky = try {
+            extrahovatCisloLinky(spojId)
+        } catch (e: Exception) {
+            return false
+        }
+        val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
+        return dao.existujeSpoj(spojId, tabulka) != null
+    }
+
+    fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = { datum ->
+        val seznam = dao.pevneKodyCaskody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+            .map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
+
+        listOf(
+            (seznam.map { it.first }.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+            seznam.map { it.first }.filter { !it.jede }.none { datum in it.v },
+            datum.jedeDnes(seznam.first().second),
+        ).all { it }
+    }
 }
 
 private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
@@ -313,3 +401,38 @@ private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
             else -> null
         }
     }
+
+private val Context.sharedPref: SharedPreferences
+    get() =
+        getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
+
+private lateinit var ostatniField: VsechnoOstatni
+
+private var Context.ostatni: VsechnoOstatni
+    get() {
+        return if (::ostatniField.isInitialized) ostatniField
+        else sharedPref.getString("ostatni", "{}").let { it ?: "{}" }.let {
+            try {
+                Json.decodeFromString(it)
+            } catch (e: RuntimeException) {
+                e.printStackTrace()
+                return@let VsechnoOstatni()
+            }
+        }
+    }
+    set(value) {
+        val json = Json.encodeToString(value)
+        sharedPref.edit {
+            putString("ostatni", json)
+        }
+        ostatniField = value
+    }
+
+private lateinit var nastaveniField: MutableStateFlow<Nastaveni>
+
+@Suppress("ObjectPropertyName")
+private val Context._nastaveni
+    get() = if (::nastaveniField.isInitialized) nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
+        nastaveniField = it
+    }
+val Context.nastaveni get() = _nastaveni.asStateFlow()

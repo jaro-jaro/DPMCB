@@ -2,9 +2,16 @@ package cz.jaro.dpmcb.ui.odjezdy
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -13,7 +20,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material3.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,22 +53,22 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.NavResult
 import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.TypAdapteru
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
+import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
 
@@ -57,9 +76,18 @@ import java.time.LocalTime
 @Composable
 fun Odjezdy(
     zastavka: String,
-    cas: LocalTime = ted,
+    cas: LocalTime? = null,
+    linka: Int? = null,
+    pres: String? = null,
     viewModel: OdjezdyViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(zastavka, cas))
+        parametersOf(
+            OdjezdyViewModel.Parameters(
+                zastavka = zastavka,
+                cas = cas ?: ted,
+                linka = linka,
+                pres = pres
+            )
+        )
     },
     navigator: DestinationsNavigator,
     resultRecipient: ResultRecipient<VybiratorDestination, Vysledek>,
@@ -85,9 +113,7 @@ fun Odjezdy(
         viewModel.scrollovat = {
             listState.scrollToItem(it)
         }
-        viewModel.navigovat = {
-            navigator.navigate(it)
-        }
+        viewModel.navigovat = navigator.navigateFunction
     }
 
     LaunchedEffect(listState) {
@@ -100,7 +126,7 @@ fun Odjezdy(
         }
     }
 
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
         state = state,
@@ -110,7 +136,8 @@ fun Odjezdy(
         zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
         listState = listState,
         zrusil = viewModel::zrusil,
-        kliklNaDetailSpoje = viewModel::kliklNaDetailSpoje,
+        kliklNaSpoj = viewModel::kliklNaSpoj,
+        kliklNaZjr = viewModel::kliklNaZjr,
         navigate = navigator::navigate,
         jeOnline = jeOnline,
     )
@@ -125,8 +152,9 @@ fun OdjezdyScreen(
     zmenitCas: (LocalTime) -> Unit,
     zmenilKompaktniRezim: () -> Unit,
     listState: LazyListState,
-    zrusil: (TypAdapteru) -> Unit,
-    kliklNaDetailSpoje: (KartickaState) -> Unit,
+    zrusil: (TypVybiratoru) -> Unit,
+    kliklNaSpoj: (KartickaState) -> Unit,
+    kliklNaZjr: (KartickaState) -> Unit,
     jeOnline: Boolean,
     navigate: NavigateFunction,
 ) = Column(
@@ -140,7 +168,7 @@ fun OdjezdyScreen(
     ) {
         TextButton(
             onClick = {
-                navigate(VybiratorDestination(TypAdapteru.ZASTAVKY))
+                navigate(VybiratorDestination(TypVybiratoru.ZASTAVKY))
             }
         ) {
             Text(
@@ -183,6 +211,7 @@ fun OdjezdyScreen(
             .padding(horizontal = 16.dp)
     ) {
         val linkaSource = remember { MutableInteractionSource() }
+        val containerColor = MaterialTheme.colorScheme.surfaceVariant
         TextField(
             value = state.filtrLinky?.toString() ?: "Všechny",
             onValueChange = {},
@@ -195,21 +224,24 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (state.filtrLinky != null) IconButton(onClick = {
-                    zrusil(TypAdapteru.LINKA_ZPET)
+                    zrusil(TypVybiratoru.LINKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
             },
-            colors = TextFieldDefaults.textFieldColors(
-                focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
             ),
         )
         val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
         if (linkaPressedState is PressInteraction.Release) {
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.LINKA_ZPET,
+                    typ = TypVybiratoru.LINKA_ZPET,
                 )
             )
             linkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -228,22 +260,25 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (state.filtrZastavky != null) IconButton(onClick = {
-                    zrusil(TypAdapteru.ZASTAVKA_ZPET)
+                    zrusil(TypVybiratoru.ZASTAVKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
             },
             interactionSource = zastavkaSource,
-            colors = TextFieldDefaults.textFieldColors(
+            colors = TextFieldDefaults.colors(
                 focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
             ),
         )
         val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
         if (zastavkaPressedState is PressInteraction.Release) {
             navigate(
                 VybiratorDestination(
-                    typ = TypAdapteru.ZASTAVKA_ZPET,
+                    typ = TypVybiratoru.ZASTAVKA_ZPET,
                 )
             )
             zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -265,9 +300,9 @@ fun OdjezdyScreen(
     ) {
         Text(
             if (state.filtrZastavky == null && state.filtrLinky == null) "Přes tuto zastávku nic nejede"
-            else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který zastavuje na zastávce ${state.filtrZastavky}"
+            else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${state.filtrZastavky}"
             else if (state.filtrZastavky == null) "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}"
-            else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který zastavuje na zastávce ${state.filtrZastavky}",
+            else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který bude zastavovat na zastávce ${state.filtrZastavky}",
             Modifier.padding(horizontal = 16.dp)
         )
     }
@@ -280,7 +315,7 @@ fun OdjezdyScreen(
             key = { it.idSpoje to it.cas },
             itemContent = { karticka ->
                 Karticka(
-                    karticka, kliklNaDetailSpoje, state.kompaktniRezim, modifier = Modifier
+                    karticka, kliklNaSpoj, kliklNaZjr, state.kompaktniRezim, modifier = Modifier
                         .animateContentSize()
                         .animateItemPlacement()
                 )
@@ -289,21 +324,45 @@ fun OdjezdyScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun Karticka(
     kartickaState: KartickaState,
     detailSpoje: (KartickaState) -> Unit,
+    zjr: (KartickaState) -> Unit,
     zjednodusit: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Divider(modifier)
+    var showDropDown by rememberSaveable { mutableStateOf(false) }
     Surface(
-        onClick = {
-            detailSpoje(kartickaState)
-        },
-        modifier = modifier
+        modifier = modifier.combinedClickable(
+            onClick = {
+                detailSpoje(kartickaState)
+            },
+            onLongClick = {
+                showDropDown = true
+            }
+        )
     ) {
+        kartickaState.pristiZastavka?.let {
+            DropdownMenu(
+                expanded = showDropDown,
+                onDismissRequest = {
+                    showDropDown = false
+                }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text("Zobrazit zastávkové JŘ")
+                    },
+                    onClick = {
+                        zjr(kartickaState)
+                        showDropDown = false
+                    },
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)

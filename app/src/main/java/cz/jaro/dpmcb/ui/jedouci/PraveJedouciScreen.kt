@@ -3,11 +3,22 @@ package cz.jaro.dpmcb.ui.jedouci
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -16,20 +27,23 @@ import com.google.accompanist.flowlayout.FlowRow
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SuplikAkce
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.repo
 import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.destinations.DetailSpojeDestination
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
 @Composable
 @Destination
 fun PraveJedouci(
-    viewModel: PraveJedouciViewModel = koinViewModel(),
+    filtry: IntArray = intArrayOf(),
+    viewModel: PraveJedouciViewModel = koinViewModel {
+        parametersOf(filtry.toList())
+    },
     navigator: DestinationsNavigator,
 ) {
     App.title = R.string.doprava_na_jihu
@@ -37,19 +51,19 @@ fun PraveJedouci(
 
     val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
     val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
-    val filtry by viewModel.filtry.collectAsStateWithLifecycle()
+    val realneFiltry by viewModel.filtry.collectAsStateWithLifecycle()
     val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
-    val jeOnline by repo.maPristupKJihu.collectAsStateWithLifecycle()
+    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     PraveJedouciScreen(
         cislaLinek = cislaLinek,
         seznam = seznam,
-        filtry = filtry,
+        filtry = realneFiltry,
         upravitFiltry = viewModel::upravitFiltry,
         nacitaSe = nacitaSe,
         jeOnline = jeOnline,
         navigate = navigator::navigate,
-        zmenitDatum = repo::upravitDatum,
+        zmenitDatum = viewModel.upravitDatum,
     )
 }
 
@@ -93,36 +107,27 @@ else Column {
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 16.dp)
+            .padding(horizontal = 8.dp),
+        contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         if (seznam.isEmpty() && filtry.isEmpty()) item {
-            Text("Není vybraná žádná linka", modifier = Modifier.padding(all = 8.dp))
+            Text("Není vybraná žádná linka")
         }
         if (seznam.isEmpty() && filtry.isNotEmpty()) item {
             Text(
-                if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede",
-                modifier = Modifier.padding(all = 8.dp)
+                if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede"
             )
         }
-        items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
-            OutlinedCard(
-                modifier = Modifier
-                    .animateItemPlacement()
-                    .padding(all = 8.dp)
-                    .animateItemPlacement(),
-                onClick = {
-                    if (spoje.size == 1) {
-                        navigate(DetailSpojeDestination(spojId = spoje.first().spojId))
-                    }
-                }
-            ) {
+        seznam.forEach { (cislo, cil, spoje) ->
+            stickyHeader(key = cislo to cil) {
                 Column(
-                    modifier = Modifier
-                        .padding(all = 8.dp)
+                    Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(top = 8.dp)
                     ) {
                         Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
                         Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
@@ -133,29 +138,49 @@ else Column {
                             .height(1.dp)
                             .background(MaterialTheme.colorScheme.onSurface)
                     )
-                    spoje.forEach { spoj ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    zmenitDatum(LocalDate.now())
-                                    navigate(DetailSpojeDestination(spojId = spoj.spojId))
-                                }
-                        ) {
-                            Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
-                            Text(
-                                text = (spoj.pristiZastavka.second).toString(),
-                            )
-                            Text(
-                                text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
-                                color = barvaZpozdeniTextu(spoj.zpozdeni),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                }
+            }
+            items(spoje, key = { it.spojId }) { spoj ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            zmenitDatum(LocalDate.now())
+                            navigate(SpojDestination(spojId = spoj.spojId))
                         }
-                    }
+                ) {
+                    Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
+                    Text(
+                        text = (spoj.pristiZastavka.second).toString(),
+                    )
+                    Text(
+                        text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
+                        color = barvaZpozdeniTextu(spoj.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
             }
         }
+//        items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
+//            OutlinedCard(
+//                modifier = Modifier
+//                    .animateItemPlacement()
+//                    .animateItemPlacement(),
+//                onClick = {
+//                    if (spoje.size == 1) {
+//                        navigate(SpojDestination(spojId = spoje.first().spojId))
+//                    }
+//                }
+//            ) {
+//                Column(
+//                    modifier = Modifier
+//                        .padding(all = 8.dp)
+//                ) {
+//                    spoje.forEach { spoj ->
+//                    }
+//                }
+//            }
+//        }
     }
 }
 

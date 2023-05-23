@@ -8,7 +8,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
-import java.net.SocketTimeoutException
 
 
 class DopravaApi(
@@ -27,7 +26,7 @@ class DopravaApi(
                     .maxBodySize(0)
                     .execute()
             }
-        } catch (e: SocketTimeoutException) {
+        } catch (e: Exception) {
             return@withContext null
         }
 

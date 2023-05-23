@@ -2,8 +2,8 @@ package cz.jaro.dpmcb.ui.jedouci
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.data.App.Companion.dopravaRepo
-import cz.jaro.dpmcb.data.App.Companion.repo
+import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,14 +19,26 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
+import java.time.LocalDate
+import kotlin.math.roundToInt
 
-class PraveJedouciViewModel : ViewModel() {
+@KoinViewModel
+class PraveJedouciViewModel(
+    private val repo: SpojeRepository,
+    private val dopravaRepo: DopravaRepository,
+    @InjectedParam puvodniFiltry: List<Int>,
+) : ViewModel() {
 
-    private val _filtry = MutableStateFlow(emptyList<Int>())
+    private val _filtry = MutableStateFlow(puvodniFiltry)
     val filtry = _filtry.asStateFlow()
 
-    private val _nacitaSe = MutableStateFlow(false)
+    private val _nacitaSe = MutableStateFlow(true)
     val nacitaSe = _nacitaSe.asStateFlow()
+
+    val upravitDatum = repo::upravitDatum
+    val maPristupKJihu = repo.maPristupKJihu
 
     fun upravitFiltry(upravit: MutateListLambda<Int>) {
         _filtry.value = buildList {
@@ -70,13 +82,13 @@ class PraveJedouciViewModel : ViewModel() {
                 }
                 .asFlow()
                 .mapNotNull { (spojNaMape, detailSpoje) ->
-                    repo.spojSeZastavkamiPodleId(spojNaMape.id).let { (spoj, zastavky) ->
+                    repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now()).let { (spoj, zastavky) ->
                         JedouciSpoj(
                             cisloLinky = spoj.linka - 325_000,
                             spojId = spoj.id,
                             cilovaZastavka = zastavky.last().let { it.nazev to it.cas!! },
                             pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas!! },
-                            zpozdeni = spojNaMape.delay,
+                            zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer
                         )
@@ -96,7 +108,7 @@ class PraveJedouciViewModel : ViewModel() {
         }
 
     val cislaLinek = flow {
-        emit(repo.cislaLinek())
+        emit(repo.cislaLinek(LocalDate.now()))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
 }
