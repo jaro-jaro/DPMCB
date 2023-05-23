@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.naJihu
 
+import kotlinx.serialization.Serializable
+
 /**
  * Reprezentuje 1 zastávku na mapě
  *
@@ -11,6 +13,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @property serviceTypes Seznam [ServiceType] co sem jezdí
  * @property sourceType ?
  */
+@Serializable
 data class DetailZastavky(
     val id: String,
     val lat: Double,

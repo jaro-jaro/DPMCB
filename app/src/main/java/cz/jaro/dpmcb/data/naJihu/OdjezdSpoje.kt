@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.naJihu
 
+import kotlinx.serialization.Serializable
+
 /**
  * Reprezentuje spoj, který v nejbližší době odjede od dané zastávky
  *
@@ -11,6 +13,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @property time Čas odjezdu z této zastávky – Shodné s [ZastavkaSpojeNaJihu.departureTime] u stanice z [DetailSpoje.stations] s odpovídajícím [ZastavkaSpojeNaJihu.id]
  * @property vehicleType ATV – Shodné s [DetailSpoje.vehicleType]
  */
+@Serializable
 data class OdjezdSpoje(
     val dest: String,
     val id: String,

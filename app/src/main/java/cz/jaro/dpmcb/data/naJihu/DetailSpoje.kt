@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.naJihu
 
+import kotlinx.serialization.Serializable
+
 /**
  * Reprezentuje 1 spoj, co někdy jede
  *
@@ -22,6 +24,7 @@ package cz.jaro.dpmcb.data.naJihu
  * @param stations Seznam [ZastavkaSpojeNaJihu]
  * @param vehicleType ATV – Pokud [isServiceVisibleOnMap], shodné s [SpojNaMape.vehicleType]
  */
+@Serializable
 data class DetailSpoje(
     val detour: Int,
     val distance: Int,
