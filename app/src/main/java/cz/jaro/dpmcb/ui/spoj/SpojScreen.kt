@@ -142,7 +142,7 @@ fun SpojScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento spoj (ID ${info.spojId}) bohužel $datum nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
+                Text("Tento spoj (ID ${info.spojId}) bohužel ${datum.value} nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
             }
 
             is SpojInfo.OK -> {
