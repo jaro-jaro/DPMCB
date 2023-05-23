@@ -7,6 +7,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -143,7 +145,7 @@ fun Odjezdy(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun OdjezdyScreen(
     state: OdjezdyState,
@@ -161,15 +163,15 @@ fun OdjezdyScreen(
     modifier = Modifier
         .fillMaxSize()
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    FlowRow(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.Bottom
     ) {
         TextButton(
             onClick = {
                 navigate(VybiratorDestination(TypVybiratoru.ZASTAVKY))
-            }
+            },
         ) {
             Text(
                 text = zastavka,
@@ -200,10 +202,14 @@ fun OdjezdyScreen(
         }
         Spacer(modifier = Modifier.weight(1F))
 
-        Text("Zjednodušit")
-        Switch(checked = state.kompaktniRezim, onCheckedChange = {
-            zmenilKompaktniRezim()
-        }, Modifier.padding(all = 8.dp), enabled = jeOnline)
+        if (jeOnline) Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Zjednodušit")
+            Switch(checked = state.kompaktniRezim, onCheckedChange = {
+                zmenilKompaktniRezim()
+            }, Modifier.padding(all = 8.dp))
+        }
     }
 
     Column(

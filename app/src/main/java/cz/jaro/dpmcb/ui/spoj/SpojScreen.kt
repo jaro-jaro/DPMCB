@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -56,6 +58,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -216,7 +219,9 @@ fun SpojScreen(
                                 .height(IntrinsicSize.Max)
                                 .padding(12.dp)
                         ) {
-                            Column {
+                            Column(
+                                Modifier.weight(1F, false)
+                            ) {
                                 info.zastavky.forEach {
                                     MujText(
                                         text = it.nazev,
@@ -268,8 +273,8 @@ fun SpojScreen(
                             Canvas(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .weight(1F)
-                                    .padding(start = 8.dp),
+                                    .width(14.dp)
+                                    .padding(horizontal = 8.dp),
                                 contentDescription = "Poloha spoje"
                             ) {
                                 val canvasHeight = size.height
@@ -526,6 +531,8 @@ fun MujText(
                     showDropDown = true
                 },
             )
-            .height(24.dp),
+            .defaultMinSize(24.dp, 24.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
 }
