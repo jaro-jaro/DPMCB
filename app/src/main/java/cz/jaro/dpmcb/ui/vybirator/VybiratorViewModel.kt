@@ -71,8 +71,8 @@ class VybiratorViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val info = when (params.typ) {
-        TypVybiratoru.ZASTAVKY_LINKY -> "$params.cisloLinky: ? -> ?"
-        TypVybiratoru.PRISTI_ZASTAVKA -> "$params.cisloLinky: $params.zastavka -> ?"
+        TypVybiratoru.ZASTAVKY_LINKY -> "${params.cisloLinky}: ? -> ?"
+        TypVybiratoru.PRISTI_ZASTAVKA -> "${params.cisloLinky}: ${params.zastavka} -> ?"
         else -> ""
     }
 
