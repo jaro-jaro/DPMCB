@@ -142,7 +142,7 @@ fun SpojScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento spoj (ID ${info.spojId}) bohužel $datum nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
+                Text("Tento spoj (ID ${info.spojId}) bohužel ${datum.value} nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
             }
 
             is SpojInfo.OK -> {
@@ -153,7 +153,7 @@ fun SpojScreen(
                 ) {
                     Text("Linka ${info.cisloLinky}")
                     IconWithTooltip(
-                        info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                        info.nizkopodlaznost.first, info.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
                     )
                     if (zpozdeni.value != null) Badge(
                         containerColor = barvaZpozdeniBublinyKontejner(zpozdeni.value!!),
