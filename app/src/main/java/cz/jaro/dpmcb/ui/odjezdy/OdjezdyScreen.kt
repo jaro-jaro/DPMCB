@@ -255,7 +255,7 @@ fun OdjezdyScreen(
                 .padding(top = 8.dp),
 
             label = {
-                Text(text = "Jede přes:")
+                Text(text = "Pojede přes:")
             },
             readOnly = true,
             trailingIcon = {
