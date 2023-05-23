@@ -82,7 +82,7 @@ class VybiratorViewModel(
 
     fun kliklNaVecZeSeznamu(vec: String) = hotovo(vec, repo.datum.value)
 
-    fun kliklEnter() = hotovo(seznam.value.first(), repo.datum.value)
+    fun kliklEnter() = seznam.value.firstOrNull()?.let { hotovo(it, repo.datum.value) } ?: Unit
 
     private fun String.oddelatDiakritiku() = Normalizer.normalize(this, Normalizer.Form.NFD).replace("\\p{Mn}+".toRegex(), "")
 
