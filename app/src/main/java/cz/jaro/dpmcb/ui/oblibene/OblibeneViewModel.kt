@@ -67,12 +67,17 @@ class OblibeneViewModel(
             } to datum
         }
         .map { (spoje, datum) ->
-            OblibeneState(
-                nacitaSe = false,
-                nejake = spoje.any(),
-                dnes = spoje.filter { it.dalsiPojede == datum }.sortedBy { it.vychoziZastavkaCas },
-                jindy = spoje.filter { it.dalsiPojede != datum }.sortedWith(compareBy<KartickaState> { it.dalsiPojede }.thenBy { it.vychoziZastavkaCas }),
-            )
+
+            if (spoje.isEmpty()) return@map OblibeneState.ZadneOblibene
+
+            val dnes = spoje.filter { it.dalsiPojede == datum }.sortedBy { it.vychoziZastavkaCas }
+            val jindy = spoje.filter { it.dalsiPojede != datum }.sortedWith(compareBy<KartickaState> { it.dalsiPojede }.thenBy { it.vychoziZastavkaCas })
+
+            if (dnes.isEmpty()) return@map OblibeneState.JedeJenJindy(jindy, datum)
+
+            if (jindy.isEmpty()) return@map OblibeneState.JedeJenDnes(dnes, datum)
+
+            return@map OblibeneState.JedeFurt(dnes, jindy, datum)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OblibeneState(nacitaSe = true, nejake = false, dnes = emptyList(), jindy = emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OblibeneState.NacitaSe)
 }

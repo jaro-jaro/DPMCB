@@ -32,6 +32,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
@@ -48,14 +49,13 @@ fun Oblibene(
     title = R.string.app_name
     vybrano = SuplikAkce.Oblibene
 
-    val oblibene by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     OblibeneScreen(
-        oblibene = oblibene,
+        state = state,
         navigate = navigator::navigate,
-        vybranyDatum = datum,
         zmenitDatum = viewModel.upravitDatum,
     )
 }
@@ -63,50 +63,49 @@ fun Oblibene(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OblibeneScreen(
-    oblibene: OblibeneState,
+    state: OblibeneState,
     navigate: NavigateFunction,
-    vybranyDatum: LocalDate,
     zmenitDatum: (LocalDate) -> Unit,
+) = LazyColumn(
+    modifier = Modifier.fillMaxSize()
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
+    if (state == OblibeneState.NacitaSe) rowItem(
+        Modifier
+            .fillMaxWidth()
+            .padding(all = 16.dp),
+        horizontalArrangement = Arrangement.Center,
     ) {
-        if (oblibene.nacitaSe) item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(all = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        else if (!oblibene.nejake) item {
+        CircularProgressIndicator()
+    }
+
+    if (state == OblibeneState.ZadneOblibene) item {
+        Text(
+            text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+            modifier = Modifier.padding(all = 16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+
+    if (state is OblibeneState.JedeJenJindy) item {
+        Text(
+            text = "${state.dnes.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
+            modifier = Modifier.padding(all = 16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+
+    if (state is OblibeneState.DnesNecoJede) {
+        item {
             Text(
-                text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
-                modifier = Modifier.padding(all = 16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        else if (oblibene.dnes.isEmpty()) item {
-            Text(
-                text = "${vybranyDatum.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
-                modifier = Modifier.padding(all = 16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        else item {
-            Text(
-                text = "Jede ${vybranyDatum.hezky()}",
+                text = "Jede ${state.dnes.hezky()}",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
         }
-
-        items(oblibene.dnes) {
+        items(state.dnesJede) {
 
             OutlinedCard(
                 onClick = {
@@ -174,8 +173,10 @@ fun OblibeneScreen(
                 }
             }
         }
+    }
 
-        if (oblibene.jindy.isNotEmpty()) item {
+    if (state is OblibeneState.JindyNecoJede) {
+        item {
             Text(
                 text = "Jede jindy",
                 modifier = Modifier.padding(all = 16.dp),
@@ -183,8 +184,7 @@ fun OblibeneScreen(
                 textAlign = TextAlign.Center
             )
         }
-
-        items(oblibene.jindy, key = { it.spojId }) {
+        items(state.jindyJede, key = { it.spojId }) {
 
             OutlinedCard(
                 onClick = {
@@ -253,7 +253,7 @@ fun OblibeneScreen(
                 }
                 if (it.dalsiPojede != null) {
                     Text(
-                        text = "Další pojede ${if (vybranyDatum != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
+                        text = "Další pojede ${if (state.dnes != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
