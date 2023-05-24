@@ -106,10 +106,10 @@ fun Odjezdy(
     title = R.string.odjezdy
     App.vybrano = SuplikAkce.Odjezdy
 
+    val info by viewModel.info.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val filtrovanejSeznam by viewModel.filtrovanejSeznam.collectAsStateWithLifecycle()
 
-    val listState = rememberLazyListState(state.indexScrollovani)
+    val listState = rememberLazyListState(info.indexScrollovani)
 
     LaunchedEffect(Unit) {
         viewModel.scrollovat = {
@@ -131,8 +131,8 @@ fun Odjezdy(
     val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
+        info = info,
         state = state,
-        seznam = filtrovanejSeznam,
         zastavka = zastavka,
         zmenitCas = viewModel::zmenitCas,
         zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
@@ -148,8 +148,8 @@ fun Odjezdy(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun OdjezdyScreen(
+    info: OdjezdyInfo,
     state: OdjezdyState,
-    seznam: List<KartickaState>?,
     zastavka: String,
     zmenitCas: (LocalTime) -> Unit,
     zmenilKompaktniRezim: () -> Unit,
@@ -190,7 +190,7 @@ fun OdjezdyScreen(
             title = {
                 Text("Změnit čas")
             },
-            initialTime = state.cas
+            initialTime = info.cas
         )
 
         TextButton(
@@ -198,7 +198,7 @@ fun OdjezdyScreen(
                 zobrazitDialog = true
             }
         ) {
-            Text(text = state.cas.toString())
+            Text(text = info.cas.toString())
         }
         Spacer(modifier = Modifier.weight(1F))
 
@@ -206,7 +206,7 @@ fun OdjezdyScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Zjednodušit")
-            Switch(checked = state.kompaktniRezim, onCheckedChange = {
+            Switch(checked = info.kompaktniRezim, onCheckedChange = {
                 zmenilKompaktniRezim()
             }, Modifier.padding(all = 8.dp))
         }
@@ -219,7 +219,7 @@ fun OdjezdyScreen(
         val linkaSource = remember { MutableInteractionSource() }
         val containerColor = MaterialTheme.colorScheme.surfaceVariant
         TextField(
-            value = state.filtrLinky?.toString() ?: "Všechny",
+            value = info.filtrLinky?.toString() ?: "Všechny",
             onValueChange = {},
             Modifier
                 .fillMaxWidth(),
@@ -229,15 +229,15 @@ fun OdjezdyScreen(
             interactionSource = linkaSource,
             readOnly = true,
             trailingIcon = {
-                if (state.filtrLinky != null) IconButton(onClick = {
+                if (info.filtrLinky != null) IconButton(onClick = {
                     zrusil(TypVybiratoru.LINKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
             },
             colors = TextFieldDefaults.colors(
-                focusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = state.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 focusedContainerColor = containerColor,
                 unfocusedContainerColor = containerColor,
                 disabledContainerColor = containerColor,
@@ -254,7 +254,7 @@ fun OdjezdyScreen(
         }
         val zastavkaSource = remember { MutableInteractionSource() }
         TextField(
-            value = state.filtrZastavky ?: "Cokoliv",
+            value = info.filtrZastavky ?: "Cokoliv",
             onValueChange = {},
             Modifier
                 .fillMaxWidth()
@@ -265,7 +265,7 @@ fun OdjezdyScreen(
             },
             readOnly = true,
             trailingIcon = {
-                if (state.filtrZastavky != null) IconButton(onClick = {
+                if (info.filtrZastavky != null) IconButton(onClick = {
                     zrusil(TypVybiratoru.ZASTAVKA_ZPET)
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
@@ -273,8 +273,8 @@ fun OdjezdyScreen(
             },
             interactionSource = zastavkaSource,
             colors = TextFieldDefaults.colors(
-                focusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = state.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 focusedContainerColor = containerColor,
                 unfocusedContainerColor = containerColor,
                 disabledContainerColor = containerColor,
@@ -290,43 +290,49 @@ fun OdjezdyScreen(
             zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
         }
     }
-    if (seznam == null) Row(
-        Modifier
-            .padding(top = 8.dp)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        CircularProgressIndicator()
-    }
-    else if (seznam.isEmpty()) Row(
-        Modifier
-            .padding(top = 8.dp)
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Text(
-            if (state.filtrZastavky == null && state.filtrLinky == null) "Přes tuto zastávku nic nejede"
-            else if (state.filtrLinky == null) "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${state.filtrZastavky}"
-            else if (state.filtrZastavky == null) "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}"
-            else "Přes tuto zastávku nejede žádný spoj linky ${state.filtrLinky}, který bude zastavovat na zastávce ${state.filtrZastavky}",
-            Modifier.padding(horizontal = 16.dp)
-        )
-    }
-    else LazyColumn(
-        state = listState,
-        modifier = Modifier.padding(top = 16.dp)
-    ) {
-        items(
-            items = seznam,
-            key = { it.idSpoje to it.cas },
-            itemContent = { karticka ->
-                Karticka(
-                    karticka, kliklNaSpoj, kliklNaZjr, state.kompaktniRezim, modifier = Modifier
-                        .animateContentSize()
-                        .animateItemPlacement()
-                )
-            }
-        )
+    when (state) {
+        OdjezdyState.Loading -> Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator()
+        }
+
+        is OdjezdyState.NicNejede -> Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                when (state) {
+                    OdjezdyState.VubecNicNejede -> "Přes tuto zastávku nic nejede"
+                    OdjezdyState.SemNicNejede -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.filtrZastavky}"
+                    OdjezdyState.LinkaNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}"
+                    OdjezdyState.LinkaSemNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}, který bude zastavovat na zastávce ${info.filtrZastavky}"
+                },
+                Modifier.padding(horizontal = 16.dp)
+            )
+        }
+
+        is OdjezdyState.Jede -> LazyColumn(
+            state = listState,
+            modifier = Modifier.padding(top = 16.dp)
+        ) {
+            items(
+                items = state.seznam,
+                key = { it.idSpoje to it.cas },
+                itemContent = { karticka ->
+                    Karticka(
+                        karticka, kliklNaSpoj, kliklNaZjr, info.kompaktniRezim, modifier = Modifier
+                            .animateContentSize()
+                            .animateItemPlacement()
+                    )
+                }
+            )
+        }
     }
 }
 
