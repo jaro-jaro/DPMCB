@@ -148,7 +148,7 @@ fun JizdniRadyScreen(
                 repeat(24) { h ->
                     Text(
                         modifier = Modifier
-                            .height(32.dp)
+                            .defaultMinSize(minHeight = 32.dp)
                             .padding(4.dp),
                         text = h.toString(),
                         fontWeight = FontWeight.Bold,
@@ -184,8 +184,17 @@ fun RadekOdjezdu(
 
     Row(
         modifier = Modifier
-            .defaultMinSize(32.dp, 32.dp),
+            .defaultMinSize(minHeight = 32.dp),
     ) {
+        if (vysledek.isEmpty())
+            Text(
+                text = "",
+                modifier = Modifier
+                    .padding(4.dp),
+                color = Color.Transparent,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal
+            )
         vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
             Text(
                 text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
