@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
@@ -79,6 +80,7 @@ class LoadingViewModel(
             try {
                 params.update || repo.verze == -1
             } catch (e: Exception) {
+                Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
                 ukazatChybaDialog()
             }
@@ -90,6 +92,7 @@ class LoadingViewModel(
             try {
                 fungujeVse()
             } catch (e: Exception) {
+                Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
                 ukazatChybaDialog()
             }
@@ -189,6 +192,7 @@ class LoadingViewModel(
                     .execute()
             }
         } catch (e: SocketTimeoutException) {
+            Firebase.crashlytics.recordException(e)
             return false
         }
 

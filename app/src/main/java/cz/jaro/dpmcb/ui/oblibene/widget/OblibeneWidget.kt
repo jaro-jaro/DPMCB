@@ -38,6 +38,8 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -85,6 +87,7 @@ class OblibeneWidget : GlanceAppWidget() {
                                 try {
                                     repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, LocalDate.now())
                                 } catch (e: Exception) {
+                                    Firebase.crashlytics.recordException(e)
                                     return@state OblibeneWidgetState.Error
                                 }
                             }

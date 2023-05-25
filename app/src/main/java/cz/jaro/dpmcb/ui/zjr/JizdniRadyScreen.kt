@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -147,7 +148,7 @@ fun JizdniRadyScreen(
                 repeat(24) { h ->
                     Text(
                         modifier = Modifier
-                            .height(32.dp)
+                            .defaultMinSize(minHeight = 32.dp)
                             .padding(4.dp),
                         text = h.toString(),
                         fontWeight = FontWeight.Bold,
@@ -183,8 +184,17 @@ fun RadekOdjezdu(
 
     Row(
         modifier = Modifier
-            .height(32.dp)
+            .defaultMinSize(minHeight = 32.dp),
     ) {
+        if (vysledek.isEmpty())
+            Text(
+                text = "",
+                modifier = Modifier
+                    .padding(4.dp),
+                color = Color.Transparent,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Normal
+            )
         vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
             Text(
                 text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },

@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -33,6 +36,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -51,7 +55,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
@@ -142,7 +149,7 @@ fun SpojScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento spoj (ID ${info.spojId}) bohužel $datum nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
+                Text("Tento spoj (ID ${info.spojId}) bohužel ${datum.value} nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
             }
 
             is SpojInfo.OK -> {
@@ -153,7 +160,7 @@ fun SpojScreen(
                 ) {
                     Text("Linka ${info.cisloLinky}")
                     IconWithTooltip(
-                        info.nizkopodlaznost, "Invalidní vozík", modifier = Modifier.padding(start = 8.dp)
+                        info.nizkopodlaznost.first, info.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
                     )
                     if (zpozdeni.value != null) Badge(
                         containerColor = barvaZpozdeniBublinyKontejner(zpozdeni.value!!),
@@ -212,7 +219,9 @@ fun SpojScreen(
                                 .height(IntrinsicSize.Max)
                                 .padding(12.dp)
                         ) {
-                            Column {
+                            Column(
+                                Modifier.weight(1F, false)
+                            ) {
                                 info.zastavky.forEach {
                                     MujText(
                                         text = it.nazev,
@@ -264,8 +273,8 @@ fun SpojScreen(
                             Canvas(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .weight(1F)
-                                    .padding(start = 8.dp),
+                                    .width(14.dp)
+                                    .padding(horizontal = 8.dp),
                                 contentDescription = "Poloha spoje"
                             ) {
                                 val canvasHeight = size.height
@@ -337,6 +346,7 @@ fun SpojScreen(
                                     zobrazitMenu = false
                                 }
                             ) {
+                                val clipboardManager = LocalClipboardManager.current
                                 DropdownMenuItem(
                                     text = {
                                         Text("Zobrazit v mapě")
@@ -348,16 +358,30 @@ fun SpojScreen(
                                     text = {
                                         Text("ID: ${info.spojId}")
                                     },
-                                    onClick = {
-                                        context.startActivity(Intent.createChooser(Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, info.spojId)
-                                            type = "text/plain"
-                                        }, "Sdílet ID spoje"))
-                                        zobrazitMenu = false
-                                    },
+                                    onClick = {},
                                     trailingIcon = {
-                                        IconWithTooltip(Icons.Default.Share, null)
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                                        action = Intent.ACTION_SEND
+                                                        putExtra(Intent.EXTRA_TEXT, info.spojId)
+                                                        type = "text/plain"
+                                                    }, "Sdílet ID spoje"))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    clipboardManager.setText(AnnotatedString(info.spojId))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                                            }
+                                        }
                                     }
                                 )
                                 if (BuildConfig.DEBUG) DropdownMenuItem(
@@ -379,32 +403,60 @@ fun SpojScreen(
                                     text = {
                                         Text("Název: ${info.nazevSpoje}")
                                     },
-                                    onClick = {
-                                        context.startActivity(Intent.createChooser(Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
-                                            type = "text/plain"
-                                        }, "Sdílet název spoje"))
-                                        zobrazitMenu = false
-                                    },
+                                    onClick = {},
                                     trailingIcon = {
-                                        IconWithTooltip(Icons.Default.Share, null)
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                                        action = Intent.ACTION_SEND
+                                                        putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
+                                                        type = "text/plain"
+                                                    }, "Sdílet název spoje"))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    clipboardManager.setText(AnnotatedString(info.nazevSpoje))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                                            }
+                                        }
                                     }
                                 )
                                 DropdownMenuItem(
                                     text = {
-                                        Text("Sdílet deeplink")
+                                        Text("Link: ${info.deeplink.removePrefix("https://jaro-jaro.github.io/DPMCB")}")
                                     },
-                                    onClick = {
-                                        context.startActivity(Intent.createChooser(Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, info.deeplink)
-                                            type = "text/uri-list"
-                                        }, "Sdílet deeplink"))
-                                        zobrazitMenu = false
-                                    },
+                                    onClick = {},
                                     trailingIcon = {
-                                        IconWithTooltip(Icons.Default.Share, null)
+                                        Row {
+                                            IconButton(
+                                                onClick = {
+                                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                                        action = Intent.ACTION_SEND
+                                                        putExtra(Intent.EXTRA_TEXT, info.deeplink)
+                                                        type = "text/uri-list"
+                                                    }, "Sdílet deeplink"))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    clipboardManager.setText(AnnotatedString(info.deeplink))
+                                                    zobrazitMenu = false
+                                                }
+                                            ) {
+                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -479,6 +531,8 @@ fun MujText(
                     showDropDown = true
                 },
             )
-            .height(24.dp),
+            .defaultMinSize(24.dp, 24.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
 }

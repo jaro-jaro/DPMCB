@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
@@ -55,6 +57,7 @@ class MainViewModel(
         get() = try {
             graph
         } catch (e: IllegalStateException) {
+            Firebase.crashlytics.recordException(e)
             null
         }
 
@@ -89,6 +92,7 @@ class MainViewModel(
                         .execute()
                 }
             } catch (e: SocketTimeoutException) {
+                Firebase.crashlytics.recordException(e)
                 return@launch
             }
 
