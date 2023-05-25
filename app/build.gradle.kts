@@ -142,6 +142,9 @@ dependencies {
     implementation("androidx.room:room-runtime:2.5.1")
     ksp("androidx.room:room-compiler:2.5.1")
 
+    // Jetpack Preferences DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Insert-Koin
     implementation("io.insert-koin:koin-android:3.3.0")
     implementation("io.insert-koin:koin-annotations:1.2.0")

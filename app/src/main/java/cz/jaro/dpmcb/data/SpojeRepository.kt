@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.Room
 import cz.jaro.dpmcb.data.database.AppDatabase
+import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
@@ -40,7 +41,12 @@ import java.time.LocalDate
 import java.time.Month
 
 @Single
-class SpojeRepository(ctx: Application) {
+class SpojeRepository(
+    ctx: Application,
+    localDataSource: Dao,
+    onlineDataSource: DopravaDataSource,
+    preferenceDataSource: PreferenceDataSource,
+) {
 
     private val scope = MainScope()
 
@@ -404,9 +410,9 @@ private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
 
 private val Context.sharedPref: SharedPreferences
     get() =
-        getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
 
-private lateinit var ostatniField: VsechnoOstatni
+
+        private lateinit var ostatniField: VsechnoOstatni
 
 private var Context.ostatni: VsechnoOstatni
     get() {
