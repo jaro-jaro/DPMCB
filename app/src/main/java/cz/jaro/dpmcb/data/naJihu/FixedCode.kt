@@ -10,6 +10,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class FixedCode(
-    val fontChar: String?,
-    val text: String,
+    val fontChar: String? = null,
+    val text: String = "",
 )

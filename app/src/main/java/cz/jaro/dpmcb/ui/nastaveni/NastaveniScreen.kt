@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.nastaveni
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
@@ -226,6 +228,12 @@ fun NastaveniScreen(
                 textItem("2021-${LocalDate.now().year} RO studios, člen skupiny JARO")
                 textItem("2019-${LocalDate.now().year} JARO")
                 textItem("Za zobrazená data neručíme")
+
+                item {
+                    Text("Simulate crash...", Modifier.clickable {
+                        throw RuntimeException("Test exception")
+                    }, fontSize = 10.sp)
+                }
             }
         }
     }

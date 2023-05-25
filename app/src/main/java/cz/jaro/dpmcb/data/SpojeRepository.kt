@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.room.Room
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -288,6 +290,7 @@ class SpojeRepository(ctx: Application) {
         val cisloLinky = try {
             extrahovatCisloLinky(spojId)
         } catch (e: Exception) {
+            Firebase.crashlytics.recordException(e)
             return false
         }
         val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
@@ -415,6 +418,7 @@ private var Context.ostatni: VsechnoOstatni
             try {
                 Json.decodeFromString(it)
             } catch (e: RuntimeException) {
+                Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
                 return@let VsechnoOstatni()
             }
