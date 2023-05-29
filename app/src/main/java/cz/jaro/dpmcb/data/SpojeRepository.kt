@@ -79,21 +79,20 @@ class SpojeRepository(ctx: Application) {
 
         if (tabulky.size == 1) return@getOrPut tabulky.first().tab
 
-        val tabulky2 =
+        val tabulky2 = tabulky.filter {
+            it.platnostOd <= datum && datum <= it.platnostDo
+        }
+
+        if (tabulky2.isEmpty()) return@getOrPut null
+        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
+
+        val tabulky3 = tabulky2.sortedByDescending { it.platnostOd }
+
+        val tabulky4 =
             if (tabulky.none { it.maVyluku })
                 tabulky
             else
                 tabulky.filter { it.maVyluku }
-
-        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
-
-        val tabulky3 = tabulky2.filter {
-            it.platnostOd <= datum && datum <= it.platnostDo
-        }
-
-        if (tabulky3.size == 1) return@getOrPut tabulky3.first().tab
-
-        val tabulky4 = tabulky3.sortedByDescending { it.platnostOd }
 
         return@getOrPut tabulky4.first().tab
     }
@@ -327,7 +326,9 @@ private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
             "28" -> null // zastávka s možností přestupu na železniční dopravu
             else -> null
         }
-    }.any { it }
+    }
+    .ifEmpty { listOf(true) }
+    .any { it }
 
 private fun jeStatniSvatekNeboDenPracovnihoKlidu(datum: LocalDate) = listOf(
     LocalDate.of(1, 1, 1), // Den obnovy samostatného českého státu
@@ -434,7 +435,6 @@ private var Context.ostatni: VsechnoOstatni
 
 private lateinit var nastaveniField: MutableStateFlow<Nastaveni>
 
-@Suppress("ObjectPropertyName")
 private val Context._nastaveni
     get() = if (::nastaveniField.isInitialized) nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
         nastaveniField = it
