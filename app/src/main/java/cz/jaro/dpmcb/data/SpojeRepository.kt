@@ -73,12 +73,6 @@ class SpojeRepository(ctx: Application) {
     private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(datum) { mutableMapOf() }.getOrPut(cisloLinky) {
         val tabulky = dao.tabulkyLinky(cisloLinky)
 
-        if (tabulky.none {
-                it.platnostOd <= datum && datum <= it.platnostDo
-            }) return@getOrPut null
-
-        if (tabulky.size == 1) return@getOrPut tabulky.first().tab
-
         val tabulky2 = tabulky.filter {
             it.platnostOd <= datum && datum <= it.platnostDo
         }
@@ -89,10 +83,10 @@ class SpojeRepository(ctx: Application) {
         val tabulky3 = tabulky2.sortedByDescending { it.platnostOd }
 
         val tabulky4 =
-            if (tabulky.none { it.maVyluku })
-                tabulky
+            if (tabulky3.none { it.maVyluku })
+                tabulky3
             else
-                tabulky.filter { it.maVyluku }
+                tabulky3.filter { it.maVyluku }
 
         return@getOrPut tabulky4.first().tab
     }
