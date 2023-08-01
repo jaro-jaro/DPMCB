@@ -14,9 +14,9 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ZastavkaSpojeNaJihu(
-    val arrivalTime: String?,
-    val departureTime: String?,
-    val fixedCodes: List<FixedCode>?,
+    val arrivalTime: String? = null,
+    val departureTime: String? = null,
+    val fixedCodes: List<FixedCode>? = null,
     val id: String,
     val name: String,
     val passed: Boolean,

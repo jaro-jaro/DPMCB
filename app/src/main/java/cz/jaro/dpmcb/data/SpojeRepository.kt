@@ -1,6 +1,8 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -70,27 +72,20 @@ class SpojeRepository(
     private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(datum) { mutableMapOf() }.getOrPut(cisloLinky) {
         val tabulky = localDataSource.tabulkyLinky(cisloLinky)
 
-        if (tabulky.none {
-                it.platnostOd <= datum && datum <= it.platnostDo
-            }) return@getOrPut null
-
-        if (tabulky.size == 1) return@getOrPut tabulky.first().tab
-
-        val tabulky2 =
-            if (tabulky.none { it.maVyluku })
-                tabulky
-            else
-                tabulky.filter { it.maVyluku }
-
-        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
-
-        val tabulky3 = tabulky2.filter {
+        val tabulky2 = tabulky.filter {
             it.platnostOd <= datum && datum <= it.platnostDo
         }
 
-        if (tabulky3.size == 1) return@getOrPut tabulky3.first().tab
+        if (tabulky2.isEmpty()) return@getOrPut null
+        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
 
-        val tabulky4 = tabulky3.sortedByDescending { it.platnostOd }
+        val tabulky3 = tabulky2.sortedByDescending { it.platnostOd }
+
+        val tabulky4 =
+            if (tabulky3.none { it.maVyluku })
+                tabulky3
+            else
+                tabulky3.filter { it.maVyluku }
 
         return@getOrPut tabulky4.first().tab
     }
@@ -283,6 +278,7 @@ class SpojeRepository(
         val cisloLinky = try {
             extrahovatCisloLinky(spojId)
         } catch (e: Exception) {
+            Firebase.crashlytics.recordException(e)
             return false
         }
         val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
@@ -319,7 +315,9 @@ private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
             "28" -> null // zastávka s možností přestupu na železniční dopravu
             else -> null
         }
-    }.any { it }
+    }
+    .ifEmpty { listOf(true) }
+    .any { it }
 
 private fun jeStatniSvatekNeboDenPracovnihoKlidu(datum: LocalDate) = listOf(
     LocalDate.of(1, 1, 1), // Den obnovy samostatného českého státu

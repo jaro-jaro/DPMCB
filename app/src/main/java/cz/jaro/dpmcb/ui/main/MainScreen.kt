@@ -39,6 +39,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +57,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
@@ -70,6 +73,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
+import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -87,6 +91,16 @@ fun Main(
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        val destinationFlow = navController.appCurrentDestinationFlow
+
+        destinationFlow.collect { destination ->
+            Firebase.analytics.logEvent("navigation") {
+                param("route", destination.route)
+            }
+        }
+    }
 
     val drawerState = rememberDrawerState(DrawerValue.Open) {
         keyboardController?.hide()

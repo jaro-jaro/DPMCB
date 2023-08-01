@@ -10,6 +10,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ServiceType(
-    val lineType: String?,
+    val lineType: String? = null,
     val vehicleType: String,
 )

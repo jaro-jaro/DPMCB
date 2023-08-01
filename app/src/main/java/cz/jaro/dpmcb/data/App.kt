@@ -31,9 +31,7 @@ class App : Application() {
         startKoin {
             androidLogger()
             androidContext(this@App)
-            defaultModule()
-
-            module {
+            modules(module(true) {
                 single {
                     PreferenceDataStoreFactory.create(
                         migrations = listOf(
@@ -57,7 +55,8 @@ class App : Application() {
                 factory {
                     get<AppDatabase>().dao()
                 }
-            }
+            })
+            defaultModule()
         }
     }
 }

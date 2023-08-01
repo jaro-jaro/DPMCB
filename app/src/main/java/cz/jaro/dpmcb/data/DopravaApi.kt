@@ -2,6 +2,9 @@ package cz.jaro.dpmcb.data
 
 import android.content.Context
 import android.util.Log
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +18,11 @@ class DopravaApi(
     @PublishedApi internal val ctx: Context,
     @PublishedApi internal val baseUrl: String,
 ) {
+    @PublishedApi
+    internal val json = Json {
+        ignoreUnknownKeys = true
+    }
+
     suspend inline fun <reified T : Any> ziskatData(url: String): T? = withContext(Dispatchers.IO) {
 
         if (!ctx.isOnline) return@withContext null
@@ -28,6 +36,7 @@ class DopravaApi(
                     .execute()
             }
         } catch (e: Exception) {
+            Firebase.crashlytics.recordException(e)
             return@withContext null
         }
 
@@ -37,8 +46,10 @@ class DopravaApi(
             val text = response.body()
 
             return@withContext try {
-                Json.decodeFromString<T>(text)
+                json.decodeFromString<T>(text).funguj()
             } catch (e: SerializationException) {
+                e.funguj()
+                Firebase.crashlytics.recordException(e)
                 null
             }
         }
