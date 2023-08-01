@@ -13,10 +13,11 @@ class ExitActivity : Activity() {
     }
 
     companion object {
-        val flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
+        private const val flags =
+            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
 
         fun exitApplication(context: Context) {
-            context.startActivity(Intent(context, ExitActivity::class.java).apply {
+            context.startActivity(Intent(context, ExitActivity::class.java).setAction(Intent.ACTION_MAIN).apply {
                 addFlags(this@Companion.flags)
             })
         }

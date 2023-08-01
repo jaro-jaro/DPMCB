@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -41,7 +40,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.nastaveni
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -236,8 +235,8 @@ object UtilFunctions {
     fun List<Boolean>.allTrue() = all { it }
 
     @Composable
-    fun darkMode(): Boolean {
-        val nastaveni by LocalContext.current.nastaveni.collectAsStateWithLifecycle()
+    fun SpojeRepository.darkMode(): Boolean {
+        val nastaveni by nastaveni.collectAsStateWithLifecycle()
         return if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
     }
 

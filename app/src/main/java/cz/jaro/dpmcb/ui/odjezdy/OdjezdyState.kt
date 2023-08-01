@@ -1,11 +1,16 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import java.time.LocalTime
+sealed interface OdjezdyState {
+    object Loading : OdjezdyState
 
-data class OdjezdyState(
-    val cas: LocalTime,
-    val indexScrollovani: Int = 0,
-    val filtrLinky: Int? = null,
-    val filtrZastavky: String? = null,
-    val kompaktniRezim: Boolean = false,
-)
+    sealed interface NicNejede : OdjezdyState
+
+    object VubecNicNejede : NicNejede
+    object SemNicNejede : NicNejede
+    object LinkaNejede : NicNejede
+    object LinkaSemNejede : NicNejede
+
+    data class Jede(
+        val seznam: List<KartickaState>,
+    ) : OdjezdyState
+}

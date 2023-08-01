@@ -6,9 +6,11 @@ import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -17,16 +19,32 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import kotlin.math.roundToInt
 
 @KoinViewModel
 class OblibeneViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    val datum = repo.datum
-    val upravitDatum = repo::upravitDatum
+    data class Parameters(
+        val navigate: NavigateFunction,
+    )
+
+    fun onEvent(e: OblibeneEvent) {
+        when (e) {
+            is OblibeneEvent.VybralSpojDnes -> {
+                params.navigate(SpojDestination(e.id))
+            }
+
+            is OblibeneEvent.VybralSpojJindy -> {
+                repo.upravitDatum(e.dalsiPojede ?: return)
+                params.navigate(SpojDestination(e.id))
+            }
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = repo.oblibene
@@ -70,12 +88,17 @@ class OblibeneViewModel(
             } to datum
         }
         .map { (spoje, datum) ->
-            OblibeneState(
-                nacitaSe = false,
-                nejake = spoje.any(),
-                dnes = spoje.filter { it.dalsiPojede == datum }.sortedBy { it.vychoziZastavkaCas },
-                jindy = spoje.filter { it.dalsiPojede != datum }.sortedWith(compareBy<KartickaState> { it.dalsiPojede }.thenBy { it.vychoziZastavkaCas }),
-            )
+
+            if (spoje.isEmpty()) return@map OblibeneState.ZadneOblibene
+
+            val dnes = spoje.filter { it.dalsiPojede == datum }.sortedBy { it.vychoziZastavkaCas }
+            val jindy = spoje.filter { it.dalsiPojede != datum }.sortedWith(compareBy<KartickaState> { it.dalsiPojede }.thenBy { it.vychoziZastavkaCas })
+
+            if (dnes.isEmpty()) return@map OblibeneState.JedeJenJindy(jindy, datum)
+
+            if (jindy.isEmpty()) return@map OblibeneState.JedeJenDnes(dnes, datum)
+
+            return@map OblibeneState.JedeFurt(dnes, jindy, datum)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OblibeneState(nacitaSe = true, nejake = false, dnes = emptyList(), jindy = emptyList()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OblibeneState.NacitaSe)
 }

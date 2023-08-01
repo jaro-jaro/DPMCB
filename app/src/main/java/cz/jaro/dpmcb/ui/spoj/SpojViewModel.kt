@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.Duration
@@ -68,10 +69,21 @@ class SpojViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojInfo.Loading)
 
-    val oblibene = repo.oblibene
+    val oblibene = repo.oblibene.map {
+        it.toList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val datum = repo.datum
-    val pridatOblibeny = repo::pridatOblibeny
-    val odebratOblibeny = repo::odebratOblibeny
+    fun pridatOblibeny(id: String) {
+        viewModelScope.launch {
+            repo.pridatOblibeny(id)
+        }
+    }
+
+    fun odebratOblibeny(id: String) {
+        viewModelScope.launch {
+            repo.odebratOblibeny(id)
+        }
+    }
 
     val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(

@@ -27,15 +27,15 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
 @Destination
@@ -43,74 +43,74 @@ import java.time.LocalDate
 @Composable
 fun Oblibene(
     navigator: DestinationsNavigator,
-    viewModel: OblibeneViewModel = koinViewModel(),
+    viewModel: OblibeneViewModel = koinViewModel {
+        parametersOf(
+            OblibeneViewModel.Parameters(
+                navigate = navigator::navigate
+            )
+        )
+    },
 ) {
     title = R.string.app_name
     vybrano = SuplikAkce.Oblibene
 
-    val oblibene by viewModel.state.collectAsStateWithLifecycle()
-
-    val datum by viewModel.datum.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     OblibeneScreen(
-        oblibene = oblibene,
-        navigate = navigator::navigate,
-        vybranyDatum = datum,
-        zmenitDatum = viewModel.upravitDatum,
+        state = state,
+        onEvent = viewModel::onEvent
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OblibeneScreen(
-    oblibene: OblibeneState,
-    navigate: NavigateFunction,
-    vybranyDatum: LocalDate,
-    zmenitDatum: (LocalDate) -> Unit,
+    state: OblibeneState,
+    onEvent: (OblibeneEvent) -> Unit,
+) = LazyColumn(
+    modifier = Modifier.fillMaxSize()
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
+    if (state == OblibeneState.NacitaSe) rowItem(
+        Modifier
+            .fillMaxWidth()
+            .padding(all = 16.dp),
+        horizontalArrangement = Arrangement.Center,
     ) {
-        if (oblibene.nacitaSe) item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(all = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        }
-        else if (!oblibene.nejake) item {
+        CircularProgressIndicator()
+    }
+
+    if (state == OblibeneState.ZadneOblibene) item {
+        Text(
+            text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
+            modifier = Modifier.padding(all = 16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+
+    if (state is OblibeneState.JedeJenJindy) item {
+        Text(
+            text = "${state.dnes.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
+            modifier = Modifier.padding(all = 16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+
+    if (state is OblibeneState.DnesNecoJede) {
+        item {
             Text(
-                text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
-                modifier = Modifier.padding(all = 16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        else if (oblibene.dnes.isEmpty()) item {
-            Text(
-                text = "${vybranyDatum.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
-                modifier = Modifier.padding(all = 16.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        else item {
-            Text(
-                text = "Jede ${vybranyDatum.hezky()}",
+                text = "Jede ${state.dnes.hezky()}",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
         }
-
-        items(oblibene.dnes) {
+        items(state.dnesJede) {
 
             OutlinedCard(
                 onClick = {
-                    navigate(SpojDestination(it.spojId))
+                    onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -174,8 +174,10 @@ fun OblibeneScreen(
                 }
             }
         }
+    }
 
-        if (oblibene.jindy.isNotEmpty()) item {
+    if (state is OblibeneState.JindyNecoJede) {
+        item {
             Text(
                 text = "Jede jindy",
                 modifier = Modifier.padding(all = 16.dp),
@@ -183,13 +185,11 @@ fun OblibeneScreen(
                 textAlign = TextAlign.Center
             )
         }
-
-        items(oblibene.jindy, key = { it.spojId }) {
+        items(state.jindyJede, key = { it.spojId }) {
 
             OutlinedCard(
                 onClick = {
-                    zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
-                    navigate(SpojDestination(it.spojId))
+                    onEvent(OblibeneEvent.VybralSpojJindy(it.spojId, it.dalsiPojede))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -253,7 +253,7 @@ fun OblibeneScreen(
                 }
                 if (it.dalsiPojede != null) {
                     Text(
-                        text = "Další pojede ${if (vybranyDatum != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
+                        text = "Další pojede ${if (state.dnes != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )

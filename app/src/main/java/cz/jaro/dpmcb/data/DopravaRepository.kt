@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.data
 
-import android.app.Application
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.compare
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
@@ -27,14 +26,9 @@ import java.time.LocalDate
 @Single
 class DopravaRepository(
     private val repo: SpojeRepository,
-    app: Application,
+    private val api: DopravaApi,
 ) {
     private val scope = MainScope()
-
-    private val api = DopravaApi(
-        ctx = app,
-        baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
-    )
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
