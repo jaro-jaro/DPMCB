@@ -11,12 +11,12 @@ plugins {
 
 android {
     namespace = "cz.jaro.dpmcb"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.2.1-rc.1"
 

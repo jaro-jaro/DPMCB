@@ -64,9 +64,19 @@ class PreferenceDataSource(
         it[PreferenceKeys.OBLIBENE] ?: DefaultValues.OBLIBENE
     }
 
-    suspend fun zmenitOblibene(value: Set<String>) {
+    suspend fun zmenitOblibene(update: (Set<String>) -> Set<String>) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.OBLIBENE] = value
+            preferences[PreferenceKeys.OBLIBENE] = update(preferences[PreferenceKeys.OBLIBENE] ?: emptySet())
+        }
+    }
+
+    val nizkopodlaznost = dataStore.data.map {
+        it[PreferenceKeys.NIZKOPODLAZNOST] ?: DefaultValues.NIZKOPODLAZNOST
+    }
+
+    suspend fun zmenitNizkopodlaznost(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferenceKeys.NIZKOPODLAZNOST] = value
         }
     }
 }

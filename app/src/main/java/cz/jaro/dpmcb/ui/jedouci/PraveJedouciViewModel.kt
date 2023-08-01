@@ -4,9 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel.JedouciSpojADalsiVeci.Companion.jenJedouciSpoje
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,21 +31,25 @@ import kotlin.math.roundToInt
 class PraveJedouciViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
-    @InjectedParam params: Parameters,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
         val filtry: List<Int>,
+        val navigate: NavigateFunction,
     )
 
     private val filtry = MutableStateFlow(params.filtry)
     private val nacitaSe = MutableStateFlow(true)
 
-    val upravitDatum = repo::upravitDatum
-    fun upravitFiltry(upravit: MutateListLambda<Int>) {
-        filtry.value = buildList {
-            addAll(filtry.value)
-            apply(upravit)
+    fun onEvent(e: PraveJedouciEvent) = when (e) {
+        is PraveJedouciEvent.ZmenitFiltr -> {
+            if (e.cisloLinky in filtry.value) filtry.value -= (e.cisloLinky) else filtry.value += (e.cisloLinky)
+        }
+
+        is PraveJedouciEvent.KliklNaSpoj -> {
+            repo.upravitDatum(LocalDate.now())
+            params.navigate(SpojDestination(spojId = e.spojId))
         }
     }
 

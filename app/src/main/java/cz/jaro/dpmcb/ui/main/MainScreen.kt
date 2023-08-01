@@ -117,7 +117,7 @@ fun Main(
 
     MainScreen(
         startActivity = {
-            ctx.startActivity(Intent(ctx, it.java))
+            ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
         },
         startIntent = ctx::startActivity,
         drawerState = drawerState,

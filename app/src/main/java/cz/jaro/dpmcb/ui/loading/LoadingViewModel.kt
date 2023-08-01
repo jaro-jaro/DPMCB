@@ -11,7 +11,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.VsechnoOstatni
+import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -44,6 +45,7 @@ import java.time.LocalDate
 @KoinViewModel
 class LoadingViewModel(
     private val repo: SpojeRepository,
+    private val db: AppDatabase,
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
@@ -77,13 +79,13 @@ class LoadingViewModel(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                params.update || repo.verze == -1
+                params.update || repo.verze.first() == -1
             } catch (e: Exception) {
                 e.printStackTrace()
                 ukazatChybaDialog()
             }
 
-            if (params.update || repo.verze == -1) {
+            if (params.update || repo.verze.first() == -1) {
                 stahnoutNoveJizdniRady()
             }
 
@@ -163,7 +165,7 @@ class LoadingViewModel(
     }
 
     private suspend fun jePotrebaAktualizovatData(): Boolean {
-        val mistniVerze = repo.verze
+        val mistniVerze = repo.verze.first()
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val reference = database.getReference("data${META_VERZE_DAT}/verze")
@@ -213,7 +215,7 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
         }
 
-        repo.odstranitVse()
+        db.clearAllTables()
 
         _state.update {
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
@@ -411,12 +413,7 @@ class LoadingViewModel(
                     casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
                     linky = linky.distinctBy { it.tab }.toTypedArray(),
                     spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
-                    ostatni = VsechnoOstatni(
-                        verze = verze,
-                        oblibene = repo.oblibene.value,
-                        nastaveni = repo.nastaveni.value,
-                        zobrazitNizkopodlaznost = repo.zobrazitNizkopodlaznost.value
-                    )
+                    verze = verze,
                 )
             }.join()
         }

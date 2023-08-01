@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -15,16 +17,32 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
 import kotlin.math.roundToInt
 
 @KoinViewModel
 class OblibeneViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    val datum = repo.datum
-    val upravitDatum = repo::upravitDatum
+    data class Parameters(
+        val navigate: NavigateFunction,
+    )
+
+    fun onEvent(e: OblibeneEvent) {
+        when (e) {
+            is OblibeneEvent.VybralSpojDnes -> {
+                params.navigate(SpojDestination(e.id))
+            }
+
+            is OblibeneEvent.VybralSpojJindy -> {
+                repo.upravitDatum(e.dalsiPojede ?: return)
+                params.navigate(SpojDestination(e.id))
+            }
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = repo.oblibene

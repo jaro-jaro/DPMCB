@@ -29,25 +29,22 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
 @Destination
 fun PraveJedouci(
     filtry: IntArray = intArrayOf(),
-    viewModel: PraveJedouciViewModel = koinViewModel {
-        parametersOf(PraveJedouciViewModel.Parameters(filtry = filtry.toList()))
-    },
     navigator: DestinationsNavigator,
+    viewModel: PraveJedouciViewModel = koinViewModel {
+        parametersOf(PraveJedouciViewModel.Parameters(filtry = filtry.toList(), navigate = navigator.navigateFunction))
+    },
 ) {
     App.title = R.string.doprava_na_jihu
     App.vybrano = SuplikAkce.PraveJedouci
@@ -56,9 +53,7 @@ fun PraveJedouci(
 
     PraveJedouciScreen(
         state = state,
-        upravitFiltry = viewModel::upravitFiltry,
-        navigate = navigator::navigate,
-        zmenitDatum = viewModel.upravitDatum,
+        onEvent = viewModel::onEvent,
     )
 }
 
@@ -66,9 +61,7 @@ fun PraveJedouci(
 @Composable
 fun PraveJedouciScreen(
     state: PraveJedouciState,
-    upravitFiltry: MutateListFunction<Int>,
-    navigate: NavigateFunction,
-    zmenitDatum: (LocalDate) -> Unit,
+    onEvent: (PraveJedouciEvent) -> Unit,
 ) {
     when (state) {
         PraveJedouciState.Offline -> Text(
@@ -112,9 +105,7 @@ fun PraveJedouciScreen(
                         seznam = state.filtry,
                         cisloLinky = cislo,
                         poKliknuti = {
-                            upravitFiltry {
-                                if (it) add(cislo) else remove(cislo)
-                            }
+                            onEvent(PraveJedouciEvent.ZmenitFiltr(cislo))
                         }
                     )
                 }
@@ -162,8 +153,7 @@ fun PraveJedouciScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        zmenitDatum(LocalDate.now())
-                                        navigate(SpojDestination(spojId = spoj.spojId))
+                                        onEvent(PraveJedouciEvent.KliklNaSpoj(spoj.spojId))
                                     }
                             ) {
                                 Text(text = spoj.pristiZastavkaNazev, modifier = Modifier.weight(1F))

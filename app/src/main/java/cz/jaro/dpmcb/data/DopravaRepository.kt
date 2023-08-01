@@ -24,7 +24,10 @@ import java.time.Duration
 import java.time.LocalDate
 
 @Single
-class DopravaRepository {
+class DopravaRepository(
+    private val repo: SpojeRepository,
+    private val api: DopravaApi,
+) {
     private val scope = MainScope()
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {

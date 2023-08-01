@@ -112,8 +112,8 @@ fun Spoj(
         vyska = vyska,
         navigate = navigator.navigateFunction,
         oblibene = oblibene,
-        pridatOblibeny = viewModel.pridatOblibeny,
-        odebratOblibeny = viewModel.odebratOblibeny,
+        pridatOblibeny = viewModel::pridatOblibeny,
+        odebratOblibeny = viewModel::odebratOblibeny,
         datum = remember(datum.value) { derivedStateOf { datum.value.hezky() } },
     )
 }

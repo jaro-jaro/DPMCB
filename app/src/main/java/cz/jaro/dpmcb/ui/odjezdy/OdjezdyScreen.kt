@@ -148,16 +148,16 @@ fun Odjezdy(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun OdjezdyScreen(
-    info: OdjezdyInfo,
     state: OdjezdyState,
+    info: OdjezdyInfo,
     zastavka: String,
+    listState: LazyListState,
+    jeOnline: Boolean,
     zmenitCas: (LocalTime) -> Unit,
     zmenilKompaktniRezim: () -> Unit,
-    listState: LazyListState,
     zrusil: (TypVybiratoru) -> Unit,
     kliklNaSpoj: (KartickaState) -> Unit,
     kliklNaZjr: (KartickaState) -> Unit,
-    jeOnline: Boolean,
     navigate: NavigateFunction,
 ) = Column(
     modifier = Modifier

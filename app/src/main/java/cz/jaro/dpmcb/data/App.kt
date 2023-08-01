@@ -8,7 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -48,6 +50,12 @@ class App : Application() {
                         ctx = get(),
                         baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
                     )
+                }
+                single {
+                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
+                }
+                factory {
+                    get<AppDatabase>().dao()
                 }
             }
         }

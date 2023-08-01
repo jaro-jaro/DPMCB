@@ -27,16 +27,15 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
 @Destination
@@ -44,19 +43,22 @@ import java.time.LocalDate
 @Composable
 fun Oblibene(
     navigator: DestinationsNavigator,
-    viewModel: OblibeneViewModel = koinViewModel(),
+    viewModel: OblibeneViewModel = koinViewModel {
+        parametersOf(
+            OblibeneViewModel.Parameters(
+                navigate = navigator::navigate
+            )
+        )
+    },
 ) {
     title = R.string.app_name
     vybrano = SuplikAkce.Oblibene
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val datum by viewModel.datum.collectAsStateWithLifecycle()
-
     OblibeneScreen(
         state = state,
-        navigate = navigator::navigate,
-        zmenitDatum = viewModel.upravitDatum,
+        onEvent = viewModel::onEvent
     )
 }
 
@@ -64,8 +66,7 @@ fun Oblibene(
 @Composable
 fun OblibeneScreen(
     state: OblibeneState,
-    navigate: NavigateFunction,
-    zmenitDatum: (LocalDate) -> Unit,
+    onEvent: (OblibeneEvent) -> Unit,
 ) = LazyColumn(
     modifier = Modifier.fillMaxSize()
 ) {
@@ -109,7 +110,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    navigate(SpojDestination(it.spojId))
+                    onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -188,8 +189,7 @@ fun OblibeneScreen(
 
             OutlinedCard(
                 onClick = {
-                    zmenitDatum(it.dalsiPojede ?: return@OutlinedCard)
-                    navigate(SpojDestination(it.spojId))
+                    onEvent(OblibeneEvent.VybralSpojJindy(it.spojId, it.dalsiPojede))
                 },
                 Modifier
                     .fillMaxWidth()

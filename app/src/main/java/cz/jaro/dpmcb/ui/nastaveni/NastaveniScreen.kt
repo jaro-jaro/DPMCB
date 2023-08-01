@@ -25,14 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
-import cz.jaro.dpmcb.data.Nastaveni
-import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
-import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
@@ -50,40 +46,28 @@ fun Nastaveni(
                 startActivity = { intent: Intent ->
                     ctx.startActivity(intent)
                 },
-                finish = finish,
                 loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
                 jsteOfflineToast = {
                     Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
                 },
+                navigateBack = finish
             )
         )
     }
 
-    val nastaveni by viewModel.nastaveni.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     NastaveniScreen(
-        navigateBack = finish,
-        nastaveni = nastaveni,
-        aktualizovatAplikaci = viewModel::aktualizovatAplikaci,
-        aktualizovatData = viewModel::aktualizovatData,
-        upravit = viewModel.upravitNastaveni,
-        verze = BuildConfig.VERSION_NAME,
-        verzeDat = viewModel.verze,
-        metaVerzeDat = LoadingViewModel.META_VERZE_DAT,
+        state = state,
+        onEvent = viewModel::onEvent
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NastaveniScreen(
-    navigateBack: () -> Unit,
-    nastaveni: Nastaveni,
-    aktualizovatAplikaci: () -> Unit,
-    aktualizovatData: () -> Unit,
-    upravit: MutateFunction<Nastaveni>,
-    verze: String,
-    verzeDat: Int,
-    metaVerzeDat: Int,
+    onEvent: (NastaveniEvent) -> Unit,
+    state: NastaveniState,
 ) {
     Surface {
         Scaffold(
@@ -94,7 +78,9 @@ fun NastaveniScreen(
                     },
                     navigationIcon = {
                         IconButton(
-                            onClick = navigateBack
+                            onClick = {
+                                onEvent(NastaveniEvent.NavigateBack)
+                            }
                         ) {
                             UtilFunctions.IconWithTooltip(Icons.Default.ArrowBack, "Zpět")
                         }
@@ -116,11 +102,11 @@ fun NastaveniScreen(
                     Text("Určit tmavý režim podle systému", Modifier.weight(1F))
 
                     Switch(
-                        checked = nastaveni.dmPodleSystemu,
+                        checked = state.nastaveni.dmPodleSystemu,
                         onCheckedChange = { value ->
-                            upravit {
+                            onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(dmPodleSystemu = value)
-                            }
+                            })
                         },
                     )
                 }
@@ -133,13 +119,13 @@ fun NastaveniScreen(
                     Text("Tmavý režim", Modifier.weight(1F))
 
                     Switch(
-                        checked = if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm,
+                        checked = if (state.nastaveni.dmPodleSystemu) isSystemInDarkTheme() else state.nastaveni.dm,
                         onCheckedChange = { value ->
-                            upravit {
+                            onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(dm = value)
-                            }
+                            })
                         },
-                        enabled = !nastaveni.dmPodleSystemu
+                        enabled = !state.nastaveni.dmPodleSystemu
                     )
                 }
                 rowItem(
@@ -151,11 +137,11 @@ fun NastaveniScreen(
                     Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
 
                     Switch(
-                        checked = !nastaveni.autoOnline,
+                        checked = !state.nastaveni.autoOnline,
                         onCheckedChange = { value ->
-                            upravit {
+                            onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(autoOnline = !value)
-                            }
+                            })
                         },
                     )
                 }
@@ -168,11 +154,11 @@ fun NastaveniScreen(
                     Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
 
                     Switch(
-                        checked = nastaveni.kontrolaAktualizaci,
+                        checked = state.nastaveni.kontrolaAktualizaci,
                         onCheckedChange = { value ->
-                            upravit {
+                            onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(kontrolaAktualizaci = value)
-                            }
+                            })
                         },
                     )
                 }
@@ -185,11 +171,11 @@ fun NastaveniScreen(
                     Text("Zapamatovat si volbu Zobrazit nízkopodlažnosti v JŘ", Modifier.weight(1F))
 
                     Switch(
-                        checked = nastaveni.zachovavatNizkopodlaznost,
+                        checked = state.nastaveni.zachovavatNizkopodlaznost,
                         onCheckedChange = { value ->
-                            upravit {
+                            onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(zachovavatNizkopodlaznost = value)
-                            }
+                            })
                         },
                     )
                 }
@@ -205,7 +191,7 @@ fun NastaveniScreen(
                         contentAlignment = Alignment.CenterStart
                     ) {
                         Button(
-                            onClick = aktualizovatAplikaci
+                            onClick = { onEvent(NastaveniEvent.AktualizovatAplikaci) }
                         ) {
                             Text("Aktualizovat aplikaci")
                         }
@@ -215,14 +201,14 @@ fun NastaveniScreen(
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         Button(
-                            onClick = aktualizovatData
+                            onClick = { onEvent(NastaveniEvent.AktualizovatData) }
                         ) {
                             Text("Aktualizovat data")
                         }
                     }
                 }
-                textItem("Aktuální verze dat: $metaVerzeDat.$verzeDat")
-                textItem("Aktuální verze aplikace: $verze")
+                textItem("Aktuální verze dat: ${state.metaVerzeDat}.${state.verzeDat}")
+                textItem("Aktuální verze aplikace: ${state.verze}")
                 textItem("2021-${LocalDate.now().year} RO studios, člen skupiny JARO")
                 textItem("2019-${LocalDate.now().year} JARO")
                 textItem("Za zobrazená data neručíme")

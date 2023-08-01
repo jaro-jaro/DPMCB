@@ -45,6 +45,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -81,7 +82,7 @@ class OblibeneWidget : GlanceAppWidget() {
 
                     val state = suspend state@{
                         val ids =
-                            repo.oblibene.value.map { id ->
+                            repo.oblibene.first().map { id ->
                                 try {
                                     repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, LocalDate.now())
                                 } catch (e: Exception) {
