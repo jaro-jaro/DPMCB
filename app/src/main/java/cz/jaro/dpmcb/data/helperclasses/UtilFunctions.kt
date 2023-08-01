@@ -116,21 +116,21 @@ object UtilFunctions {
     @Composable
     fun barvaZpozdeniTextu(zpozdeni: Int) = when {
         zpozdeni > 5 -> Color.Red
-        zpozdeni > 0 -> Color(0xFFCC6600)
+        zpozdeni > 1 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
     fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
         zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni > 0 -> Color(0xFFffddaf)
+        zpozdeni > 1 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
     fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
         zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni > 0 -> Color(0xFF614000)
+        zpozdeni > 1 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
