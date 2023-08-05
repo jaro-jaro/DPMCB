@@ -75,7 +75,7 @@ fun JizdniRady(
         navigate = navigator.navigateFunction,
         zobrazitNizkopodlaznostZMinule = zobrazitNizkopodlaznostZMinule,
         zachovatNizkopodlaznosti = nastaveni.zachovavatNizkopodlaznost,
-        upravitZobrazeniNizkopodlaznosti = viewModel.upravitZobrazeniNizkopodlaznosti,
+        upravitZobrazeniNizkopodlaznosti = viewModel::upravitZobrazeniNizkopodlaznosti,
     )
 }
 

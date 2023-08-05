@@ -1,20 +1,13 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
-import androidx.room.Room
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
-import cz.jaro.dpmcb.data.database.AppDatabase
+import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
@@ -22,7 +15,8 @@ import cz.jaro.dpmcb.data.realtions.JedeOdDo
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,52 +27,54 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Month
 
 @Single
-class SpojeRepository(ctx: Application) {
+class SpojeRepository(
+    ctx: Application,
+    private val localDataSource: Dao,
+    private val preferenceDataSource: PreferenceDataSource,
+) {
 
-    private val scope = MainScope()
-
-    private var ostatni by ctx::ostatni
-
-    private val db = Room.databaseBuilder(ctx, AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     private val _datum = MutableStateFlow(LocalDate.now())
     val datum = _datum.asStateFlow()
 
-    private val _onlineMod = MutableStateFlow(ostatni.nastaveni.autoOnline)
+    private val _onlineMod = MutableStateFlow(Nastaveni().autoOnline)
     val onlineMod = _onlineMod.asStateFlow()
 
-    private val _nastaveni by ctx::_nastaveni
-    val nastaveni by ctx::nastaveni
+    val nastaveni = preferenceDataSource.nastaveni
 
-    private val _zobrazitNizkopodlaznost = MutableStateFlow(ostatni.zobrazitNizkopodlaznost)
-    val zobrazitNizkopodlaznost = _zobrazitNizkopodlaznost.asStateFlow()
+    val zobrazitNizkopodlaznost = preferenceDataSource.nizkopodlaznost
 
-    private val _oblibene = MutableStateFlow(ostatni.oblibene)
-    val oblibene = _oblibene.asStateFlow()
+    val oblibene = preferenceDataSource.oblibene
 
-    private val dao get() = db.dao()
-    val verze get() = ostatni.verze
+    val verze = preferenceDataSource.verze
 
-    private val tabulkyMap = mutableMapOf<LocalDate, MutableMap<Int, String?>>()
+    init {
+        scope.launch {
+            preferenceDataSource.nastaveni.collect { nastaveni ->
+                _onlineMod.value = nastaveni.autoOnline
+            }
+        }
+    }
 
-    private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(datum) { mutableMapOf() }.getOrPut(cisloLinky) {
-        val tabulky = dao.tabulkyLinky(cisloLinky)
+    private val tabulkyMap = mutableMapOf<Int, MutableMap<LocalDate, String?>>()
+
+    private suspend fun pravePouzivanaTabulkaInternal(datum: LocalDate, cisloLinky: Int): Linka? {
+        val tabulky = localDataSource.tabulkyLinky(cisloLinky)
 
         val tabulky2 = tabulky.filter {
             it.platnostOd <= datum && datum <= it.platnostDo
         }
 
-        if (tabulky2.isEmpty()) return@getOrPut null
-        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
+        if (tabulky2.isEmpty()) return null
+        if (tabulky2.size == 1) return tabulky2.first()
 
         val tabulky3 = tabulky2.sortedByDescending { it.platnostOd }
 
@@ -88,7 +84,11 @@ class SpojeRepository(ctx: Application) {
             else
                 tabulky3.filter { it.maVyluku }
 
-        return@getOrPut tabulky4.first().tab
+        return tabulky4.first()
+    }
+
+    private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(cisloLinky) { mutableMapOf() }.getOrPut(datum) {
+        pravePouzivanaTabulkaInternal(datum, cisloLinky)?.tab
     }
 
     private suspend fun LocalDate.jeTatoTabulkaPravePouzivana(tab: String): Boolean {
@@ -97,15 +97,15 @@ class SpojeRepository(ctx: Application) {
     }
 
     private suspend fun vsechnyTabulky(datum: LocalDate) =
-        dao.vsechnyLinky().mapNotNull { cisloLinky ->
+        localDataSource.vsechnyLinky().mapNotNull { cisloLinky ->
             pravePouzivanaTabulka(datum, cisloLinky)
         }
 
-    suspend fun zastavky(datum: LocalDate) = dao.nazvyZastavek(vsechnyTabulky(datum))
-    suspend fun cislaLinek(datum: LocalDate) = dao.cislaLinek(vsechnyTabulky(datum))
+    suspend fun zastavky(datum: LocalDate) = localDataSource.nazvyZastavek(vsechnyTabulky(datum))
+    suspend fun cislaLinek(datum: LocalDate) = localDataSource.cislaLinek(vsechnyTabulky(datum))
 
     suspend fun spojSeZastavkySpojeNaKterychStaviACaskody(spojId: String, datum: LocalDate) =
-        dao.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!).run {
+        localDataSource.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!).run {
             val bezkodu = distinctBy {
                 it.copy(pevneKody = "", jede = false, od = LocalDate.now(), `do` = LocalDate.now())
             }
@@ -117,7 +117,7 @@ class SpojeRepository(ctx: Application) {
             }.distinctBy {
                 it.jede to it.v.toString()
             }
-            Quintuple(
+            Quadruple(
                 first().let {
                     LinkaNizkopodlaznostSpojId(
                         nizkopodlaznost = it.nizkopodlaznost,
@@ -136,40 +136,29 @@ class SpojeRepository(ctx: Application) {
                 }.distinct(),
                 caskody,
                 zcitelnitPevneKody(first().pevneKody),
-                listOf(
-                    (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
-                    caskody.filter { !it.jede }.none { datum in it.v },
-                    datum.jedeDnes(first().pevneKody),
-                ).all { it }
             )
         }
 
     private fun extrahovatCisloLinky(spojId: String) = spojId.split("-")[1].toInt()
 
-    suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String, datum: LocalDate) =
-        dao.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, datum: LocalDate) =
+        localDataSource.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
             .run {
                 val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
-                Triple(
+                Pair(
                     first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                     map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                ) { datum: LocalDate ->
-                    listOf(
-                        (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
-                        caskody.filter { !it.jede }.none { datum in it.v },
-                        datum.jedeDnes(first().pevneKody),
-                    ).all { it }
-                }
+                )
             }
 
     suspend fun nazvyZastavekLinky(linka: Int, datum: LocalDate) =
-        dao.nazvyZastavekLinky(linka + 325_000, pravePouzivanaTabulka(datum, linka + 325_000)!!)
+        localDataSource.nazvyZastavekLinky(linka + 325_000, pravePouzivanaTabulka(datum, linka + 325_000)!!)
 
     suspend fun pristiZastavky(linka: Int, tahleZastavka: String, datum: LocalDate) =
-        dao.pristiZastavky(linka + 325_000, tahleZastavka, pravePouzivanaTabulka(datum, linka + 325_000)!!)
+        localDataSource.pristiZastavky(linka + 325_000, tahleZastavka, pravePouzivanaTabulka(datum, linka + 325_000)!!)
 
     suspend fun zastavkyJedouciVDatumSPristiZastavkou(linka: Int, zastavka: String, pristiZastavka: String, datum: LocalDate) =
-        dao.zastavkyJedouciVDatumSPristiZastavkou(
+        localDataSource.zastavkyJedouciVDatumSPristiZastavkou(
             linka = linka + 325_000,
             zastavka = zastavka,
             pristiZastavka = pristiZastavka,
@@ -185,19 +174,15 @@ class SpojeRepository(ctx: Application) {
         casKody: Array<CasKod>,
         linky: Array<Linka>,
         spoje: Array<Spoj>,
-        ostatni: VsechnoOstatni,
+        verze: Int,
     ) {
-        this.ostatni = ostatni
+        preferenceDataSource.zmenitVerzi(verze)
 
-        dao.vlozitZastavkySpoje(*zastavkySpoje)
-        dao.vlozitZastavky(*zastavky)
-        dao.vlozitCasKody(*casKody)
-        dao.vlozitLinky(*linky)
-        dao.vlozitSpoje(*spoje)
-    }
-
-    fun odstranitVse() {
-        db.clearAllTables()
+        localDataSource.vlozitZastavkySpoje(*zastavkySpoje)
+        localDataSource.vlozitZastavky(*zastavky)
+        localDataSource.vlozitCasKody(*casKody)
+        localDataSource.vlozitLinky(*linky)
+        localDataSource.vlozitSpoje(*spoje)
     }
 
     fun upravitDatum(datum: LocalDate) {
@@ -208,28 +193,28 @@ class SpojeRepository(ctx: Application) {
         _onlineMod.update { mod }
     }
 
-    fun upravitNastaveni(update: (Nastaveni) -> Nastaveni) {
-        _nastaveni.update(update)
-        ostatni = ostatni.copy(nastaveni = _nastaveni.value)
+    suspend fun upravitNastaveni(update: (Nastaveni) -> Nastaveni) {
+        preferenceDataSource.zmenitNastaveni(update)
     }
 
-    fun zmenitNizkopodlaznost(value: Boolean) {
-        _zobrazitNizkopodlaznost.update { value }
-        ostatni = ostatni.copy(zobrazitNizkopodlaznost = _zobrazitNizkopodlaznost.value)
+    suspend fun zmenitNizkopodlaznost(value: Boolean) {
+        preferenceDataSource.zmenitNizkopodlaznost(value)
     }
 
-    fun pridatOblibeny(id: String) {
-        _oblibene.update { it + id }
-        ostatni = ostatni.copy(oblibene = _oblibene.value)
+    suspend fun pridatOblibeny(id: String) {
+        preferenceDataSource.zmenitOblibene {
+            it + id
+        }
     }
 
-    fun odebratOblibeny(id: String) {
-        _oblibene.update { it - id }
-        ostatni = ostatni.copy(oblibene = _oblibene.value)
+    suspend fun odebratOblibeny(id: String) {
+        preferenceDataSource.zmenitOblibene {
+            it - id
+        }
     }
 
     suspend fun spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum: LocalDate, zastavka: String): List<ZastavkaSpojeSeSpojemAJehoZastavky> =
-        dao.spojeZastavujiciNaIndexechZastavky(zastavka, vsechnyTabulky(datum))
+        localDataSource.spojeZastavujiciNaIndexechZastavky(zastavka, vsechnyTabulky(datum))
             .groupBy { "S-${it.linka}-${it.cisloSpoje}" to it.indexZastavkyNaLince }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, seznam) ->
@@ -242,7 +227,7 @@ class SpojeRepository(ctx: Application) {
             }
             .map { Triple(it.first, it.second, it.third.first()) }
             .let { seznam ->
-                val zastavkySpoju = dao.zastavkySpoju(seznam.map { it.first }, vsechnyTabulky(datum))
+                val zastavkySpoju = localDataSource.zastavkySpoju(seznam.map { it.first }, vsechnyTabulky(datum))
                 seznam.map { Quadruple(it.first, it.second, it.third, zastavkySpoju[it.first]!!) }
             }
             .map { (spojId, indexZastavkyNaLince, info, zastavky) ->
@@ -258,7 +243,7 @@ class SpojeRepository(ctx: Application) {
             }
 
     suspend fun spojSeZastavkamiPodleId(spojId: String, datum: LocalDate): Pair<Spoj, List<NazevACas>> =
-        dao.spojSeZastavkamiPodleId(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+        localDataSource.spojSeZastavkamiPodleId(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
             .toList()
             .first { datum.jeTatoTabulkaPravePouzivana(it.first.tab) }
 
@@ -274,25 +259,19 @@ class SpojeRepository(ctx: Application) {
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline && nastaveni.value.autoOnline)
 
     suspend fun maVyluku(spojId: String, datum: LocalDate) =
-        dao.vyluka(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+        localDataSource.vyluka(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
 
     suspend fun platnostLinky(spojId: String, datum: LocalDate) =
-        dao.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
+        localDataSource.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
 
-    suspend fun existujeSpoj(spojId: String, datum: LocalDate): Boolean {
-        val cisloLinky = try {
-            extrahovatCisloLinky(spojId)
-        } catch (e: Exception) {
-            Firebase.crashlytics.recordException(e)
-            return false
-        }
-        val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
-        return dao.existujeSpoj(spojId, tabulka) != null
+    suspend fun existujeSpoj(spojId: String): Boolean {
+        return localDataSource.existujeSpoj(spojId) != null
     }
 
-    fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = { datum ->
-        val seznam = dao.pevneKodyCaskody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
-            .map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
+    fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = jedeV@{ datum ->
+        val tab = pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId)) ?: return@jedeV false
+
+        val seznam = localDataSource.pevneKodyCaskody(spojId, tab).map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
 
         listOf(
             (seznam.map { it.first }.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
@@ -399,38 +378,3 @@ private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
             else -> null
         }
     }
-
-private val Context.sharedPref: SharedPreferences
-    get() =
-        getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-
-private lateinit var ostatniField: VsechnoOstatni
-
-private var Context.ostatni: VsechnoOstatni
-    get() {
-        return if (::ostatniField.isInitialized) ostatniField
-        else sharedPref.getString("ostatni", "{}").let { it ?: "{}" }.let {
-            try {
-                Json.decodeFromString(it)
-            } catch (e: RuntimeException) {
-                Firebase.crashlytics.recordException(e)
-                e.printStackTrace()
-                return@let VsechnoOstatni()
-            }
-        }
-    }
-    set(value) {
-        val json = Json.encodeToString(value)
-        sharedPref.edit {
-            putString("ostatni", json)
-        }
-        ostatniField = value
-    }
-
-private lateinit var nastaveniField: MutableStateFlow<Nastaveni>
-
-private val Context._nastaveni
-    get() = if (::nastaveniField.isInitialized) nastaveniField else MutableStateFlow(ostatni.nastaveni).also {
-        nastaveniField = it
-    }
-val Context.nastaveni get() = _nastaveni.asStateFlow()

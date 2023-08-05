@@ -4,13 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.MutateListLambda
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel.JedouciSpojADalsiVeci.Companion.jenJedouciSpoje
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -22,37 +24,41 @@ import kotlinx.coroutines.flow.toList
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.math.roundToInt
 
 @KoinViewModel
 class PraveJedouciViewModel(
     private val repo: SpojeRepository,
     private val dopravaRepo: DopravaRepository,
-    @InjectedParam puvodniFiltry: List<Int>,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    private val _filtry = MutableStateFlow(puvodniFiltry)
-    val filtry = _filtry.asStateFlow()
+    data class Parameters(
+        val filtry: List<Int>,
+        val navigate: NavigateFunction,
+    )
 
-    private val _nacitaSe = MutableStateFlow(true)
-    val nacitaSe = _nacitaSe.asStateFlow()
+    private val filtry = MutableStateFlow(params.filtry)
+    private val nacitaSe = MutableStateFlow(true)
 
-    val upravitDatum = repo::upravitDatum
-    val maPristupKJihu = repo.maPristupKJihu
+    fun onEvent(e: PraveJedouciEvent) = when (e) {
+        is PraveJedouciEvent.ZmenitFiltr -> {
+            if (e.cisloLinky in filtry.value) filtry.value -= (e.cisloLinky) else filtry.value += (e.cisloLinky)
+        }
 
-    fun upravitFiltry(upravit: MutateListLambda<Int>) {
-        _filtry.value = buildList {
-            addAll(filtry.value)
-            apply(upravit)
+        is PraveJedouciEvent.KliklNaSpoj -> {
+            repo.upravitDatum(LocalDate.now())
+            params.navigate(SpojDestination(spojId = e.spojId))
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val seznam = filtry.map {
+    private val seznam = filtry.map {
         it.ifEmpty { null }
     }
         .combine(dopravaRepo.spojeDPMCBNaMape()) { filtry, spojeNaMape ->
-            _nacitaSe.value = true
+            nacitaSe.value = true
             filtry?.let {
                 spojeNaMape
                     .filter {
@@ -83,32 +89,74 @@ class PraveJedouciViewModel(
                 .asFlow()
                 .mapNotNull { (spojNaMape, detailSpoje) ->
                     repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now()).let { (spoj, zastavky) ->
-                        JedouciSpoj(
-                            cisloLinky = spoj.linka - 325_000,
+                        JedouciSpojADalsiVeci(
                             spojId = spoj.id,
-                            cilovaZastavka = zastavky.last().let { it.nazev to it.cas!! },
-                            pristiZastavka = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].let { it.nazev to it.cas!! },
+                            pristiZastavkaNazev = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].nazev,
+                            pristiZastavkaCas = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].cas!!,
                             zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
-                            smer = spoj.smer
+                            smer = spoj.smer,
+                            cisloLinky = spoj.linka - 325_000,
+                            cil = zastavky.last().nazev,
                         )
                     }
                 }
                 .toList()
                 .sortedWith(
-                    compareBy<JedouciSpoj> { it.cisloLinky }
+                    compareBy<JedouciSpojADalsiVeci> { it.cisloLinky }
                         .thenBy { it.smer }
-                        .thenBy { it.cilovaZastavka.first }
+                        .thenBy { it.cil }
                         .thenBy { it.indexNaLince }
-                        .thenByDescending { it.pristiZastavka.second }
+                        .thenByDescending { it.pristiZastavkaCas }
                 )
-                .groupBy { it.cisloLinky to it.cilovaZastavka.first }
-                .map { Triple(it.key.first, it.key.second, it.value) }
-                .also { _nacitaSe.value = false }
+                .groupBy { it.cisloLinky to it.cil }
+                .map { (_, seznam) ->
+                    JedouciLinkaVeSmeru(
+                        cisloLinky = seznam.first().cisloLinky,
+                        cilovaZastavka = seznam.first().cil,
+                        spoje = seznam.jenJedouciSpoje()
+                    )
+                }
+                .also { nacitaSe.value = false }
         }
 
-    val cislaLinek = flow {
+    private val cislaLinek = flow {
         emit(repo.cislaLinek(LocalDate.now()))
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }
 
+    val state = combine(cislaLinek, seznam, nacitaSe, repo.maPristupKJihu, filtry) { cislaLinek, seznam, nacitaSeSeznam, jeOnline, filtry ->
+        if (!jeOnline) return@combine PraveJedouciState.Offline
+
+        if (cislaLinek.isEmpty()) return@combine PraveJedouciState.ZadneLinky
+
+        if (filtry.isEmpty()) return@combine PraveJedouciState.NeniNicVybrano(cislaLinek)
+
+        if (seznam.isNotEmpty()) return@combine PraveJedouciState.OK(cislaLinek, filtry, seznam)
+
+        if (nacitaSeSeznam) return@combine PraveJedouciState.Nacitani(cislaLinek, filtry)
+
+        return@combine PraveJedouciState.PraveNicNejede(cislaLinek, filtry)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PraveJedouciState.NacitaniLinek)
+
+    data class JedouciSpojADalsiVeci(
+        val spojId: String,
+        val pristiZastavkaNazev: String,
+        val pristiZastavkaCas: LocalTime,
+        val zpozdeni: Int,
+        val indexNaLince: Int,
+        val smer: Smer,
+        val cisloLinky: Int,
+        val cil: String,
+    ) {
+        private fun toJedouciSpoj() = JedouciSpoj(
+            spojId = spojId,
+            pristiZastavkaNazev = pristiZastavkaNazev,
+            pristiZastavkaCas = pristiZastavkaCas,
+            zpozdeni = zpozdeni
+        )
+
+        companion object {
+            fun List<JedouciSpojADalsiVeci>.jenJedouciSpoje() = map(JedouciSpojADalsiVeci::toJedouciSpoj)
+        }
+    }
 }

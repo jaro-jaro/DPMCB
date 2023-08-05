@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,8 +43,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,17 +72,17 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky7p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
-import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
 
 @Destination
 @Composable
@@ -97,88 +96,139 @@ fun Spoj(
     title = R.string.detail_spoje
     App.vybrano = SuplikAkce.SpojPodleId
 
-    val info by viewModel.info.collectAsStateWithLifecycle()
-    val stateZJihu = viewModel.stateZJihu.collectAsStateWithLifecycle()
-    val vyska = viewModel.vyska.collectAsStateWithLifecycle(0F)
-    val projetychUseku = viewModel.projetychUseku.collectAsStateWithLifecycle(0)
-    val oblibene = viewModel.oblibene.collectAsStateWithLifecycle()
-    val datum = viewModel.datum.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     SpojScreen(
-        info = info,
-        zpozdeni = remember(stateZJihu.value) { derivedStateOf { stateZJihu.value.zpozdeni?.inWholeSeconds?.div(60F)?.roundToInt() } },
-        zastavkyNaJihu = remember(stateZJihu.value) { derivedStateOf { stateZJihu.value.zastavkyNaJihu } },
-        projetychUseku = projetychUseku,
-        vyska = vyska,
+        state = state,
         navigate = navigator.navigateFunction,
-        oblibene = oblibene,
-        pridatOblibeny = viewModel.pridatOblibeny,
-        odebratOblibeny = viewModel.odebratOblibeny,
-        datum = remember(datum.value) { derivedStateOf { datum.value.hezky() } },
+        toggleOblibeny = viewModel::toggleOblibeny,
+        zmenitdatum = viewModel::zmenitdatum,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SpojScreen(
-    info: SpojInfo,
-    zpozdeni: State<Int?>,
-    zastavkyNaJihu: State<List<ZastavkaSpojeNaJihu>?>,
-    projetychUseku: State<Int>,
-    vyska: State<Float>,
+    state: SpojState,
     navigate: NavigateFunction,
-    oblibene: State<List<String>>,
-    pridatOblibeny: (String) -> Unit,
-    odebratOblibeny: (String) -> Unit,
-    datum: State<String>,
+    toggleOblibeny: () -> Unit,
+    zmenitdatum: (LocalDate) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        when (info) {
-            is SpojInfo.Loading -> Row(
+        when (state) {
+            is SpojState.Loading -> Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 CircularProgressIndicator()
             }
 
-            is SpojInfo.Neexistuje -> Row(
+            is SpojState.Neexistuje -> Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento spoj (ID ${info.spojId}) bohužel ${datum.value} nejede, nebo vůbec neexistuje :(\nZkontrolujte, zda jste zadali správně ID, nebo zkuste změnit datum.")
+                Text("Tento spoj (ID ${state.spojId}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
             }
 
-            is SpojInfo.OK -> {
+            is SpojState.Nejede -> {
+                when {
+                    state.pristeJedePoDatu == null && state.pristeJedePoDnesku == null -> {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Tento spoj (ID ${state.spojId}) bohužel ${state.datum.hezky6p()} nejede :(\nZkontrolujte, zda jste zadali správné datum.")
+                        }
+                    }
+
+                    state.pristeJedePoDatu == null && state.pristeJedePoDnesku != null -> {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede, ale pojede ${state.pristeJedePoDnesku.hezky6p()}.")
+                        }
+                        Button(
+                            onClick = {
+                                zmenitdatum(state.pristeJedePoDnesku)
+                            },
+                            Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky7p()}")
+                        }
+                    }
+
+                    state.pristeJedePoDatu != null && (state.pristeJedePoDnesku == null || state.pristeJedePoDatu == state.pristeJedePoDnesku) -> {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede, ale pojede ${state.pristeJedePoDatu.hezky6p()}.")
+                        }
+                        Button(
+                            onClick = {
+                                zmenitdatum(state.pristeJedePoDatu)
+                            },
+                            Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky7p()}")
+                        }
+                    }
+
+                    state.pristeJedePoDatu != null && state.pristeJedePoDnesku != null -> {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede. Jede mimo jiné ${state.pristeJedePoDatu.hezky6p()} nebo ${state.pristeJedePoDnesku.hezky6p()}")
+                        }
+                        Button(
+                            onClick = {
+                                zmenitdatum(state.pristeJedePoDatu)
+                            },
+                            Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky7p()}")
+                        }
+                        Button(
+                            onClick = {
+                                zmenitdatum(state.pristeJedePoDnesku)
+                            },
+                            Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky7p()}")
+                        }
+                    }
+                }
+            }
+
+            is SpojState.OK -> {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Linka ${info.cisloLinky}")
+                    Text("Linka ${state.cisloLinky}")
                     IconWithTooltip(
-                        info.nizkopodlaznost.first, info.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
+                        state.nizkopodlaznost.first, state.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
                     )
-                    if (zpozdeni.value != null) Badge(
-                        containerColor = barvaZpozdeniBublinyKontejner(zpozdeni.value!!),
-                        contentColor = barvaZpozdeniBublinyText(zpozdeni.value!!),
+                    if (state is SpojState.OK.Online) Badge(
+                        containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeni),
+                        contentColor = barvaZpozdeniBublinyText(state.zpozdeni),
                     ) {
                         Text(
-                            text = zpozdeni.value!!.run {
+                            text = state.zpozdeni.run {
                                 "${toSign()}$this min"
                             },
                         )
                     }
                     Spacer(Modifier.weight(1F))
-                    FilledIconToggleButton(checked = info.spojId in oblibene.value, onCheckedChange = {
-                        if (it) {
-                            pridatOblibeny(info.spojId)
-                        } else {
-                            odebratOblibeny(info.spojId)
-                        }
+                    FilledIconToggleButton(checked = state.jeOblibeny, onCheckedChange = {
+                        toggleOblibeny()
                     }) {
                         IconWithTooltip(Icons.Default.Star, "Oblíbené")
                     }
@@ -191,9 +241,9 @@ fun SpojScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(ScrollState(0))
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    if (info.vyluka) Card(
+                    if (state.vyluka) Card(
                         Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.errorContainer
@@ -222,7 +272,7 @@ fun SpojScreen(
                             Column(
                                 Modifier.weight(1F, false)
                             ) {
-                                info.zastavky.forEach {
+                                state.zastavky.forEach {
                                     MujText(
                                         text = it.nazev,
                                         navigate = navigate,
@@ -234,7 +284,7 @@ fun SpojScreen(
                                 }
                             }
                             Column(Modifier.padding(start = 8.dp)) {
-                                info.zastavky.forEach {
+                                state.zastavky.forEach {
                                     MujText(
                                         text = it.cas.toString(),
                                         navigate = navigate,
@@ -245,13 +295,13 @@ fun SpojScreen(
                                     )
                                 }
                             }
-                            if (zpozdeni.value != null && zastavkyNaJihu.value != null) Column(Modifier.padding(start = 8.dp)) {
-                                info.zastavky
-                                    .zip(zastavkyNaJihu.value!!)
+                            if (state is SpojState.OK.Online) Column(Modifier.padding(start = 8.dp)) {
+                                state.zastavky
+                                    .zip(state.zastavkyNaJihu)
                                     .forEach { (zastavka, zastavkaNaJihu) ->
                                         MujText(
-                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(zpozdeni.value!!.toLong())).toString() else "",
-                                            color = barvaZpozdeniTextu(zpozdeni.value!!),
+                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(state.zpozdeni.toLong())).toString() else "",
+                                            color = barvaZpozdeniTextu(state.zpozdeni),
                                             navigate = navigate,
                                             cas = zastavka.cas,
                                             zastavka = zastavka.nazev,
@@ -260,15 +310,14 @@ fun SpojScreen(
                                         )
                                     }
                             }
-                            val neNaMape = zpozdeni.value != null && zastavkyNaJihu.value != null
 
-                            val projetaBarva = if (neNaMape) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            val barvaBusu = if (neNaMape) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                            val projetaBarva = if (state is SpojState.OK.Online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            val barvaBusu = if (state is SpojState.OK.Online) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                             val barvaPozadi = MaterialTheme.colorScheme.surface
                             val baravCary = MaterialTheme.colorScheme.surfaceVariant
-                            val zastavek = info.zastavky.count()
+                            val zastavek = state.zastavky.count()
 
-                            val animovanaVyska by animateFloatAsState(vyska.value, label = "HeightAnimation")
+                            val animovanaVyska by animateFloatAsState(state.vyska, label = "HeightAnimation")
 
                             Canvas(
                                 modifier = Modifier
@@ -294,7 +343,7 @@ fun SpojScreen(
 
                                     repeat(zastavek) { i ->
                                         translate(top = i * rowHeight) {
-                                            val projel = projetychUseku.value >= i
+                                            val projel = state.projetychUseku >= i
 
                                             drawCircle(
                                                 color = if (projel) projetaBarva else barvaPozadi,
@@ -320,7 +369,7 @@ fun SpojScreen(
                                         strokeWidth = lineWidth,
                                     )
 
-                                    if (vyska.value > 0F) drawCircle(
+                                    if (state.vyska > 0F) drawCircle(
                                         color = barvaBusu,
                                         radius = circleRadius - circleStrokeWidth * .5F,
                                         center = Offset(y = rowHeight * animovanaVyska)
@@ -339,7 +388,7 @@ fun SpojScreen(
                         TextButton(onClick = {
                             zobrazitMenu = true
                         }) {
-                            Text("ID: ${info.spojId}")
+                            Text("ID: ${state.spojId}")
                             DropdownMenu(
                                 expanded = zobrazitMenu,
                                 onDismissRequest = {
@@ -356,7 +405,7 @@ fun SpojScreen(
                                 )
                                 DropdownMenuItem(
                                     text = {
-                                        Text("ID: ${info.spojId}")
+                                        Text("ID: ${state.spojId}")
                                     },
                                     onClick = {},
                                     trailingIcon = {
@@ -365,7 +414,7 @@ fun SpojScreen(
                                                 onClick = {
                                                     context.startActivity(Intent.createChooser(Intent().apply {
                                                         action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, info.spojId)
+                                                        putExtra(Intent.EXTRA_TEXT, state.spojId)
                                                         type = "text/plain"
                                                     }, "Sdílet ID spoje"))
                                                     zobrazitMenu = false
@@ -375,7 +424,7 @@ fun SpojScreen(
                                             }
                                             IconButton(
                                                 onClick = {
-                                                    clipboardManager.setText(AnnotatedString(info.spojId))
+                                                    clipboardManager.setText(AnnotatedString(state.spojId))
                                                     zobrazitMenu = false
                                                 }
                                             ) {
@@ -391,7 +440,7 @@ fun SpojScreen(
                                     onClick = {
                                         context.startActivity(Intent.createChooser(Intent().apply {
                                             action = Intent.ACTION_VIEW
-                                            data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${info.spojId}")
+                                            data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${state.spojId}")
                                         }, "Sdílet ID spoje"))
                                         zobrazitMenu = false
                                     },
@@ -401,7 +450,7 @@ fun SpojScreen(
                                 )
                                 DropdownMenuItem(
                                     text = {
-                                        Text("Název: ${info.nazevSpoje}")
+                                        Text("Název: ${state.nazevSpoje}")
                                     },
                                     onClick = {},
                                     trailingIcon = {
@@ -410,7 +459,7 @@ fun SpojScreen(
                                                 onClick = {
                                                     context.startActivity(Intent.createChooser(Intent().apply {
                                                         action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, info.nazevSpoje)
+                                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
                                                         type = "text/plain"
                                                     }, "Sdílet název spoje"))
                                                     zobrazitMenu = false
@@ -420,7 +469,7 @@ fun SpojScreen(
                                             }
                                             IconButton(
                                                 onClick = {
-                                                    clipboardManager.setText(AnnotatedString(info.nazevSpoje))
+                                                    clipboardManager.setText(AnnotatedString(state.nazevSpoje))
                                                     zobrazitMenu = false
                                                 }
                                             ) {
@@ -431,7 +480,7 @@ fun SpojScreen(
                                 )
                                 DropdownMenuItem(
                                     text = {
-                                        Text("Link: ${info.deeplink.removePrefix("https://jaro-jaro.github.io/DPMCB")}")
+                                        Text("Link: ${state.deeplink.removePrefix("https://jaro-jaro.github.io/DPMCB")}")
                                     },
                                     onClick = {},
                                     trailingIcon = {
@@ -440,7 +489,7 @@ fun SpojScreen(
                                                 onClick = {
                                                     context.startActivity(Intent.createChooser(Intent().apply {
                                                         action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, info.deeplink)
+                                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
                                                         type = "text/uri-list"
                                                     }, "Sdílet deeplink"))
                                                     zobrazitMenu = false
@@ -450,7 +499,7 @@ fun SpojScreen(
                                             }
                                             IconButton(
                                                 onClick = {
-                                                    clipboardManager.setText(AnnotatedString(info.deeplink))
+                                                    clipboardManager.setText(AnnotatedString(state.deeplink))
                                                     zobrazitMenu = false
                                                 }
                                             ) {
@@ -464,13 +513,13 @@ fun SpojScreen(
 
                     }
                     Column {
-                        info.pevneKody.forEach {
+                        state.pevneKody.forEach {
                             Text(it)
                         }
-                        info.caskody.forEach {
+                        state.caskody.forEach {
                             Text(it)
                         }
-                        Text(info.linkaKod)
+                        Text(state.linkaKod)
                     }
                 }
             }

@@ -29,159 +29,146 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.MutateListFunction
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 @Destination
 fun PraveJedouci(
     filtry: IntArray = intArrayOf(),
-    viewModel: PraveJedouciViewModel = koinViewModel {
-        parametersOf(filtry.toList())
-    },
     navigator: DestinationsNavigator,
+    viewModel: PraveJedouciViewModel = koinViewModel {
+        parametersOf(PraveJedouciViewModel.Parameters(filtry = filtry.toList(), navigate = navigator.navigateFunction))
+    },
 ) {
     App.title = R.string.doprava_na_jihu
     App.vybrano = SuplikAkce.PraveJedouci
 
-    val cislaLinek by viewModel.cislaLinek.collectAsStateWithLifecycle()
-    val seznam by viewModel.seznam.collectAsStateWithLifecycle(initialValue = emptyList())
-    val realneFiltry by viewModel.filtry.collectAsStateWithLifecycle()
-    val nacitaSe by viewModel.nacitaSe.collectAsStateWithLifecycle()
-    val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     PraveJedouciScreen(
-        cislaLinek = cislaLinek,
-        seznam = seznam,
-        filtry = realneFiltry,
-        upravitFiltry = viewModel::upravitFiltry,
-        nacitaSe = nacitaSe,
-        jeOnline = jeOnline,
-        navigate = navigator::navigate,
-        zmenitDatum = viewModel.upravitDatum,
+        state = state,
+        onEvent = viewModel::onEvent,
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun PraveJedouciScreen(
-    cislaLinek: List<Int>?,
-    seznam: List<Triple<Int, String, List<JedouciSpoj>>>,
-    filtry: List<Int>,
-    upravitFiltry: MutateListFunction<Int>,
-    nacitaSe: Boolean,
-    jeOnline: Boolean,
-    navigate: NavigateFunction,
-    zmenitDatum: (LocalDate) -> Unit,
-) = if (!jeOnline) Text(
-    text = "Jste offline :(",
-    modifier = Modifier.padding(all = 16.dp),
-    style = MaterialTheme.typography.bodyLarge,
-    textAlign = TextAlign.Center
-)
-else Column {
-    Text("Vyberte linku:", modifier = Modifier.padding(bottom = 4.dp, start = 8.dp))
-    FlowRow(
-        modifier = Modifier
-            .padding(start = 4.dp, end = 4.dp)
-    ) {
-        cislaLinek?.forEach { cislo ->
-            Chip(
-                seznam = filtry,
-                cisloLinky = cislo,
-                poKliknuti = {
-                    upravitFiltry {
-                        if (it) add(cislo) else remove(cislo)
-                    }
-                }
-            )
-        }
-    }
+    state: PraveJedouciState,
+    onEvent: (PraveJedouciEvent) -> Unit,
+) {
+    when (state) {
+        PraveJedouciState.Offline -> Text(
+            text = "Jste offline :(",
+            modifier = Modifier
+                .padding(all = 16.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 16.dp)
-            .padding(horizontal = 8.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
-    ) {
-        if (seznam.isEmpty() && filtry.isEmpty()) item {
-            Text("Není vybraná žádná linka")
-        }
-        if (seznam.isEmpty() && filtry.isNotEmpty()) item {
+        PraveJedouciState.NacitaniLinek -> Text(
+            text = "Načítání...",
+            modifier = Modifier
+                .padding(all = 16.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+
+        PraveJedouciState.ZadneLinky -> Text(
+            text = "Bohužel, zdá se že právě nejede žádná linka. Toto může také nastat pokud má Dopravní podnik výpad svých informačních serverů. V takovém případě nefungují aktuální informace o spojích ani kdekoliv jinde, včetně zastávkových označníků ve městě.",
+            modifier = Modifier
+                .padding(all = 16.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+
+        is PraveJedouciState.LinkyNacteny -> Column {
             Text(
-                if (nacitaSe) "Načítání..." else "Od vybraných linek právě nic nejede"
+                "Vyberte linku:", modifier = Modifier
+                    .padding(all = 16.dp)
+                    .fillMaxWidth()
             )
-        }
-        seznam.forEach { (cislo, cil, spoje) ->
-            stickyHeader(key = cislo to cil) {
-                Column(
-                    Modifier.background(MaterialTheme.colorScheme.surface)
-                ) {
-                    Text(text = "$cislo -> $cil", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
-                        Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(MaterialTheme.colorScheme.onSurface)
-                    )
-                }
-            }
-            items(spoje, key = { it.spojId }) { spoj ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            zmenitDatum(LocalDate.now())
-                            navigate(SpojDestination(spojId = spoj.spojId))
+            FlowRow(
+                modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+                state.cislaLinek.forEach { cislo ->
+                    Chip(
+                        seznam = state.filtry,
+                        cisloLinky = cislo,
+                        poKliknuti = {
+                            onEvent(PraveJedouciEvent.ZmenitFiltr(cislo))
                         }
-                ) {
-                    Text(text = spoj.pristiZastavka.first, modifier = Modifier.weight(1F))
-                    Text(
-                        text = (spoj.pristiZastavka.second).toString(),
-                    )
-                    Text(
-                        text = (spoj.pristiZastavka.second.plusMinutes(spoj.zpozdeni.toLong())).toString(),
-                        color = barvaZpozdeniTextu(spoj.zpozdeni),
-                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
+
+            when (state) {
+                is PraveJedouciState.PraveNicNejede -> Text("Od vybraných linek právě nic nejede")
+                is PraveJedouciState.Nacitani -> Text("Načítání...")
+                is PraveJedouciState.NeniNicVybrano -> Text("Není vybraná žádná linka")
+                is PraveJedouciState.OK -> LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp)
+                        .padding(horizontal = 8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    state.seznam.forEach { linka ->
+                        stickyHeader(key = linka.cisloLinky to linka.cilovaZastavka) {
+                            Column(
+                                Modifier.background(MaterialTheme.colorScheme.surface)
+                            ) {
+                                Text(
+                                    text = "${linka.cisloLinky} -> ${linka.cilovaZastavka}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp)
+                                ) {
+                                    Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                                    Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(MaterialTheme.colorScheme.onSurface)
+                                )
+                            }
+                        }
+                        items(linka.spoje, key = { it.spojId }) { spoj ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onEvent(PraveJedouciEvent.KliklNaSpoj(spoj.spojId))
+                                    }
+                            ) {
+                                Text(text = spoj.pristiZastavkaNazev, modifier = Modifier.weight(1F))
+                                Text(text = spoj.pristiZastavkaCas.toString())
+                                Text(
+                                    text = spoj.pristiZastavkaCas.plus(spoj.zpozdeni.minutes).toString(),
+                                    color = barvaZpozdeniTextu(spoj.zpozdeni),
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
-//        items(seznam, key = { it.first to it.second }) { (cislo, cil, spoje) ->
-//            OutlinedCard(
-//                modifier = Modifier
-//                    .animateItemPlacement()
-//                    .animateItemPlacement(),
-//                onClick = {
-//                    if (spoje.size == 1) {
-//                        navigate(SpojDestination(spojId = spoje.first().spojId))
-//                    }
-//                }
-//            ) {
-//                Column(
-//                    modifier = Modifier
-//                        .padding(all = 8.dp)
-//                ) {
-//                    spoje.forEach { spoj ->
-//                    }
-//                }
-//            }
-//        }
     }
 }
 

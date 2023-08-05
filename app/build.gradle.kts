@@ -11,14 +11,14 @@ plugins {
 
 android {
     namespace = "cz.jaro.dpmcb"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
-        versionName = "1.2.3"
+        versionName = "1.3.0-alpha.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -141,6 +141,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.5.1")
     implementation("androidx.room:room-runtime:2.5.1")
     ksp("androidx.room:room-compiler:2.5.1")
+
+    // Jetpack Preferences DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Insert-Koin
     implementation("io.insert-koin:koin-android:3.3.0")

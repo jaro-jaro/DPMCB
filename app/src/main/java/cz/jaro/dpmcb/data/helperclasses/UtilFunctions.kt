@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -41,7 +40,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.nastaveni
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -64,12 +63,12 @@ import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
-    fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.hezky6p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnes"
             1L -> "zítra"
             2L -> "pozítří"
-            in 3L..7L -> when (dayOfWeek!!) {
+            in 3L..6L -> when (dayOfWeek!!) {
                 DayOfWeek.MONDAY -> "v pondělí"
                 DayOfWeek.TUESDAY -> "v úterý"
                 DayOfWeek.WEDNESDAY -> "ve středu"
@@ -77,6 +76,25 @@ object UtilFunctions {
                 DayOfWeek.FRIDAY -> "v pátek"
                 DayOfWeek.SATURDAY -> "v sobotu"
                 DayOfWeek.SUNDAY -> "v neděli"
+            }
+
+            else -> asString()
+        }
+    }
+
+    fun LocalDate.hezky7p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+        when (za) {
+            0L -> "dnešek"
+            1L -> "zítřek"
+            2L -> "pozítří"
+            in 3L..6L -> when (dayOfWeek!!) {
+                DayOfWeek.MONDAY -> "pondělí"
+                DayOfWeek.TUESDAY -> "úterý"
+                DayOfWeek.WEDNESDAY -> "středu"
+                DayOfWeek.THURSDAY -> "čtvrtek"
+                DayOfWeek.FRIDAY -> "pátek"
+                DayOfWeek.SATURDAY -> "sobotu"
+                DayOfWeek.SUNDAY -> "neděli"
             }
 
             else -> asString()
@@ -103,7 +121,7 @@ object UtilFunctions {
     inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
-        -1 -> "-"
+        -1 -> ""
         1 -> "+"
         else -> ""
     }
@@ -117,21 +135,21 @@ object UtilFunctions {
     @Composable
     fun barvaZpozdeniTextu(zpozdeni: Int) = when {
         zpozdeni > 5 -> Color.Red
-        zpozdeni > 0 -> Color(0xFFCC6600)
+        zpozdeni > 1 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
     fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
         zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni > 0 -> Color(0xFFffddaf)
+        zpozdeni > 1 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
     fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
         zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni > 0 -> Color(0xFF614000)
+        zpozdeni > 1 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
@@ -236,8 +254,8 @@ object UtilFunctions {
     fun List<Boolean>.allTrue() = all { it }
 
     @Composable
-    fun darkMode(): Boolean {
-        val nastaveni by LocalContext.current.nastaveni.collectAsStateWithLifecycle()
+    fun SpojeRepository.darkMode(): Boolean {
+        val nastaveni by nastaveni.collectAsStateWithLifecycle()
         return if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
     }
 

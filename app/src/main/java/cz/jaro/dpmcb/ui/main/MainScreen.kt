@@ -131,7 +131,7 @@ fun Main(
 
     MainScreen(
         startActivity = {
-            ctx.startActivity(Intent(ctx, it.java))
+            ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
         },
         startIntent = ctx::startActivity,
         drawerState = drawerState,
@@ -543,7 +543,8 @@ fun VecZeSupliku(
         }
     }
 
-    else -> if (akce != SuplikAkce.PraveJedouci || datum.value == LocalDate.now()) NavigationDrawerItem(
+    else -> if (akce == SuplikAkce.PraveJedouci && datum.value != LocalDate.now()) Unit
+    else NavigationDrawerItem(
         label = {
             Text(stringResource(akce.jmeno))
         },
@@ -562,5 +563,5 @@ fun VecZeSupliku(
             )
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    ) else Unit
+    )
 }

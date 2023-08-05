@@ -4,10 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
 class JizdniRadyViewModel(
@@ -30,6 +33,11 @@ class JizdniRadyViewModel(
     )
 
     val zobrazitNizkopodlaznostZMinule = repo.zobrazitNizkopodlaznost
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
     val nstaveni = repo.nastaveni
-    val upravitZobrazeniNizkopodlaznosti = repo::zmenitNizkopodlaznost
+    fun upravitZobrazeniNizkopodlaznosti(value: Boolean) {
+        viewModelScope.launch {
+            repo.zmenitNizkopodlaznost(value)
+        }
+    }
 }

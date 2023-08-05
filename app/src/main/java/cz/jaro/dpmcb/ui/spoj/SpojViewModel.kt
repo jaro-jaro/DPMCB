@@ -19,10 +19,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -31,19 +33,26 @@ import kotlin.time.Duration.Companion.seconds
 class SpojViewModel(
     private val repo: SpojeRepository,
     dopravaRepo: DopravaRepository,
-    @InjectedParam spojId: String,
+    @InjectedParam private val spojId: String,
 ) : ViewModel() {
 
-    val info = repo.datum.map { datum ->
-        val existuje = repo.existujeSpoj(spojId, datum)
-        if (!existuje) return@map SpojInfo.Neexistuje(spojId)
-        val (spoj, zastavky, caskody, pevneKody, jedeDnes)
-                = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
-        if (!jedeDnes) return@map SpojInfo.Neexistuje(spojId)
+    private val info = repo.datum.combine(repo.oblibene) { datum, oblibene ->
+        val existuje = repo.existujeSpoj(spojId)
+        if (!existuje) return@combine SpojState.Neexistuje(spojId)
+        val jedeV = repo.spojJedeV(spojId)
+        if (!jedeV(datum)) {
+            return@combine SpojState.Nejede(
+                spojId = spojId,
+                datum = datum,
+                pristeJedePoDnesku = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { jedeV(it) },
+                pristeJedePoDatu = List(365) { datum.plusDays(it.toLong()) }.firstOrNull { jedeV(it) }
+            )
+        }
 
+        val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
         val vyluka = repo.maVyluku(spojId, datum)
         val platnost = repo.platnostLinky(spojId, datum)
-        SpojInfo.OK(
+        SpojState.OK.Offline(
             spojId = spojId,
             zastavky = zastavky,
             cisloLinky = spoj.linka,
@@ -65,15 +74,29 @@ class SpojViewModel(
             nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
             vyluka = vyluka,
+            jeOblibeny = spojId in oblibene,
+            vyska = 0F,
+            projetychUseku = 0,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojInfo.Loading)
+    }
 
-    val oblibene = repo.oblibene
-    val datum = repo.datum
-    val pridatOblibeny = repo::pridatOblibeny
-    val odebratOblibeny = repo::odebratOblibeny
+    fun toggleOblibeny() {
+        if (state.value is SpojState.OK) viewModelScope.launch {
+            if ((state.value as SpojState.OK).jeOblibeny) {
+                repo.odebratOblibeny(spojId)
+            } else {
+                repo.pridatOblibeny(spojId)
+            }
+        }
+    }
 
-    val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
+    fun zmenitdatum(datum: LocalDate) {
+        viewModelScope.launch {
+            repo.upravitDatum(datum)
+        }
+    }
+
+    private val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(
             zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
             zastavkyNaJihu = detailSpoje?.stations
@@ -82,9 +105,9 @@ class SpojViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpojStateZJihu())
 
-    val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
+    private val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
         when {
-            info !is SpojInfo.OK -> 0
+            info !is SpojState.OK -> 0
             datum > LocalDate.now() -> 0
             datum < LocalDate.now() -> info.zastavky.lastIndex
             // Je na mapě && má detail spoje
@@ -94,9 +117,9 @@ class SpojViewModel(
         }
     }
 
-    val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
+    private val vyska = combine(info, stateZJihu, tedFlow, projetychUseku) { info, state, ted, projetychUseku ->
 
-        if (info !is SpojInfo.OK) return@combine 0F
+        if (info !is SpojState.OK) return@combine 0F
 
         if (projetychUseku == 0) return@combine 0F
 
@@ -120,4 +143,19 @@ class SpojViewModel(
 //        )
         projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
     }
+
+    val state = combine(info, projetychUseku, vyska, stateZJihu) { info, projetychUseku, vyska, stateZJihu ->
+        if (info !is SpojState.OK) info
+        else (info as SpojState.OK.Offline).copy(
+            vyska = vyska,
+            projetychUseku = projetychUseku
+        ).let { state ->
+            if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null) state
+            else SpojState.OK.Online(
+                state = state,
+                zpozdeni = stateZJihu.zpozdeni.inWholeSeconds.div(60F).roundToInt(),
+                zastavkyNaJihu = stateZJihu.zastavkyNaJihu
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojState.Loading)
 }

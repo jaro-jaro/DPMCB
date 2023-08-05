@@ -31,6 +31,7 @@ jobs:
           keystore_password: ${{ secrets.keystore_password }}
           key_alias: ${{ secrets.key_alias }}
           key_password: ${{ secrets.key_password }}
+          java_version: 17
       - name: Push git tag
         run: |
           git config --global user.name 'jaro-jaro'
