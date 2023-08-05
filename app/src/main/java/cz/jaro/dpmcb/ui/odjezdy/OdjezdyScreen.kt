@@ -140,7 +140,7 @@ fun Odjezdy(
         zrusil = viewModel::zrusil,
         kliklNaSpoj = viewModel::kliklNaSpoj,
         kliklNaZjr = viewModel::kliklNaZjr,
-        navigate = navigator::navigate,
+        navigate = navigator.navigateFunction,
         jeOnline = jeOnline,
     )
 }

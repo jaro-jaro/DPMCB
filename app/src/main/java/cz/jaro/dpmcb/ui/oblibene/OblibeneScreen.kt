@@ -31,6 +31,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.main.SuplikAkce
@@ -46,7 +47,7 @@ fun Oblibene(
     viewModel: OblibeneViewModel = koinViewModel {
         parametersOf(
             OblibeneViewModel.Parameters(
-                navigate = navigator::navigate
+                navigate = navigator.navigateFunction
             )
         )
     },
