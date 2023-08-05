@@ -543,7 +543,8 @@ fun VecZeSupliku(
         }
     }
 
-    else -> if (akce != SuplikAkce.PraveJedouci || datum.value == LocalDate.now()) NavigationDrawerItem(
+    else -> if (akce == SuplikAkce.PraveJedouci && datum.value != LocalDate.now()) Unit
+    else NavigationDrawerItem(
         label = {
             Text(stringResource(akce.jmeno))
         },
@@ -562,5 +563,5 @@ fun VecZeSupliku(
             )
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    ) else Unit
+    )
 }

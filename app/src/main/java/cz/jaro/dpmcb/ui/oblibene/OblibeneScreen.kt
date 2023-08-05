@@ -30,7 +30,7 @@ import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.main.SuplikAkce
@@ -90,7 +90,7 @@ fun OblibeneScreen(
 
     if (state is OblibeneState.JedeJenJindy) item {
         Text(
-            text = "${state.dnes.hezky().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
+            text = "${state.dnes.hezky6p().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
             modifier = Modifier.padding(all = 16.dp),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
@@ -100,7 +100,7 @@ fun OblibeneScreen(
     if (state is OblibeneState.DnesNecoJede) {
         item {
             Text(
-                text = "Jede ${state.dnes.hezky()}",
+                text = "Jede ${state.dnes.hezky6p()}",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
@@ -253,7 +253,7 @@ fun OblibeneScreen(
                 }
                 if (it.dalsiPojede != null) {
                     Text(
-                        text = "Další pojede ${if (state.dnes != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky()}", Modifier
+                        text = "Další pojede ${if (state.dnes != LocalDate.now()) it.dalsiPojede.asString() else it.dalsiPojede.hezky6p()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
