@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
@@ -50,10 +52,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -350,8 +358,8 @@ fun VecZeSupliku(
     startActivity: (KClass<out Activity>) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
-        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         var hodnoceni by rememberSaveable { mutableStateOf(-1) }
+        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
 
         if (zobrazitDialog) AlertDialog(
             onDismissRequest = {
@@ -418,25 +426,50 @@ fun VecZeSupliku(
     SuplikAkce.SpojPodleId -> {
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         var id by rememberSaveable { mutableStateOf("") }
+        var jmeno by rememberSaveable { mutableStateOf("") }
+        var linka by rememberSaveable { mutableStateOf("") }
+        var cislo by rememberSaveable { mutableStateOf("") }
+
+        val focusRequester = remember { FocusRequester() }
+
+        fun potvrdit(spojId: String) {
+            navigate(
+                SpojDestination(
+                    spojId = spojId
+                )
+            )
+            zobrazitDialog = false
+            closeDrawer()
+            id = ""
+            jmeno = ""
+            linka = ""
+            cislo = ""
+        }
 
         if (zobrazitDialog) AlertDialog(
             onDismissRequest = {
                 zobrazitDialog = false
                 id = ""
+                jmeno = ""
+                linka = ""
+                cislo = ""
             },
             title = {
                 Text(stringResource(id = R.string.spoj_podle_id))
             },
             confirmButton = {
                 TextButton(onClick = {
-                    navigate(
-                        SpojDestination(
-                            spojId = id
-                        )
+                    if (linka.isNotEmpty() && cislo.isNotEmpty()) potvrdit(
+                        "S-325${
+                            when (linka.length) {
+                                1 -> "00$linka"
+                                2 -> "0$linka"
+                                else -> linka
+                            }
+                        }-$cislo"
                     )
-                    zobrazitDialog = false
-                    closeDrawer()
-                    id = ""
+                    else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
+                    else potvrdit(id)
                 }) {
                     Text("Vyhledat")
                 }
@@ -445,21 +478,109 @@ fun VecZeSupliku(
                 TextButton(onClick = {
                     zobrazitDialog = false
                     id = ""
+                    jmeno = ""
+                    linka = ""
+                    cislo = ""
                 }) {
                     Text("Zrušit")
                 }
             },
             text = {
-                TextField(
-                    value = id,
-                    onValueChange = {
-                        id = it
-                    },
-                    Modifier.fillMaxWidth(),
-                    label = {
-                        Text("Zadejte ID")
-                    },
-                )
+                val focusManager = LocalFocusManager.current
+                Column {
+                    Row {
+                        TextField(
+                            value = linka,
+                            onValueChange = {
+                                linka = it
+                            },
+                            Modifier
+                                .weight(1F)
+                                .padding(end = 8.dp)
+                                .focusRequester(focusRequester),
+                            label = {
+                                Text("Linka")
+                            },
+                            keyboardActions = KeyboardActions {
+                                focusManager.moveFocus(FocusDirection.Right)
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Next,
+                                keyboardType = KeyboardType.Number,
+                            ),
+                        )
+                        LaunchedEffect(Unit) {
+                            focusRequester.requestFocus()
+                        }
+                        TextField(
+                            value = cislo,
+                            onValueChange = {
+                                cislo = it
+                            },
+                            Modifier.weight(1F),
+                            label = {
+                                Text("Č. spoje")
+                            },
+                            keyboardActions = KeyboardActions {
+                                if (linka.isNotEmpty() && cislo.isNotEmpty())
+                                    potvrdit(
+                                        "S-325${
+                                            when (linka.length) {
+                                                1 -> "00$linka"
+                                                2 -> "0$linka"
+                                                else -> linka
+                                            }
+                                        }-$cislo"
+                                    )
+                                else
+                                    focusManager.moveFocus(FocusDirection.Down)
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = if (linka.isNotEmpty() && cislo.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                                keyboardType = KeyboardType.Number,
+                            ),
+                        )
+                    }
+                    TextField(
+                        value = jmeno,
+                        onValueChange = {
+                            jmeno = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("Jméno spoje")
+                        },
+                        keyboardActions = KeyboardActions {
+                            if (jmeno.isNotEmpty())
+                                potvrdit("S-${jmeno.replace("/", "-")}")
+                            else
+                                focusManager.moveFocus(FocusDirection.Down)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = if (jmeno.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                        ),
+                    )
+                    TextField(
+                        value = id,
+                        onValueChange = {
+                            id = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("ID spoje")
+                        },
+                        keyboardActions = KeyboardActions {
+                            potvrdit(id)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Search,
+                        ),
+                    )
+                }
             }
         )
         NavigationDrawerItem(
@@ -472,6 +593,7 @@ fun VecZeSupliku(
             selected = App.vybrano == akce,
             onClick = {
                 zobrazitDialog = true
+//                focusRequester.requestFocus()
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
