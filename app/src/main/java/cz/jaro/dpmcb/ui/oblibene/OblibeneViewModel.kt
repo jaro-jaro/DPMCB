@@ -62,12 +62,12 @@ class OblibeneViewModel(
                 .combine(repo.datum) { it, datum ->
                     it?.zip(oblibene) { (spojNaMape, detailSpoje), id ->
                         val spoj = try {
-                            repo.spojSeZastavkySpojeNaKterychStaviAJedeV(id, datum)
+                            repo.spojSeZastavkySpojeNaKterychStavi(id, datum)
                         } catch (e: Exception) {
                             Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
-                        Quintuple(spojNaMape, detailSpoje, spoj.first, spoj.second, spoj.third)
+                        Quintuple(spojNaMape, detailSpoje, spoj.first, spoj.second, repo.spojJedeV(id))
                     }
                 }
         }

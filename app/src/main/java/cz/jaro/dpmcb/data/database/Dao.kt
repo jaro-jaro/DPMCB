@@ -361,12 +361,11 @@ interface Dao {
     @Query(
         """
         SELECT id FROM spoj
-        WHERE tab = :tab
-        AND id = :spojId
+        WHERE id = :spojId
         LIMIT 1
     """
     )
-    suspend fun existujeSpoj(spojId: String, tab: String): String?
+    suspend fun existujeSpoj(spojId: String): String?
 
     @Query(
         """

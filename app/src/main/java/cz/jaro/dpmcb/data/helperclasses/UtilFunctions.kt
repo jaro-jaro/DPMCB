@@ -63,12 +63,12 @@ import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
-    fun LocalDate.hezky() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.hezky6p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnes"
             1L -> "zítra"
             2L -> "pozítří"
-            in 3L..7L -> when (dayOfWeek!!) {
+            in 3L..6L -> when (dayOfWeek!!) {
                 DayOfWeek.MONDAY -> "v pondělí"
                 DayOfWeek.TUESDAY -> "v úterý"
                 DayOfWeek.WEDNESDAY -> "ve středu"
@@ -76,6 +76,25 @@ object UtilFunctions {
                 DayOfWeek.FRIDAY -> "v pátek"
                 DayOfWeek.SATURDAY -> "v sobotu"
                 DayOfWeek.SUNDAY -> "v neděli"
+            }
+
+            else -> asString()
+        }
+    }
+
+    fun LocalDate.hezky7p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+        when (za) {
+            0L -> "dnešek"
+            1L -> "zítřek"
+            2L -> "pozítří"
+            in 3L..6L -> when (dayOfWeek!!) {
+                DayOfWeek.MONDAY -> "pondělí"
+                DayOfWeek.TUESDAY -> "úterý"
+                DayOfWeek.WEDNESDAY -> "středu"
+                DayOfWeek.THURSDAY -> "čtvrtek"
+                DayOfWeek.FRIDAY -> "pátek"
+                DayOfWeek.SATURDAY -> "sobotu"
+                DayOfWeek.SUNDAY -> "neděli"
             }
 
             else -> asString()
@@ -102,7 +121,7 @@ object UtilFunctions {
     inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
-        -1 -> "-"
+        -1 -> ""
         1 -> "+"
         else -> ""
     }

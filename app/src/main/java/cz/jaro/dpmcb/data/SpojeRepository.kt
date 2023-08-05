@@ -1,8 +1,6 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -10,7 +8,6 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
@@ -67,17 +64,17 @@ class SpojeRepository(
         }
     }
 
-    private val tabulkyMap = mutableMapOf<LocalDate, MutableMap<Int, String?>>()
+    private val tabulkyMap = mutableMapOf<Int, MutableMap<LocalDate, String?>>()
 
-    private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(datum) { mutableMapOf() }.getOrPut(cisloLinky) {
+    private suspend fun pravePouzivanaTabulkaInternal(datum: LocalDate, cisloLinky: Int): Linka? {
         val tabulky = localDataSource.tabulkyLinky(cisloLinky)
 
         val tabulky2 = tabulky.filter {
             it.platnostOd <= datum && datum <= it.platnostDo
         }
 
-        if (tabulky2.isEmpty()) return@getOrPut null
-        if (tabulky2.size == 1) return@getOrPut tabulky2.first().tab
+        if (tabulky2.isEmpty()) return null
+        if (tabulky2.size == 1) return tabulky2.first()
 
         val tabulky3 = tabulky2.sortedByDescending { it.platnostOd }
 
@@ -87,7 +84,11 @@ class SpojeRepository(
             else
                 tabulky3.filter { it.maVyluku }
 
-        return@getOrPut tabulky4.first().tab
+        return tabulky4.first()
+    }
+
+    private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(cisloLinky) { mutableMapOf() }.getOrPut(datum) {
+        pravePouzivanaTabulkaInternal(datum, cisloLinky)?.tab
     }
 
     private suspend fun LocalDate.jeTatoTabulkaPravePouzivana(tab: String): Boolean {
@@ -116,7 +117,7 @@ class SpojeRepository(
             }.distinctBy {
                 it.jede to it.v.toString()
             }
-            Quintuple(
+            Quadruple(
                 first().let {
                     LinkaNizkopodlaznostSpojId(
                         nizkopodlaznost = it.nizkopodlaznost,
@@ -135,30 +136,19 @@ class SpojeRepository(
                 }.distinct(),
                 caskody,
                 zcitelnitPevneKody(first().pevneKody),
-                listOf(
-                    (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
-                    caskody.filter { !it.jede }.none { datum in it.v },
-                    datum.jedeDnes(first().pevneKody),
-                ).all { it }
             )
         }
 
     private fun extrahovatCisloLinky(spojId: String) = spojId.split("-")[1].toInt()
 
-    suspend fun spojSeZastavkySpojeNaKterychStaviAJedeV(spojId: String, datum: LocalDate) =
+    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, datum: LocalDate) =
         localDataSource.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
             .run {
                 val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
-                Triple(
+                Pair(
                     first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                     map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
-                ) { datum: LocalDate ->
-                    listOf(
-                        (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
-                        caskody.filter { !it.jede }.none { datum in it.v },
-                        datum.jedeDnes(first().pevneKody),
-                    ).all { it }
-                }
+                )
             }
 
     suspend fun nazvyZastavekLinky(linka: Int, datum: LocalDate) =
@@ -274,20 +264,14 @@ class SpojeRepository(
     suspend fun platnostLinky(spojId: String, datum: LocalDate) =
         localDataSource.platnost(pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
 
-    suspend fun existujeSpoj(spojId: String, datum: LocalDate): Boolean {
-        val cisloLinky = try {
-            extrahovatCisloLinky(spojId)
-        } catch (e: Exception) {
-            Firebase.crashlytics.recordException(e)
-            return false
-        }
-        val tabulka = pravePouzivanaTabulka(datum, cisloLinky) ?: return false
-        return localDataSource.existujeSpoj(spojId, tabulka) != null
+    suspend fun existujeSpoj(spojId: String): Boolean {
+        return localDataSource.existujeSpoj(spojId) != null
     }
 
-    fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = { datum ->
-        val seznam = localDataSource.pevneKodyCaskody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
-            .map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
+    fun spojJedeV(spojId: String): suspend (LocalDate) -> Boolean = jedeV@{ datum ->
+        val tab = pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId)) ?: return@jedeV false
+
+        val seznam = localDataSource.pevneKodyCaskody(spojId, tab).map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
 
         listOf(
             (seznam.map { it.first }.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
