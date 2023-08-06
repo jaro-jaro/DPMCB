@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
@@ -74,19 +75,21 @@ class SpojViewModel(
             nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
             vyluka = vyluka,
-            jeOblibeny = spojId in oblibene,
+            oblibeny = oblibene.find { it.spojId == spojId },
             vyska = 0F,
             projetychUseku = 0,
         )
     }
 
-    fun toggleOblibeny() {
-        if (state.value is SpojState.OK) viewModelScope.launch {
-            if ((state.value as SpojState.OK).jeOblibeny) {
-                repo.odebratOblibeny(spojId)
-            } else {
-                repo.pridatOblibeny(spojId)
-            }
+    fun odebratOblibeny() {
+        viewModelScope.launch {
+            repo.odebratOblibeny(spojId)
+        }
+    }
+
+    fun upravitOblibeny(cast: CastSpoje) {
+        viewModelScope.launch {
+            repo.upravitOblibeny(cast)
         }
     }
 

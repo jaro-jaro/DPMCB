@@ -13,5 +13,6 @@ data class KartickaState(
     val aktualniZastavkaCas: LocalTime?,
     val cilovaZastavka: String,
     val cilovaZastavkaCas: LocalTime,
+    val mistoAktualniZastavky: Int,
     val dalsiPojede: LocalDate?,
 )

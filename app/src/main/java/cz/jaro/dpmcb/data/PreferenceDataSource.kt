@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
+import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,14 +27,14 @@ class PreferenceDataSource(
 
     object PreferenceKeys {
         val VERZE = intPreferencesKey("verze")
-        val OBLIBENE = stringSetPreferencesKey("oblibene")
+        val OBLIBENE = stringPreferencesKey("oblibene_useky")
         val NIZKOPODLAZNOST = booleanPreferencesKey("nizkopodlaznost")
         val NASTAVENI = stringPreferencesKey("nastaveni")
     }
 
     object DefaultValues {
         const val VERZE = -1
-        val OBLIBENE = setOf<String>()
+        val OBLIBENE = listOf<CastSpoje>()
         const val NIZKOPODLAZNOST = false
         val NASTAVENI = Nastaveni()
     }
@@ -60,13 +60,14 @@ class PreferenceDataSource(
         }
     }
 
-    val oblibene = dataStore.data.map {
-        it[PreferenceKeys.OBLIBENE] ?: DefaultValues.OBLIBENE
+    val oblibene = dataStore.data.map { preferences ->
+        preferences[PreferenceKeys.OBLIBENE]?.let { Json.decodeFromString<List<CastSpoje>>(it) } ?: DefaultValues.OBLIBENE
     }
 
-    suspend fun zmenitOblibene(update: (Set<String>) -> Set<String>) {
+    suspend fun zmenitOblibene(update: (List<CastSpoje>) -> List<CastSpoje>) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.OBLIBENE] = update(preferences[PreferenceKeys.OBLIBENE] ?: emptySet())
+            val lastValue = preferences[PreferenceKeys.OBLIBENE]?.let { Json.decodeFromString(it) } ?: DefaultValues.OBLIBENE
+            preferences[PreferenceKeys.OBLIBENE] = Json.encodeToString(update(lastValue))
         }
     }
 

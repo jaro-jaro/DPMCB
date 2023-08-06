@@ -2,10 +2,13 @@ package cz.jaro.dpmcb.ui.spoj
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -66,6 +72,7 @@ import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
@@ -79,6 +86,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 import java.time.LocalDate
@@ -101,7 +109,8 @@ fun Spoj(
     SpojScreen(
         state = state,
         navigate = navigator.navigateFunction,
-        toggleOblibeny = viewModel::toggleOblibeny,
+        upravitOblibene = viewModel::upravitOblibeny,
+        odstranitOblibene = viewModel::odebratOblibeny,
         zmenitdatum = viewModel::zmenitdatum,
     )
 }
@@ -111,7 +120,8 @@ fun Spoj(
 fun SpojScreen(
     state: SpojState,
     navigate: NavigateFunction,
-    toggleOblibeny: () -> Unit,
+    upravitOblibene: (CastSpoje) -> Unit,
+    odstranitOblibene: () -> Unit,
     zmenitdatum: (LocalDate) -> Unit,
 ) {
     Column(
@@ -227,16 +237,200 @@ fun SpojScreen(
                         )
                     }
                     Spacer(Modifier.weight(1F))
-                    FilledIconToggleButton(checked = state.jeOblibeny, onCheckedChange = {
-                        toggleOblibeny()
+
+                    var show by remember { mutableStateOf(false) }
+                    var cast by remember { mutableStateOf(CastSpoje(state.spojId, -1, -1)) }
+
+                    FilledIconToggleButton(checked = state.oblibeny != null, onCheckedChange = {
+                        cast = state.oblibeny ?: CastSpoje(state.spojId, -1, -1)
+                        show = true
                     }) {
                         IconWithTooltip(Icons.Default.Star, "Oblíbené")
                     }
-                    //                Button(onClick = {
-                    //                    viewModel.detailKurzu()
-                    //                }) {
-                    //                    Text("Detail kurzu")
-                    //                }
+
+                    if (show) AlertDialog(
+                        onDismissRequest = {
+                            show = false
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    upravitOblibene(cast)
+                                    show = false
+                                },
+                                enabled = cast.start != -1 && cast.end != -1
+                            ) {
+                                Text("Potvrdit")
+                            }
+                        },
+                        dismissButton = {
+                            if (state.oblibeny == null) TextButton(
+                                onClick = {
+                                    show = false
+                                }
+                            ) {
+                                Text("Zrušit")
+                            }
+                            else TextButton(
+                                onClick = {
+                                    odstranitOblibene()
+                                    show = false
+                                }
+                            ) {
+                                Text("Odstranit")
+                            }
+                        },
+                        title = {
+                            Text("Upravit oblíbený spoj")
+                        },
+                        icon = {
+                            Icon(Icons.Default.Star, null)
+                        },
+                        text = {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+//                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                Text("Vyberte Váš oblíbený úsek tohoto spoje:")
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Max)
+                                        .padding(8.dp)
+                                ) {
+                                    val start = remember { Animatable(cast.start.toFloat()) }
+                                    val end = remember { Animatable(cast.end.toFloat()) }
+                                    val alpha by animateFloatAsState(if (cast.start == -1) 0F else 1F, label = "AlphaAnimation")
+
+                                    val scope = rememberCoroutineScope()
+                                    fun click(i: Int) = scope.launch {
+                                        when {
+                                            cast.start == -1 && i == state.zastavky.lastIndex -> {}
+                                            cast.start == -1 -> {
+                                                start.snapTo(i.toFloat())
+                                                end.snapTo(i.toFloat())
+                                                cast = cast.copy(start = i)
+                                            }
+
+                                            cast.start == i -> {
+                                                cast = cast.copy(start = -1, end = -1)
+                                                end.snapTo(i.toFloat())
+                                            }
+
+                                            cast.end == i -> {
+                                                cast = cast.copy(end = -1)
+                                                end.animateTo(cast.start.toFloat())
+                                            }
+
+                                            i < cast.start -> {
+                                                cast = cast.copy(start = i)
+                                                if (cast.end == -1) launch { end.animateTo(cast.start.toFloat()) }
+                                                start.animateTo(cast.start.toFloat())
+                                            }
+
+                                            else /*cast.start < i*/ -> {
+                                                cast = cast.copy(end = i)
+                                                end.animateTo(cast.end.toFloat())
+                                            }
+                                        }
+                                    }
+
+                                    val barvaVybrano = MaterialTheme.colorScheme.secondary
+                                    val baravCary = MaterialTheme.colorScheme.surfaceVariant
+                                    val zastavek = state.zastavky.count()
+
+                                    var canvasHeight by remember { mutableStateOf(0F) }
+                                    Canvas(
+                                        Modifier
+                                            .fillMaxHeight()
+                                            .width(24.dp)
+                                            .padding(horizontal = 8.dp)
+                                            .pointerInput(Unit) {
+                                                detectTapGestures { (_, y) ->
+                                                    val rowHeight = canvasHeight / zastavek
+                                                    val i = (y / rowHeight).toInt()
+                                                    click(i)
+                                                }
+                                            }
+                                    ) {
+                                        canvasHeight = size.height
+                                        val rowHeight = canvasHeight / zastavek
+                                        val lineWidth = 4.5.dp.toPx()
+                                        val lineXOffset = 0F
+                                        val smallCircleRadius = 6.5.dp.toPx()
+                                        val bigCircleRadius = 9.5.dp.toPx()
+
+                                        translate(left = lineXOffset, top = rowHeight * .5F) {
+                                            drawLine(
+                                                color = baravCary,
+                                                start = Offset(),
+                                                end = Offset(y = canvasHeight - rowHeight),
+                                                strokeWidth = lineWidth,
+                                            )
+
+                                            repeat(zastavek) { i ->
+                                                translate(top = i * rowHeight) {
+                                                    if (i.toFloat() <= start.value || end.value <= i.toFloat()) drawCircle(
+                                                        color = baravCary,
+                                                        radius = smallCircleRadius,
+                                                        center = Offset(),
+                                                        style = Fill,
+                                                    )
+                                                }
+                                            }
+
+                                            drawCircle(
+                                                color = barvaVybrano,
+                                                radius = bigCircleRadius,
+                                                center = Offset(y = rowHeight * end.value),
+                                                style = Fill,
+                                                alpha = alpha,
+                                            )
+                                            drawCircle(
+                                                color = barvaVybrano,
+                                                radius = bigCircleRadius,
+                                                center = Offset(y = rowHeight * start.value),
+                                                style = Fill,
+                                                alpha = alpha,
+                                            )
+
+                                            if (cast.start != -1) drawLine(
+                                                color = barvaVybrano,
+                                                start = Offset(y = start.value * rowHeight),
+                                                end = Offset(y = end.value * rowHeight),
+                                                strokeWidth = lineWidth,
+                                            )
+                                        }
+                                    }
+                                    Column(
+                                        Modifier
+                                            .weight(1F)
+                                    ) {
+                                        state.zastavky.forEachIndexed { i, zast ->
+                                            Box(
+                                                Modifier
+                                                    .weight(1F)
+                                                    .defaultMinSize(32.dp, 32.dp),
+                                                contentAlignment = Alignment.CenterStart
+                                            ) {
+                                                Text(
+                                                    text = zast.nazev,
+                                                    Modifier
+                                                        .clickable {
+                                                            click(i)
+                                                        },
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    color = if (i == cast.start || i == cast.end) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
                 Column(
                     modifier = Modifier

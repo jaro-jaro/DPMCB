@@ -84,9 +84,10 @@ class OblibeneWidget : GlanceAppWidget() {
 
                     val state = suspend state@{
                         val ids =
-                            repo.oblibene.first().map { id ->
+                            repo.oblibene.first().map { cast ->
                                 try {
-                                    repo.spojSeZastavkySpojeNaKterychStavi(id, LocalDate.now())
+                                    val a = repo.spojSeZastavkySpojeNaKterychStavi(cast.spojId, LocalDate.now())
+                                    Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
                                     Firebase.crashlytics.recordException(e)
                                     return@state OblibeneWidgetState.Error
@@ -95,19 +96,19 @@ class OblibeneWidget : GlanceAppWidget() {
 
                         if (ids.isEmpty()) return@state OblibeneWidgetState.ZadneOblibene
 
-                        val tedJede = ids.map { (info, zastavky) ->
+                        val tedJede = ids.map { (info, zastavky, cast) ->
                             val jedeV = repo.spojJedeV(info.spojId)
                             KartickaWidgetState(
                                 spojId = info.spojId,
                                 linka = info.linka,
-                                vychoziZastavka = zastavky.first().nazev,
-                                vychoziZastavkaCas = zastavky.first().cas,
-                                cilovaZastavka = zastavky.last().nazev,
-                                cilovaZastavkaCas = zastavky.last().cas,
+                                vychoziZastavka = zastavky[cast.start].nazev,
+                                vychoziZastavkaCas = zastavky[cast.start].cas,
+                                cilovaZastavka = zastavky[cast.end].nazev,
+                                cilovaZastavkaCas = zastavky[cast.end].cas,
                             ) to listOf(
                                 jedeV(LocalDate.now()),
-                                zastavky.first().cas <= LocalTime.now() + 30.minutes,
-                                LocalTime.now() <= zastavky.last().cas + 5.minutes,
+                                zastavky[cast.start].cas <= LocalTime.now() + 30.minutes,
+                                LocalTime.now() <= zastavky[cast.end].cas + 5.minutes,
                             ).allTrue()
                         }
                             .filter { it.second }.map { it.first }
