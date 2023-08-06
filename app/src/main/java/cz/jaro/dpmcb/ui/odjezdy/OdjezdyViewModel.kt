@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.data.spojDPMCBPodleId
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru

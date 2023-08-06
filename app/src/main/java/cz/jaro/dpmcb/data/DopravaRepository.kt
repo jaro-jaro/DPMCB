@@ -55,23 +55,22 @@ class DopravaRepository(
 
     fun detailSpoje(spojId: String) =
         detailSpojeFlowMap.getOrPut(spojId) {
-            flow<DetailSpoje?> {
+            flow {
                 while (currentCoroutineContext().isActive) {
                     emit(
-                        if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
-                            api.ziskatData("/servicedetail?id=$spojId")
-                        else null
+                        (if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
+                            api.ziskatData<DetailSpoje?>("/servicedetail?id=$spojId")
+                        else null) to presneTed
                     )
                     delay(5000)
                 }
             }
-                .compare(null) { minule, nove ->
-                    val ted = presneTed
+                .compare(null to presneTed) { (minule, _), (nove, ted) ->
                     when {
                         nove == null -> minule
                         minule == null -> nove
                         else -> {
-                            val spojNaMape = spojDPMCBNaMapePodleId(nove.id).first() ?: return@compare null
+                            spojDPMCBNaMapePodleId(nove.id).first() ?: return@compare null to ted
 
                             val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
                             val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
@@ -91,8 +90,10 @@ class DopravaRepository(
                                 }
                             }
                         }
-                    }
-
+                    } to ted
+                }
+                .map {
+                    it.first
                 }
                 .flowOn(Dispatchers.IO)
                 .shareIn(

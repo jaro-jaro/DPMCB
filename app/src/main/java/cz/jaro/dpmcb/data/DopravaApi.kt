@@ -23,7 +23,7 @@ class DopravaApi(
         ignoreUnknownKeys = true
     }
 
-    suspend inline fun <reified T : Any> ziskatData(url: String): T? = withContext(Dispatchers.IO) {
+    suspend inline fun <reified T> ziskatData(url: String): T? = withContext(Dispatchers.IO) {
 
         if (!ctx.isOnline) return@withContext null
 
