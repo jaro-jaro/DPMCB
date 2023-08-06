@@ -21,6 +21,7 @@ import org.koin.ksp.generated.defaultModule
 class App : Application() {
 
     companion object {
+        var route by mutableStateOf("oblibene")
         var title by mutableStateOf(R.string.app_name)
         var vybrano by mutableStateOf(null as SuplikAkce?)
     }

@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.main
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ShortcutManager
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
@@ -18,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Star
@@ -25,6 +28,8 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,6 +76,9 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
+import com.ramcosta.composedestinations.spec.DestinationSpec
+import com.ramcosta.composedestinations.utils.destination
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.ExitActivity
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
@@ -82,8 +90,15 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
+import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
+import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
+import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
+import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
+import cz.jaro.dpmcb.ui.navArgs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
@@ -137,6 +152,26 @@ fun Main(
     val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
     val datum = viewModel.datum.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            navController.currentBackStackEntryFlow.collect { entry ->
+                @Suppress("UNCHECKED_CAST")
+                val dest = entry.destination() as DestinationSpec<Any>
+
+                val args: Any = when (dest::class) {
+                    PraveJedouciDestination::class -> entry.navArgs<PraveJedouciDestination.NavArgs>()
+                    OdjezdyDestination::class -> entry.navArgs<OdjezdyDestination.NavArgs>()
+                    SpojDestination::class -> entry.navArgs<SpojDestination.NavArgs>()
+                    VybiratorDestination::class -> entry.navArgs<VybiratorDestination.NavArgs>()
+                    JizdniRadyDestination::class -> entry.navArgs<JizdniRadyDestination.NavArgs>()
+                    else -> Unit
+                }
+
+                App.route = dest(args).route
+            }
+        }
+    }
+
     MainScreen(
         startActivity = {
             ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
@@ -174,7 +209,7 @@ fun Main(
         jePotrebaAktualizovatAplikaci = jePotrebaAktualizovatAplikaci,
         aktualizovatAplikaci = viewModel.aktualizovatAplikaci,
         jePotrebaAktualizovatData = jePotrebaAktualizovatData,
-        aktualizovatData = viewModel.aktualizovatData
+        aktualizovatData = viewModel.aktualizovatData,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -242,6 +277,119 @@ fun MainScreen(
                             tint = if (jeOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                         )
                     }
+
+                    var open by remember { mutableStateOf(false) }
+                    var show by remember { mutableStateOf(false) }
+                    var route by remember { mutableStateOf("") }
+                    var label by remember { mutableStateOf("") }
+
+                    val ctx = LocalContext.current
+                    val shortcutManager = ctx.getSystemService(ShortcutManager::class.java)!!
+                    val res = ctx.resources
+
+                    IconButton(onClick = {
+                        open = !open
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
+                    }
+
+                    DropdownMenu(
+                        expanded = open,
+                        onDismissRequest = {
+                            open = false
+                        }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text("Připnout zkratku na domovskou obrazovku")
+                            },
+                            onClick = {
+                                route = App.route
+                                label = res.getString(App.title)
+                                open = false
+                                show = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.PushPin, null)
+                            },
+                        )
+                    }
+
+                    if (show) AlertDialog(
+                        onDismissRequest = {
+                            show = false
+                        },
+                        title = {
+                            Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
+                        },
+                        icon = {
+                            Icon(Icons.Default.PushPin, null)
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                if (shortcutManager.isRequestPinShortcutSupported) {
+
+                                    val baseRoute = route.split("/")[1]
+
+                                    val pinShortcutInfo = android.content.pm.ShortcutInfo
+                                        .Builder(ctx, "shortcut-$baseRoute-$label")
+                                        .setShortLabel(label)
+                                        .setLongLabel(label)
+                                        .setIcon(
+                                            android.graphics.drawable.Icon.createWithResource(
+                                                ctx, if (BuildConfig.DEBUG) R.drawable.logo_jaro else R.drawable.logo_dpmcb
+                                            )
+                                        )
+                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/$route")))
+                                        .build()
+
+                                    shortcutManager.requestPinShortcut(pinShortcutInfo, null)
+                                }
+                                show = false
+                            }) {
+                                Text("Přidat")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                show = false
+                            }) {
+                                Text("Zrušit")
+                            }
+                        },
+                        text = {
+                            val focusManager = LocalFocusManager.current
+                            Column {
+                                TextField(
+                                    value = route,
+                                    onValueChange = {
+                                        route = it
+                                    },
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    label = {
+                                        Text("Route")
+                                    },
+                                    keyboardActions = KeyboardActions {
+                                        focusManager.moveFocus(FocusDirection.Down)
+                                    },
+                                )
+                                TextField(
+                                    value = label,
+                                    onValueChange = {
+                                        label = it
+                                    },
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    label = {
+                                        Text("Label")
+                                    },
+                                )
+                            }
+                        }
+                    )
                 })
         },
     ) { paddingValues ->
