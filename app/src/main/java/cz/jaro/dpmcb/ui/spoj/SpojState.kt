@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.ui.graphics.vector.ImageVector
+import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
 import java.time.LocalDate
@@ -20,7 +21,7 @@ sealed interface SpojState {
         val vyluka: Boolean
         val projetychUseku: Int
         val vyska: Float
-        val jeOblibeny: Boolean
+        val oblibeny: CastSpoje?
 
         data class Offline(
             override val spojId: String,
@@ -35,7 +36,7 @@ sealed interface SpojState {
             override val vyluka: Boolean,
             override val projetychUseku: Int,
             override val vyska: Float,
-            override val jeOblibeny: Boolean,
+            override val oblibeny: CastSpoje?,
         ) : OK
 
         data class Online(
@@ -51,7 +52,7 @@ sealed interface SpojState {
             override val vyluka: Boolean,
             override val projetychUseku: Int,
             override val vyska: Float,
-            override val jeOblibeny: Boolean,
+            override val oblibeny: CastSpoje?,
             val zpozdeni: Int,
             val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>,
         ) : OK {
@@ -63,7 +64,7 @@ sealed interface SpojState {
                 ) = with(state) {
                     Online(
                         spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
-                        deeplink, vyluka, projetychUseku, vyska, jeOblibeny, zpozdeni, zastavkyNaJihu
+                        deeplink, vyluka, projetychUseku, vyska, oblibeny, zpozdeni, zastavkyNaJihu
                     )
                 }
             }

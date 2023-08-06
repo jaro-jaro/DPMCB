@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -135,43 +136,56 @@ fun OblibeneScreen(
                         )
                     }
                 }
+                @Composable
+                fun AktualniZastavka() {
+                    if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 8.dp),
+                        ) {
+                            Text(text = it.aktualniZastavka, color = MaterialTheme.colorScheme.secondary)
+                            Spacer(modifier = Modifier.weight(1F))
+                            Text(
+                                text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
+                                color = barvaZpozdeniTextu(it.zpozdeni),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (it.mistoAktualniZastavky == -1) AktualniZastavka()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 8.dp, end = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = it.vychoziZastavka)
-                    Text(text = it.vychoziZastavkaCas.toString())
+                    Spacer(modifier = Modifier.weight(1F))
+                    if (it.zpozdeni != null && it.mistoAktualniZastavky == -1) Text(
+                        text = "${it.vychoziZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
+                        color = barvaZpozdeniTextu(it.zpozdeni),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) else Text(text = "${it.vychoziZastavkaCas}")
                 }
-                if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp, end = 8.dp),
-                    ) {
-                        Text(text = it.aktualniZastavka)
-                        Spacer(modifier = Modifier.weight(1F))
-                        Text(
-                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
-                            color = barvaZpozdeniTextu(it.zpozdeni),
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                }
+                if (it.mistoAktualniZastavky == 0) AktualniZastavka()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
+                        .padding(start = 8.dp, end = 8.dp),
                 ) {
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
-                    if (it.zpozdeni != null) Text(
+                    if (it.zpozdeni != null && it.mistoAktualniZastavky < 1) Text(
                         text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
                 }
+                if (it.mistoAktualniZastavky == 1) AktualniZastavka()
+
+                Spacer(Modifier.height(8.dp))
             }
         }
     }

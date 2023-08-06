@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.entities.Linka
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
@@ -201,15 +202,16 @@ class SpojeRepository(
         preferenceDataSource.zmenitNizkopodlaznost(value)
     }
 
-    suspend fun pridatOblibeny(id: String) {
-        preferenceDataSource.zmenitOblibene {
-            it + id
+    suspend fun upravitOblibeny(cast: CastSpoje) {
+        preferenceDataSource.zmenitOblibene { oblibene ->
+            listOf(cast).plus(oblibene).distinctBy { it.spojId }
         }
     }
 
     suspend fun odebratOblibeny(id: String) {
-        preferenceDataSource.zmenitOblibene {
-            it - id
+        preferenceDataSource.zmenitOblibene { oblibene ->
+            val blbe = oblibene.first { it.spojId == id }
+            oblibene - blbe
         }
     }
 
