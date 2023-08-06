@@ -306,6 +306,7 @@ fun MainScreen(
                             onClick = {
                                 route = App.route
                                 label = res.getString(App.title)
+                                open = false
                                 show = true
                             },
                             leadingIcon = {
@@ -344,6 +345,7 @@ fun MainScreen(
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
                                 }
+                                show = false
                             }) {
                                 Text("Přidat")
                             }
