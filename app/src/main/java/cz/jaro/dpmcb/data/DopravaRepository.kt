@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -70,6 +71,8 @@ class DopravaRepository(
                         nove == null -> minule
                         minule == null -> nove
                         else -> {
+                            val spojNaMape = spojDPMCBNaMapePodleId(nove.id).first() ?: return@compare null
+
                             val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
                             val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
                             when {
@@ -107,18 +110,10 @@ class DopravaRepository(
 //       if (repo.onlineMod.value) api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList() else emptyList()
 //    }
 
-    fun List<SpojNaMape>.spojeDPMCB() = filter {
-        it.id.drop(2).startsWith("325")
-    }
-
     fun spojeDPMCBNaMape() =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
             spojeNaMape.spojeDPMCB()
         }
-
-    private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
-
-    fun List<SpojNaMape>.spojDPMCBPodleId(id: String) = spojeDPMCB().spojPodleId(id)
 
     private fun spojDPMCBNaMapePodleId(id: String) =
         spojeDPMCBNaMape().map { spojeNaMape ->
@@ -140,3 +135,11 @@ class DopravaRepository(
     fun spojNaMapePodleId(id: String): Flow<SpojNaMape?> = spojDPMCBNaMapePodleId(id)
 }
 
+
+fun List<SpojNaMape>.spojeDPMCB() = filter {
+    it.id.drop(2).startsWith("325")
+}
+
+private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
+
+fun List<SpojNaMape>.spojDPMCBPodleId(id: String) = spojeDPMCB().spojPodleId(id)
