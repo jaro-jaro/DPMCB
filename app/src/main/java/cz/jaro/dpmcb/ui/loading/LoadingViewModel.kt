@@ -3,12 +3,12 @@ package cz.jaro.dpmcb.ui.loading
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ktx.database
-import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import cz.jaro.dpmcb.BuildConfig
@@ -168,6 +168,7 @@ class LoadingViewModel(
         params.exit()
     }
 
+    @Keep
     object TI : GenericTypeIndicator<Int>()
 
     private suspend fun jePotrebaAktualizovatData(): Boolean {
@@ -404,7 +405,7 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání" to null
         }
 
-        val verze = referenceVerze.get().await().getValue<Int>() ?: -1
+        val verze = referenceVerze.get().await().getValue(TI) ?: -1
 
         println(spoje)
         println(linky)
