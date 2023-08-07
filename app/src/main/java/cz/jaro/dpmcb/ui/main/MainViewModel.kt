@@ -31,6 +31,7 @@ class MainViewModel(
     @InjectedParam navController: NavHostController,
     @InjectedParam loadingActivityIntent: Intent,
     @InjectedParam startActivity: (Intent) -> Unit,
+    @InjectedParam chyba: (String) -> Unit,
 ) : ViewModel() {
 
     val jeOnline = repo.isOnline
@@ -66,10 +67,14 @@ class MainViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 val url = encodeLink(link.removePrefix("/"))
                 while (navController.graphOrNull == null) Unit
-                withContext(Dispatchers.Main) {
-                    App.vybrano = null
-                    navController.navigateToRouteFunction(url)
-                    closeDrawer()
+                try {
+                    withContext(Dispatchers.Main) {
+                        App.vybrano = null
+                        navController.navigateToRouteFunction(url)
+                        closeDrawer()
+                    }
+                } catch (_: IllegalArgumentException) {
+                    chyba("Vadná zkratka")
                 }
             }
         }

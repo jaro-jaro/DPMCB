@@ -144,8 +144,12 @@ fun Main(
 
     val ctx = LocalContext.current
 
+    val chyba = { it: String ->
+        Toast.makeText(ctx, it, Toast.LENGTH_SHORT)
+    }
+
     val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) })
+        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) }, chyba)
     }
 
     val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
@@ -329,7 +333,7 @@ fun MainScreen(
                             TextButton(onClick = {
                                 if (shortcutManager.isRequestPinShortcutSupported) {
 
-                                    val baseRoute = route.split("/")[1]
+                                    val baseRoute = route.split("/")[0]
 
                                     val pinShortcutInfo = android.content.pm.ShortcutInfo
                                         .Builder(ctx, "shortcut-$baseRoute-$label")
