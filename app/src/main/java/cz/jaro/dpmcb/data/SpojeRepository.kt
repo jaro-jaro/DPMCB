@@ -145,7 +145,6 @@ class SpojeRepository(
     suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, datum: LocalDate) =
         localDataSource.spojSeZastavkySpojeNaKterychStavi(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)
             .run {
-                val caskody = map { JedeOdDo(it.jede, it.od..it.`do`) }.distinctBy { it.jede to it.v.toString() }
                 Pair(
                     first().let { LinkaNizkopodlaznostSpojId(it.nizkopodlaznost, it.linka - 325_000, it.spojId) },
                     map { CasNazevSpojId(it.cas, it.nazev, it.spojId) }.distinct(),
