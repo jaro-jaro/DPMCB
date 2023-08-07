@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
@@ -167,6 +168,8 @@ class LoadingViewModel(
         params.exit()
     }
 
+    object TI : GenericTypeIndicator<Int>()
+
     private suspend fun jePotrebaAktualizovatData(): Boolean {
         val mistniVerze = repo.verze.first()
 
@@ -174,7 +177,7 @@ class LoadingViewModel(
         val reference = database.getReference("data${META_VERZE_DAT}/verze")
 
         val onlineVerze = withTimeoutOrNull(3_000) {
-            reference.get().await().getValue<Int>()
+            reference.get().await().getValue(TI)
         } ?: -2
 
         return mistniVerze < onlineVerze
