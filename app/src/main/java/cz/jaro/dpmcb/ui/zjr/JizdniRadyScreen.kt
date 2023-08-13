@@ -4,15 +4,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -139,22 +143,28 @@ fun JizdniRadyScreen(
 
         if (state is JizdniRadyState.Success) Row(
             modifier = Modifier
-                .verticalScroll(state = rememberScrollState()),
+                .verticalScroll(state = rememberScrollState())
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
         ) {
             Column(
                 modifier = Modifier
-                //.width(32.dp)
+                    .width(IntrinsicSize.Max)
             ) {
                 repeat(24) { h ->
-                    Text(
+                    Box(
                         modifier = Modifier
-                            .defaultMinSize(minHeight = 32.dp)
+                            .weight(1F)
+                            .fillMaxWidth()
                             .padding(4.dp),
-                        text = h.toString(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                    )
-
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = h.toString(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                        )
+                    }
                 }
             }
             Column(
@@ -176,15 +186,13 @@ fun JizdniRadyScreen(
 
 
 @Composable
-fun RadekOdjezdu(
+fun ColumnScope.RadekOdjezdu(
     navigate: NavigateFunction,
     vysledek: List<OdjezdNizkopodlaznostSpojId>,
     zobrazitNizkopodlaznost: Boolean,
 ) {
-
     Row(
-        modifier = Modifier
-            .defaultMinSize(minHeight = 32.dp),
+        modifier = Modifier.weight(1F),
     ) {
         if (vysledek.isEmpty())
             Text(
@@ -196,18 +204,23 @@ fun RadekOdjezdu(
                 fontWeight = FontWeight.Normal
             )
         vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
-            Text(
-                text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
-                modifier = Modifier
+            Box(
+                Modifier
+                    .clip(CircleShape)
                     .clickable {
                         navigate(SpojDestination(spojId = spojId))
                     }
-                    //.width(32.dp)
-                    .padding(4.dp),
-                color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                fontSize = 20.sp,
-                fontWeight = if (zobrazitNizkopodlaznost && nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
-            )
+                    .padding(4.dp)
+                    .requiredSizeIn(minHeight = 32.dp, minWidth = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
+                    color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                    fontSize = 20.sp,
+                    fontWeight = if (zobrazitNizkopodlaznost && nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
+                )
+            }
         }
     }
 }
