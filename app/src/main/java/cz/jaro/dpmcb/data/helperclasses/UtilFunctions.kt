@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltipBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,14 +33,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.Nastaveni
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -165,7 +164,11 @@ object UtilFunctions {
         tint: Color = LocalContentColor.current,
     ) = if (tooltipText != null) PlainTooltipBox(
         tooltip = {
-            DPMCBTheme {
+            DPMCBTheme(
+                useDarkTheme = isSystemInDarkTheme(),
+                useDynamicColor = true,
+                theme = Theme.Yellow
+            ) {
                 Text(text = tooltipText)
             }
         }
@@ -254,9 +257,8 @@ object UtilFunctions {
     fun List<Boolean>.allTrue() = all { it }
 
     @Composable
-    fun SpojeRepository.darkMode(): Boolean {
-        val nastaveni by nastaveni.collectAsStateWithLifecycle()
-        return if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm
+    fun Nastaveni.darkMode(): Boolean {
+        return if (dmPodleSystemu) isSystemInDarkTheme() else dm
     }
 
     context(LazyListScope)

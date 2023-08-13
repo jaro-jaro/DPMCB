@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.nastaveni
 
 import android.content.Intent
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -12,15 +13,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +40,7 @@ import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
+import cz.jaro.dpmcb.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
@@ -129,6 +139,67 @@ fun NastaveniScreen(
                         },
                         enabled = !state.nastaveni.dmPodleSystemu
                     )
+                }
+                rowItem(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+                    val options = remember {
+                        buildList {
+                            if (dynamicColorsSupported) add("Dynamické")
+                            addAll(Theme.entries.map { it.jmeno })
+                        }
+                    }
+                    var expanded by remember { mutableStateOf(false) }
+                    val selectedOption by remember(state.nastaveni.dynamickeBarvy, state.nastaveni.tema) {
+                        derivedStateOf {
+                            when {
+                                dynamicColorsSupported && state.nastaveni.dynamickeBarvy -> options.first()
+                                else -> state.nastaveni.tema.jmeno
+                            }
+                        }
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                    ) {
+                        TextField(
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            readOnly = true,
+                            value = selectedOption,
+                            onValueChange = {},
+                            label = { Text("Téma aplikace") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                        ) {
+                            options.forEachIndexed { i, option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        onEvent(NastaveniEvent.UpravitNastaveni { nastaveni ->
+                                            when {
+                                                dynamicColorsSupported && i == 0 -> nastaveni.copy(dynamickeBarvy = true)
+                                                dynamicColorsSupported -> nastaveni.copy(tema = Theme.entries[i - 1], dynamickeBarvy = false)
+                                                else -> nastaveni.copy(tema = Theme.entries[i], dynamickeBarvy = false)
+                                            }
+                                        })
+                                        expanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                )
+                            }
+                        }
+                    }
                 }
                 rowItem(
                     modifier = Modifier
