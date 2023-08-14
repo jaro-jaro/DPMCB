@@ -37,4 +37,14 @@ enum class Theme(
         darkColorScheme = DarkColorsMagenta,
         jmeno = "Maǧentové",
     ),
+    Orange(
+        lightColorScheme = LightColorsOrange,
+        darkColorScheme = DarkColorsOrange,
+        jmeno = "Oranǧové",
+    ),
+    Pink(
+        lightColorScheme = LightColorsPink,
+        darkColorScheme = DarkColorsPink,
+        jmeno = "Růžové",
+    ),
 }
