@@ -264,7 +264,7 @@ fun MainScreen(
                 },
                 actions = {
                     val cas by UtilFunctions.tedFlow.collectAsStateWithLifecycle()
-                    Text(cas.toString())
+                    Text(cas.toString(), color = MaterialTheme.colorScheme.tertiary)
 
                     IconButton(onClick = {
                         if (!jeOnline.value) return@IconButton

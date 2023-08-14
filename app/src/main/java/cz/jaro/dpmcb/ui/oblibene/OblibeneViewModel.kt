@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
 @KoinViewModel
@@ -73,23 +74,30 @@ class OblibeneViewModel(
         }
         .combine(repo.datum) { spoje, datum ->
             (spoje ?: emptyList()).filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV, cast) ->
-                KartickaState(
+                if (spojNaMape != null && detailSpoje != null && datum == LocalDate.now()) KartickaState.Online(
                     spojId = info.spojId,
                     linka = info.linka,
-                    zpozdeni = detailSpoje?.realneZpozdeni?.roundToInt() ?: spojNaMape?.delay,
+                    zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
                     vychoziZastavka = zastavky[cast.start].nazev,
                     vychoziZastavkaCas = zastavky[cast.start].cas,
-                    aktualniZastavka = detailSpoje?.stations?.indexOfFirst { !it.passed }?.let { i -> zastavky[i].nazev },
-                    aktualniZastavkaCas = detailSpoje?.stations?.indexOfFirst { !it.passed }?.let { i -> zastavky[i].cas },
+                    aktualniZastavka = detailSpoje.stations.indexOfFirst { !it.passed }.let { i -> zastavky[i].nazev },
+                    aktualniZastavkaCas = detailSpoje.stations.indexOfFirst { !it.passed }.let { i -> zastavky[i].cas },
                     cilovaZastavka = zastavky[cast.end].nazev,
                     cilovaZastavkaCas = zastavky[cast.end].cas,
-                    dalsiPojede = List(365) { datum.plusDays(it.toLong()) }.firstOrNull { jedeV(it) },
                     mistoAktualniZastavky = when {
-                        detailSpoje?.stations?.indexOfFirst { !it.passed } == null -> 0
                         detailSpoje.stations.indexOfFirst { !it.passed } < cast.start -> -1
                         detailSpoje.stations.indexOfFirst { !it.passed } > cast.end -> 1
                         else -> 0
                     },
+                )
+                else KartickaState.Offline(
+                    spojId = info.spojId,
+                    linka = info.linka,
+                    vychoziZastavka = zastavky[cast.start].nazev,
+                    vychoziZastavkaCas = zastavky[cast.start].cas,
+                    cilovaZastavka = zastavky[cast.end].nazev,
+                    cilovaZastavkaCas = zastavky[cast.end].cas,
+                    dalsiPojede = List(365) { datum.plusDays(it.toLong()) }.firstOrNull { jedeV(it) },
                 )
             } to datum
         }
@@ -97,8 +105,14 @@ class OblibeneViewModel(
 
             if (spoje.isEmpty()) return@map OblibeneState.ZadneOblibene
 
-            val dnes = spoje.filter { it.dalsiPojede == datum }.sortedBy { it.vychoziZastavkaCas }
-            val jindy = spoje.filter { it.dalsiPojede != datum }.sortedWith(compareBy<KartickaState> { it.dalsiPojede }.thenBy { it.vychoziZastavkaCas })
+            val dnes = spoje
+                .filter { it.dalsiPojede == datum }
+                .sortedBy { it.vychoziZastavkaCas }
+            val jindy = spoje
+                .filter { it.dalsiPojede != datum }
+                .sortedWith(compareBy<KartickaState> { it.dalsiPojede }
+                    .thenBy { it.vychoziZastavkaCas })
+                .filterIsInstance<KartickaState.Offline>() // To by mělo být vždy
 
             if (dnes.isEmpty()) return@map OblibeneState.JedeJenJindy(jindy, datum)
 
