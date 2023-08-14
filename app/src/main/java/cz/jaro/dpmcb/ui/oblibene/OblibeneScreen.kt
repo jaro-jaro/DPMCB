@@ -122,7 +122,7 @@ fun OblibeneScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "${it.linka}")
-                    if (it.zpozdeni != null) Badge(
+                    if (it is KartickaState.Online) Badge(
                         containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(it.zpozdeni),
                         contentColor = UtilFunctions.barvaZpozdeniBublinyText(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
@@ -136,7 +136,7 @@ fun OblibeneScreen(
                 }
                 @Composable
                 fun AktualniZastavka() {
-                    if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
+                    if (it is KartickaState.Online) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -153,7 +153,7 @@ fun OblibeneScreen(
                     }
                 }
 
-                if (it.mistoAktualniZastavky == -1) AktualniZastavka()
+                if (it is KartickaState.Online && it.mistoAktualniZastavky == -1) AktualniZastavka()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -161,13 +161,13 @@ fun OblibeneScreen(
                 ) {
                     Text(text = it.vychoziZastavka)
                     Spacer(modifier = Modifier.weight(1F))
-                    if (it.zpozdeni != null && it.mistoAktualniZastavky == -1) Text(
+                    if (it is KartickaState.Online && it.mistoAktualniZastavky == -1) Text(
                         text = "${it.vychoziZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.vychoziZastavkaCas}")
                 }
-                if (it.mistoAktualniZastavky == 0) AktualniZastavka()
+                if (it is KartickaState.Online && it.mistoAktualniZastavky == 0) AktualniZastavka()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -175,18 +175,18 @@ fun OblibeneScreen(
                 ) {
                     Text(text = it.cilovaZastavka)
                     Spacer(modifier = Modifier.weight(1F))
-                    if (it.zpozdeni != null && it.mistoAktualniZastavky < 1) Text(
+                    if (it is KartickaState.Online && it.mistoAktualniZastavky < 1) Text(
                         text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(it.zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.cilovaZastavkaCas}")
                 }
-                if (it.mistoAktualniZastavky == 1) AktualniZastavka()
+                if (it is KartickaState.Online && it.mistoAktualniZastavky == 1) AktualniZastavka()
 
                 Spacer(Modifier.height(8.dp))
             }
 
-            if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) ElevatedCard(
+            if (it is KartickaState.Online && it.mistoAktualniZastavky == 0) ElevatedCard(
                 onClick = {
                     onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
                 },

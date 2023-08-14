@@ -4,9 +4,9 @@ import java.time.LocalDate
 
 sealed interface OblibeneState {
 
-    object NacitaSe : OblibeneState
+    data object NacitaSe : OblibeneState
 
-    object ZadneOblibene : OblibeneState
+    data object ZadneOblibene : OblibeneState
 
     sealed interface NekdyNecoJede : OblibeneState {
         val dnes: LocalDate
@@ -17,7 +17,7 @@ sealed interface OblibeneState {
     }
 
     sealed interface JindyNecoJede : NekdyNecoJede {
-        val jindyJede: List<KartickaState>
+        val jindyJede: List<KartickaState.Offline>
     }
 
     data class JedeJenDnes(
@@ -26,13 +26,13 @@ sealed interface OblibeneState {
     ) : DnesNecoJede
 
     data class JedeJenJindy(
-        override val jindyJede: List<KartickaState>,
+        override val jindyJede: List<KartickaState.Offline>,
         override val dnes: LocalDate,
     ) : JindyNecoJede
 
     data class JedeFurt(
         override val dnesJede: List<KartickaState>,
-        override val jindyJede: List<KartickaState>,
+        override val jindyJede: List<KartickaState.Offline>,
         override val dnes: LocalDate,
     ) : DnesNecoJede, JindyNecoJede
 }
