@@ -107,11 +107,13 @@ fun JizdniRadyScreen(
             Text(
                 text = cisloLinky.toString(),
                 fontSize = 30.sp,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "$zastavka -> $pristiZastavka",
                 fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
@@ -216,7 +218,7 @@ fun ColumnScope.RadekOdjezdu(
             ) {
                 Text(
                     text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
-                    color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                    color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.secondary else Color.Unspecified,
                     fontSize = 20.sp,
                     fontWeight = if (zobrazitNizkopodlaznost && nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
                 )

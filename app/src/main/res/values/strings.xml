@@ -9,9 +9,9 @@
     <string name="odjezdy">Odjezdy</string>
     <string name="jizdni_rady">Jízdní řády</string>
     <string name="vyhledat_spojeni">Vyhledat spojení</string>
-    <string name="vyberte_zastavku">Vyberte zastávku:</string>
-    <string name="vyberte_linku">Vyberte linku:</string>
-    <string name="vyberte_dalsi_zastávku">Vyberte příští zastávku:</string>
+    <string name="vyberte_zastavku">Vyberte zastávku</string>
+    <string name="vyberte_linku">Vyberte linku</string>
+    <string name="vyberte_dalsi_zastávku">Vyberte příští zastávku</string>
     <string name="typ_dne">Typ dne:</string>
     <string name="detail_kurzu">Detail kurzu</string>
     <string name="detail_spoje">Detail spoje</string>

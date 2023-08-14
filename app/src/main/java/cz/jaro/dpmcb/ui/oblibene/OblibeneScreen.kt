@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.oblibene
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -86,7 +88,8 @@ fun OblibeneScreen(
             text = "Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje",
             modifier = Modifier.padding(all = 16.dp),
             style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 
@@ -95,7 +98,8 @@ fun OblibeneScreen(
             text = "${state.dnes.hezky6p().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
             modifier = Modifier.padding(all = 16.dp),
             style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 
@@ -105,19 +109,12 @@ fun OblibeneScreen(
                 text = "Jede ${state.dnes.hezky6p()}",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         items(state.dnesJede) {
-
-            OutlinedCard(
-                onClick = {
-                    onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
-                },
-                Modifier
-                    .fillMaxWidth()
-                    .padding(all = 8.dp)
-            ) {
+            val content: @Composable ColumnScope.() -> Unit = {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -188,6 +185,25 @@ fun OblibeneScreen(
 
                 Spacer(Modifier.height(8.dp))
             }
+
+            if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) ElevatedCard(
+                onClick = {
+                    onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
+                },
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = 8.dp),
+                content = content,
+            )
+            else OutlinedCard(
+                onClick = {
+                    onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
+                },
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = 8.dp),
+                content = content,
+            )
         }
     }
 
@@ -197,7 +213,8 @@ fun OblibeneScreen(
                 text = "Jede jindy",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         items(state.jindyJede, key = { it.spojId }) {
@@ -214,20 +231,8 @@ fun OblibeneScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "${it.linka}")
-                    if (it.zpozdeni != null) Badge(
-                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(it.zpozdeni),
-                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(it.zpozdeni),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(
-                            text = it.zpozdeni.run {
-                                "${toSign()}$this min"
-                            },
-                        )
-                    }
                 }
                 Row(
                     modifier = Modifier
@@ -238,33 +243,14 @@ fun OblibeneScreen(
                     Text(text = it.vychoziZastavka)
                     Text(text = it.vychoziZastavkaCas.toString())
                 }
-                if (it.aktualniZastavka != null && it.aktualniZastavkaCas != null && it.zpozdeni != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp, end = 8.dp),
-                    ) {
-                        Text(text = it.aktualniZastavka)
-                        Spacer(modifier = Modifier.weight(1F))
-                        Text(
-                            text = "${it.aktualniZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
-                            color = barvaZpozdeniTextu(it.zpozdeni),
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 8.dp, bottom = 8.dp, end = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = it.cilovaZastavka)
-                    Spacer(modifier = Modifier.weight(1F))
-                    if (it.zpozdeni != null) Text(
-                        text = "${it.cilovaZastavkaCas.plusMinutes(it.zpozdeni.toLong())}",
-                        color = barvaZpozdeniTextu(it.zpozdeni),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) else Text(text = "${it.cilovaZastavkaCas}")
+                    Text(text = "${it.cilovaZastavkaCas}")
                 }
                 if (it.dalsiPojede != null) {
                     Text(

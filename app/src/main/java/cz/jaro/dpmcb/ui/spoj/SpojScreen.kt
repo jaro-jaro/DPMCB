@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -222,7 +223,7 @@ fun SpojScreen(
                         .fillMaxWidth()
                         .padding(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Linka ${state.cisloLinky}")
+                    Text(text = "Linka ${state.cisloLinky}", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     IconWithTooltip(
                         state.nizkopodlaznost.first, state.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
                     )
@@ -466,9 +467,11 @@ fun SpojScreen(
                             Column(
                                 Modifier.weight(1F, false)
                             ) {
-                                state.zastavky.forEach {
+                                state.zastavky.forEachIndexed { i, it ->
                                     MujText(
                                         text = it.nazev,
+                                        color = if (state is SpojState.OK.Online && i == state.zastavkyNaJihu.indexOfFirst { !it.passed })
+                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                         navigate = navigate,
                                         cas = it.cas,
                                         zastavka = it.nazev,
@@ -478,9 +481,11 @@ fun SpojScreen(
                                 }
                             }
                             Column(Modifier.padding(start = 8.dp)) {
-                                state.zastavky.forEach {
+                                state.zastavky.forEachIndexed { i, it ->
                                     MujText(
                                         text = it.cas.toString(),
+                                        color = if (state is SpojState.OK.Online && i == state.zastavkyNaJihu.indexOfFirst { !it.passed })
+                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                         navigate = navigate,
                                         cas = it.cas,
                                         zastavka = it.nazev,
@@ -708,12 +713,12 @@ fun SpojScreen(
                     }
                     Column {
                         state.pevneKody.forEach {
-                            Text(it)
+                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         state.caskody.forEach {
-                            Text(it)
+                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text(state.linkaKod)
+                        Text(state.linkaKod, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
