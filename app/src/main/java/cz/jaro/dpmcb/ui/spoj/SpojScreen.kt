@@ -48,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -338,10 +339,10 @@ fun SpojScreen(
                                     }
 
                                     val barvaVybrano = MaterialTheme.colorScheme.secondary
-                                    val baravCary = MaterialTheme.colorScheme.surfaceVariant
+                                    val baravCary = MaterialTheme.colorScheme.onSurfaceVariant
                                     val zastavek = state.zastavky.count()
 
-                                    var canvasHeight by remember { mutableStateOf(0F) }
+                                    var canvasHeight by remember { mutableFloatStateOf(0F) }
                                     Canvas(
                                         Modifier
                                             .fillMaxHeight()
