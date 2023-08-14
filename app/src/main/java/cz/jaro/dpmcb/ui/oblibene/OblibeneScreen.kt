@@ -186,7 +186,7 @@ fun OblibeneScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            if (it is KartickaState.Online && it.mistoAktualniZastavky == 0) ElevatedCard(
+            if (it is KartickaState.Online) ElevatedCard(
                 onClick = {
                     onEvent(OblibeneEvent.VybralSpojDnes(it.spojId))
                 },
