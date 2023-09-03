@@ -16,5 +16,5 @@ dependencyResolutionManagement {
         maven { url = uri("https://jcenter.bintray.com") }
     }
 }
-rootProject.name = "DPMCB"
 include(":app")
+rootProject.name = "Lepší DPMCB"
