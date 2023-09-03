@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">DPMCB</string>
+    <string name="app_name" translatable="false">Lepší DPMCB</string>
     <string name="otevrit">Otevřít</string>
     <string name="zavrit">Zavřít</string>
     <string name="vypnout_aplikaci">Vypnout aplikaci</string>

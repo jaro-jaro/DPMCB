@@ -38,12 +38,12 @@ jobs:
           git config --global user.email 'jaro-jaro@users.noreply.github.com'
           git push --tags
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/DPMCB-v$(cat ./app/version.txt).apk"
+        run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/Lepší-DPMCB-v$(cat ./app/version.txt).apk"
         shell: bash
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "app/build/outputs/apk/release/DPMCB-*.apk"
+          artifacts: "app/build/outputs/apk/release/Lepší-DPMCB-*.apk"
           commit: "main"
           generateReleaseNotes: true
           tag: ${{ env.VERSION_NAME }}
