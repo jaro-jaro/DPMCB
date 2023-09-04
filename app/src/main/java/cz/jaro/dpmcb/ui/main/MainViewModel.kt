@@ -107,7 +107,7 @@ class MainViewModel(
 
             startActivity(Intent().apply {
                 action = Intent.ACTION_VIEW
-                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$nejnovejsiVerze/DPMCB-v$nejnovejsiVerze.apk")
+                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$nejnovejsiVerze/Lepsi-DPMCB-v$nejnovejsiVerze.apk")
             })
         }
         Unit

@@ -46,7 +46,7 @@ fun PraveJedouci(
         parametersOf(PraveJedouciViewModel.Parameters(filtry = filtry.toList(), navigate = navigator.navigateFunction))
     },
 ) {
-    App.title = R.string.doprava_na_jihu
+    App.title = R.string.prave_jedouci
     App.vybrano = SuplikAkce.PraveJedouci
 
     val state by viewModel.state.collectAsStateWithLifecycle()

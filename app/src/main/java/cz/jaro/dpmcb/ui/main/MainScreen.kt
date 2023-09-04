@@ -341,7 +341,7 @@ fun MainScreen(
                                         .setLongLabel(label)
                                         .setIcon(
                                             android.graphics.drawable.Icon.createWithResource(
-                                                ctx, if (BuildConfig.DEBUG) R.drawable.logo_chytra_cesta else R.drawable.logo_chytra_cesta
+                                                ctx, if (BuildConfig.DEBUG) R.mipmap.logo_chytra_cesta else R.mipmap.logo_chytra_cesta
                                             )
                                         )
                                         .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/$route")))
