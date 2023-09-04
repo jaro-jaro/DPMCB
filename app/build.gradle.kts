@@ -1,24 +1,22 @@
 plugins {
-    id("com.android.application")
-    kotlin("android")
-    id("androidx.navigation.safeargs.kotlin")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
-    id("com.google.devtools.ksp") version "1.8.20-1.0.11"
-    kotlin("plugin.serialization")
-    id("kotlin-parcelize")
+    alias(libs.plugins.android.gradle)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
     namespace = "cz.jaro.dpmcb"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
-        versionName = "1.2.3"
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -28,16 +26,20 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
 
-            manifestPlaceholders += "logo" to "@mipmap/logo_dpmcb"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_dpmcb_round"
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
         }
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
         }
     }
     compileOptions {
@@ -49,11 +51,11 @@ android {
         freeCompilerArgs += "-Xcontext-receivers"
     }
     buildFeatures {
-        viewBinding = true
         compose = true
+        buildConfig = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.6"
+        kotlinCompilerExtensionVersion = libs.versions.androidx.jetpack.compose.kotlin.compiler.get()
     }
     packaging {
         resources {
@@ -81,84 +83,76 @@ ksp {
 dependencies {
 
     // Core Android
-    implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-    // Material
-    implementation("com.google.android.material:material:1.9.0-beta01")
+    //noinspection UseTomlInstead
+    implementation("androidx.core:core-ktx:${libs.versions.androidx.core}")
 
     // Tests
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 
     // PDF Viewer
-    implementation("com.github.barteksc:android-pdf-viewer:2.8.2")
+    implementation(libs.pdf.viewer)
 
     // Kotlinx Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
-
-    // Jetpack Navigation
-    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:31.1.0"))
-    implementation("com.google.firebase:firebase-common-ktx")
+    implementation(libs.firebase.common)
     // Realtime Databse
-    implementation("com.google.firebase:firebase-database-ktx")
+    implementation(libs.firebase.database)
     // Storage
-    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation(libs.firebase.storage)
     // Crashlytics
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2022.10.00"))
-    implementation("androidx.compose.foundation:foundation:1.4.3")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui:1.4.3")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.4.3")
+    implementation(libs.androidx.jetpack.compose.foundation)
+    implementation(libs.androidx.jetpack.compose.ui.graphics)
+    implementation(libs.androidx.jetpack.compose.ui)
+    implementation(libs.androidx.jetpack.compose.ui.tooling)
     // Activity
-    implementation("androidx.activity:activity-compose:1.7.1")
+    implementation(libs.androidx.activity.compose)
     // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Jetpack Navigation
-    implementation("androidx.navigation:navigation-compose:2.5.3")
+    implementation(libs.androidx.jetpack.navigation.compose)
     // Material
-    implementation("androidx.compose.material3:material3:1.2.0-alpha01")
-    implementation("androidx.compose.material:material-icons-core:1.4.3")
-    implementation("androidx.compose.material:material-icons-extended:1.4.3")
+    implementation(libs.androidx.jetpack.compose.material3)
+    implementation(libs.androidx.jetpack.compose.material.icons.extended)
     // Jetpack Glance
-    implementation("androidx.glance:glance-appwidget:1.0.0-beta01")
+    implementation(libs.androidx.jetpack.glance)
     // 3rd-party
-    implementation("com.marosseleng.android:compose-material3-datetime-pickers:0.7.0")
+    implementation(libs.compose.material3.datetime.pickers)
 
     // Jetpack Room
-    implementation("androidx.room:room-ktx:2.5.1")
-    implementation("androidx.room:room-runtime:2.5.1")
-    ksp("androidx.room:room-compiler:2.5.1")
+    implementation(libs.androidx.jetpack.room)
+    implementation(libs.androidx.jetpack.room.runtime)
+    ksp(libs.androidx.jetpack.room.compiler)
+
+    // Jetpack Preferences DataStore
+    implementation(libs.androidx.datastore)
 
     // Insert-Koin
-    implementation("io.insert-koin:koin-android:3.3.0")
-    implementation("io.insert-koin:koin-annotations:1.2.0")
-    implementation("io.insert-koin:koin-androidx-navigation:3.3.0")
-    implementation("io.insert-koin:koin-androidx-compose:3.3.0")
-    ksp("io.insert-koin:koin-ksp-compiler:1.2.0")
+    implementation(libs.koin.android)
+    implementation(libs.koin.annotations)
+    implementation(libs.koin.navigation)
+    implementation(libs.koin.compose)
+    ksp(libs.koin.annotations.ksp)
 
     // Compose Destinations
-    implementation("io.github.raamcosta.compose-destinations:core:1.8.33-beta")
-    ksp("io.github.raamcosta.compose-destinations:ksp:1.8.33-beta")
+    implementation(libs.compose.destinations.core)
+    ksp(libs.compose.destinations.ksp)
 
     // Kotlinx Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
+    implementation(libs.kotlinx.serialization)
 
     // Semantic versioning
-    implementation("io.github.z4kn4fein:semver:1.4.2")
+    implementation(libs.semver)
 
     // Web scaping
-    implementation("org.jsoup:jsoup:1.15.1")
+    implementation(libs.jsoup)
 }

@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
+import cz.jaro.dpmcb.data.spojDPMCBPodleId
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
@@ -46,12 +47,12 @@ class OdjezdyViewModel(
     lateinit var scrollovat: suspend (Int) -> Unit
     lateinit var navigovat: (Direction) -> Unit
 
-    private val _state = MutableStateFlow(OdjezdyState(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
-    val state = _state.asStateFlow()
+    private val _info = MutableStateFlow(OdjezdyInfo(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
+    val info = _info.asStateFlow()
 
     val maPristupKJihu = repo.maPristupKJihu
 
-    val seznam = repo.datum
+    private val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
             repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, params.zastavka)
                 .map {
@@ -87,36 +88,44 @@ class OdjezdyViewModel(
                 }
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val filtrovanejSeznam = _state
-        .runningFold(null as Pair<OdjezdyState?, OdjezdyState>?) { minuly, novy ->
+    val state = _info
+        .runningFold(null as Pair<OdjezdyInfo?, OdjezdyInfo>?) { minuly, novy ->
             minuly?.second to novy
         }
         .filterNotNull()
-        .combine(seznam) { (minulyState, state), seznam ->
-            seznam
-                ?.filter {
-                    state.filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
+        .combine(seznam) { (minulyState, info), seznam ->
+            val filtrovanejSeznam = seznam
+                .filter {
+                    info.filtrLinky?.let { filtr -> it.cisloLinky == filtr } ?: true
                 }
-                ?.filter {
-                    state.filtrZastavky?.let { filtr -> it.pojedePres.contains(filtr) } ?: true
+                .filter {
+                    info.filtrZastavky?.let { filtr -> it.pojedePres.contains(filtr) } ?: true
                 }
-                ?.also { filtrovanejSeznam ->
+                .also { filtrovanejSeznam ->
                     if (minulyState == null) return@also
-                    if (minulyState.cas == state.cas && minulyState.filtrZastavky == state.filtrZastavky && minulyState.filtrLinky == state.filtrLinky) return@also
+                    if (minulyState.cas == info.cas && minulyState.filtrZastavky == info.filtrZastavky && minulyState.filtrLinky == info.filtrLinky) return@also
                     if (filtrovanejSeznam.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
                         scrollovat(
                             filtrovanejSeznam.withIndex().firstOrNull { (_, zast) ->
-                                zast.cas >= state.cas
+                                zast.cas >= info.cas
                             }?.index ?: filtrovanejSeznam.lastIndex
                         )
                     }
                 }
+
+            if (filtrovanejSeznam.isEmpty()) {
+                if (info.filtrLinky == null && info.filtrZastavky == null) OdjezdyState.VubecNicNejede
+                else if (info.filtrLinky == null) OdjezdyState.SemNicNejede
+                else if (info.filtrZastavky == null) OdjezdyState.LinkaNejede
+                else OdjezdyState.LinkaSemNejede
+            } else OdjezdyState.Jede(
+                seznam = filtrovanejSeznam
+            )
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OdjezdyState.Loading)
 
     fun kliklNaSpoj(spoj: KartickaState) {
         navigovat(
@@ -140,7 +149,7 @@ class OdjezdyViewModel(
 
     fun zmenitCas(cas: LocalTime) {
         viewModelScope.launch(Dispatchers.Main) {
-            _state.update { oldState ->
+            _info.update { oldState ->
                 oldState.copy(
                     cas = cas,
                 )
@@ -150,7 +159,7 @@ class OdjezdyViewModel(
 
     fun scrolluje(i: Int) {
         viewModelScope.launch(Dispatchers.Main) {
-            _state.update {
+            _info.update {
                 it.copy(
                     indexScrollovani = i
                 )
@@ -160,7 +169,7 @@ class OdjezdyViewModel(
 
     fun vybral(vysledek: Vysledek) {
         viewModelScope.launch(Dispatchers.Main) {
-            _state.update { oldState ->
+            _info.update { oldState ->
                 when (vysledek.typVybiratoru) {
                     TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
                     TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
@@ -172,7 +181,7 @@ class OdjezdyViewModel(
 
     fun zrusil(typVybiratoru: TypVybiratoru) {
         viewModelScope.launch(Dispatchers.IO) {
-            _state.update { oldState ->
+            _info.update { oldState ->
                 when (typVybiratoru) {
                     TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
                     TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
@@ -183,7 +192,7 @@ class OdjezdyViewModel(
     }
 
     fun zmenilKompaktniRezim() {
-        _state.update {
+        _info.update {
             it.copy(
                 kompaktniRezim = !it.kompaktniRezim
             )
@@ -192,13 +201,15 @@ class OdjezdyViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            while (filtrovanejSeznam.value.isNullOrEmpty()) Unit
+            while (state.value == OdjezdyState.Loading) Unit
+            if (state.value !is OdjezdyState.Jede) return@launch
             while (!::scrollovat.isInitialized) Unit
             withContext(Dispatchers.Main) {
+                val seznam = (state.value as OdjezdyState.Jede).seznam
                 scrollovat(
-                    filtrovanejSeznam.value!!.withIndex().firstOrNull { (_, zast) ->
+                    seznam.withIndex().firstOrNull { (_, zast) ->
                         zast.cas >= params.cas
-                    }?.index ?: seznam.value!!.lastIndex
+                    }?.index ?: seznam.lastIndex
                 )
             }
         }

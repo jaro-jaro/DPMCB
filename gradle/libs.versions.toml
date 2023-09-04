@@ -1,0 +1,84 @@
+[versions]
+android-gradle-plugin = "8.3.0-alpha01"
+androidx-activity-compose = "1.7.2"
+androidx-core = "1.10.1"
+androidx-datastore = "1.0.0"
+androidx-espresso = "3.5.1"
+androidx-jetpack-compose = "1.5.0"
+androidx-jetpack-compose-kotlin-compiler = "1.5.0"
+androidx-jetpack-compose-material3 = "1.2.0-alpha05"
+androidx-jetpack-compose-material-icons-extended = "1.5.0"
+androidx-jetpack-glance = "1.0.0-rc01"
+androidx-jetpack-navigation-compose = "2.7.0"
+androidx-jetpack-room = "2.5.2"
+androidx-junit = "1.1.5"
+androidx-lifecycle-compose = "2.6.1"
+compose-destinations = "1.9.52"
+compose-material3-datetime-pickers = "0.7.2"
+google-services = "4.3.15"
+firebase-analytics = "21.3.0"
+firebase-common = "20.3.3"
+firebase-crashlytics = "18.4.0"
+firebase-crashlytics-plugin = "2.9.8"
+firebase-database = "20.2.2"
+firebase-storage = "20.2.1"
+jsoup = "1.16.1"
+junit = "4.13.2"
+koin-compose = "3.4.6"
+koin-navigation = "3.3.0"
+koin-annotations = "1.2.2"
+koin-android = "3.4.3"
+kotlin = "1.9.0"
+kotlin-symbol-processing = "1.9.0-1.0.13"
+kotlinx-coroutines = "1.7.3"
+kotlinx-serialization = "1.5.1"
+pdf-viewer = "2.8.2"
+semver = "1.4.2"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
+androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
+androidx-jetpack-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "androidx-jetpack-compose" }
+androidx-jetpack-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidx-jetpack-compose" }
+androidx-jetpack-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "androidx-jetpack-compose" }
+androidx-jetpack-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "androidx-jetpack-compose" }
+androidx-jetpack-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "androidx-jetpack-compose-material3" }
+androidx-jetpack-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "androidx-jetpack-compose-material-icons-extended" }
+androidx-jetpack-glance = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-jetpack-glance" }
+androidx-jetpack-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-jetpack-navigation-compose" }
+androidx-jetpack-room = { module = "androidx.room:room-ktx", version.ref = "androidx-jetpack-room" }
+androidx-jetpack-room-compiler = { module = "androidx.room:room-compiler", version.ref = "androidx-jetpack-room" }
+androidx-jetpack-room-runtime = { module = "androidx.room:room-runtime", version.ref = "androidx-jetpack-room" }
+androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle-compose" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle-compose" }
+compose-destinations-core = { module = "io.github.raamcosta.compose-destinations:core", version.ref = "compose-destinations" }
+compose-destinations-ksp = { module = "io.github.raamcosta.compose-destinations:ksp", version.ref = "compose-destinations" }
+compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
+firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "firebase-common" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version.ref = "firebase-crashlytics" }
+firebase-database = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebase-database" }
+firebase-storage = { module = "com.google.firebase:firebase-storage-ktx", version.ref = "firebase-storage" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+junit = { module = "junit:junit", version.ref = "junit" }
+koin-annotations-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
+koin-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-compose" }
+koin-navigation = { module = "io.insert-koin:koin-androidx-navigation", version.ref = "koin-navigation" }
+koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koin-annotations" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin-android" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+pdf-viewer = { module = "com.github.barteksc:android-pdf-viewer", version.ref = "pdf-viewer" }
+semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
+
+[plugins]
+android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "kotlin-symbol-processing" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }

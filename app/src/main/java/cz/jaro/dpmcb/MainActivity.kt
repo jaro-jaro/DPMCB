@@ -4,13 +4,19 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.darkMode
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.Main
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity() {
+
+    val repo by inject<SpojeRepository>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
@@ -18,8 +24,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
             DPMCBTheme(
-                darkMode()
+                useDarkTheme = nastaveni.darkMode(),
+                useDynamicColor = nastaveni.dynamickeBarvy,
+                theme = nastaveni.tema,
             ) {
                 Main(
                     link = intent.getStringExtra(LoadingViewModel.EXTRA_KEY_DEEPLINK),

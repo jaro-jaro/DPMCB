@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenuItem
@@ -18,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -26,11 +26,13 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -43,7 +45,6 @@ import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
 import org.koin.core.parameter.parametersOf
 
 @Destination
@@ -65,14 +66,14 @@ fun Vybirator(
     },
 ) {
     title = when (typ) {
-        TypVybiratoru.ZASTAVKY -> R.string.vyberte_zastavku
-        TypVybiratoru.LINKY -> R.string.vyberte_linku
-        TypVybiratoru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
-        TypVybiratoru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
-        TypVybiratoru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
-        TypVybiratoru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
-        TypVybiratoru.LINKA_ZPET -> R.string.vyberte_linku
-        TypVybiratoru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
+        TypVybiratoru.ZASTAVKY -> R.string.odjezdy
+        TypVybiratoru.LINKY -> R.string.jizdni_rady
+        TypVybiratoru.ZASTAVKY_LINKY -> R.string.jizdni_rady
+        TypVybiratoru.PRISTI_ZASTAVKA -> R.string.jizdni_rady
+        TypVybiratoru.ZASTAVKY_ZPET_1 -> R.string.vyhledat_spojeni
+        TypVybiratoru.ZASTAVKA_ZPET_2 -> R.string.vyhledat_spojeni
+        TypVybiratoru.LINKA_ZPET -> R.string.odjezdy
+        TypVybiratoru.ZASTAVKA_ZPET -> R.string.odjezdy
     }
     vybrano = when (typ) {
         TypVybiratoru.ZASTAVKY -> SuplikAkce.Odjezdy
@@ -99,7 +100,6 @@ fun Vybirator(
     )
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun VybiratorScreen(
     typ: TypVybiratoru,
@@ -114,7 +114,24 @@ fun VybiratorScreen(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        Text(text = info)
+        Text(text = info, Modifier.padding(horizontal = 16.dp))
+        Text(
+            text = stringResource(
+                id = when (typ) {
+                    TypVybiratoru.ZASTAVKY -> R.string.vyberte_zastavku
+                    TypVybiratoru.LINKY -> R.string.vyberte_linku
+                    TypVybiratoru.ZASTAVKY_LINKY -> R.string.vyberte_zastavku
+                    TypVybiratoru.PRISTI_ZASTAVKA -> R.string.vyberte_dalsi_zastávku
+                    TypVybiratoru.ZASTAVKY_ZPET_1 -> R.string.vyberte_linku
+                    TypVybiratoru.ZASTAVKA_ZPET_2 -> R.string.vyberte_zastavku
+                    TypVybiratoru.LINKA_ZPET -> R.string.vyberte_linku
+                    TypVybiratoru.ZASTAVKA_ZPET -> R.string.vyberte_zastavku
+                }
+            ),
+            Modifier.padding(all = 16.dp),
+            color = MaterialTheme.colorScheme.primary,
+            fontSize = 20.sp,
+        )
         val focusNaTextField = remember { FocusRequester() }
         TextField(
             value = hledani,
@@ -130,7 +147,7 @@ fun VybiratorScreen(
                     return@onKeyEvent it.key == Key.Enter
                 },
             label = { Text("Vyhledávání") },
-            keyboardOptions = KeyboardOptions.Default.copy(
+            keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 capitalization = KeyboardCapitalization.None,
                 keyboardType = when (typ) {
@@ -154,21 +171,19 @@ fun VybiratorScreen(
                     TypVybiratoru.ZASTAVKA_ZPET -> ImeAction.Done
                 },
             ),
-            keyboardActions = KeyboardActions(
-                onAny = {
-                    kliklEnter()
-                }
-            ),
+            keyboardActions = KeyboardActions {
+                kliklEnter()
+            },
             singleLine = true,
             maxLines = 1,
         )
 
-        val keyboard = LocalSoftwareKeyboardController.current
+        val softwareKeyboardController = LocalSoftwareKeyboardController.current
 
         LaunchedEffect(Unit) {
             focusNaTextField.requestFocus()
             delay(100)
-            keyboard!!.show()
+            softwareKeyboardController!!.show()
         }
 
         LazyColumn(
@@ -176,15 +191,24 @@ fun VybiratorScreen(
                 .fillMaxWidth()
                 .imePadding(),
         ) {
-            items(seznam) { item ->
-                DropdownMenuItem(
-                    text = { Text(item) },
-                    modifier = Modifier
-                        .padding(all = 8.dp),
+            itemsIndexed(seznam) { i, item ->
+                Surface(
                     onClick = {
                         kliklNaVecZeSeznamu(item)
                     },
-                )
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(all = 8.dp),
+                    shape = CircleShape,
+                    color = if (i == 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(item) },
+                        onClick = {
+                            kliklNaVecZeSeznamu(item)
+                        },
+                    )
+                }
             }
         }
     }

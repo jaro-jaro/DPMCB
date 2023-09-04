@@ -1,9 +1,10 @@
+@file:Suppress("UnstableApiUsage")
+
 pluginManagement {
     repositories {
         gradlePluginPortal()
         google()
         mavenCentral()
-        maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
     }
 }
 dependencyResolutionManagement {
@@ -15,5 +16,5 @@ dependencyResolutionManagement {
         maven { url = uri("https://jcenter.bintray.com") }
     }
 }
-rootProject.name = "DPMCB"
 include(":app")
+rootProject.name = "Lepší DPMCB"

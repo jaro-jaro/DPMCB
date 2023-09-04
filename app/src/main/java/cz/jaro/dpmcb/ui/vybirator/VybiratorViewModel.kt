@@ -53,21 +53,42 @@ class VybiratorViewModel(
     private val _hledani = MutableStateFlow("")
     val hledani = _hledani.asStateFlow()
 
-    fun hledani(hledani: String) {
-        _hledani.value = hledani
-    }
-
     val seznam = _hledani.combine(puvodniSeznam) { filtr, puvodniSeznam ->
         if (filtr.isBlank()) puvodniSeznam
-        else puvodniSeznam.filter { polozka ->
-            filtr.lowercase().oddelatDiakritiku().split(" ").all { slovoHledani ->
-                polozka.lowercase().oddelatDiakritiku().split(" ").any { slovoPolozky ->
-                    slovoPolozky.startsWith(slovoHledani)
+        else puvodniSeznam
+            .map { polozka ->
+                var castecnaPolozka = polozka.lowercase().oddelatDiakritiku().split(" ")
+                polozka to filtr.lowercase().oddelatDiakritiku().split(" ").map { slovoHledani ->
+                    castecnaPolozka.indexOfFirst { slovoPolozky ->
+                        slovoPolozky.startsWith(slovoHledani)
+                    }.also { i ->
+                        if (i != -1) {
+                            castecnaPolozka = castecnaPolozka.drop(i + 1)
+                        }
+                    }
                 }
             }
-        }.also { seznam ->
-            if (seznam.count() == 1) hotovo(seznam.first(), repo.datum.value)
-        }
+            .filter { (_, indexySlovHledani) ->
+                indexySlovHledani.all { it != -1 }
+            }
+            .sortedBy { (polozka, _) ->
+                polozka
+            }
+            .sortedWith(
+                Comparator { (_, aList), (_, bList) ->
+                    aList.zip(bList).forEach { (a, b) ->
+                        if (a == b) return@forEach
+                        return@Comparator a - b
+                    }
+                    return@Comparator 0
+                }
+            )
+            .map { (polozka, _) ->
+                polozka
+            }
+            .also { seznam ->
+                if (seznam.count() == 1) hotovo(seznam.first(), repo.datum.value)
+            }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val info = when (params.typ) {

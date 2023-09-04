@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.data
 
-import android.app.Application
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.compare
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -27,14 +27,9 @@ import java.time.LocalDate
 @Single
 class DopravaRepository(
     private val repo: SpojeRepository,
-    app: Application,
+    private val api: DopravaApi,
 ) {
     private val scope = MainScope()
-
-    private val api = DopravaApi(
-        ctx = app,
-        baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
-    )
 
     private val spojeFlow: SharedFlow<List<SpojNaMape>> = flow<List<SpojNaMape>> {
         while (currentCoroutineContext().isActive) {
@@ -60,22 +55,23 @@ class DopravaRepository(
 
     fun detailSpoje(spojId: String) =
         detailSpojeFlowMap.getOrPut(spojId) {
-            flow<DetailSpoje?> {
+            flow {
                 while (currentCoroutineContext().isActive) {
                     emit(
-                        if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
-                            api.ziskatData("/servicedetail?id=$spojId")
-                        else null
+                        (if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
+                            api.ziskatData<DetailSpoje?>("/servicedetail?id=$spojId")
+                        else null) to presneTed
                     )
                     delay(5000)
                 }
             }
-                .compare(null) { minule, nove ->
-                    val ted = presneTed
+                .compare(null to presneTed) { (minule, _), (nove, ted) ->
                     when {
                         nove == null -> minule
                         minule == null -> nove
                         else -> {
+                            spojDPMCBNaMapePodleId(nove.id).first() ?: return@compare null to ted
+
                             val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
                             val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
                             when {
@@ -94,8 +90,10 @@ class DopravaRepository(
                                 }
                             }
                         }
-                    }
-
+                    } to ted
+                }
+                .map {
+                    it.first
                 }
                 .flowOn(Dispatchers.IO)
                 .shareIn(
@@ -113,18 +111,10 @@ class DopravaRepository(
 //       if (repo.onlineMod.value) api.ziskatData("/station/$zastavkaId/nextservices") ?: emptyList() else emptyList()
 //    }
 
-    fun List<SpojNaMape>.spojeDPMCB() = filter {
-        it.id.drop(2).startsWith("325")
-    }
-
     fun spojeDPMCBNaMape() =
         seznamSpojuKterePraveJedou().map { spojeNaMape ->
             spojeNaMape.spojeDPMCB()
         }
-
-    private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
-
-    fun List<SpojNaMape>.spojDPMCBPodleId(id: String) = spojeDPMCB().spojPodleId(id)
 
     private fun spojDPMCBNaMapePodleId(id: String) =
         spojeDPMCBNaMape().map { spojeNaMape ->
@@ -146,3 +136,11 @@ class DopravaRepository(
     fun spojNaMapePodleId(id: String): Flow<SpojNaMape?> = spojDPMCBNaMapePodleId(id)
 }
 
+
+fun List<SpojNaMape>.spojeDPMCB() = filter {
+    it.id.drop(2).startsWith("325")
+}
+
+private fun List<SpojNaMape>.spojPodleId(id: String) = find { it.id == id }
+
+fun List<SpojNaMape>.spojDPMCBPodleId(id: String) = spojeDPMCB().spojPodleId(id)

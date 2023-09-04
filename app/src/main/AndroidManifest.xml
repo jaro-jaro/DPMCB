@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:roundIcon="${logoRound}"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
         tools:targetApi="33">
         <activity
             android:name=".ExitActivity"
@@ -29,7 +29,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter android:label="DPMCB spoj Deeplink">
+            <intent-filter android:label="Lepší DPMCB spoj Deeplink">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
