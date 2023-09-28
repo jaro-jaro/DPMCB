@@ -396,5 +396,20 @@ interface Dao {
 
     @Insert
     suspend fun vlozitSpoje(vararg spoje: Spoj)
+
+    @Query("SELECT * FROM zastavkaspoje")
+    suspend fun zastavkySpoje(): List<ZastavkaSpoje>
+
+    @Query("SELECT * FROM zastavka")
+    suspend fun zastavky(): List<Zastavka>
+
+    @Query("SELECT * FROM caskod")
+    suspend fun casKody(): List<CasKod>
+
+    @Query("SELECT * FROM linka")
+    suspend fun linky(): List<Linka>
+
+    @Query("SELECT * FROM spoj")
+    suspend fun spoje(): List<Spoj>
 }
 
