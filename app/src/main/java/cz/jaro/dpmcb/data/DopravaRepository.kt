@@ -1,8 +1,5 @@
 package cz.jaro.dpmcb.data
 
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.compare
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.presneTed
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCas
 import cz.jaro.dpmcb.data.naJihu.DetailSpoje
 import cz.jaro.dpmcb.data.naJihu.SpojNaMape
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -21,7 +17,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
 import org.koin.core.annotation.Single
-import java.time.Duration
 import java.time.LocalDate
 
 @Single
@@ -57,44 +52,10 @@ class DopravaRepository(
         detailSpojeFlowMap.getOrPut(spojId) {
             flow {
                 while (currentCoroutineContext().isActive) {
-                    emit(
-                        (if (repo.onlineMod.value && repo.datum.value == LocalDate.now())
-                            api.ziskatData<DetailSpoje?>("/servicedetail?id=$spojId")
-                        else null) to presneTed
-                    )
+                    emit(if (repo.onlineMod.value && repo.datum.value == LocalDate.now()) api.ziskatData<DetailSpoje?>("/servicedetail?id=$spojId") else null)
                     delay(5000)
                 }
             }
-                .compare(null to presneTed) { (minule, _), (nove, ted) ->
-                    when {
-                        nove == null -> minule
-                        minule == null -> nove
-                        else -> {
-                            spojDPMCBNaMapePodleId(nove.id).first() ?: return@compare null to ted
-
-                            val indexMinulePristiZastavky = minule.stations.indexOfFirst { !it.passed }
-                            val indexNovePristiZastavky = nove.stations.indexOfFirst { !it.passed }
-                            when {
-                                indexMinulePristiZastavky == indexNovePristiZastavky -> nove.copy(
-                                    realneZpozdeni = minule.realneZpozdeni
-                                )
-
-                                indexNovePristiZastavky < 1 -> nove.copy(
-                                    realneZpozdeni = minule.realneZpozdeni
-                                )
-
-                                else -> nove.stations[indexNovePristiZastavky - 1].let { praveOdhlasenaZastavka ->
-                                    nove.copy(
-                                        realneZpozdeni = Duration.between(praveOdhlasenaZastavka.departureTime.toCas(), ted).seconds / 60F
-                                    )
-                                }
-                            }
-                        }
-                    } to ted
-                }
-                .map {
-                    it.first
-                }
                 .flowOn(Dispatchers.IO)
                 .shareIn(
                     scope = scope,
