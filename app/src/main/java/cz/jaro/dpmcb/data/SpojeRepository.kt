@@ -185,6 +185,12 @@ class SpojeRepository(
         localDataSource.vlozitSpoje(*spoje)
     }
 
+    suspend fun zastavkySpoje() = localDataSource.zastavkySpoje()
+    suspend fun zastavky() = localDataSource.zastavky()
+    suspend fun casKody() = localDataSource.casKody()
+    suspend fun linky() = localDataSource.linky()
+    suspend fun spoje() = localDataSource.spoje()
+
     fun upravitDatum(datum: LocalDate) {
         _datum.update { datum }
     }
