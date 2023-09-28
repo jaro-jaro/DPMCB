@@ -276,10 +276,6 @@ class LoadingViewModel(
             val schemaRef = storage.reference.child("schema.pdf")
             val jrRef = storage.reference.child("data${META_VERZE_DAT}/data${novaVerze}.json")
 
-            println(referenceVerze)
-            println(jrRef)
-            println(schemaRef)
-
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
             }
@@ -333,11 +329,6 @@ class LoadingViewModel(
             val minus = hodneZmen["-"]!!.jsonArray.toString().fromJson<List<String>>()
             val zmeny = hodneZmen["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
             val schema = hodneZmen["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
-
-            println(plus)
-            println(minus)
-            println(zmeny)
-            println(schema)
 
             val minusTabulky = minus
                 .map { it.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
