@@ -25,7 +25,6 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
 
 @KoinViewModel
 class PraveJedouciViewModel(
@@ -93,7 +92,7 @@ class PraveJedouciViewModel(
                             spojId = spoj.id,
                             pristiZastavkaNazev = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].nazev,
                             pristiZastavkaCas = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].cas!!,
-                            zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
+                            zpozdeni = spojNaMape.delay,
                             indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
                             smer = spoj.smer,
                             cisloLinky = spoj.linka - 325_000,

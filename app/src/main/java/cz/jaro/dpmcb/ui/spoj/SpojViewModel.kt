@@ -101,7 +101,7 @@ class SpojViewModel(
 
     private val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(
-            zpozdeni = detailSpoje?.realneZpozdeni?.times(60)?.toLong()?.seconds ?: spojNaMape?.delay?.minutes,
+            zpozdeni = spojNaMape?.delay?.minutes,
             zastavkyNaJihu = detailSpoje?.stations
         )
     }
