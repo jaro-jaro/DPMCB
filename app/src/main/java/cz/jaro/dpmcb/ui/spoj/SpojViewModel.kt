@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
@@ -37,7 +38,7 @@ class SpojViewModel(
     @InjectedParam private val spojId: String,
 ) : ViewModel() {
 
-    private val info = repo.datum.combine(repo.oblibene) { datum, oblibene ->
+    private val info: Flow<SpojState> = combine(repo.datum, repo.oblibene, repo.maPristupKJihu) { datum, oblibene, online ->
         val existuje = repo.existujeSpoj(spojId)
         if (!existuje) return@combine SpojState.Neexistuje(spojId)
         val jedeV = repo.spojJedeV(spojId)
@@ -78,6 +79,7 @@ class SpojViewModel(
             oblibeny = oblibene.find { it.spojId == spojId },
             vyska = 0F,
             projetychUseku = 0,
+            online = online,
         )
     }
 
