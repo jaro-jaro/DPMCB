@@ -7,8 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,19 +16,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -65,6 +64,14 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.KliklNaSpoj
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.KliklNaZjr
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Scrolluje
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Vybral
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenilJenOdjezdy
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenilKompaktniRezim
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenitCas
+import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Zrusil
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
@@ -98,7 +105,7 @@ fun Odjezdy(
         when (result) {
             is NavResult.Canceled -> {}
             is NavResult.Value -> {
-                viewModel.vybral(result.value)
+                viewModel.onEvent(Vybral(result.value))
             }
         }
     }
@@ -123,7 +130,7 @@ fun Odjezdy(
             snapshotFlow { listState.firstVisibleItemIndex }
                 .flowOn(Dispatchers.IO)
                 .collect {
-                    viewModel.scrolluje(it)
+                    viewModel.onEvent(Scrolluje(it))
                 }
         }
     }
@@ -134,18 +141,14 @@ fun Odjezdy(
         info = info,
         state = state,
         zastavka = zastavka,
-        zmenitCas = viewModel::zmenitCas,
-        zmenilKompaktniRezim = viewModel::zmenilKompaktniRezim,
+        onEvent = viewModel::onEvent,
         listState = listState,
-        zrusil = viewModel::zrusil,
-        kliklNaSpoj = viewModel::kliklNaSpoj,
-        kliklNaZjr = viewModel::kliklNaZjr,
         navigate = navigator.navigateFunction,
         jeOnline = jeOnline,
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OdjezdyScreen(
     state: OdjezdyState,
@@ -153,20 +156,16 @@ fun OdjezdyScreen(
     zastavka: String,
     listState: LazyListState,
     jeOnline: Boolean,
-    zmenitCas: (LocalTime) -> Unit,
-    zmenilKompaktniRezim: () -> Unit,
-    zrusil: (TypVybiratoru) -> Unit,
-    kliklNaSpoj: (KartickaState) -> Unit,
-    kliklNaZjr: (KartickaState) -> Unit,
+    onEvent: (OdjezdyEvent) -> Unit,
     navigate: NavigateFunction,
 ) = Column(
     modifier = Modifier
         .fillMaxSize()
 ) {
-    FlowRow(
+    Row(
         modifier = Modifier
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.Bottom
+        verticalAlignment = Alignment.CenterVertically
     ) {
         TextButton(
             onClick = {
@@ -184,7 +183,7 @@ fun OdjezdyScreen(
                 zobrazitDialog = false
             },
             onTimeChange = {
-                zmenitCas(it)
+                onEvent(ZmenitCas(it))
                 zobrazitDialog = false
             },
             title = {
@@ -200,15 +199,49 @@ fun OdjezdyScreen(
         ) {
             Text(text = info.cas.toString())
         }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (jeOnline) Surface(
+            checked = info.kompaktniRezim,
+            onCheckedChange = {
+                onEvent(ZmenilKompaktniRezim)
+            },
+            Modifier.padding(all = 8.dp),
+            shape = CircleShape,
+        ) {
+            Row(
+                Modifier.padding(all = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = info.kompaktniRezim, onCheckedChange = {
+                    onEvent(ZmenilKompaktniRezim)
+                })
+                Text("Zjednodušit")
+            }
+        }
+
         Spacer(modifier = Modifier.weight(1F))
 
-        if (jeOnline) Row(
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            checked = info.jenOdjezdy,
+            onCheckedChange = {
+                onEvent(ZmenilJenOdjezdy)
+            },
+            Modifier.padding(all = 8.dp),
+            shape = CircleShape,
         ) {
-            Text("Zjednodušit")
-            Switch(checked = info.kompaktniRezim, onCheckedChange = {
-                zmenilKompaktniRezim()
-            }, Modifier.padding(all = 8.dp))
+            Row(
+                Modifier.padding(all = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = info.jenOdjezdy, onCheckedChange = {
+                    onEvent(ZmenilJenOdjezdy)
+                })
+                Text("Pouze odjezdy")
+            }
         }
     }
 
@@ -230,7 +263,7 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (info.filtrLinky != null) IconButton(onClick = {
-                    zrusil(TypVybiratoru.LINKA_ZPET)
+                    onEvent(Zrusil(TypVybiratoru.LINKA_ZPET))
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
@@ -266,7 +299,7 @@ fun OdjezdyScreen(
             readOnly = true,
             trailingIcon = {
                 if (info.filtrZastavky != null) IconButton(onClick = {
-                    zrusil(TypVybiratoru.ZASTAVKA_ZPET)
+                    onEvent(Zrusil(TypVybiratoru.ZASTAVKA_ZPET))
                 }) {
                     IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                 }
@@ -326,7 +359,7 @@ fun OdjezdyScreen(
                 key = { it.idSpoje to it.cas },
                 itemContent = { karticka ->
                     Karticka(
-                        karticka, kliklNaSpoj, kliklNaZjr, info.kompaktniRezim, modifier = Modifier
+                        karticka, onEvent, info.kompaktniRezim, modifier = Modifier
                             .animateContentSize()
                             .animateItemPlacement()
                     )
@@ -340,17 +373,16 @@ fun OdjezdyScreen(
 @Composable
 private fun Karticka(
     kartickaState: KartickaState,
-    detailSpoje: (KartickaState) -> Unit,
-    zjr: (KartickaState) -> Unit,
+    onEvent: (OdjezdyEvent) -> Unit,
     zjednodusit: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Divider(modifier)
+    HorizontalDivider(modifier)
     var showDropDown by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = modifier.combinedClickable(
             onClick = {
-                detailSpoje(kartickaState)
+                onEvent(KliklNaSpoj(kartickaState))
             },
             onLongClick = {
                 showDropDown = true
@@ -369,7 +401,7 @@ private fun Karticka(
                         Text("Zobrazit zastávkové JŘ")
                     },
                     onClick = {
-                        zjr(kartickaState)
+                        onEvent(KliklNaZjr(kartickaState))
                         showDropDown = false
                     },
                 )
@@ -389,7 +421,7 @@ private fun Karticka(
             ) {
                 IconWithTooltip(
                     imageVector = when {
-                        kartickaState.nizkopodlaznost -> Icons.Default.Accessible
+                        kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
                         else -> Icons.Default.NotAccessible
                     },
                     contentDescription = if (kartickaState.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",

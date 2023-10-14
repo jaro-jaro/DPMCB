@@ -7,7 +7,6 @@ import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
-import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.data.spojDPMCBPodleId
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
@@ -29,11 +28,12 @@ import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
+import kotlin.collections.filterNot as remove
 
 @KoinViewModel
 class OdjezdyViewModel(
     private val repo: SpojeRepository,
-    private val dopravaRepo: DopravaRepository,
+    dopravaRepo: DopravaRepository,
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
@@ -56,7 +56,7 @@ class OdjezdyViewModel(
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
             repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, params.zastavka)
                 .map {
-                    val spojNaMape = with(dopravaRepo) { spojeNaMape.spojDPMCBPodleId(it.spojId) }
+                    val spojNaMape = spojeNaMape.spojDPMCBPodleId(it.spojId)
                     it to spojNaMape
                 }
                 .sortedBy { (zast, spojNaMape) ->
@@ -102,6 +102,9 @@ class OdjezdyViewModel(
                 .filter {
                     info.filtrZastavky?.let { filtr -> it.pojedePres.contains(filtr) } ?: true
                 }
+                .remove {
+                    info.jenOdjezdy && it.pristiZastavka == null
+                }
                 .also { filtrovanejSeznam ->
                     if (minulyState == null) return@also
                     if (minulyState.cas == info.cas && minulyState.filtrZastavky == info.filtrZastavky && minulyState.filtrLinky == info.filtrLinky) return@also
@@ -127,75 +130,89 @@ class OdjezdyViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OdjezdyState.Loading)
 
-    fun kliklNaSpoj(spoj: KartickaState) {
-        navigovat(
-            SpojDestination(
-                spoj.idSpoje
-            )
-        )
-    }
-
-    fun kliklNaZjr(spoj: KartickaState) {
-        spoj.pristiZastavka?.let {
+    fun onEvent(e: OdjezdyEvent) = when (e) {
+        is OdjezdyEvent.KliklNaSpoj -> {
             navigovat(
-                JizdniRadyDestination(
-                    cisloLinky = spoj.cisloLinky,
-                    zastavka = params.zastavka,
-                    pristiZastavka = spoj.pristiZastavka,
+                SpojDestination(
+                    e.spoj.idSpoje
                 )
             )
         }
-    }
 
-    fun zmenitCas(cas: LocalTime) {
-        viewModelScope.launch(Dispatchers.Main) {
-            _info.update { oldState ->
-                oldState.copy(
-                    cas = cas,
+        is OdjezdyEvent.KliklNaZjr -> {
+            e.spoj.pristiZastavka?.let {
+                navigovat(
+                    JizdniRadyDestination(
+                        cisloLinky = e.spoj.cisloLinky,
+                        zastavka = params.zastavka,
+                        pristiZastavka = e.spoj.pristiZastavka,
+                    )
                 )
             }
         }
-    }
 
-    fun scrolluje(i: Int) {
-        viewModelScope.launch(Dispatchers.Main) {
+        is OdjezdyEvent.ZmenitCas -> {
+            viewModelScope.launch(Dispatchers.Main) {
+                _info.update { oldState ->
+                    oldState.copy(
+                        cas = e.cas,
+                    )
+                }
+            }
+            Unit
+        }
+
+        is OdjezdyEvent.Scrolluje -> {
+            viewModelScope.launch(Dispatchers.Main) {
+                _info.update {
+                    it.copy(
+                        indexScrollovani = e.i
+                    )
+                }
+            }
+            Unit
+        }
+
+        is OdjezdyEvent.Vybral -> {
+            viewModelScope.launch(Dispatchers.Main) {
+                _info.update { oldState ->
+                    when (e.vysledek.typVybiratoru) {
+                        TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = e.vysledek.value.toInt())
+                        TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = e.vysledek.value)
+                        else -> return@launch
+                    }
+                }
+            }
+            Unit
+        }
+
+        is OdjezdyEvent.Zrusil -> {
+            viewModelScope.launch(Dispatchers.IO) {
+                _info.update { oldState ->
+                    when (e.typVybiratoru) {
+                        TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
+                        TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
+                        else -> return@launch
+                    }
+                }
+            }
+            Unit
+        }
+
+        OdjezdyEvent.ZmenilKompaktniRezim -> {
             _info.update {
                 it.copy(
-                    indexScrollovani = i
+                    kompaktniRezim = !it.kompaktniRezim
                 )
             }
         }
-    }
 
-    fun vybral(vysledek: Vysledek) {
-        viewModelScope.launch(Dispatchers.Main) {
-            _info.update { oldState ->
-                when (vysledek.typVybiratoru) {
-                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = vysledek.value.toInt())
-                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = vysledek.value)
-                    else -> return@launch
-                }
+        OdjezdyEvent.ZmenilJenOdjezdy -> {
+            _info.update {
+                it.copy(
+                    jenOdjezdy = !it.jenOdjezdy
+                )
             }
-        }
-    }
-
-    fun zrusil(typVybiratoru: TypVybiratoru) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _info.update { oldState ->
-                when (typVybiratoru) {
-                    TypVybiratoru.LINKA_ZPET -> oldState.copy(filtrLinky = null)
-                    TypVybiratoru.ZASTAVKA_ZPET -> oldState.copy(filtrZastavky = null)
-                    else -> return@launch
-                }
-            }
-        }
-    }
-
-    fun zmenilKompaktniRezim() {
-        _info.update {
-            it.copy(
-                kompaktniRezim = !it.kompaktniRezim
-            )
         }
     }
 
