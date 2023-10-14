@@ -74,6 +74,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.spec.DestinationSpec
@@ -119,7 +120,8 @@ fun Main(
         val destinationFlow = navController.appCurrentDestinationFlow
 
         destinationFlow.collect { destination ->
-            com.google.firebase.Firebase.analytics.logEvent("navigation") {
+            @Suppress("DEPRECATION")
+            Firebase.analytics.logEvent("navigation") {
                 param("route", destination.route)
             }
         }
@@ -522,7 +524,7 @@ fun VecZeSupliku(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val database = com.google.firebase.Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    @Suppress("DEPRECATION") val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
                     ref.push().setValue("${hodnoceni + 1}/5")
                     hodnoceni = -1

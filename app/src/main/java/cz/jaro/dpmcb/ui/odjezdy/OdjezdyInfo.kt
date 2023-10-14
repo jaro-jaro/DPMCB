@@ -8,4 +8,5 @@ data class OdjezdyInfo(
     val filtrLinky: Int? = null,
     val filtrZastavky: String? = null,
     val kompaktniRezim: Boolean = false,
+    val jenOdjezdy: Boolean = false,
 )
