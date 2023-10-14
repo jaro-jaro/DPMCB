@@ -17,6 +17,7 @@ fun DPMCBTheme(
     useDarkTheme: Boolean,
     useDynamicColor: Boolean,
     theme: Theme,
+    doTheThing: Boolean = true,
     content: @Composable () -> Unit,
 ) {
 
@@ -33,7 +34,7 @@ fun DPMCBTheme(
     }
 
     val view = LocalView.current
-    if (!view.isInEditMode) {
+    if (doTheThing && !view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()

@@ -49,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,7 +74,6 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.spec.DestinationSpec
@@ -119,7 +119,7 @@ fun Main(
         val destinationFlow = navController.appCurrentDestinationFlow
 
         destinationFlow.collect { destination ->
-            Firebase.analytics.logEvent("navigation") {
+            com.google.firebase.Firebase.analytics.logEvent("navigation") {
                 param("route", destination.route)
             }
         }
@@ -472,7 +472,7 @@ fun MainScreen(
             ModalNavigationDrawer(
                 drawerContent = {
                     ModalDrawerSheet {
-                        SuplikAkce.values().forEach { akce ->
+                        SuplikAkce.entries.forEach { akce ->
                             VecZeSupliku(
                                 akce = akce,
                                 navigate = navigate,
@@ -510,7 +510,7 @@ fun VecZeSupliku(
     startActivity: (KClass<out Activity>) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
-        var hodnoceni by rememberSaveable { mutableStateOf(-1) }
+        var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
 
         if (zobrazitDialog) AlertDialog(
@@ -522,7 +522,7 @@ fun VecZeSupliku(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    val database = com.google.firebase.Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
                     ref.push().setValue("${hodnoceni + 1}/5")
                     hodnoceni = -1
