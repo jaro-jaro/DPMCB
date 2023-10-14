@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.jaro.dpmcb.ui.loading
 
 import android.content.Intent

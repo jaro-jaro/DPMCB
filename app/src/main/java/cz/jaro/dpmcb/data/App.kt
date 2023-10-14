@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.datastore.dataStoreFile
@@ -22,7 +23,7 @@ class App : Application() {
 
     companion object {
         var route by mutableStateOf("oblibene")
-        var title by mutableStateOf(R.string.app_name)
+        var title by mutableIntStateOf(R.string.app_name)
         var vybrano by mutableStateOf(null as SuplikAkce?)
     }
 
