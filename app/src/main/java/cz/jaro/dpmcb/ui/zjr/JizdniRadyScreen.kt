@@ -117,7 +117,7 @@ fun JizdniRadyScreen(
             )
         }
 
-        var zobrazitNizkopodlaznosti by remember {
+        var zobrazitNizkopodlaznosti by remember(zachovatNizkopodlaznosti, zobrazitNizkopodlaznostZMinule) {
             mutableStateOf(if (zachovatNizkopodlaznosti) zobrazitNizkopodlaznostZMinule else false)
         }
 
