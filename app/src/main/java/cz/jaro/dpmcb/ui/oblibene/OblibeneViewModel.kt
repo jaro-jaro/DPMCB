@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.ui.oblibene
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -40,7 +39,6 @@ class OblibeneViewModel(
             }
 
             is OblibeneEvent.VybralSpojJindy -> {
-                repo.upravitDatum(e.dalsiPojede ?: return)
                 params.navigate(SpojDestination(e.id))
             }
         }
@@ -64,7 +62,7 @@ class OblibeneViewModel(
                         val spoj = try {
                             repo.spojSeZastavkySpojeNaKterychStavi(castSpoje.spojId, datum)
                         } catch (e: Exception) {
-                            Firebase.crashlytics.recordException(e)
+                            com.google.firebase.Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
                         Sextuplet(spojNaMape, detailSpoje, spoj.first, spoj.second, repo.spojJedeV(castSpoje.spojId), castSpoje)

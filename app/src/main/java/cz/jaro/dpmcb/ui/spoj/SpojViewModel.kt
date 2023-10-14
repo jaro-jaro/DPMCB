@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.WheelchairPickup
@@ -26,6 +25,7 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
@@ -60,7 +60,7 @@ class SpojViewModel(
             cisloLinky = spoj.linka,
             nizkopodlaznost = when {
                 Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                spoj.nizkopodlaznost -> Icons.Default.Accessible
+                spoj.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
                 Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                 else -> Icons.Default.NotAccessible
             } to if (spoj.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
@@ -79,7 +79,7 @@ class SpojViewModel(
             oblibeny = oblibene.find { it.spojId == spojId },
             vyska = 0F,
             projetychUseku = 0,
-            online = online,
+            chyba = online && datum == LocalDate.now() && zastavky.first().cas <= LocalTime.now() && LocalTime.now() <= zastavky.last().cas,
         )
     }
 

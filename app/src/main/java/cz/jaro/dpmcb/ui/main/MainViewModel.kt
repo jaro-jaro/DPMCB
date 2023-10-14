@@ -8,7 +8,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
 import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
@@ -22,6 +21,7 @@ import org.koin.core.annotation.InjectedParam
 import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 
 @KoinViewModel
 class MainViewModel(
@@ -38,7 +38,7 @@ class MainViewModel(
     val onlineMod = repo.onlineMod
     val upravitOnlineMod = repo::upravitOnlineMod
     val datum = repo.datum
-    val upravitDatum = repo::upravitDatum
+    val upravitDatum = { it: LocalDate -> repo.upravitDatum(it, false) }
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
@@ -58,7 +58,7 @@ class MainViewModel(
         get() = try {
             graph
         } catch (e: IllegalStateException) {
-            Firebase.crashlytics.recordException(e)
+            com.google.firebase.Firebase.crashlytics.recordException(e)
             null
         }
 
@@ -97,7 +97,7 @@ class MainViewModel(
                         .execute()
                 }
             } catch (e: SocketTimeoutException) {
-                Firebase.crashlytics.recordException(e)
+                com.google.firebase.Firebase.crashlytics.recordException(e)
                 return@launch
             }
 

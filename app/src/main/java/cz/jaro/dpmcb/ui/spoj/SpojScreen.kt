@@ -82,8 +82,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky7p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
@@ -171,7 +171,7 @@ fun SpojScreen(
                             },
                             Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky7p()}")
+                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky4p()}")
                         }
                     }
 
@@ -188,7 +188,7 @@ fun SpojScreen(
                             },
                             Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky7p()}")
+                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky4p()}")
                         }
                     }
 
@@ -205,7 +205,7 @@ fun SpojScreen(
                             },
                             Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky7p()}")
+                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky4p()}")
                         }
                         Button(
                             onClick = {
@@ -213,7 +213,7 @@ fun SpojScreen(
                             },
                             Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky7p()}")
+                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky4p()}")
                         }
                     }
                 }
@@ -455,8 +455,10 @@ fun SpojScreen(
                         }
                         Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
                     }
-                    if (state !is SpojState.OK.Online && state.online) Card(
-                        Modifier.fillMaxWidth(),
+                    if (state !is SpojState.OK.Online && state.chyba) Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         )

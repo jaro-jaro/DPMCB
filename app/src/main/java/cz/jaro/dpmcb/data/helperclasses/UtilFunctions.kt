@@ -84,7 +84,7 @@ object UtilFunctions {
         }
     }
 
-    fun LocalDate.hezky7p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.hezky4p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnešek"
             1L -> "zítřek"

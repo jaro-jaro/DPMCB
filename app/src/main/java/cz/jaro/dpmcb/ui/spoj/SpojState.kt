@@ -22,7 +22,7 @@ sealed interface SpojState {
         val projetychUseku: Int
         val vyska: Float
         val oblibeny: CastSpoje?
-        val online: Boolean
+        val chyba: Boolean
 
         data class Offline(
             override val spojId: String,
@@ -38,7 +38,7 @@ sealed interface SpojState {
             override val projetychUseku: Int,
             override val vyska: Float,
             override val oblibeny: CastSpoje?,
-            override val online: Boolean,
+            override val chyba: Boolean,
         ) : OK
 
         data class Online(
@@ -55,7 +55,7 @@ sealed interface SpojState {
             override val projetychUseku: Int,
             override val vyska: Float,
             override val oblibeny: CastSpoje?,
-            override val online: Boolean,
+            override val chyba: Boolean,
             val zpozdeni: Int,
             val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>,
         ) : OK {
@@ -67,14 +67,14 @@ sealed interface SpojState {
                 ) = with(state) {
                     Online(
                         spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
-                        deeplink, vyluka, projetychUseku, vyska, oblibeny, online, zpozdeni, zastavkyNaJihu
+                        deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zpozdeni, zastavkyNaJihu
                     )
                 }
             }
         }
     }
 
-    object Loading : SpojState
+    data object Loading : SpojState
 
     data class Neexistuje(
         val spojId: String,
