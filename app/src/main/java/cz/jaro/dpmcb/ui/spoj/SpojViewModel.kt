@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.WheelchairPickup

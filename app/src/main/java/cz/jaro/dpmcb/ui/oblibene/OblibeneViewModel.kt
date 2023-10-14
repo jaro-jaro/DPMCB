@@ -62,7 +62,8 @@ class OblibeneViewModel(
                         val spoj = try {
                             repo.spojSeZastavkySpojeNaKterychStavi(castSpoje.spojId, datum)
                         } catch (e: Exception) {
-                            com.google.firebase.Firebase.crashlytics.recordException(e)
+                            @Suppress("DEPRECATION")
+                            Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
                         Sextuplet(spojNaMape, detailSpoje, spoj.first, spoj.second, repo.spojJedeV(castSpoje.spojId), castSpoje)

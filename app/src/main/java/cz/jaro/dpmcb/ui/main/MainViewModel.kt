@@ -58,7 +58,8 @@ class MainViewModel(
         get() = try {
             graph
         } catch (e: IllegalStateException) {
-            com.google.firebase.Firebase.crashlytics.recordException(e)
+            @Suppress("DEPRECATION")
+            Firebase.crashlytics.recordException(e)
             null
         }
 
@@ -97,7 +98,8 @@ class MainViewModel(
                         .execute()
                 }
             } catch (e: SocketTimeoutException) {
-                com.google.firebase.Firebase.crashlytics.recordException(e)
+                @Suppress("DEPRECATION")
+                Firebase.crashlytics.recordException(e)
                 return@launch
             }
 
