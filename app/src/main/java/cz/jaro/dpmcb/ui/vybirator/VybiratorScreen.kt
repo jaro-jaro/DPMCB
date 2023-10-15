@@ -25,7 +25,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -178,12 +177,12 @@ fun VybiratorScreen(
             maxLines = 1,
         )
 
-        val softwareKeyboardController = LocalSoftwareKeyboardController.current
+//        val softwareKeyboardController = LocalSoftwareKeyboardController.current
 
         LaunchedEffect(Unit) {
-            focusNaTextField.requestFocus()
             delay(100)
-            softwareKeyboardController!!.show()
+            focusNaTextField.requestFocus()
+//            softwareKeyboardController!!.show()
         }
 
         LazyColumn(
