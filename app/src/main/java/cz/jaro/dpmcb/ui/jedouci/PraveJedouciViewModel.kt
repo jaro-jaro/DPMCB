@@ -47,7 +47,6 @@ class PraveJedouciViewModel(
         }
 
         is PraveJedouciEvent.KliklNaSpoj -> {
-            repo.upravitDatum(LocalDate.now())
             params.navigate(SpojDestination(spojId = e.spojId))
         }
     }
