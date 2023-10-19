@@ -59,8 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -97,6 +95,7 @@ import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.navArgs
+import cz.jaro.dpmcb.ui.vybirator.autoFocus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -584,8 +583,6 @@ fun VecZeSupliku(
         var linka by rememberSaveable { mutableStateOf("") }
         var cislo by rememberSaveable { mutableStateOf("") }
 
-        val focusRequester = remember { FocusRequester() }
-
         fun potvrdit(spojId: String) {
             navigate(
                 SpojDestination(
@@ -651,7 +648,7 @@ fun VecZeSupliku(
                             Modifier
                                 .weight(1F)
                                 .padding(end = 8.dp)
-                                .focusRequester(focusRequester),
+                                .autoFocus(),
                             label = {
                                 Text("Linka")
                             },
@@ -663,9 +660,6 @@ fun VecZeSupliku(
                                 keyboardType = KeyboardType.Number,
                             ),
                         )
-                        LaunchedEffect(Unit) {
-                            focusRequester.requestFocus()
-                        }
                         TextField(
                             value = cislo,
                             onValueChange = {
