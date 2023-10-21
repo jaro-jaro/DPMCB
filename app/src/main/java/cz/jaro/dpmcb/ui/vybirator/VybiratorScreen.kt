@@ -45,6 +45,8 @@ import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.main.SuplikAkce
+import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -215,6 +217,8 @@ fun Modifier.autoFocus() = composed {
     LaunchedEffect(windowInfo) {
         snapshotFlow { windowInfo.isWindowFocused }.collect { isWindowFocused ->
             if (isWindowFocused) {
+                awaitFrame()
+                delay(250)
                 focusRequester.requestFocus()
             }
         }
