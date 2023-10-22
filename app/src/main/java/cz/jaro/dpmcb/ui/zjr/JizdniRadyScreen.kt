@@ -117,7 +117,7 @@ fun JizdniRadyScreen(
             )
         }
 
-        var zobrazitNizkopodlaznosti by remember {
+        var zobrazitNizkopodlaznosti by remember(zachovatNizkopodlaznosti, zobrazitNizkopodlaznostZMinule) {
             mutableStateOf(if (zachovatNizkopodlaznosti) zobrazitNizkopodlaznostZMinule else false)
         }
 
@@ -218,7 +218,7 @@ fun ColumnScope.RadekOdjezdu(
             ) {
                 Text(
                     text = odjezd.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
-                    color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.secondary else Color.Unspecified,
+                    color = if (zobrazitNizkopodlaznost && nizkopodlaznost) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                     fontSize = 20.sp,
                     fontWeight = if (zobrazitNizkopodlaznost && nizkopodlaznost) FontWeight.Bold else FontWeight.Normal
                 )

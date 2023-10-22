@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.LocalDate
-import kotlin.math.roundToInt
 
 @KoinViewModel
 class OblibeneViewModel(
@@ -41,7 +40,6 @@ class OblibeneViewModel(
             }
 
             is OblibeneEvent.VybralSpojJindy -> {
-                repo.upravitDatum(e.dalsiPojede ?: return)
                 params.navigate(SpojDestination(e.id))
             }
         }
@@ -65,6 +63,7 @@ class OblibeneViewModel(
                         val spoj = try {
                             repo.spojSeZastavkySpojeNaKterychStavi(castSpoje.spojId, datum)
                         } catch (e: Exception) {
+                            @Suppress("DEPRECATION")
                             Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
@@ -77,7 +76,7 @@ class OblibeneViewModel(
                 if (spojNaMape != null && detailSpoje != null && datum == LocalDate.now()) KartickaState.Online(
                     spojId = info.spojId,
                     linka = info.linka,
-                    zpozdeni = detailSpoje.realneZpozdeni?.roundToInt() ?: spojNaMape.delay,
+                    zpozdeni = spojNaMape.delay,
                     vychoziZastavka = zastavky[cast.start].nazev,
                     vychoziZastavkaCas = zastavky[cast.start].cas,
                     aktualniZastavka = detailSpoje.stations.indexOfFirst { !it.passed }.let { i -> zastavky[i].nazev },

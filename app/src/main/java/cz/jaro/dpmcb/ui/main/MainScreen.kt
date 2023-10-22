@@ -49,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,8 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -96,6 +95,7 @@ import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.navArgs
+import cz.jaro.dpmcb.ui.vybirator.autoFocus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,6 +119,7 @@ fun Main(
         val destinationFlow = navController.appCurrentDestinationFlow
 
         destinationFlow.collect { destination ->
+            @Suppress("DEPRECATION")
             Firebase.analytics.logEvent("navigation") {
                 param("route", destination.route)
             }
@@ -472,7 +473,7 @@ fun MainScreen(
             ModalNavigationDrawer(
                 drawerContent = {
                     ModalDrawerSheet {
-                        SuplikAkce.values().forEach { akce ->
+                        SuplikAkce.entries.forEach { akce ->
                             VecZeSupliku(
                                 akce = akce,
                                 navigate = navigate,
@@ -510,7 +511,7 @@ fun VecZeSupliku(
     startActivity: (KClass<out Activity>) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
-        var hodnoceni by rememberSaveable { mutableStateOf(-1) }
+        var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
 
         if (zobrazitDialog) AlertDialog(
@@ -522,7 +523,7 @@ fun VecZeSupliku(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    @Suppress("DEPRECATION") val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
                     ref.push().setValue("${hodnoceni + 1}/5")
                     hodnoceni = -1
@@ -581,8 +582,6 @@ fun VecZeSupliku(
         var jmeno by rememberSaveable { mutableStateOf("") }
         var linka by rememberSaveable { mutableStateOf("") }
         var cislo by rememberSaveable { mutableStateOf("") }
-
-        val focusRequester = remember { FocusRequester() }
 
         fun potvrdit(spojId: String) {
             navigate(
@@ -649,7 +648,7 @@ fun VecZeSupliku(
                             Modifier
                                 .weight(1F)
                                 .padding(end = 8.dp)
-                                .focusRequester(focusRequester),
+                                .autoFocus(),
                             label = {
                                 Text("Linka")
                             },
@@ -661,9 +660,6 @@ fun VecZeSupliku(
                                 keyboardType = KeyboardType.Number,
                             ),
                         )
-                        LaunchedEffect(Unit) {
-                            focusRequester.requestFocus()
-                        }
                         TextField(
                             value = cislo,
                             onValueChange = {

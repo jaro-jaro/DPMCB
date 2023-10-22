@@ -19,13 +19,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -43,6 +45,7 @@ import cz.jaro.dpmcb.data.App.Companion.vybrano
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.main.SuplikAkce
+import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -132,14 +135,13 @@ fun VybiratorScreen(
             color = MaterialTheme.colorScheme.primary,
             fontSize = 20.sp,
         )
-        val focusNaTextField = remember { FocusRequester() }
         TextField(
             value = hledani,
             onValueChange = { napsalNeco(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(all = 16.dp)
-                .focusRequester(focusNaTextField)
+                .autoFocus()
                 .onKeyEvent {
                     if (it.key == Key.Enter) {
                         kliklEnter()
@@ -178,13 +180,6 @@ fun VybiratorScreen(
             maxLines = 1,
         )
 
-        val softwareKeyboardController = LocalSoftwareKeyboardController.current
-
-        LaunchedEffect(Unit) {
-            focusNaTextField.requestFocus()
-            delay(100)
-            softwareKeyboardController!!.show()
-        }
 
         LazyColumn(
             modifier = Modifier
@@ -212,6 +207,24 @@ fun VybiratorScreen(
             }
         }
     }
+}
+
+fun Modifier.autoFocus() = composed {
+
+    val focusRequester = remember { FocusRequester() }
+    val windowInfo = LocalWindowInfo.current
+
+    LaunchedEffect(windowInfo) {
+        snapshotFlow { windowInfo.isWindowFocused }.collect { isWindowFocused ->
+            if (isWindowFocused) {
+                awaitFrame()
+                delay(250)
+                focusRequester.requestFocus()
+            }
+        }
+    }
+
+    focusRequester(focusRequester)
 }
 
 @Preview

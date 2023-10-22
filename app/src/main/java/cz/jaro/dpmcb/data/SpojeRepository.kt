@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import android.widget.Toast
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
@@ -9,6 +10,7 @@ import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
@@ -56,6 +58,10 @@ class SpojeRepository(
     val oblibene = preferenceDataSource.oblibene
 
     val verze = preferenceDataSource.verze
+
+    private val makeText = { text: String ->
+        Toast.makeText(ctx, text, Toast.LENGTH_LONG)
+    }
 
     init {
         scope.launch {
@@ -185,8 +191,15 @@ class SpojeRepository(
         localDataSource.vlozitSpoje(*spoje)
     }
 
-    fun upravitDatum(datum: LocalDate) {
+    suspend fun zastavkySpoje() = localDataSource.zastavkySpoje()
+    suspend fun zastavky() = localDataSource.zastavky()
+    suspend fun casKody() = localDataSource.casKody()
+    suspend fun linky() = localDataSource.linky()
+    suspend fun spoje() = localDataSource.spoje()
+
+    fun upravitDatum(datum: LocalDate, notify: Boolean = true) {
         _datum.update { datum }
+        if (notify) makeText("Datum změněno na ${datum.hezky4p()}").show()
     }
 
     fun upravitOnlineMod(mod: Boolean) {

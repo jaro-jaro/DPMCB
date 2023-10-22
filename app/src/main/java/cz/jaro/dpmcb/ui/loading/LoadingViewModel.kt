@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package cz.jaro.dpmcb.ui.loading
 
 import android.content.Intent
@@ -10,6 +12,7 @@ import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -20,6 +23,7 @@ import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
@@ -35,8 +39,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
@@ -67,7 +74,7 @@ class LoadingViewModel(
     )
 
     companion object {
-        const val META_VERZE_DAT = 4
+        const val META_VERZE_DAT = 5
         const val EXTRA_KEY_AKTUALIZOVAT_DATA = "aktualizovat-data"
         const val EXTRA_KEY_AKTUALIZOVAT_APLIKACI = "aktualizovat-aplikaci"
         const val EXTRA_KEY_DEEPLINK = "link"
@@ -210,6 +217,25 @@ class LoadingViewModel(
         return mistniVerze < nejnovejsiVerze
     }
 
+    private suspend fun stahnoutSoubor(ref: StorageReference, file: File): File {
+
+        val task = ref.getFile(file)
+
+        task.addOnFailureListener {
+            throw it
+        }
+
+        task.addOnProgressListener { snapshot ->
+            _state.update {
+                it.first to snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount
+            }
+        }
+
+        task.await()
+
+        return file
+    }
+
     private suspend fun stahnoutNoveJizdniRady() {
 
         if (!repo.isOnline.value) {
@@ -220,48 +246,15 @@ class LoadingViewModel(
         }
 
         _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
-        }
-
-        db.clearAllTables()
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)" to null
         }
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val storage = Firebase.storage
-        val schemaRef = storage.reference.child("schema.pdf")
-        val jrRef = storage.reference.child("data${META_VERZE_DAT}/jr-dpmcb.json")
         val referenceVerze = database.getReference("data${META_VERZE_DAT}/verze")
+        val novaVerze = referenceVerze.get().await().getValue(TI) ?: -1
+        val aktualniVerze = repo.verze.first()
 
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
-        }
-
-        val jrFile = params.jrFile
-
-        val jrTask = jrRef.getFile(jrFile)
-
-        jrTask.addOnFailureListener {
-            throw it
-        }
-
-        jrTask.addOnProgressListener { snapshot ->
-            _state.update {
-                it.first to snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount
-            }
-        }
-
-        jrTask.await()
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
-        }
-
-        val json = jrFile.readText()
-
-        val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
+        val udelameUplnouAktualizaci = aktualniVerze + 1 != novaVerze
 
         val zastavkySpoje: MutableList<ZastavkaSpoje> = mutableListOf()
         val zastavky: MutableList<Zastavka> = mutableListOf()
@@ -269,7 +262,170 @@ class LoadingViewModel(
         val linky: MutableList<Linka> = mutableListOf()
         val spoje: MutableList<Spoj> = mutableListOf()
 
-        val pocetRadku = data
+        if (udelameUplnouAktualizaci) {
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
+            }
+
+            db.clearAllTables()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
+            }
+
+            val storage = Firebase.storage
+            val schemaRef = storage.reference.child("schema.pdf")
+            val jrRef = storage.reference.child("data${META_VERZE_DAT}/data${novaVerze}.json")
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
+            }
+
+            val jrFile = params.jrFile
+
+            val json = stahnoutSoubor(
+                ref = jrRef,
+                file = jrFile,
+            ).readText()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
+            }
+
+            val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
+
+            data.extrahovatData()
+                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
+                    zastavkySpoje += zastavkySpojeTabulky
+                    casKody += casKodyTabulky
+                    zastavky += zastavkyTabulky
+                    linky += linkyTabulky
+                    spoje += spojeTabulky
+                }
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
+            }
+
+            stahnoutSchema(schemaRef)
+        } else {
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)" to 0F
+            }
+
+            val storage = Firebase.storage
+            val schemaRef = storage.reference.child("schema.pdf")
+            val zmenyRef = storage.reference.child("data${META_VERZE_DAT}/zmeny$aktualniVerze..$novaVerze.json")
+
+            val jrFile = params.jrFile
+
+            val json = stahnoutSoubor(
+                ref = zmenyRef,
+                file = jrFile,
+            ).readText()
+
+            val hodneZmen = Json.parseToJsonElement(json).jsonObject
+
+            val plus = hodneZmen["+"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
+            val minus = hodneZmen["-"]!!.jsonArray.toString().fromJson<List<String>>()
+            val zmeny = hodneZmen["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
+            val schema = hodneZmen["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
+
+            val minusTabulky = minus
+                .map { it.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
+            val zmenyTabulky = zmeny
+                .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
+
+            zastavkySpoje.addAll(repo.zastavkySpoje())
+            zastavky.addAll(repo.zastavky())
+            casKody.addAll(repo.casKody())
+            linky.addAll(repo.linky())
+            spoje.addAll(repo.spoje())
+
+            val N = if (schema) 5 else 4
+
+            println(N)
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
+            }
+
+            zastavkySpoje.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            _state.update { it.first to 1 / 5F }
+            zastavky.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            _state.update { it.first to 2 / 5F }
+            casKody.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            _state.update { it.first to 3 / 5F }
+            linky.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            _state.update { it.first to 4 / 5F }
+            spoje.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            _state.update { it.first to 5 / 5F }
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (3/$N)" to 0F
+            }
+
+            plus.extrahovatData()
+                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
+                    zastavkySpoje += zastavkySpojeTabulky
+                    casKody += casKodyTabulky
+                    zastavky += zastavkyTabulky
+                    linky += linkyTabulky
+                    spoje += spojeTabulky
+                }
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
+            }
+
+            zmeny.extrahovatData()
+                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
+                    zastavkySpoje += zastavkySpojeTabulky
+                    casKody += casKodyTabulky
+                    zastavky += zastavkyTabulky
+                    linky += linkyTabulky
+                    spoje += spojeTabulky
+                }
+
+            if (schema) {
+                _state.update {
+                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
+                }
+
+                stahnoutSchema(schemaRef)
+            }
+        }
+
+        _state.update {
+            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání" to null
+        }
+
+        println(spoje)
+        println(linky)
+        println(zastavky)
+        println(zastavkySpoje)
+        println(casKody)
+
+        coroutineScope {
+            launch {
+                repo.zapsat(
+                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.tab, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
+                    zastavky = zastavky.distinctBy { it.tab to it.cisloZastavky }.toTypedArray(),
+                    casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
+                    linky = linky.distinctBy { it.tab }.toTypedArray(),
+                    spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
+                    verze = novaVerze,
+                )
+            }.join()
+        }
+    }
+
+    private suspend fun stahnoutSchema(schemaRef: StorageReference) = stahnoutSoubor(schemaRef, params.schemaFile)
+
+    private fun Map<String, Map<String, List<List<String>>>>.extrahovatData(): List<Quintuple<MutableList<ZastavkaSpoje>, MutableList<CasKod>, MutableList<Zastavka>, MutableList<Linka>, MutableList<Spoj>>> {
+
+        val pocetRadku = this
             .toList()
             .flatMap { it0 ->
                 it0.second.flatMap {
@@ -277,21 +433,21 @@ class LoadingViewModel(
                 }
             }
             .count()
+
         var indexRadku = 0F
 
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
-        }
-
-        data
+        return this
             .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
-            .forEach { (tab, dataLinky) ->
+            .map { (tab, dataLinky) ->
                 val zastavkySpojeTabulky: MutableList<ZastavkaSpoje> = mutableListOf()
                 val casKodyTabulky: MutableList<CasKod> = mutableListOf()
+                val zastavkyTabulky: MutableList<Zastavka> = mutableListOf()
+                val linkyTabulky: MutableList<Linka> = mutableListOf()
+                val spojeTabulky: MutableList<Spoj> = mutableListOf()
                 dataLinky
                     .toList()
                     .sortedBy { (typTabulky, _) ->
-                        TypyTabulek.values().indexOf(TypyTabulek.valueOf(typTabulky))
+                        TypyTabulek.entries.indexOf(TypyTabulek.valueOf(typTabulky))
                     }
                     .forEach { (typTabulky, tabulka) ->
                         tabulka.forEach radek@{ radek ->
@@ -313,7 +469,7 @@ class LoadingViewModel(
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Zastavky -> zastavky += Zastavka(
+                                TypyTabulek.Zastavky -> zastavkyTabulky += Zastavka(
                                     linka = radek[0].toInt(),
                                     cisloZastavky = radek[1].toInt(),
                                     nazevZastavky = radek[2],
@@ -332,7 +488,7 @@ class LoadingViewModel(
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Linky -> linky += Linka(
+                                TypyTabulek.Linky -> linkyTabulky += Linka(
                                     cislo = radek[0].toInt(),
                                     trasa = radek[1],
                                     typVozidla = Json.decodeFromString("\"${radek[4]}\""),
@@ -343,7 +499,7 @@ class LoadingViewModel(
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Spoje -> spoje += Spoj(
+                                TypyTabulek.Spoje -> spojeTabulky += Spoj(
                                     linka = radek[0].toInt(),
                                     cisloSpoje = radek[1].toInt(),
                                     pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
@@ -378,52 +534,9 @@ class LoadingViewModel(
                             }
                         }
                     }
-
-                zastavkySpoje += zastavkySpojeTabulky
-                casKody += casKodyTabulky
+                Quintuple(zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky)
             }
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
-        }
-
-        val schemaTask = schemaRef.getFile(params.schemaFile)
-
-        schemaTask.addOnFailureListener {
-            throw it
-        }
-
-        schemaTask.addOnProgressListener { snapshot ->
-            _state.update {
-                it.first to snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount
-            }
-        }
-
-        schemaTask.await()
-
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání" to null
-        }
-
-        val verze = referenceVerze.get().await().getValue(TI) ?: -1
-
-        println(spoje)
-        println(linky)
-        println(zastavky)
-        println(zastavkySpoje)
-        println(casKody)
-
-        coroutineScope {
-            launch {
-                repo.zapsat(
-                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.tab, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
-                    zastavky = zastavky.distinctBy { it.tab to it.cisloZastavky }.toTypedArray(),
-                    casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
-                    linky = linky.distinctBy { it.tab }.toTypedArray(),
-                    spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
-                    verze = verze,
-                )
-            }.join()
-        }
     }
+
+    inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
 }
