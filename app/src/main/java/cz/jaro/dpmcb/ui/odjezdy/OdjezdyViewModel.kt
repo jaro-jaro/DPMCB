@@ -72,6 +72,9 @@ class OdjezdyViewModel(
                             ?.let { it.nazev to it.cas!! }
                     }
                     val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
+                    val posledniIndexTyhle = zastavka.zastavkySpoje.indexOfLast { it.nazev == zastavka.nazev }.let {
+                        if (it == indexTyhle) zastavka.zastavkySpoje.lastIndex else it
+                    }
 
                     KartickaState(
                         konecna = posledniZastavka.nazev,
@@ -81,7 +84,7 @@ class OdjezdyViewModel(
                         idSpoje = zastavka.spojId,
                         nizkopodlaznost = zastavka.nizkopodlaznost,
                         zpozdeni = spojNaMape?.delay,
-                        pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i > indexTyhle },
+                        pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i in (indexTyhle + 1)..posledniIndexTyhle },
                         jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
                         pristiZastavka = zastavka.zastavkySpoje.map { it.nazev }.getOrNull(indexTyhle + 1)
                     )
