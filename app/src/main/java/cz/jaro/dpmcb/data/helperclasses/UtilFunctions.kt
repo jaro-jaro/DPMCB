@@ -142,7 +142,7 @@ object UtilFunctions {
 
     @Composable
     fun barvaZpozdeniTextu(zpozdeni: Float) = when {
-        zpozdeni < 0 -> MaterialTheme.colorScheme.onSurfaceVariant
+        zpozdeni < 0 -> Color(0xFF343DFF)
         zpozdeni >= 4.5 -> Color.Red
         zpozdeni >= 1.5 -> Color(0xFFCC6600)
         else -> Color.Green
@@ -150,7 +150,7 @@ object UtilFunctions {
 
     @Composable
     fun barvaZpozdeniBublinyText(zpozdeni: Float) = when {
-        zpozdeni < 0 -> MaterialTheme.colorScheme.background
+        zpozdeni < 0 -> Color(0xFF0000EF)
         zpozdeni >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
         zpozdeni >= 1.5 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
@@ -158,7 +158,7 @@ object UtilFunctions {
 
     @Composable
     fun barvaZpozdeniBublinyKontejner(zpozdeni: Float) = when {
-        zpozdeni < 0 -> MaterialTheme.colorScheme.onBackground
+        zpozdeni < 0 -> Color(0xFFE0E0FF)
         zpozdeni >= 4.5 -> MaterialTheme.colorScheme.errorContainer
         zpozdeni >= 1.5 -> Color(0xFF614000)
         else -> Color(0xFF015140)
