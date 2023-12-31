@@ -500,30 +500,18 @@ fun SpojScreen(
                                 Modifier.weight(1F)
                             ) {
                                 state.zastavky.forEachIndexed { i, it ->
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.Bottom,
-                                    ) {
-                                        MujText(
-                                            text = it.nazev,
-                                            navigate = navigate,
-                                            cas = it.cas,
-                                            zastavka = it.nazev,
-                                            pristiZastavka = it.pristiZastavka,
-                                            linka = it.linka,
-                                            stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
-                                            Modifier.weight(1F, false),
-                                            color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
-                                                MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
-                                        )
-
-                                        if (state is SpojState.OK.Online) Text(
-                                            text = state.zastavkyNaJihu[i].stanoviste,
-                                            Modifier.padding(start = 8.dp),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            maxLines = 1,
-                                        )
-                                    }
+                                    MujText(
+                                        text = it.nazev,
+                                        navigate = navigate,
+                                        cas = it.cas,
+                                        zastavka = it.nazev,
+                                        pristiZastavka = it.pristiZastavka,
+                                        linka = it.linka,
+                                        stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
+                                        Modifier.fillMaxWidth(1F),
+                                        color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
+                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                    )
                                 }
                             }
                             Column(Modifier.padding(start = 8.dp)) {
@@ -569,7 +557,7 @@ fun SpojScreen(
                             Canvas(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .width(14.dp)
+                                    .width(20.dp)
                                     .padding(horizontal = 8.dp),
                                 contentDescription = "Poloha spoje"
                             ) {
