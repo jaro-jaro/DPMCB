@@ -158,4 +158,5 @@ dependencies {
     implementation(libs.konsume.xml)
     implementation(libs.retrofit)
 
+    implementation(libs.stax.api)
 }
