@@ -2,9 +2,10 @@ package cz.jaro.dpmcb.ui.spoj
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
-import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
+import cz.jaro.dpmcb.data.jikord.ZastavkaOnlineSpoje
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
 import java.time.LocalDate
+import java.time.LocalTime
 
 sealed interface SpojState {
     sealed interface OK : SpojState {
@@ -13,6 +14,7 @@ sealed interface SpojState {
         val zastavky: List<CasNazevSpojIdLInkaPristi>
         val cisloLinky: Int
         val nizkopodlaznost: Pair<ImageVector, String>
+        val nizkopodlaznostPotvrzena: Boolean
         val caskody: List<String>
         val pevneKody: List<String>
         val linkaKod: String
@@ -39,7 +41,9 @@ sealed interface SpojState {
             override val vyska: Float,
             override val oblibeny: CastSpoje?,
             override val chyba: Boolean,
-        ) : OK
+        ) : OK {
+            override val nizkopodlaznostPotvrzena = false
+        }
 
         data class Online(
             override val spojId: String,
@@ -56,18 +60,24 @@ sealed interface SpojState {
             override val vyska: Float,
             override val oblibeny: CastSpoje?,
             override val chyba: Boolean,
-            val zpozdeni: Int,
-            val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>,
+            val zastavkyNaJihu: List<ZastavkaOnlineSpoje>,
+            val zpozdeniMin: Float,
+            val vuz: Int?,
+            override val nizkopodlaznostPotvrzena: Boolean,
+            val pristiZastavka: LocalTime,
         ) : OK {
             companion object {
                 operator fun invoke(
                     state: Offline,
-                    zpozdeni: Int,
-                    zastavkyNaJihu: List<ZastavkaSpojeNaJihu>,
+                    zastavkyNaJihu: List<ZastavkaOnlineSpoje>,
+                    zpozdeniMin: Float,
+                    vuz: Int?,
+                    potvrzenaNizkopodlaznost: Pair<ImageVector, String>?,
+                    pristiZastavka: LocalTime,
                 ) = with(state) {
                     Online(
-                        spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
-                        deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zpozdeni, zastavkyNaJihu
+                        spojId, zastavky, cisloLinky, potvrzenaNizkopodlaznost ?: nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
+                        deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zastavkyNaJihu, zpozdeniMin, vuz, potvrzenaNizkopodlaznost != null, pristiZastavka
                     )
                 }
             }

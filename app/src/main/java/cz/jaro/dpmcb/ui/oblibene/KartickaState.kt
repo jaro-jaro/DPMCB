@@ -25,7 +25,7 @@ sealed interface KartickaState {
     data class Online(
         override val spojId: String,
         override val linka: Int,
-        val zpozdeni: Int,
+        val zpozdeni: Float,
         override val vychoziZastavka: String,
         override val vychoziZastavkaCas: LocalTime,
         val aktualniZastavka: String,

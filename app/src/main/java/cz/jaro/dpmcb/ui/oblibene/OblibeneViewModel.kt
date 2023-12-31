@@ -7,7 +7,7 @@ import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.Sextuplet
+import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
@@ -50,7 +50,7 @@ class OblibeneViewModel(
         .flatMapLatest { oblibene ->
             oblibene
                 .map { castSpoje ->
-                    dopravaRepo.spojPodleId(castSpoje.spojId)
+                    dopravaRepo.spojNaMapePodleId(castSpoje.spojId)
                 }
                 .combine {
                     it.nullable()
@@ -59,33 +59,32 @@ class OblibeneViewModel(
                     emit(null)
                 }
                 .combine(repo.datum) { it, datum ->
-                    it?.zip(oblibene) { (spojNaMape, detailSpoje), castSpoje ->
+                    it?.zip(oblibene) { spojNaMape, castSpoje ->
                         val spoj = try {
                             repo.spojSeZastavkySpojeNaKterychStavi(castSpoje.spojId, datum)
                         } catch (e: Exception) {
-                            @Suppress("DEPRECATION")
                             Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
-                        Sextuplet(spojNaMape, detailSpoje, spoj.first, spoj.second, repo.spojJedeV(castSpoje.spojId), castSpoje)
+                        Quintuple(spojNaMape, spoj.first, spoj.second, repo.spojJedeV(castSpoje.spojId), castSpoje)
                     }
                 }
         }
         .combine(repo.datum) { spoje, datum ->
-            (spoje ?: emptyList()).filterNotNull().map { (spojNaMape, detailSpoje, info, zastavky, jedeV, cast) ->
-                if (spojNaMape != null && detailSpoje != null && datum == LocalDate.now()) KartickaState.Online(
+            (spoje ?: emptyList()).filterNotNull().map { (spojNaMape, info, zastavky, jedeV, cast) ->
+                if (spojNaMape?.zpozdeniMin != null && datum == LocalDate.now()) KartickaState.Online(
                     spojId = info.spojId,
                     linka = info.linka,
-                    zpozdeni = spojNaMape.delay,
+                    zpozdeni = spojNaMape.zpozdeniMin,
                     vychoziZastavka = zastavky[cast.start].nazev,
                     vychoziZastavkaCas = zastavky[cast.start].cas,
-                    aktualniZastavka = detailSpoje.stations.indexOfFirst { !it.passed }.let { i -> zastavky[i].nazev },
-                    aktualniZastavkaCas = detailSpoje.stations.indexOfFirst { !it.passed }.let { i -> zastavky[i].cas },
+                    aktualniZastavka = zastavky.last { it.cas == spojNaMape.pristiZastavka }.nazev,
+                    aktualniZastavkaCas = zastavky.last { it.cas == spojNaMape.pristiZastavka }.cas,
                     cilovaZastavka = zastavky[cast.end].nazev,
                     cilovaZastavkaCas = zastavky[cast.end].cas,
                     mistoAktualniZastavky = when {
-                        detailSpoje.stations.indexOfFirst { !it.passed } < cast.start -> -1
-                        detailSpoje.stations.indexOfFirst { !it.passed } > cast.end -> 1
+                        zastavky.indexOfLast { it.cas == spojNaMape.pristiZastavka } < cast.start -> -1
+                        zastavky.indexOfLast { it.cas == spojNaMape.pristiZastavka } > cast.end -> 1
                         else -> 0
                     },
                 )

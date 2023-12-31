@@ -1,14 +1,14 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
 sealed interface OdjezdyState {
-    object Loading : OdjezdyState
+    data object Loading : OdjezdyState
 
     sealed interface NicNejede : OdjezdyState
 
-    object VubecNicNejede : NicNejede
-    object SemNicNejede : NicNejede
-    object LinkaNejede : NicNejede
-    object LinkaSemNejede : NicNejede
+    data object VubecNicNejede : NicNejede
+    data object SemNicNejede : NicNejede
+    data object LinkaNejede : NicNejede
+    data object LinkaSemNejede : NicNejede
 
     data class Jede(
         val seznam: List<KartickaState>,
