@@ -26,11 +26,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -467,10 +467,10 @@ fun SpojScreen(
                             Modifier.padding(top = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.WifiOff, null, Modifier.padding(horizontal = 8.dp))
+                            Icon(Icons.Default.GpsOff, null, Modifier.padding(horizontal = 8.dp))
                             Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
                         }
-                        Text(text = "Pravděpodobně máte slabé připojení k internetu, nebo tento spoj neodesílá data o své poloze.", Modifier.padding(all = 8.dp))
+                        Text(text = "Pravděpodobně máte slabé připojení k internetu, nebo tento spoj neodesílá data o své poloze. Také je možné, že spoj ná zpoždění a ještě nevyjel ze své výchozí zastávky.", Modifier.padding(all = 8.dp))
                     }
                     OutlinedCard(
                         modifier = Modifier
