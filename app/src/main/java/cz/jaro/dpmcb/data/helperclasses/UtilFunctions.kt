@@ -123,7 +123,13 @@ object UtilFunctions {
     inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
-        -1 -> ""
+        -1 -> "-"
+        1 -> "+"
+        else -> ""
+    }
+
+    fun Long.toSign() = when (sign) {
+        -1 -> "-"
         1 -> "+"
         else -> ""
     }
@@ -135,23 +141,26 @@ object UtilFunctions {
     }
 
     @Composable
-    fun barvaZpozdeniTextu(zpozdeni: Int) = when {
-        zpozdeni > 5 -> Color.Red
-        zpozdeni > 1 -> Color(0xFFCC6600)
+    fun barvaZpozdeniTextu(zpozdeni: Float) = when {
+        zpozdeni < 0 -> MaterialTheme.colorScheme.onSurfaceVariant
+        zpozdeni >= 4.5 -> Color.Red
+        zpozdeni >= 1.5 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
-    fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
-        zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni > 1 -> Color(0xFFffddaf)
+    fun barvaZpozdeniBublinyText(zpozdeni: Float) = when {
+        zpozdeni < 0 -> MaterialTheme.colorScheme.background
+        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
+        zpozdeni >= 1.5 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
-    fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
-        zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni > 1 -> Color(0xFF614000)
+    fun barvaZpozdeniBublinyKontejner(zpozdeni: Float) = when {
+        zpozdeni < 0 -> MaterialTheme.colorScheme.onBackground
+        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.errorContainer
+        zpozdeni >= 1.5 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
@@ -207,6 +216,11 @@ object UtilFunctions {
         val list = split(":").map(String::toInt)
         LocalTime.of(list[0], list[1])!!
     } ?: ted)
+
+    fun String.toCasOrNull() = this.run {
+        val list = split(":").map(String::toIntOrNull)
+        LocalTime.of(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
+    }
 
     fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
 

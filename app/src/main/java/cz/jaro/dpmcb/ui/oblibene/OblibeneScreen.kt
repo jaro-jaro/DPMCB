@@ -41,6 +41,7 @@ import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 @Destination
 @RootNavGraph(start = true)
@@ -128,7 +129,7 @@ fun OblibeneScreen(
                         modifier = Modifier.padding(start = 8.dp)
                     ) {
                         Text(
-                            text = it.zpozdeni.run {
+                            text = it.zpozdeni.roundToInt().run {
                                 "${toSign()}$this min"
                             },
                         )

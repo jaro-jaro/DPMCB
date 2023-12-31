@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.WheelchairPickup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
@@ -27,7 +26,6 @@ import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -62,9 +60,8 @@ class SpojViewModel(
             nizkopodlaznost = when {
                 Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
                 spoj.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
                 else -> Icons.Default.NotAccessible
-            } to if (spoj.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
+            } to if (spoj.nizkopodlaznost) "Plánovaný nízkopodlažní vůz" else "Nezaručený nízkopodlažní vůz",
             caskody = caskody.filterNot {
                 !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
             }.groupBy({ it.jede }, {
@@ -104,8 +101,11 @@ class SpojViewModel(
 
     private val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(
-            zpozdeni = spojNaMape?.delay?.minutes,
-            zastavkyNaJihu = detailSpoje?.stations
+            zpozdeni = spojNaMape?.zpozdeniMin?.toDouble()?.minutes,
+            zastavkyNaJihu = detailSpoje,
+            vuz = spojNaMape?.vuz,
+            potvrzenaNizkopodlaznost = spojNaMape?.nizkopodlaznost,
+            pristiZastavka = spojNaMape?.pristiZastavka
         )
     }
         .flowOn(Dispatchers.IO)
@@ -117,7 +117,7 @@ class SpojViewModel(
             datum > LocalDate.now() -> 0
             datum < LocalDate.now() -> info.zastavky.lastIndex
             // Je na mapě && má detail spoje
-            state.zpozdeni != null && state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            state.pristiZastavka != null && state.zastavkyNaJihu != null -> info.zastavky.indexOfLast { it.cas == state.pristiZastavka }.coerceAtLeast(1) - 1
             info.zastavky.last().cas < ted -> info.zastavky.lastIndex
             else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
         }
@@ -156,11 +156,20 @@ class SpojViewModel(
             vyska = vyska,
             projetychUseku = projetychUseku
         ).let { state ->
-            if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null) state
+            if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null || stateZJihu.pristiZastavka == null) state
             else SpojState.OK.Online(
                 state = state,
-                zpozdeni = stateZJihu.zpozdeni.inWholeSeconds.div(60F).roundToInt(),
-                zastavkyNaJihu = stateZJihu.zastavkyNaJihu
+                zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
+                zpozdeniMin = stateZJihu.zpozdeni.inWholeSeconds.div(60F),
+                vuz = stateZJihu.vuz,
+                potvrzenaNizkopodlaznost = stateZJihu.potvrzenaNizkopodlaznost?.let {
+                    when {
+                        Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                        stateZJihu.potvrzenaNizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                        else -> Icons.Default.NotAccessible
+                    } to if (stateZJihu.potvrzenaNizkopodlaznost) "Potvrzeno: Nízkopodlažní vůz" else "Potvrzeno: Nenízkopodlažní vůz"
+                },
+                pristiZastavka = stateZJihu.pristiZastavka,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojState.Loading)

@@ -443,10 +443,8 @@ private fun Karticka(
                     fontSize = 20.sp
                 )
                 if (zjednodusit) Text(
-                    text = if (jedeZa == null || jedeZa < Duration.ZERO) "${kartickaState.cas}"
-                    else jedeZa.asString(),
-                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface
-                    else barvaZpozdeniTextu(zpozdeni),
+                    text = if (jedeZa == null || jedeZa < Duration.ZERO || (jedeZa > Duration.ofHours(1L) && zpozdeni == null)) "${kartickaState.cas}" else jedeZa.asString(),
+                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface else barvaZpozdeniTextu(zpozdeni),
                 ) else {
                     Text(
                         text = "${kartickaState.cas}"

@@ -159,7 +159,7 @@ fun PraveJedouciScreen(
                                 Text(text = spoj.pristiZastavkaNazev, modifier = Modifier.weight(1F))
                                 Text(text = spoj.pristiZastavkaCas.toString())
                                 Text(
-                                    text = spoj.pristiZastavkaCas.plus(spoj.zpozdeni.minutes).toString(),
+                                    text = spoj.pristiZastavkaCas.plus(spoj.zpozdeni.toInt().minutes).toString(),
                                     color = barvaZpozdeniTextu(spoj.zpozdeni),
                                     modifier = Modifier.padding(start = 8.dp)
                                 )

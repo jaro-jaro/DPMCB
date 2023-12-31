@@ -7,7 +7,7 @@ import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
-import cz.jaro.dpmcb.data.spojDPMCBPodleId
+import cz.jaro.dpmcb.data.spojNaMapePodleId
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
@@ -27,6 +27,7 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalTime
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.minutes
 import kotlin.collections.filterNot as remove
 
@@ -56,19 +57,19 @@ class OdjezdyViewModel(
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
             repo.spojeJedouciVdatumZastavujiciNaIndexechZastavkySeZastavkySpoje(datum, params.zastavka)
                 .map {
-                    val spojNaMape = spojeNaMape.spojDPMCBPodleId(it.spojId)
+                    val spojNaMape = spojeNaMape.spojNaMapePodleId(it.spojId)
                     it to spojNaMape
                 }
                 .sortedBy { (zast, spojNaMape) ->
-                    zast.cas.plusMinutes(spojNaMape?.delay?.toLong() ?: 0L)
+                    zast.cas.plusSeconds(spojNaMape?.zpozdeniMin?.times(60)?.roundToLong() ?: 0L)
                 }
                 .map { (zastavka, spojNaMape) ->
 
                     val posledniZastavka = zastavka.zastavkySpoje.last { it.cas != null }
-                    val aktualniNasledujiciZastavka = spojNaMape?.delay?.let { zpozdeni ->
+                    val aktualniNasledujiciZastavka = spojNaMape?.pristiZastavka?.let { pristiZastavka ->
                         zastavka.zastavkySpoje
                             .filter { it.cas != null }
-                            .find { it.cas!!.plusMinutes(zpozdeni.toLong()) > ted }
+                            .findLast { it.cas!! == pristiZastavka }
                             ?.let { it.nazev to it.cas!! }
                     }
                     val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
@@ -82,11 +83,12 @@ class OdjezdyViewModel(
                         cas = zastavka.cas,
                         aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
                         idSpoje = zastavka.spojId,
-                        nizkopodlaznost = zastavka.nizkopodlaznost,
-                        zpozdeni = spojNaMape?.delay,
+                        nizkopodlaznost = spojNaMape?.nizkopodlaznost ?: zastavka.nizkopodlaznost,
+                        nizkopodlaznostPotvrzena = spojNaMape?.nizkopodlaznost != null,
+                        zpozdeni = spojNaMape?.zpozdeniMin,
                         pojedePres = zastavka.zastavkySpoje.map { it.nazev }.filterIndexed { i, _ -> i in (indexTyhle + 1)..posledniIndexTyhle },
-                        jedeZa = spojNaMape?.delay?.let { Duration.between(ted, zastavka.cas + it.minutes) },
-                        pristiZastavka = zastavka.zastavkySpoje.map { it.nazev }.getOrNull(indexTyhle + 1)
+                        jedeZa = Duration.between(ted, zastavka.cas + (spojNaMape?.zpozdeniMin?.toDouble() ?: 0.0).minutes),
+                        pristiZastavka = zastavka.zastavkySpoje.map { it.nazev }.getOrNull(indexTyhle + 1),
                     )
                 }
         }

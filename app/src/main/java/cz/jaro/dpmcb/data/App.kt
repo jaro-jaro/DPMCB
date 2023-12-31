@@ -18,6 +18,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.ksp.generated.defaultModule
+import retrofit2.Retrofit
 
 class App : Application() {
 
@@ -46,10 +47,10 @@ class App : Application() {
                     }
                 }
                 single {
-                    DopravaApi(
-                        ctx = get(),
-                        baseUrl = "https://www.dopravanajihu.cz/idspublicservices/api"
-                    )
+                    Retrofit.Builder()
+                        .baseUrl("https://jih.mpvnet.cz/jikord/")
+                        .build()
+                        .create(DopravaApi::class.java)
                 }
                 single {
                     Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()

@@ -155,4 +155,7 @@ dependencies {
 
     // Web scaping
     implementation(libs.jsoup)
+    implementation(libs.konsume.xml)
+    implementation(libs.retrofit)
+
 }

@@ -1,11 +1,11 @@
 package cz.jaro.dpmcb.ui.jedouci
 
 sealed interface PraveJedouciState {
-    object Offline : PraveJedouciState
+    data object Offline : PraveJedouciState
 
-    object NacitaniLinek : PraveJedouciState
+    data object NacitaniLinek : PraveJedouciState
 
-    object ZadneLinky : PraveJedouciState
+    data object ZadneLinky : PraveJedouciState
 
     sealed interface LinkyNacteny : PraveJedouciState {
         val cislaLinek: List<Int>
