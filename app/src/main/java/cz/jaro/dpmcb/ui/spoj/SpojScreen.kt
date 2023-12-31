@@ -483,7 +483,7 @@ fun SpojScreen(
                             Icon(Icons.Default.GpsOff, null, Modifier.padding(horizontal = 8.dp))
                             Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
                         }
-                        Text(text = "Pravděpodobně máte slabé připojení k internetu, nebo tento spoj neodesílá data o své poloze. Také je možné, že spoj ná zpoždění a ještě nevyjel ze své výchozí zastávky.", Modifier.padding(all = 8.dp))
+                        Text(text = "Pravděpodobně máte slabé připojení k internetu, nebo tento spoj neodesílá data o své poloze. Také je možné, že spoj má zpoždění a ještě nevyjel ze své výchozí zastávky.", Modifier.padding(all = 8.dp))
                     }
                     OutlinedCard(
                         modifier = Modifier
