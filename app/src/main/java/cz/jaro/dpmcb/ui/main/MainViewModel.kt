@@ -59,7 +59,6 @@ class MainViewModel(
         get() = try {
             graph
         } catch (e: IllegalStateException) {
-            @Suppress("DEPRECATION")
             Firebase.crashlytics.recordException(e)
             null
         }
@@ -99,7 +98,6 @@ class MainViewModel(
                         .execute()
                 }
             } catch (e: SocketTimeoutException) {
-                @Suppress("DEPRECATION")
                 Firebase.crashlytics.recordException(e)
                 return@launch
             }
@@ -112,6 +110,13 @@ class MainViewModel(
                 action = Intent.ACTION_VIEW
                 data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$nejnovejsiVerze/Lepsi-DPMCB-v$nejnovejsiVerze.apk")
             })
+        }
+        Unit
+    }
+
+    val oddelatPrukazku = {
+        viewModelScope.launch {
+            repo.zmenitPrukazku(false)
         }
         Unit
     }

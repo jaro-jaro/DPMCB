@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -19,6 +20,7 @@ import cz.jaro.dpmcb.NastaveniActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.ui.destinations.MapaDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
+import cz.jaro.dpmcb.ui.destinations.PrukazkaDestination
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlin.reflect.KClass
@@ -106,6 +108,18 @@ enum class SuplikAkce(
         Icons.Default.Search,
         true,
         onClick = { _, _, _ -> }
+    ),
+    Prukazka(
+        R.string.prukazka,
+        icon = Icons.Default.QrCode,
+        multiselect = true,
+        onClick = { navigate, zavrit, _ ->
+
+            navigate(
+                PrukazkaDestination()
+            )
+            zavrit()
+        }
     ),
     Mapa(
         R.string.mapa_linek,
