@@ -268,7 +268,7 @@ fun MainScreen(
                 actions = {
                     val cas by UtilFunctions.tedFlow.collectAsStateWithLifecycle()
                     if (App.vybrano != SuplikAkce.Prukazka)
-                        Text(cas.toString(), color = MaterialTheme.colorScheme.tertiary)
+                        Text("${cas.hour.dva()}:${cas.minute.dva()}:${cas.second.dva()}", color = MaterialTheme.colorScheme.tertiary)
 
                     if (App.vybrano != SuplikAkce.Prukazka) IconButton(onClick = {
                         if (!jeOnline.value) return@IconButton
@@ -517,6 +517,8 @@ fun MainScreen(
         }
     }
 }
+
+private fun Int.dva() = plus(100).toString().takeLast(2)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
