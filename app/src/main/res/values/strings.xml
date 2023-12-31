@@ -17,6 +17,7 @@
     <string name="detail_spoje">Detail spoje</string>
     <string name="zastavkove_jizdni_rady">Zastávkové jizdní řády</string>
     <string name="vysledky_vyhledavani">Výsledky vyhledávání</string>
+    <string name="nic" />
     <!-- Halo?? Jak vypadaj ty šipky???!!!! -->
     <string name="loading">Načítání dat</string>
     <string name="stahovani_nevypinejte">Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.</string>

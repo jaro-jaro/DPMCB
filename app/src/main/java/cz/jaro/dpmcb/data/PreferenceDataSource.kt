@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
@@ -30,6 +29,7 @@ class PreferenceDataSource(
         val OBLIBENE = stringPreferencesKey("oblibene_useky")
         val NIZKOPODLAZNOST = booleanPreferencesKey("nizkopodlaznost")
         val NASTAVENI = stringPreferencesKey("nastaveni")
+        val PRUKAZKA = booleanPreferencesKey("prukazka")
     }
 
     object DefaultValues {
@@ -37,6 +37,7 @@ class PreferenceDataSource(
         val OBLIBENE = listOf<CastSpoje>()
         const val NIZKOPODLAZNOST = false
         val NASTAVENI = Nastaveni()
+        const val PRUKAZKA = false
     }
 
     val nastaveni = dataStore.data.map { preferences ->
@@ -78,6 +79,16 @@ class PreferenceDataSource(
     suspend fun zmenitNizkopodlaznost(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.NIZKOPODLAZNOST] = value
+        }
+    }
+
+    val maPrukazku = dataStore.data.map {
+        it[PreferenceKeys.PRUKAZKA] ?: DefaultValues.PRUKAZKA
+    }
+
+    suspend fun zmenitPrukazku(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferenceKeys.PRUKAZKA] = value
         }
     }
 }

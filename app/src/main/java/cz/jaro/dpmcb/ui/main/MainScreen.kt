@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
@@ -104,7 +106,6 @@ import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Main(
     link: String?,
@@ -119,7 +120,6 @@ fun Main(
         val destinationFlow = navController.appCurrentDestinationFlow
 
         destinationFlow.collect { destination ->
-            @Suppress("DEPRECATION")
             Firebase.analytics.logEvent("navigation") {
                 param("route", destination.route)
             }
@@ -215,6 +215,7 @@ fun Main(
         aktualizovatAplikaci = viewModel.aktualizovatAplikaci,
         jePotrebaAktualizovatData = jePotrebaAktualizovatData,
         aktualizovatData = viewModel.aktualizovatData,
+        oddelatPrukazku = viewModel.oddelatPrukazku,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -236,6 +237,7 @@ fun MainScreen(
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
     tuDuDum: () -> Unit,
+    oddelatPrukazku: () -> Unit,
     upravitOnlineMod: (Boolean) -> Unit,
     datum: State<LocalDate>,
     upravitDatum: (LocalDate) -> Unit,
@@ -265,9 +267,10 @@ fun MainScreen(
                 },
                 actions = {
                     val cas by UtilFunctions.tedFlow.collectAsStateWithLifecycle()
-                    Text(cas.toString(), color = MaterialTheme.colorScheme.tertiary)
+                    if (App.vybrano != SuplikAkce.Prukazka)
+                        Text(cas.toString(), color = MaterialTheme.colorScheme.tertiary)
 
-                    IconButton(onClick = {
+                    if (App.vybrano != SuplikAkce.Prukazka) IconButton(onClick = {
                         if (!jeOnline.value) return@IconButton
 
                         upravitOnlineMod(!onlineMod.value)
@@ -304,6 +307,19 @@ fun MainScreen(
                             open = false
                         }
                     ) {
+                        if (App.vybrano == SuplikAkce.Prukazka) DropdownMenuItem(
+                            text = {
+                                Text("Odstranit QR kód")
+                            },
+                            onClick = {
+                                oddelatPrukazku()
+                                open = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.DeleteForever, null)
+                            },
+                        )
+
                         DropdownMenuItem(
                             text = {
                                 Text("Připnout zkratku na domovskou obrazovku")
@@ -395,7 +411,13 @@ fun MainScreen(
                             }
                         }
                     )
-                })
+                },
+                colors = if (App.title == R.string.nic)  TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    navigationIconContentColor = Color.Black,
+                    actionIconContentColor = Color.Black,
+                ) else TopAppBarDefaults.topAppBarColors()
+            )
         },
     ) { paddingValues ->
         Surface(
@@ -523,7 +545,7 @@ fun VecZeSupliku(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    @Suppress("DEPRECATION") val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
                     ref.push().setValue("${hodnoceni + 1}/5")
                     hodnoceni = -1
