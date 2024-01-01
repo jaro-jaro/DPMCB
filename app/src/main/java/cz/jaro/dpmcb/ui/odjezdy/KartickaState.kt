@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import androidx.compose.runtime.Stable
 import java.time.Duration
 import java.time.LocalTime
 
@@ -12,7 +11,7 @@ data class KartickaState(
     val cas: LocalTime,
     val idSpoje: String,
     val nizkopodlaznost: Boolean,
-    val nizkopodlaznostPotvrzena: Boolean,
+    val potvrzenaNizkopodlaznost: Boolean?,
     val zpozdeni: Float?,
     val pojedePres: List<String>,
     val jedeZa: Duration?,
