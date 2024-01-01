@@ -1,9 +1,5 @@
 package cz.jaro.dpmcb.ui.spoj
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Accessible
-import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
@@ -26,7 +22,6 @@ import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -57,11 +52,7 @@ class SpojViewModel(
             spojId = spojId,
             zastavky = zastavky,
             cisloLinky = spoj.linka,
-            nizkopodlaznost = when {
-                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                spoj.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                else -> Icons.Default.NotAccessible
-            } to if (spoj.nizkopodlaznost) "Plánovaný nízkopodlažní vůz" else "Nezaručený nízkopodlažní vůz",
+            nizkopodlaznost = spoj.nizkopodlaznost,
             caskody = caskody.filterNot {
                 !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
             }.groupBy({ it.jede }, {
@@ -162,13 +153,7 @@ class SpojViewModel(
                 zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
                 zpozdeniMin = stateZJihu.zpozdeni.inWholeSeconds.div(60F),
                 vuz = stateZJihu.vuz,
-                potvrzenaNizkopodlaznost = stateZJihu.potvrzenaNizkopodlaznost?.let {
-                    when {
-                        Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                        stateZJihu.potvrzenaNizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                        else -> Icons.Default.NotAccessible
-                    } to if (stateZJihu.potvrzenaNizkopodlaznost) "Potvrzeno: Nízkopodlažní vůz" else "Potvrzeno: Nenízkopodlažní vůz"
-                },
+                potvrzenaNizkopodlaznost = stateZJihu.potvrzenaNizkopodlaznost,
                 pristiZastavka = stateZJihu.pristiZastavka,
             )
         }

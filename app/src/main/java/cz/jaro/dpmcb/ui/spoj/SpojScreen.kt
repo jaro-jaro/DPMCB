@@ -25,10 +25,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -96,6 +99,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 
 @Destination
@@ -230,10 +234,27 @@ fun SpojScreen(
                 ) {
                     Text(text = "Linka ${state.cisloLinky}", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     IconWithTooltip(
-                        state.nizkopodlaznost.first,
-                        state.nizkopodlaznost.second,
+                        remember(state.nizkopodlaznost) {
+                            when {
+                                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
+                                state.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                                else -> Icons.Default.NotAccessible
+                            }
+                        },
+                        when {
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> "Potvrzený nenízkopodlažní vůz"
+                            state.nizkopodlaznost -> "Plánovaný nízkopodlažní vůz"
+                            else -> "Nezaručený nízkopodlažní vůz"
+                        },
                         Modifier.padding(start = 8.dp),
-                        tint = if (state.nizkopodlaznostPotvrzena) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        tint = when {
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false && state.nizkopodlaznost -> MaterialTheme.colorScheme.error
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost != null -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
                     )
                     if (state is SpojState.OK.Online) Badge(
                         containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),

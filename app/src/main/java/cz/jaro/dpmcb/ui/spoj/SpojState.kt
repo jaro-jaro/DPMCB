@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.spoj
 
-import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.jikord.ZastavkaOnlineSpoje
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
@@ -13,8 +12,7 @@ sealed interface SpojState {
         val spojId: String
         val zastavky: List<CasNazevSpojIdLInkaPristi>
         val cisloLinky: Int
-        val nizkopodlaznost: Pair<ImageVector, String>
-        val nizkopodlaznostPotvrzena: Boolean
+        val nizkopodlaznost: Boolean
         val caskody: List<String>
         val pevneKody: List<String>
         val linkaKod: String
@@ -30,7 +28,7 @@ sealed interface SpojState {
             override val spojId: String,
             override val zastavky: List<CasNazevSpojIdLInkaPristi>,
             override val cisloLinky: Int,
-            override val nizkopodlaznost: Pair<ImageVector, String>,
+            override val nizkopodlaznost: Boolean,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
             override val linkaKod: String,
@@ -41,15 +39,13 @@ sealed interface SpojState {
             override val vyska: Float,
             override val oblibeny: CastSpoje?,
             override val chyba: Boolean,
-        ) : OK {
-            override val nizkopodlaznostPotvrzena = false
-        }
+        ) : OK
 
         data class Online(
             override val spojId: String,
             override val zastavky: List<CasNazevSpojIdLInkaPristi>,
             override val cisloLinky: Int,
-            override val nizkopodlaznost: Pair<ImageVector, String>,
+            override val nizkopodlaznost: Boolean,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
             override val linkaKod: String,
@@ -63,7 +59,7 @@ sealed interface SpojState {
             val zastavkyNaJihu: List<ZastavkaOnlineSpoje>,
             val zpozdeniMin: Float,
             val vuz: Int?,
-            override val nizkopodlaznostPotvrzena: Boolean,
+            val potvrzenaNizkopodlaznost: Boolean?,
             val pristiZastavka: LocalTime,
         ) : OK {
             companion object {
@@ -72,12 +68,12 @@ sealed interface SpojState {
                     zastavkyNaJihu: List<ZastavkaOnlineSpoje>,
                     zpozdeniMin: Float,
                     vuz: Int?,
-                    potvrzenaNizkopodlaznost: Pair<ImageVector, String>?,
+                    potvrzenaNizkopodlaznost: Boolean?,
                     pristiZastavka: LocalTime,
                 ) = with(state) {
                     Online(
-                        spojId, zastavky, cisloLinky, potvrzenaNizkopodlaznost ?: nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
-                        deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zastavkyNaJihu, zpozdeniMin, vuz, potvrzenaNizkopodlaznost != null, pristiZastavka
+                        spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
+                        deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zastavkyNaJihu, zpozdeniMin, vuz, potvrzenaNizkopodlaznost, pristiZastavka
                     )
                 }
             }
