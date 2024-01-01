@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -80,6 +81,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
+import kotlin.random.Random
 
 @Destination
 @Composable
@@ -420,11 +422,26 @@ private fun Karticka(
                 modifier = Modifier
             ) {
                 IconWithTooltip(
-                    imageVector = when {
-                        kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                        else -> Icons.Default.NotAccessible
+                    remember(kartickaState.nizkopodlaznost) {
+                        when {
+                            Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                            kartickaState.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
+                            kartickaState.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
+                            kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                            else -> Icons.Default.NotAccessible
+                        }
                     },
-                    contentDescription = if (kartickaState.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
+                    when {
+                        kartickaState.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
+                        kartickaState.potvrzenaNizkopodlaznost == false -> "Potvrzený nenízkopodlažní vůz"
+                        kartickaState.nizkopodlaznost -> "Plánovaný nízkopodlažní vůz"
+                        else -> "Nezaručený nízkopodlažní vůz"
+                    },
+                    tint = when {
+                        kartickaState.potvrzenaNizkopodlaznost == false && kartickaState.nizkopodlaznost -> MaterialTheme.colorScheme.error
+                        kartickaState.potvrzenaNizkopodlaznost != null -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
                 )
                 Text(
                     modifier = Modifier.padding(start = 8.dp),
