@@ -42,7 +42,6 @@ fun Prukazka() {
     }
 
     fun getPickMultipleMedia(cb: (Uri?) -> Unit): ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?> {
-        println("BBBBBBBBBB")
         callback = cb
         return launcher
     }
@@ -70,12 +69,11 @@ fun PrukazkaScreen(
     pridatPrukazku: () -> Unit,
 ) {
     Box(
-        Modifier.background(Color.White).fillMaxSize()
+        Modifier.background(Color(0xFFD73139)).fillMaxSize()
     ) {
         if (!maPrukazku || prukazka == null) {
             Button(
                 onClick = {
-                    println("AAAAAAAAAAAA")
                     pridatPrukazku()
                 },
                 Modifier.padding(16.dp)
