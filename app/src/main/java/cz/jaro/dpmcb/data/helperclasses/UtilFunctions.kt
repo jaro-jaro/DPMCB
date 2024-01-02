@@ -272,9 +272,9 @@ object UtilFunctions {
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
-    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.funguj().navigate(it.funguj()) }
-    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
+    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
+    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.funguj()) }
+    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
 
     fun List<Boolean>.allTrue() = all { it }
 
