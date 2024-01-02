@@ -413,9 +413,9 @@ fun MainScreen(
                     )
                 },
                 colors = if (App.title == R.string.nic)  TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    navigationIconContentColor = Color.Black,
-                    actionIconContentColor = Color.Black,
+                    containerColor = Color(0xFFD73139),
+                    navigationIconContentColor = Color.Transparent,
+                    actionIconContentColor = Color.White,
                 ) else TopAppBarDefaults.topAppBarColors()
             )
         },
