@@ -6,7 +6,6 @@ import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineSpoj
@@ -65,9 +64,9 @@ class DopravaRepository(
 
                     val text = response.body() ?: return@withContext null
                     try {
-                        json.decodeFromString<MapData>(text.string()).funguj()
+                        json.decodeFromString<MapData>(text.string())
                     } catch (e: SerializationException) {
-                        e.funguj<SerializationException>()
+                        e.printStackTrace()
                         Firebase.crashlytics.recordException(e)
                         null
                     }
@@ -75,8 +74,8 @@ class DopravaRepository(
                     ?.transmitters
                     ?.filter {
                         it.cn.startsWith("325")
-                    }.funguj()
-                    ?.map(SpojNaMape::toOnlineSpoj).funguj()
+                    }
+                    ?.map(SpojNaMape::toOnlineSpoj)
                     ?: emptyList()
                 else emptyList()
             )
@@ -137,7 +136,6 @@ class DopravaRepository(
                         text.string()
                     }
                         ?.ifBlank { null }
-                        .funguj()
                         ?.replace("<tr class=\"tAlignCentre\"><td>&darr;</td><td><hr></td><td><hr></td><td><hr></td></tr>", "")
                         ?.konsumeXml()
                         ?.run {
@@ -151,7 +149,7 @@ class DopravaRepository(
                                             ZastavkaOnlineSpoje()
                                         }.filterNotNull()
                                     }
-                                }.funguj()
+                                }
                             } catch (e: KonsumerException) {
                                 e.printStackTrace()
                                 Firebase.crashlytics.recordException(e)

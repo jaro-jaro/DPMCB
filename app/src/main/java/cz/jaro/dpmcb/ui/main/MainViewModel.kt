@@ -10,10 +10,14 @@ import androidx.navigation.NavHostController
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
@@ -23,10 +27,12 @@ import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
 class MainViewModel(
     repo: SpojeRepository,
+    dopravaRepository: DopravaRepository,
     @InjectedParam closeDrawer: () -> Unit,
     @InjectedParam link: String?,
     @InjectedParam navController: NavHostController,
@@ -36,6 +42,7 @@ class MainViewModel(
 ) : ViewModel() {
 
     val jeOnline = repo.isOnline
+    val maPrukazku = repo.maPrukazku.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
     val onlineMod = repo.onlineMod
     val upravitOnlineMod = repo::upravitOnlineMod
     val datum = repo.datum
@@ -52,7 +59,7 @@ class MainViewModel(
                 "$name=$value"
             }
         }?.let { "?$it" } ?: ""
-        "$path$args".funguj().replace(Regex("%25([0-9A-F]{2})"), "%$1").funguj()
+        "$path$args".replace(Regex("%25([0-9A-F]{2})"), "%$1")
     }
 
     private val NavController.graphOrNull: NavGraph?
@@ -117,6 +124,15 @@ class MainViewModel(
     val oddelatPrukazku = {
         viewModelScope.launch {
             repo.zmenitPrukazku(false)
+        }
+        Unit
+    }
+
+    val najitSpojPodleEvc = { evc: String, callback: (String?) -> Unit ->
+        viewModelScope.launch {
+            callback(dopravaRepository.seznamSpojuKterePraveJedou().first().find {
+                it.vuz == evc.toIntOrNull()
+            }?.id)
         }
         Unit
     }

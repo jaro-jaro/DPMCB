@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Star
@@ -154,6 +155,7 @@ fun Main(
     }
 
     val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
+    val maPrukazku = viewModel.maPrukazku.collectAsStateWithLifecycle()
     val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
     val datum = viewModel.datum.collectAsStateWithLifecycle()
 
@@ -216,6 +218,8 @@ fun Main(
         jePotrebaAktualizovatData = jePotrebaAktualizovatData,
         aktualizovatData = viewModel.aktualizovatData,
         oddelatPrukazku = viewModel.oddelatPrukazku,
+        maPrukazku = maPrukazku,
+        najitSpojPodleEvc = viewModel.najitSpojPodleEvc,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -237,6 +241,7 @@ fun MainScreen(
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
     tuDuDum: () -> Unit,
+    maPrukazku: State<Boolean>,
     oddelatPrukazku: () -> Unit,
     upravitOnlineMod: (Boolean) -> Unit,
     datum: State<LocalDate>,
@@ -245,6 +250,7 @@ fun MainScreen(
     jePotrebaAktualizovatAplikaci: Boolean,
     aktualizovatData: () -> Unit,
     aktualizovatAplikaci: () -> Unit,
+    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -307,7 +313,7 @@ fun MainScreen(
                             open = false
                         }
                     ) {
-                        if (App.vybrano == SuplikAkce.Prukazka) DropdownMenuItem(
+                        if (App.vybrano == SuplikAkce.Prukazka && maPrukazku.value) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
@@ -317,6 +323,24 @@ fun MainScreen(
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.DeleteForever, null)
+                            },
+                        )
+
+                        if (App.vybrano == SuplikAkce.NajitSpoj) DropdownMenuItem(
+                            text = {
+                                Text("Sdílet spoj")
+                            },
+                            onClick = {
+                                val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
+                                ctx.startActivity(Intent.createChooser(Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, deeplink)
+                                    type = "text/uri-list"
+                                }, "Sdílet spoj"))
+                                open = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Share, null)
                             },
                         )
 
@@ -506,7 +530,8 @@ fun MainScreen(
                                 upravitDatum = upravitDatum,
                                 tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
-                                startActivity = startActivity
+                                startActivity = startActivity,
+                                najitSpojPodleEvc = najitSpojPodleEvc,
                             )
                         }
                     }
@@ -533,6 +558,7 @@ fun VecZeSupliku(
     tuDuDum: () -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
+    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
         var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
@@ -600,10 +626,11 @@ fun VecZeSupliku(
         )
     }
 
-    SuplikAkce.SpojPodleId -> {
+    SuplikAkce.NajitSpoj -> {
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         var id by rememberSaveable { mutableStateOf("") }
         var jmeno by rememberSaveable { mutableStateOf("") }
+        var evc by rememberSaveable { mutableStateOf("") }
         var linka by rememberSaveable { mutableStateOf("") }
         var cislo by rememberSaveable { mutableStateOf("") }
 
@@ -617,6 +644,7 @@ fun VecZeSupliku(
             closeDrawer()
             id = ""
             jmeno = ""
+            evc = ""
             linka = ""
             cislo = ""
         }
@@ -626,6 +654,7 @@ fun VecZeSupliku(
                 zobrazitDialog = false
                 id = ""
                 jmeno = ""
+                evc = ""
                 linka = ""
                 cislo = ""
             },
@@ -643,6 +672,21 @@ fun VecZeSupliku(
                             }
                         }-$cislo"
                     )
+                    else if (evc.isNotEmpty()) {
+                        if (!jeOnline.value) {
+                            showToast("Jste offline", Toast.LENGTH_SHORT)
+                            zobrazitDialog = false
+                            return@TextButton
+                        }
+                        najitSpojPodleEvc(evc) {
+                            if (it == null) {
+                                showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
+                                zobrazitDialog = false
+                                return@najitSpojPodleEvc
+                            }
+                            potvrdit(it)
+                        }
+                    }
                     else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
                     else potvrdit(id)
                 }) {
@@ -713,6 +757,40 @@ fun VecZeSupliku(
                             ),
                         )
                     }
+                    TextField(
+                        value = evc,
+                        onValueChange = {
+                            evc = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("Ev. č. vozu")
+                        },
+                        keyboardActions = KeyboardActions {
+                            if (evc.isNotEmpty()) {
+                                if (!jeOnline.value) {
+                                    showToast("Jste offline", Toast.LENGTH_SHORT)
+                                    zobrazitDialog = false
+                                    return@KeyboardActions
+                                }
+                                najitSpojPodleEvc(evc) {
+                                    if (it == null) {
+                                        showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
+                                        zobrazitDialog = false
+                                        return@najitSpojPodleEvc
+                                    }
+                                    potvrdit(it)
+                                }
+                            }
+                            else
+                                focusManager.moveFocus(FocusDirection.Down)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = if (evc.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                        ),
+                    )
                     TextField(
                         value = jmeno,
                         onValueChange = {

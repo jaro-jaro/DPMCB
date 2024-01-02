@@ -83,7 +83,7 @@ fun PraveJedouciScreen(
         )
 
         PraveJedouciState.ZadneLinky -> Text(
-            text = "Bohužel, zdá se že právě nejede žádná linka. Toto může také nastat pokud má Dopravní podnik výpad svých informačních serverů. V takovém případě nefungují aktuální informace o spojích ani kdekoliv jinde, včetně zastávkových označníků ve městě.",
+            text = "Bohužel, zdá se že právě nejede žádná linka. Toto může také nastat pokud má Dopravní podnik výpadek svých informačních serverů. V takovém případě nefungují aktuální informace o spojích ani kdekoliv jinde, včetně zastávkových označníků ve městě.",
             modifier = Modifier
                 .padding(all = 16.dp)
                 .fillMaxWidth(),

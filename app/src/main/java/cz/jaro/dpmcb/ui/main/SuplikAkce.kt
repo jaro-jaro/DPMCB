@@ -103,7 +103,7 @@ enum class SuplikAkce(
             zavrit()
         }
     ),
-    SpojPodleId(
+    NajitSpoj(
         R.string.spoj_podle_id,
         Icons.Default.Search,
         true,

@@ -33,7 +33,6 @@ class PrukazkaViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     fun pridatPrukazku() {
-        println(params)
         params.getPickMultipleMedia {
             it?.let {
                 viewModelScope.launch {

@@ -112,7 +112,7 @@ fun Spoj(
     navigator: DestinationsNavigator,
 ) {
     title = R.string.detail_spoje
-    App.vybrano = SuplikAkce.SpojPodleId
+    App.vybrano = SuplikAkce.NajitSpoj
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
