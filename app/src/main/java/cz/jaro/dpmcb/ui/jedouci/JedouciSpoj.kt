@@ -7,4 +7,5 @@ data class JedouciSpoj(
     val pristiZastavkaNazev: String,
     val pristiZastavkaCas: LocalTime,
     val zpozdeni: Float,
+    val vuz: Int,
 )
