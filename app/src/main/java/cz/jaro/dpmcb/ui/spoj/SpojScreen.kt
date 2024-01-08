@@ -246,7 +246,7 @@ fun SpojScreen(
                         },
                         when {
                             state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
-                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> "Potvrzený nenízkopodlažní vůz"
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> "Potvrzený vysokopodlažní vůz"
                             state.nizkopodlaznost -> "Plánovaný nízkopodlažní vůz"
                             else -> "Nezaručený nízkopodlažní vůz"
                         },

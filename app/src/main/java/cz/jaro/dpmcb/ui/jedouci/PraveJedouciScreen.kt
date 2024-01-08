@@ -67,6 +67,15 @@ fun PraveJedouciScreen(
     onEvent: (PraveJedouciEvent) -> Unit,
 ) {
     when (state) {
+        PraveJedouciState.NeniDneska -> Text(
+            text = "Pro zobrazení právě jedoucích spojů si změňte datum na dnešek",
+            modifier = Modifier
+                .padding(all = 16.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+
         PraveJedouciState.Offline -> Text(
             text = "Jste offline :(",
             modifier = Modifier
