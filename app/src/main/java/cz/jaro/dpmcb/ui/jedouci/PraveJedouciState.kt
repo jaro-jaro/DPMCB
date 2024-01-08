@@ -2,6 +2,8 @@ package cz.jaro.dpmcb.ui.jedouci
 
 sealed interface PraveJedouciState {
 
+    data object NeniDneska : PraveJedouciState
+
     data object Offline : PraveJedouciState
 
     data class NacitaniLinek(

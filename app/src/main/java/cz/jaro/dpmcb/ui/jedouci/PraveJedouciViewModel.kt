@@ -132,7 +132,9 @@ class PraveJedouciViewModel(
         emit(repo.cislaLinek(LocalDate.now()))
     }
 
-    val state = combine(cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ) { cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ ->
+    val state = combine(repo.datum, cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ ->
+        if (datum != LocalDate.now()) return@combine PraveJedouciState.NeniDneska
+
         if (!jeOnline) return@combine PraveJedouciState.Offline
 
         if (cislaLinek.isEmpty()) return@combine PraveJedouciState.ZadneLinky

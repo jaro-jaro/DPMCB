@@ -6,7 +6,7 @@ enum class TypPraveJedoucich {
     }, Zpozdeni {
         override val jmeno get() = "zpoždění"
     }, EvC {
-        override val jmeno get() = "vozu"
+        override val jmeno get() = "čísla vozu"
     };
 
     abstract val jmeno: String
