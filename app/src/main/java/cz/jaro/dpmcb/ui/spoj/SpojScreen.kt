@@ -87,6 +87,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
@@ -268,7 +269,7 @@ fun SpojScreen(
                     }
                     if (state is SpojState.OK.Online && state.vuz != null) {
                         Text(
-                            text = "ev. č. ${state.vuz}",
+                            text = "ev. č. ${state.vuz.evC()}",
                             Modifier.padding(horizontal = 8.dp)
                         )
                     }

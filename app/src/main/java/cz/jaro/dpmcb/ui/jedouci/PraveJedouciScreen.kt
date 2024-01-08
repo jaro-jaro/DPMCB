@@ -30,6 +30,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
@@ -173,7 +174,7 @@ fun PraveJedouciScreen(
                                                     onEvent(PraveJedouciEvent.KliklNaSpoj(spoj.spojId))
                                                 }
                                         ) {
-                                            Text(text = "${spoj.vuz}: ${spoj.pristiZastavkaNazev}", modifier = Modifier.weight(1F))
+                                            Text(text = "${spoj.vuz.evC()}: ${spoj.pristiZastavkaNazev}", modifier = Modifier.weight(1F))
                                             Text(text = spoj.pristiZastavkaCas.toString())
                                             Text(
                                                 text = spoj.pristiZastavkaCas.plus(spoj.zpozdeni.toInt().minutes).toString(),
@@ -193,7 +194,7 @@ fun PraveJedouciScreen(
                                             }
                                     ) {
                                         Text(text = "${spoj.cisloLinky} -> ${spoj.cilovaZastavka}", modifier = Modifier.weight(1F))
-                                        Text(text = spoj.vuz.toString())
+                                        Text(text = spoj.vuz.evC())
                                     }
                                 }
 
