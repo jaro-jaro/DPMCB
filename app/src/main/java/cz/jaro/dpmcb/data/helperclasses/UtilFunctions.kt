@@ -402,6 +402,7 @@ object UtilFunctions {
         }
     }
 
+    fun Int.evC() = if ("$this".length == 1) "0$this" else "$this"
 }
 
 typealias NavigateFunction = (Direction) -> Unit
