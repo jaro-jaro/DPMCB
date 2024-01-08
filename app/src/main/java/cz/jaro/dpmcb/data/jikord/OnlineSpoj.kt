@@ -18,7 +18,7 @@ data class OnlineSpoj(
 }
 
 fun SpojNaMape.toOnlineSpoj(): OnlineSpoj {
-    val cn = cn.split("|")
+    val cn = cn!!.split("|")
     return OnlineSpoj(
         id = "S-${cn[0]}-${cn[2]}",
         zpozdeniMin = cn[6].toIntOrNull()?.div(60F),

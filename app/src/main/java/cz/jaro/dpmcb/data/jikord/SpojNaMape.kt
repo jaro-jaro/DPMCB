@@ -39,7 +39,7 @@ data class SpojNaMape(
     @SerialName("dt") val dt: String,
     @SerialName("tm") val tm: String,
     @SerialName("ico") val ico: String,
-    @SerialName("cn") val cn: String,
+    @SerialName("cn") val cn: String?,
     @SerialName("plf") val plf: Boolean,
     @SerialName("cat") val cat: Int,
 )

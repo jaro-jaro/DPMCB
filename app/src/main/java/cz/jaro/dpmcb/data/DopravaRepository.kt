@@ -6,6 +6,7 @@ import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineSpoj
@@ -42,7 +43,7 @@ class DopravaRepository(
 
     private val spojeFlow: SharedFlow<List<OnlineSpoj>> = flow {
         while (currentCoroutineContext().isActive) {
-            emit(
+            emit((
                 if (repo.onlineMod.value && repo.datum.value == LocalDate.now()) withContext(Dispatchers.IO) {
                     if (!ctx.isOnline) return@withContext null
                     val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
@@ -71,14 +72,14 @@ class DopravaRepository(
                         null
                     }
                 }
-                    ?.transmitters
+                    ?.transmitters.funguj()
                     ?.filter {
-                        it.cn.startsWith("325")
-                    }
-                    ?.map(SpojNaMape::toOnlineSpoj)
+                        it.cn?.startsWith("325") ?: false
+                    }.funguj()
+                    ?.map(SpojNaMape::toOnlineSpoj).funguj()
                     ?: emptyList()
                 else emptyList()
-            )
+            ).funguj())
             delay(5000)
         }
     }
