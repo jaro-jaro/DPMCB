@@ -9,7 +9,7 @@ import java.time.LocalTime
 data class ZastavkaOnlineSpoje(
     val nazev: String,
     val stanoviste: String,
-    val realnyCas: LocalTime,
+    val pravidelnyCas: LocalTime,
     val zpozdeni: Int,
 )
 
@@ -21,7 +21,7 @@ fun ZastavkaOnlineSpoje(): ZastavkaOnlineSpoje? {
         return ZastavkaOnlineSpoje(
             nazev = deti[0],
             stanoviste = deti[1],
-            realnyCas = deti[2].toCas(),
+            pravidelnyCas = deti[2].toCas(),
             zpozdeni = deti[3].toInt(),
         )
     } catch (e: RuntimeException) {
