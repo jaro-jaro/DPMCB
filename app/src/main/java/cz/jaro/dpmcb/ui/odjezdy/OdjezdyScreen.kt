@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.Checkbox
@@ -29,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,14 +40,18 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,12 +82,15 @@ import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenitCas
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Zrusil
 import cz.jaro.dpmcb.ui.vybirator.TypVybiratoru
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
+import kotlin.math.abs
 
 @Destination
 @Composable
@@ -120,7 +131,11 @@ fun Odjezdy(
 
     LaunchedEffect(Unit) {
         viewModel.scrollovat = {
+            delay(500)
+            println("A ${listState.firstVisibleItemIndex}")
+            println("->$it")
             listState.scrollToItem(it)
+            println("B ${listState.firstVisibleItemIndex}")
         }
         viewModel.navigovat = navigator.navigateFunction
     }
@@ -131,6 +146,7 @@ fun Odjezdy(
                 .flowOn(Dispatchers.IO)
                 .collect {
                     viewModel.onEvent(Scrolluje(it))
+                    println("--${listState.firstVisibleItemIndex}")
                 }
         }
     }
@@ -148,6 +164,7 @@ fun Odjezdy(
     )
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OdjezdyScreen(
@@ -158,213 +175,248 @@ fun OdjezdyScreen(
     jeOnline: Boolean,
     onEvent: (OdjezdyEvent) -> Unit,
     navigate: NavigateFunction,
-) = Column(
-    modifier = Modifier
-        .fillMaxSize()
-) {
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextButton(
+) = Scaffold(
+    floatingActionButton = {
+        val scope = rememberCoroutineScope()
+        val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+        if (state is OdjezdyState.Jede && (listState.canScrollForward || listState.canScrollBackward)) SmallFloatingActionButton(
             onClick = {
-                navigate(VybiratorDestination(TypVybiratoru.ZASTAVKY))
+                scope.launch(Dispatchers.Main) {
+                    listState.animateScrollToItem(state.seznam.domov(info))
+                }
             },
+            Modifier.alpha(
+                when {
+                    !listState.canScrollBackward && i < state.seznam.domov(info) -> 0F
+                    abs(i - state.seznam.domov(info)) == 2 -> .5F
+                    abs(i - state.seznam.domov(info)) < 2 -> 0F
+                    else -> 1F
+                }
+            )
         ) {
-            Text(
-                text = zastavka,
-                fontSize = 20.sp
+            IconWithTooltip(
+                Icons.Default.ArrowUpward,
+                "Scrollovat",
+                Modifier.rotate(
+                    when {
+                        i > state.seznam.domov(info) -> 0F
+                        i < state.seznam.domov(info) -> 180F
+                        else -> 90F
+                    }
+                )
             )
         }
-        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-        if (zobrazitDialog) TimePickerDialog(
-            onDismissRequest = {
-                zobrazitDialog = false
-            },
-            onTimeChange = {
-                onEvent(ZmenitCas(it))
-                zobrazitDialog = false
-            },
-            title = {
-                Text("Změnit čas")
-            },
-            initialTime = info.cas
-        )
-
-        TextButton(
-            onClick = {
-                zobrazitDialog = true
-            }
-        ) {
-            Text(text = info.cas.toString())
-        }
     }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (jeOnline) Surface(
-            checked = info.kompaktniRezim,
-            onCheckedChange = {
-                onEvent(ZmenilKompaktniRezim)
-            },
-            Modifier.padding(all = 8.dp),
-            shape = CircleShape,
-        ) {
-            Row(
-                Modifier.padding(all = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(checked = info.kompaktniRezim, onCheckedChange = {
-                    onEvent(ZmenilKompaktniRezim)
-                })
-                Text("Zjednodušit")
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1F))
-
-        Surface(
-            checked = info.jenOdjezdy,
-            onCheckedChange = {
-                onEvent(ZmenilJenOdjezdy)
-            },
-            Modifier.padding(all = 8.dp),
-            shape = CircleShape,
-        ) {
-            Row(
-                Modifier.padding(all = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(checked = info.jenOdjezdy, onCheckedChange = {
-                    onEvent(ZmenilJenOdjezdy)
-                })
-                Text("Pouze odjezdy")
-            }
-        }
-    }
-
+) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .fillMaxSize()
+            .padding()
     ) {
-        val linkaSource = remember { MutableInteractionSource() }
-        val containerColor = MaterialTheme.colorScheme.surfaceVariant
-        TextField(
-            value = info.filtrLinky?.toString() ?: "Všechny",
-            onValueChange = {},
-            Modifier
-                .fillMaxWidth(),
-            label = {
-                Text(text = "Linka:")
-            },
-            interactionSource = linkaSource,
-            readOnly = true,
-            trailingIcon = {
-                if (info.filtrLinky != null) IconButton(onClick = {
-                    onEvent(Zrusil(TypVybiratoru.LINKA_ZPET))
-                }) {
-                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                }
-            },
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedContainerColor = containerColor,
-                unfocusedContainerColor = containerColor,
-                disabledContainerColor = containerColor,
-            ),
-        )
-        val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-        if (linkaPressedState is PressInteraction.Release) {
-            navigate(
-                VybiratorDestination(
-                    typ = TypVybiratoru.LINKA_ZPET,
-                )
-            )
-            linkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-        }
-        val zastavkaSource = remember { MutableInteractionSource() }
-        TextField(
-            value = info.filtrZastavky ?: "Cokoliv",
-            onValueChange = {},
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-
-            label = {
-                Text(text = "Pojede přes:")
-            },
-            readOnly = true,
-            trailingIcon = {
-                if (info.filtrZastavky != null) IconButton(onClick = {
-                    onEvent(Zrusil(TypVybiratoru.ZASTAVKA_ZPET))
-                }) {
-                    IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                }
-            },
-            interactionSource = zastavkaSource,
-            colors = TextFieldDefaults.colors(
-                focusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedContainerColor = containerColor,
-                unfocusedContainerColor = containerColor,
-                disabledContainerColor = containerColor,
-            ),
-        )
-        val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-        if (zastavkaPressedState is PressInteraction.Release) {
-            navigate(
-                VybiratorDestination(
-                    typ = TypVybiratoru.ZASTAVKA_ZPET,
-                )
-            )
-            zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-        }
-    }
-    when (state) {
-        OdjezdyState.Loading -> Row(
-            Modifier
-                .padding(top = 8.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            CircularProgressIndicator()
-        }
-
-        is OdjezdyState.NicNejede -> Row(
-            Modifier
-                .padding(top = 8.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                when (state) {
-                    OdjezdyState.VubecNicNejede -> "Přes tuto zastávku nic nejede"
-                    OdjezdyState.SemNicNejede -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.filtrZastavky}"
-                    OdjezdyState.LinkaNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}"
-                    OdjezdyState.LinkaSemNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}, který bude zastavovat na zastávce ${info.filtrZastavky}"
+            TextButton(
+                onClick = {
+                    navigate(VybiratorDestination(TypVybiratoru.ZASTAVKY))
                 },
-                Modifier.padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = zastavka,
+                    fontSize = 20.sp
+                )
+            }
+            var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+            if (zobrazitDialog) TimePickerDialog(
+                onDismissRequest = {
+                    zobrazitDialog = false
+                },
+                onTimeChange = {
+                    onEvent(ZmenitCas(it))
+                    zobrazitDialog = false
+                },
+                title = {
+                    Text("Změnit čas")
+                },
+                initialTime = info.cas
             )
+
+            TextButton(
+                onClick = {
+                    zobrazitDialog = true
+                }
+            ) {
+                Text(text = info.cas.toString())
+            }
         }
 
-        is OdjezdyState.Jede -> LazyColumn(
-            state = listState,
-            modifier = Modifier.padding(top = 16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(
-                items = state.seznam,
-                key = { it.idSpoje to it.cas },
-                itemContent = { karticka ->
-                    Karticka(
-                        karticka, onEvent, info.kompaktniRezim, modifier = Modifier
-                            .animateContentSize()
-                            .animateItemPlacement()
-                    )
+            if (jeOnline) Surface(
+                checked = info.kompaktniRezim,
+                onCheckedChange = {
+                    onEvent(ZmenilKompaktniRezim)
+                },
+                Modifier.padding(all = 8.dp),
+                shape = CircleShape,
+            ) {
+                Row(
+                    Modifier.padding(all = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = info.kompaktniRezim, onCheckedChange = {
+                        onEvent(ZmenilKompaktniRezim)
+                    })
+                    Text("Zjednodušit")
                 }
+            }
+
+            Spacer(modifier = Modifier.weight(1F))
+
+            Surface(
+                checked = info.jenOdjezdy,
+                onCheckedChange = {
+                    onEvent(ZmenilJenOdjezdy)
+                },
+                Modifier.padding(all = 8.dp),
+                shape = CircleShape,
+            ) {
+                Row(
+                    Modifier.padding(all = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = info.jenOdjezdy, onCheckedChange = {
+                        onEvent(ZmenilJenOdjezdy)
+                    })
+                    Text("Pouze odjezdy")
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+        ) {
+            val linkaSource = remember { MutableInteractionSource() }
+            val containerColor = MaterialTheme.colorScheme.surfaceVariant
+            TextField(
+                value = info.filtrLinky?.toString() ?: "Všechny",
+                onValueChange = {},
+                Modifier
+                    .fillMaxWidth(),
+                label = {
+                    Text(text = "Linka:")
+                },
+                interactionSource = linkaSource,
+                readOnly = true,
+                trailingIcon = {
+                    if (info.filtrLinky != null) IconButton(onClick = {
+                        onEvent(Zrusil(TypVybiratoru.LINKA_ZPET))
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = info.filtrLinky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedContainerColor = containerColor,
+                    unfocusedContainerColor = containerColor,
+                    disabledContainerColor = containerColor,
+                ),
             )
+            val linkaPressedState by linkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            if (linkaPressedState is PressInteraction.Release) {
+                navigate(
+                    VybiratorDestination(
+                        typ = TypVybiratoru.LINKA_ZPET,
+                    )
+                )
+                linkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            }
+            val zastavkaSource = remember { MutableInteractionSource() }
+            TextField(
+                value = info.filtrZastavky ?: "Cokoliv",
+                onValueChange = {},
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+
+                label = {
+                    Text(text = "Pojede přes:")
+                },
+                readOnly = true,
+                trailingIcon = {
+                    if (info.filtrZastavky != null) IconButton(onClick = {
+                        onEvent(Zrusil(TypVybiratoru.ZASTAVKA_ZPET))
+                    }) {
+                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
+                    }
+                },
+                interactionSource = zastavkaSource,
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = info.filtrZastavky?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedContainerColor = containerColor,
+                    unfocusedContainerColor = containerColor,
+                    disabledContainerColor = containerColor,
+                ),
+            )
+            val zastavkaPressedState by zastavkaSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            if (zastavkaPressedState is PressInteraction.Release) {
+                navigate(
+                    VybiratorDestination(
+                        typ = TypVybiratoru.ZASTAVKA_ZPET,
+                    )
+                )
+                zastavkaSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            }
+        }
+        when (state) {
+            OdjezdyState.Loading -> Row(
+                Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+            }
+
+            is OdjezdyState.NicNejede -> Row(
+                Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    when (state) {
+                        OdjezdyState.VubecNicNejede -> "Přes tuto zastávku nic nejede"
+                        OdjezdyState.SemNicNejede -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.filtrZastavky}"
+                        OdjezdyState.LinkaNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}"
+                        OdjezdyState.LinkaSemNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}, který bude zastavovat na zastávce ${info.filtrZastavky}"
+                    },
+                    Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
+            is OdjezdyState.Jede -> LazyColumn(
+                state = listState,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                items(
+                    items = state.seznam,
+                    key = { it.idSpoje to it.cas },
+                    itemContent = { karticka ->
+                        Karticka(
+                            karticka, onEvent, info.kompaktniRezim, modifier = Modifier
+                                .animateContentSize()
+                                .animateItemPlacement()
+                        )
+                    }
+                )
+            }
         }
     }
 }
@@ -420,13 +472,11 @@ private fun Karticka(
                 modifier = Modifier
             ) {
                 IconWithTooltip(
-                    remember(kartickaState.nizkopodlaznost) {
-                        when {
-                            kartickaState.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
-                            kartickaState.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
-                            kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                            else -> Icons.Default.NotAccessible
-                        }
+                    when {
+                        kartickaState.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
+                        kartickaState.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
+                        kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                        else -> Icons.Default.NotAccessible
                     },
                     when {
                         kartickaState.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
@@ -456,10 +506,13 @@ private fun Karticka(
                     text = kartickaState.konecna,
                     fontSize = 20.sp
                 )
-                if (zjednodusit) Text(
-                    text = if (jedeZa < Duration.ZERO || (jedeZa > Duration.ofHours(1L) && zpozdeni == null)) "${kartickaState.cas}" else jedeZa.asString(),
-                    color = if (zpozdeni == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface else barvaZpozdeniTextu(zpozdeni),
-                ) else {
+
+                if (zjednodusit) {
+                    Text(
+                        text = if (jedeZa < Duration.ZERO || (jedeZa > Duration.ofHours(1L) && zpozdeni == null)) "${kartickaState.cas}" else jedeZa.asString(),
+                        color = if (zpozdeni == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface else barvaZpozdeniTextu(zpozdeni),
+                    )
+                } else {
                     Text(
                         text = "${kartickaState.cas}"
                     )
