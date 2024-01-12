@@ -66,7 +66,6 @@ class MainViewModel(
         get() = try {
             graph
         } catch (e: IllegalStateException) {
-            Firebase.crashlytics.recordException(e)
             null
         }
 

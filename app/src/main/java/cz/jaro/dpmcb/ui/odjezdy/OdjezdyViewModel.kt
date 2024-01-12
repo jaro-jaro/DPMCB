@@ -112,14 +112,11 @@ class OdjezdyViewModel(
                 }
                 .also { filtrovanejSeznam ->
                     if (minulyState == null) return@also
-                    if (minulyState.cas == info.cas && minulyState.filtrZastavky == info.filtrZastavky && minulyState.filtrLinky == info.filtrLinky) return@also
+                    if (minulyState.cas == info.cas && minulyState.jenOdjezdy == info.jenOdjezdy && minulyState.filtrZastavky == info.filtrZastavky && minulyState.filtrLinky == info.filtrLinky) return@also
+                    println("scrolllllllllllll")
                     if (filtrovanejSeznam.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
-                        scrollovat(
-                            filtrovanejSeznam.withIndex().firstOrNull { (_, zast) ->
-                                zast.cas >= info.cas
-                            }?.index ?: filtrovanejSeznam.lastIndex
-                        )
+                        scrollovat(filtrovanejSeznam.domov(info))
                     }
                 }
 
@@ -219,6 +216,14 @@ class OdjezdyViewModel(
                 )
             }
         }
+
+        OdjezdyEvent.Scrollovat -> {
+            viewModelScope.launch(Dispatchers.Main) {
+                if (state.value !is OdjezdyState.Jede) return@launch
+                scrollovat((state.value as OdjezdyState.Jede).seznam.domov(_info.value))
+            }
+            Unit
+        }
     }
 
     init {
@@ -229,9 +234,7 @@ class OdjezdyViewModel(
             withContext(Dispatchers.Main) {
                 val seznam = (state.value as OdjezdyState.Jede).seznam
                 scrollovat(
-                    seznam.withIndex().firstOrNull { (_, zast) ->
-                        zast.cas >= params.cas
-                    }?.index ?: seznam.lastIndex
+                    seznam.domov(OdjezdyInfo(cas = params.cas))
                 )
             }
         }
