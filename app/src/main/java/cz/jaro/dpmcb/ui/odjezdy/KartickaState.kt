@@ -14,5 +14,5 @@ data class KartickaState(
     val potvrzenaNizkopodlaznost: Boolean?,
     val zpozdeni: Float?,
     val pojedePres: List<String>,
-    val jedeZa: Duration?,
+    val jedeZa: Duration,
 )

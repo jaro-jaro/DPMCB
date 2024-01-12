@@ -104,11 +104,11 @@ class SpojViewModel(
 
     private val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
         when {
-            info !is SpojState.OK -> 0
-            datum > LocalDate.now() -> 0
+            info !is SpojState.OK -> null
+            datum > LocalDate.now() -> null
             datum < LocalDate.now() -> info.zastavky.lastIndex
             // Je na mapě && má detail spoje
-            state.pristiZastavka != null && state.zastavkyNaJihu != null -> info.zastavky.indexOfLast { it.cas == state.pristiZastavka }.coerceAtLeast(1) - 1
+            state.pristiZastavka != null -> info.zastavky.indexOfLast { it.cas == state.pristiZastavka }.coerceAtLeast(1) - 1
             info.zastavky.last().cas < ted -> info.zastavky.lastIndex
             else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
         }
@@ -118,26 +118,21 @@ class SpojViewModel(
 
         if (info !is SpojState.OK) return@combine 0F
 
-        if (projetychUseku == 0) return@combine 0F
+        if (projetychUseku == null) return@combine 0F
 
         val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 
-        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni ?: 0.minutes)
+        val casPrijezduDoPristi = state.zastavkyNaJihu?.getOrNull(projetychUseku + 1)?.let {
+            it.pravidelnyCas + it.zpozdeni.minutes + (state.zpozdeni?.inWholeSeconds?.rem(60)?.seconds ?: 0.seconds)
+        } ?: (info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni ?: 0.minutes))
+
+        println(state.zastavkyNaJihu)
+        println(casOdjezduPosledni to casPrijezduDoPristi)
 
         val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(casOdjezduPosledni, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
 
         val ubehlo = Duration.between(casOdjezduPosledni, ted).coerceAtLeast(Duration.ZERO)
 
-//        UtilFunctions.funguj(
-//            ted,
-//            projetychUseku,
-//            casOdjezduPosledni,
-//            casPrijezduDoPristi,
-//            dobaJizdy,
-//            ubehlo,
-//            (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F),
-//            projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
-//        )
         projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
     }
 
@@ -145,7 +140,7 @@ class SpojViewModel(
         if (info !is SpojState.OK) info
         else (info as SpojState.OK.Offline).copy(
             vyska = vyska,
-            projetychUseku = projetychUseku
+            projetychUseku = projetychUseku ?: 0
         ).let { state ->
             if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null || stateZJihu.pristiZastavka == null) state
             else SpojState.OK.Online(
