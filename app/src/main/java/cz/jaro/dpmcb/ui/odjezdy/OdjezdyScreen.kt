@@ -457,13 +457,13 @@ private fun Karticka(
                     fontSize = 20.sp
                 )
                 if (zjednodusit) Text(
-                    text = if (jedeZa == null || jedeZa < Duration.ZERO || (jedeZa > Duration.ofHours(1L) && zpozdeni == null)) "${kartickaState.cas}" else jedeZa.asString(),
-                    color = if (zpozdeni == null || jedeZa == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface else barvaZpozdeniTextu(zpozdeni),
+                    text = if (jedeZa < Duration.ZERO || (jedeZa > Duration.ofHours(1L) && zpozdeni == null)) "${kartickaState.cas}" else jedeZa.asString(),
+                    color = if (zpozdeni == null || jedeZa < Duration.ZERO) MaterialTheme.colorScheme.onSurface else barvaZpozdeniTextu(zpozdeni),
                 ) else {
                     Text(
                         text = "${kartickaState.cas}"
                     )
-                    if (zpozdeni != null) Text(
+                    if (zpozdeni != null && jedeZa > Duration.ZERO) Text(
                         text = "${kartickaState.cas.plusMinutes(zpozdeni.toLong())}",
                         color = barvaZpozdeniTextu(zpozdeni),
                         modifier = Modifier.padding(start = 8.dp)
