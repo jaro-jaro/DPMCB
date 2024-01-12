@@ -51,6 +51,18 @@ class OdjezdyViewModel(
     private val _info = MutableStateFlow(OdjezdyInfo(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
     val info = _info.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            repo.zobrazitJenOdjezdy.collect {
+                _info.update { i ->
+                    i.copy(
+                        jenOdjezdy = it
+                    )
+                }
+            }
+        }
+    }
+
     val maPristupKJihu = repo.maPristupKJihu
 
     private val seznam = repo.datum
@@ -213,7 +225,11 @@ class OdjezdyViewModel(
             _info.update {
                 it.copy(
                     jenOdjezdy = !it.jenOdjezdy
-                )
+                ).also {
+                    viewModelScope.launch {
+                        repo.zmenitOdjezdy(it.jenOdjezdy)
+                    }
+                }
             }
         }
 

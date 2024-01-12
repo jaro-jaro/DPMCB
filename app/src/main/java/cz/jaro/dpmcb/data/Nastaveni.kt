@@ -11,5 +11,4 @@ data class Nastaveni(
     val tema: Theme = Theme.Yellow,
     val autoOnline: Boolean = true,
     val kontrolaAktualizaci: Boolean = true,
-    val zachovavatNizkopodlaznost: Boolean = false,
 )
