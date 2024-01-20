@@ -17,11 +17,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.PlainTooltipBox
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -224,21 +221,17 @@ object UtilFunctions {
         modifier: Modifier = Modifier,
         tooltipText: String? = contentDescription,
         tint: Color = LocalContentColor.current,
-    ) = if (tooltipText != null) TooltipBox(
+    ) = if (tooltipText != null) PlainTooltipBox(
         tooltip = {
-            PlainTooltip {
-                DPMCBTheme(
-                    useDarkTheme = isSystemInDarkTheme(),
-                    useDynamicColor = true,
-                    theme = Theme.Yellow,
-                    doTheThing = false,
-                ) {
-                    Text(text = tooltipText)
-                }
+            DPMCBTheme(
+                useDarkTheme = isSystemInDarkTheme(),
+                useDynamicColor = true,
+                theme = Theme.Yellow,
+                doTheThing = false,
+            ) {
+                Text(text = tooltipText)
             }
         },
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        state = rememberTooltipState(),
     ) {
         Icon(
             imageVector = imageVector,
@@ -398,7 +391,7 @@ object UtilFunctions {
         softWrap: Boolean = true,
         maxLines: Int = Int.MAX_VALUE,
         minLines: Int = 1,
-        onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+        onTextLayout: (TextLayoutResult) -> Unit = {},
         style: TextStyle? = null,
     ) {
         item(

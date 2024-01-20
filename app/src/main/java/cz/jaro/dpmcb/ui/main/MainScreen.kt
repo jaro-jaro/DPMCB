@@ -93,6 +93,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
+import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
@@ -102,11 +103,13 @@ import cz.jaro.dpmcb.ui.vybirator.autoFocus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Main(
     link: String?,
@@ -169,6 +172,7 @@ fun Main(
                     PraveJedouciDestination::class -> entry.navArgs<PraveJedouciDestination.NavArgs>()
                     OdjezdyDestination::class -> entry.navArgs<OdjezdyDestination.NavArgs>()
                     SpojDestination::class -> entry.navArgs<SpojDestination.NavArgs>()
+                    KurzDestination::class -> entry.navArgs<KurzDestination.NavArgs>()
                     VybiratorDestination::class -> entry.navArgs<VybiratorDestination.NavArgs>()
                     JizdniRadyDestination::class -> entry.navArgs<JizdniRadyDestination.NavArgs>()
                     else -> Unit
@@ -844,6 +848,83 @@ fun VecZeSupliku(
             onClick = {
                 zobrazitDialog = true
 //                focusRequester.requestFocus()
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+    }
+
+    SuplikAkce.Kurz -> {
+        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+        var ids by rememberSaveable { mutableStateOf("") }
+
+        fun potvrdit(spojIds: List<String>) {
+            navigate(
+                KurzDestination(
+                    spojIds = spojIds.toTypedArray()
+                )
+            )
+            zobrazitDialog = false
+            closeDrawer()
+            ids = ""
+        }
+
+        if (zobrazitDialog) AlertDialog(
+            onDismissRequest = {
+                zobrazitDialog = false
+                ids = ""
+            },
+            title = {
+                Text(stringResource(id = R.string.detail_kurzu))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    potvrdit(Json.decodeFromString(ids))
+                }) {
+                    Text("Vyhledat")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    zobrazitDialog = false
+                    ids = ""
+                }) {
+                    Text("Zrušit")
+                }
+            },
+            text = {
+                Column {
+                    TextField(
+                        value = ids,
+                        onValueChange = {
+                            ids = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .autoFocus()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("JSON seznamu ID spojů")
+                        },
+                        keyboardActions = KeyboardActions {
+                            potvrdit(Json.decodeFromString(ids))
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Search,
+                        ),
+                    )
+                }
+            }
+        )
+        NavigationDrawerItem(
+            label = {
+                Text(stringResource(akce.jmeno))
+            },
+            icon = {
+                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+            },
+            selected = App.vybrano == akce,
+            onClick = {
+                zobrazitDialog = true
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )

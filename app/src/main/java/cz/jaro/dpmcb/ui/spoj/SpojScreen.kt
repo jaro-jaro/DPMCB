@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.NotAccessible
@@ -126,7 +126,7 @@ fun Spoj(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SpojScreen(
     state: SpojState,
@@ -238,9 +238,9 @@ fun SpojScreen(
                         remember(state.nizkopodlaznost) {
                             when {
                                 Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.Default.Accessible
                                 state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
-                                state.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                                state.nizkopodlaznost -> Icons.Default.Accessible
                                 else -> Icons.Default.NotAccessible
                             }
                         },

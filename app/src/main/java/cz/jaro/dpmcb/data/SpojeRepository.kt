@@ -21,6 +21,9 @@ import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +39,7 @@ import org.koin.core.annotation.Single
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.Month
 
 @Single
@@ -179,6 +183,15 @@ class SpojeRepository(
         ).filter { (_, _, _, pevneKody) ->
             datum.jedeDnes(pevneKody)
         }
+
+    suspend fun zobrazitKurz(idcka: List<String>, datum: LocalDate) = coroutineScope {
+        idcka.map { id ->
+            async {
+                if (id.startsWith("K-")) LinkaNizkopodlaznostSpojId(false, 0, id) to listOf(CasNazevSpojId(LocalTime.of(0, 0), "Potenciální návaznost na kurz ${id.removePrefix("K-").split("-").joinToString("/")}", id))
+                else spojSeZastavkySpojeNaKterychStavi(id, datum)
+            }
+        }.awaitAll()
+    }
 
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,

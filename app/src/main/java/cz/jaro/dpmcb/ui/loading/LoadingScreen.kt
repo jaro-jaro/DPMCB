@@ -160,7 +160,7 @@ fun LoadingScreen(
             } else {
                 val animatedProgress by animateFloatAsState(progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
                 LinearProgressIndicator(
-                    progress = { animatedProgress },
+                    progress = animatedProgress ,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),

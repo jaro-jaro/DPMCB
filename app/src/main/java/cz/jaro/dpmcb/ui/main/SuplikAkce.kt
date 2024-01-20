@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DepartureBoard
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.LinearScale
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.QrCode
@@ -106,6 +107,12 @@ enum class SuplikAkce(
     NajitSpoj(
         R.string.spoj_podle_id,
         Icons.Default.Search,
+        true,
+        onClick = { _, _, _ -> }
+    ),
+    Kurz(
+        R.string.detail_kurzu,
+        Icons.Default.LinearScale,
         true,
         onClick = { _, _, _ -> }
     ),

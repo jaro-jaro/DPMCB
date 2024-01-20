@@ -60,7 +60,7 @@ fun PraveJedouci(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PraveJedouciScreen(
     state: PraveJedouciState,
