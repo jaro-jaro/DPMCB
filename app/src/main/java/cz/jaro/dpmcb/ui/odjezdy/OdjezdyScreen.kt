@@ -91,6 +91,7 @@ import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalTime
 import kotlin.math.abs
+import kotlin.math.roundToLong
 
 @Destination
 @Composable
@@ -536,7 +537,7 @@ private fun Karticka(
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nasledujiciZastavka.second.toString(),
+                        text = nasledujiciZastavka.second.plusMinutes(zpozdeni.roundToLong()).toString(),
                         color = barvaZpozdeniTextu(zpozdeni)
                     )
                 }
