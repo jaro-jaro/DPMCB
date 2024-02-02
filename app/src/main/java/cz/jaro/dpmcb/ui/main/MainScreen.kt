@@ -17,7 +17,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -889,13 +888,13 @@ fun VecZeSupliku(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Vybrat nové datum")
-                    IconButton(
+                    TextButton(
                         onClick = {
                             upravitDatum(LocalDate.now())
                             zobrazitDialog = false
                         }
                     ) {
-                        IconWithTooltip(Icons.Default.CalendarToday, "Nastavit dnes")
+                        Text("Dnes")
                     }
                 }
             },

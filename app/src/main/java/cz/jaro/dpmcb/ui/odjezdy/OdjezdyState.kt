@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import java.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -22,5 +21,5 @@ sealed interface OdjezdyState {
 }
 
 fun List<KartickaState>.domov(info: OdjezdyInfo) = withIndex().firstOrNull { (_, zast) ->
-    zast.cas + (if (zast.jedeZa!! > Duration.ZERO && zast.zpozdeni != null) zast.zpozdeni.toDouble().minutes else 0.seconds) >= info.cas
-}.funguj()?.index ?: lastIndex
+    zast.cas + (if (zast.jedeZa > Duration.ZERO && zast.zpozdeni != null) zast.zpozdeni.toDouble().minutes else 0.seconds) >= info.cas
+}?.index ?: lastIndex
