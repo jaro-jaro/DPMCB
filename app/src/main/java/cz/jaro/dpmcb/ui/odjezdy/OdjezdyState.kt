@@ -20,6 +20,6 @@ sealed interface OdjezdyState {
     ) : OdjezdyState
 }
 
-fun List<KartickaState>.domov(info: OdjezdyInfo) = withIndex().firstOrNull { (_, zast) ->
+fun List<KartickaState>.domov(info: OdjezdyInfo) = (withIndex().firstOrNull { (_, zast) ->
     zast.cas + (if (zast.jedeZa > Duration.ZERO && zast.zpozdeni != null) zast.zpozdeni.toDouble().minutes else 0.seconds) >= info.cas
-}?.index ?: lastIndex
+}?.index ?: lastIndex) + 1
