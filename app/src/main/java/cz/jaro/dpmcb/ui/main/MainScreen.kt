@@ -17,10 +17,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Star
@@ -44,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,7 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
@@ -104,7 +106,6 @@ import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Main(
     link: String?,
@@ -119,7 +120,6 @@ fun Main(
         val destinationFlow = navController.appCurrentDestinationFlow
 
         destinationFlow.collect { destination ->
-            @Suppress("DEPRECATION")
             Firebase.analytics.logEvent("navigation") {
                 param("route", destination.route)
             }
@@ -154,6 +154,7 @@ fun Main(
     }
 
     val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
+    val maPrukazku = viewModel.maPrukazku.collectAsStateWithLifecycle()
     val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
     val datum = viewModel.datum.collectAsStateWithLifecycle()
 
@@ -215,6 +216,9 @@ fun Main(
         aktualizovatAplikaci = viewModel.aktualizovatAplikaci,
         jePotrebaAktualizovatData = jePotrebaAktualizovatData,
         aktualizovatData = viewModel.aktualizovatData,
+        oddelatPrukazku = viewModel.oddelatPrukazku,
+        maPrukazku = maPrukazku,
+        najitSpojPodleEvc = viewModel.najitSpojPodleEvc,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -236,6 +240,8 @@ fun MainScreen(
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
     tuDuDum: () -> Unit,
+    maPrukazku: State<Boolean>,
+    oddelatPrukazku: () -> Unit,
     upravitOnlineMod: (Boolean) -> Unit,
     datum: State<LocalDate>,
     upravitDatum: (LocalDate) -> Unit,
@@ -243,6 +249,7 @@ fun MainScreen(
     jePotrebaAktualizovatAplikaci: Boolean,
     aktualizovatData: () -> Unit,
     aktualizovatAplikaci: () -> Unit,
+    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -265,9 +272,10 @@ fun MainScreen(
                 },
                 actions = {
                     val cas by UtilFunctions.tedFlow.collectAsStateWithLifecycle()
-                    Text(cas.toString(), color = MaterialTheme.colorScheme.tertiary)
+                    if (App.vybrano != SuplikAkce.Prukazka)
+                        Text("${cas.hour.dva()}:${cas.minute.dva()}:${cas.second.dva()}", color = MaterialTheme.colorScheme.tertiary)
 
-                    IconButton(onClick = {
+                    if (App.vybrano != SuplikAkce.Prukazka) IconButton(onClick = {
                         if (!jeOnline.value) return@IconButton
 
                         upravitOnlineMod(!onlineMod.value)
@@ -304,6 +312,37 @@ fun MainScreen(
                             open = false
                         }
                     ) {
+                        if (App.vybrano == SuplikAkce.Prukazka && maPrukazku.value) DropdownMenuItem(
+                            text = {
+                                Text("Odstranit QR kód")
+                            },
+                            onClick = {
+                                oddelatPrukazku()
+                                open = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.DeleteForever, null)
+                            },
+                        )
+
+                        if (App.vybrano == SuplikAkce.NajitSpoj) DropdownMenuItem(
+                            text = {
+                                Text("Sdílet spoj")
+                            },
+                            onClick = {
+                                val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
+                                ctx.startActivity(Intent.createChooser(Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, deeplink)
+                                    type = "text/uri-list"
+                                }, "Sdílet spoj"))
+                                open = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Share, null)
+                            },
+                        )
+
                         DropdownMenuItem(
                             text = {
                                 Text("Připnout zkratku na domovskou obrazovku")
@@ -395,7 +434,13 @@ fun MainScreen(
                             }
                         }
                     )
-                })
+                },
+                colors = if (App.title == R.string.nic)  TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFD73139),
+                    navigationIconContentColor = Color.Transparent,
+                    actionIconContentColor = Color.White,
+                ) else TopAppBarDefaults.topAppBarColors()
+            )
         },
     ) { paddingValues ->
         Surface(
@@ -484,7 +529,8 @@ fun MainScreen(
                                 upravitDatum = upravitDatum,
                                 tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
-                                startActivity = startActivity
+                                startActivity = startActivity,
+                                najitSpojPodleEvc = najitSpojPodleEvc,
                             )
                         }
                     }
@@ -495,6 +541,8 @@ fun MainScreen(
         }
     }
 }
+
+private fun Int.dva() = plus(100).toString().takeLast(2)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -509,6 +557,7 @@ fun VecZeSupliku(
     tuDuDum: () -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
+    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
         var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
@@ -523,7 +572,7 @@ fun VecZeSupliku(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    @Suppress("DEPRECATION") val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
                     ref.push().setValue("${hodnoceni + 1}/5")
                     hodnoceni = -1
@@ -576,10 +625,11 @@ fun VecZeSupliku(
         )
     }
 
-    SuplikAkce.SpojPodleId -> {
+    SuplikAkce.NajitSpoj -> {
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         var id by rememberSaveable { mutableStateOf("") }
         var jmeno by rememberSaveable { mutableStateOf("") }
+        var evc by rememberSaveable { mutableStateOf("") }
         var linka by rememberSaveable { mutableStateOf("") }
         var cislo by rememberSaveable { mutableStateOf("") }
 
@@ -593,6 +643,7 @@ fun VecZeSupliku(
             closeDrawer()
             id = ""
             jmeno = ""
+            evc = ""
             linka = ""
             cislo = ""
         }
@@ -602,6 +653,7 @@ fun VecZeSupliku(
                 zobrazitDialog = false
                 id = ""
                 jmeno = ""
+                evc = ""
                 linka = ""
                 cislo = ""
             },
@@ -619,6 +671,21 @@ fun VecZeSupliku(
                             }
                         }-$cislo"
                     )
+                    else if (evc.isNotEmpty()) {
+                        if (!jeOnline.value) {
+                            showToast("Jste offline", Toast.LENGTH_SHORT)
+                            zobrazitDialog = false
+                            return@TextButton
+                        }
+                        najitSpojPodleEvc(evc) {
+                            if (it == null) {
+                                showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
+                                zobrazitDialog = false
+                                return@najitSpojPodleEvc
+                            }
+                            potvrdit(it)
+                        }
+                    }
                     else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
                     else potvrdit(id)
                 }) {
@@ -689,6 +756,41 @@ fun VecZeSupliku(
                             ),
                         )
                     }
+                    TextField(
+                        value = evc,
+                        onValueChange = {
+                            evc = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("Ev. č. vozu")
+                        },
+                        keyboardActions = KeyboardActions {
+                            if (evc.isNotEmpty()) {
+                                if (!jeOnline.value) {
+                                    showToast("Jste offline", Toast.LENGTH_SHORT)
+                                    zobrazitDialog = false
+                                    return@KeyboardActions
+                                }
+                                najitSpojPodleEvc(evc) {
+                                    if (it == null) {
+                                        showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
+                                        zobrazitDialog = false
+                                        return@najitSpojPodleEvc
+                                    }
+                                    potvrdit(it)
+                                }
+                            }
+                            else
+                                focusManager.moveFocus(FocusDirection.Down)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = if (evc.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                            keyboardType = KeyboardType.Number,
+                        ),
+                    )
                     TextField(
                         value = jmeno,
                         onValueChange = {
@@ -787,13 +889,13 @@ fun VecZeSupliku(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Vybrat nové datum")
-                    IconButton(
+                    TextButton(
                         onClick = {
                             upravitDatum(LocalDate.now())
                             zobrazitDialog = false
                         }
                     ) {
-                        IconWithTooltip(Icons.Default.CalendarToday, "Nastavit dnes")
+                        Text("Dnes")
                     }
                 }
             },

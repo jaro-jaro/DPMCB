@@ -1,10 +1,5 @@
 package cz.jaro.dpmcb.ui.spoj
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Accessible
-import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.WheelchairPickup
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
@@ -27,8 +22,6 @@ import org.koin.core.annotation.InjectedParam
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.roundToInt
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -59,12 +52,7 @@ class SpojViewModel(
             spojId = spojId,
             zastavky = zastavky,
             cisloLinky = spoj.linka,
-            nizkopodlaznost = when {
-                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                spoj.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                Random.nextFloat() < .33F -> Icons.Default.WheelchairPickup
-                else -> Icons.Default.NotAccessible
-            } to if (spoj.nizkopodlaznost) "Nízkopodlažní vůz" else "Nenízkopodlažní vůz",
+            nizkopodlaznost = spoj.nizkopodlaznost,
             caskody = caskody.filterNot {
                 !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
             }.groupBy({ it.jede }, {
@@ -104,8 +92,11 @@ class SpojViewModel(
 
     private val stateZJihu = dopravaRepo.spojPodleId(spojId).map { (spojNaMape, detailSpoje) ->
         SpojStateZJihu(
-            zpozdeni = spojNaMape?.delay?.minutes,
-            zastavkyNaJihu = detailSpoje?.stations
+            zpozdeni = spojNaMape?.zpozdeniMin?.toDouble()?.minutes,
+            zastavkyNaJihu = detailSpoje,
+            vuz = spojNaMape?.vuz,
+            potvrzenaNizkopodlaznost = spojNaMape?.nizkopodlaznost,
+            pristiZastavka = spojNaMape?.pristiZastavka
         )
     }
         .flowOn(Dispatchers.IO)
@@ -113,13 +104,14 @@ class SpojViewModel(
 
     private val projetychUseku = combine(info, stateZJihu, tedFlow, repo.datum) { info, state, ted, datum ->
         when {
-            info !is SpojState.OK -> 0
-            datum > LocalDate.now() -> 0
+            info !is SpojState.OK -> null
+            info.zastavky.isEmpty() -> null
+            datum > LocalDate.now() -> null
             datum < LocalDate.now() -> info.zastavky.lastIndex
             // Je na mapě && má detail spoje
-            state.zpozdeni != null && state.zastavkyNaJihu != null -> state.zastavkyNaJihu.indexOfLast { it.passed }.coerceAtLeast(0)
+            state.pristiZastavka != null -> info.zastavky.indexOfLast { it.cas == state.pristiZastavka }.coerceAtLeast(1) - 1
             info.zastavky.last().cas < ted -> info.zastavky.lastIndex
-            else -> info.zastavky.indexOfLast { it.cas < ted }.takeUnless { it == -1 } ?: 0
+            else -> info.zastavky.indexOfLast { it.cas < ted }.coerceAtLeast(0)
         }
     }
 
@@ -127,26 +119,18 @@ class SpojViewModel(
 
         if (info !is SpojState.OK) return@combine 0F
 
-        if (projetychUseku == 0) return@combine 0F
+        if (projetychUseku == null) return@combine 0F
 
         val casOdjezduPosledni = info.zastavky[projetychUseku].cas + (state.zpozdeni ?: 0.minutes)
 
-        val casPrijezduDoPristi = info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni ?: 0.minutes)
+        val casPrijezduDoPristi = state.zastavkyNaJihu?.getOrNull(projetychUseku + 1)?.let {
+            it.pravidelnyCas + it.zpozdeni.minutes + (state.zpozdeni?.inWholeSeconds?.rem(60)?.seconds ?: 0.seconds)
+        } ?: (info.zastavky.getOrNull(projetychUseku + 1)?.cas?.plus(state.zpozdeni ?: 0.minutes))
 
         val dobaJizdy = casPrijezduDoPristi?.let { Duration.between(casOdjezduPosledni, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
 
         val ubehlo = Duration.between(casOdjezduPosledni, ted).coerceAtLeast(Duration.ZERO)
 
-//        UtilFunctions.funguj(
-//            ted,
-//            projetychUseku,
-//            casOdjezduPosledni,
-//            casPrijezduDoPristi,
-//            dobaJizdy,
-//            ubehlo,
-//            (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F),
-//            projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
-//        )
         projetychUseku + (ubehlo.seconds / dobaJizdy.seconds.toFloat()).coerceAtMost(1F)
     }
 
@@ -154,13 +138,16 @@ class SpojViewModel(
         if (info !is SpojState.OK) info
         else (info as SpojState.OK.Offline).copy(
             vyska = vyska,
-            projetychUseku = projetychUseku
+            projetychUseku = projetychUseku ?: 0
         ).let { state ->
-            if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null) state
+            if (stateZJihu.zpozdeni == null || stateZJihu.zastavkyNaJihu == null || stateZJihu.pristiZastavka == null) state
             else SpojState.OK.Online(
                 state = state,
-                zpozdeni = stateZJihu.zpozdeni.inWholeSeconds.div(60F).roundToInt(),
-                zastavkyNaJihu = stateZJihu.zastavkyNaJihu
+                zastavkyNaJihu = stateZJihu.zastavkyNaJihu,
+                zpozdeniMin = stateZJihu.zpozdeni.inWholeSeconds.div(60F),
+                vuz = stateZJihu.vuz,
+                potvrzenaNizkopodlaznost = stateZJihu.potvrzenaNizkopodlaznost,
+                pristiZastavka = stateZJihu.pristiZastavka,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SpojState.Loading)

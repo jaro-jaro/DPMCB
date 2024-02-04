@@ -25,12 +25,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -43,6 +46,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -65,6 +69,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,6 +87,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
@@ -94,6 +100,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 
 @Destination
 @Composable
@@ -105,7 +113,7 @@ fun Spoj(
     navigator: DestinationsNavigator,
 ) {
     title = R.string.detail_spoje
-    App.vybrano = SuplikAkce.SpojPodleId
+    App.vybrano = SuplikAkce.NajitSpoj
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -118,7 +126,7 @@ fun Spoj(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpojScreen(
     state: SpojState,
@@ -221,24 +229,51 @@ fun SpojScreen(
 
             is SpojState.OK -> {
                 Row(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxWidth()
                         .padding(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "Linka ${state.cisloLinky}", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                     IconWithTooltip(
-                        state.nizkopodlaznost.first, state.nizkopodlaznost.second, modifier = Modifier.padding(start = 8.dp)
+                        remember(state.nizkopodlaznost) {
+                            when {
+                                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
+                                state.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
+                                else -> Icons.Default.NotAccessible
+                            }
+                        },
+                        when {
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> "Potvrzený vysokopodlažní vůz"
+                            state.nizkopodlaznost -> "Plánovaný nízkopodlažní vůz"
+                            else -> "Nezaručený nízkopodlažní vůz"
+                        },
+                        Modifier.padding(start = 8.dp),
+                        tint = when {
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false && state.nizkopodlaznost -> MaterialTheme.colorScheme.error
+                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost != null -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
                     )
                     if (state is SpojState.OK.Online) Badge(
-                        containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeni),
-                        contentColor = barvaZpozdeniBublinyText(state.zpozdeni),
+                        containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
+                        contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
                     ) {
                         Text(
-                            text = state.zpozdeni.run {
-                                "${toSign()}$this min"
+                            text = state.zpozdeniMin.toDouble().minutes.run {
+                                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
                             },
                         )
                     }
+                    if (state is SpojState.OK.Online && state.vuz != null) {
+                        Text(
+                            text = "ev. č. ${state.vuz.evC()}",
+                            Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+
                     Spacer(Modifier.weight(1F))
 
                     var show by remember { mutableStateOf(false) }
@@ -467,10 +502,10 @@ fun SpojScreen(
                             Modifier.padding(top = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.WifiOff, null, Modifier.padding(horizontal = 8.dp))
+                            Icon(Icons.Default.GpsOff, null, Modifier.padding(horizontal = 8.dp))
                             Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
                         }
-                        Text(text = "Pravděpodobně máte slabé připojení k internetu, nebo tento spoj neodesílá data o své poloze.", Modifier.padding(all = 8.dp))
+                        Text(text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel ze své výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data", Modifier.padding(all = 8.dp))
                     }
                     OutlinedCard(
                         modifier = Modifier
@@ -484,18 +519,20 @@ fun SpojScreen(
                                 .padding(12.dp)
                         ) {
                             Column(
-                                Modifier.weight(1F, false)
+                                Modifier.weight(1F)
                             ) {
                                 state.zastavky.forEachIndexed { i, it ->
                                     MujText(
                                         text = it.nazev,
-                                        color = if (state is SpojState.OK.Online && i == state.zastavkyNaJihu.indexOfFirst { !it.passed })
-                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                         navigate = navigate,
                                         cas = it.cas,
                                         zastavka = it.nazev,
                                         pristiZastavka = it.pristiZastavka,
                                         linka = it.linka,
+                                        stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
+                                        Modifier.fillMaxWidth(1F),
+                                        color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
+                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                     )
                                 }
                             }
@@ -503,13 +540,14 @@ fun SpojScreen(
                                 state.zastavky.forEachIndexed { i, it ->
                                     MujText(
                                         text = it.cas.toString(),
-                                        color = if (state is SpojState.OK.Online && i == state.zastavkyNaJihu.indexOfFirst { !it.passed })
-                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                         navigate = navigate,
                                         cas = it.cas,
                                         zastavka = it.nazev,
                                         pristiZastavka = it.pristiZastavka,
                                         linka = it.linka,
+                                        stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
+                                        color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
+                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                     )
                                 }
                             }
@@ -518,13 +556,14 @@ fun SpojScreen(
                                     .zip(state.zastavkyNaJihu)
                                     .forEach { (zastavka, zastavkaNaJihu) ->
                                         MujText(
-                                            text = if (!zastavkaNaJihu.passed) (zastavka.cas.plusMinutes(state.zpozdeni.toLong())).toString() else "",
-                                            color = barvaZpozdeniTextu(state.zpozdeni),
+                                            text = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()).toString(),
                                             navigate = navigate,
-                                            cas = zastavka.cas,
+                                            cas = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()),
                                             zastavka = zastavka.nazev,
                                             pristiZastavka = zastavka.pristiZastavka,
                                             linka = zastavka.linka,
+                                            stanoviste = zastavkaNaJihu.stanoviste,
+                                            color = barvaZpozdeniTextu(zastavkaNaJihu.zpozdeni.toFloat()),
                                         )
                                     }
                             }
@@ -540,7 +579,7 @@ fun SpojScreen(
                             Canvas(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .width(14.dp)
+                                    .width(20.dp)
                                     .padding(horizontal = 8.dp),
                                 contentDescription = "Poloha spoje"
                             ) {
@@ -749,12 +788,15 @@ fun SpojScreen(
 @Composable
 fun MujText(
     text: String,
-    color: Color = Color.Unspecified,
     navigate: NavigateFunction,
     cas: LocalTime,
     zastavka: String,
     pristiZastavka: String?,
     linka: Int,
+    stanoviste: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    style: TextStyle = LocalTextStyle.current,
 ) = Box {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
     pristiZastavka?.let {
@@ -764,6 +806,27 @@ fun MujText(
                 showDropDown = false
             }
         ) {
+            DropdownMenuItem(
+                text = {
+                    Text("$zastavka $stanoviste")
+                },
+                onClick = {},
+                enabled = false
+            )
+            DropdownMenuItem(
+                text = {
+                    Text("Zobrazit odjezdy")
+                },
+                onClick = {
+                    navigate(
+                        OdjezdyDestination(
+                            cas = cas,
+                            zastavka = zastavka,
+                        )
+                    )
+                    showDropDown = false
+                },
+            )
             DropdownMenuItem(
                 text = {
                     Text("Zobrazit zastávkové JŘ")
@@ -784,7 +847,7 @@ fun MujText(
     Text(
         text = text,
         color = color,
-        modifier = Modifier
+        modifier = modifier
             .combinedClickable(
                 onClick = {
                     navigate(
@@ -800,6 +863,7 @@ fun MujText(
             )
             .defaultMinSize(24.dp, 24.dp),
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+        overflow = TextOverflow.Ellipsis,
+        style = style,
     )
 }

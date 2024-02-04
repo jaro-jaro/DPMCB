@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
@@ -29,23 +28,31 @@ class PreferenceDataSource(
         val VERZE = intPreferencesKey("verze")
         val OBLIBENE = stringPreferencesKey("oblibene_useky")
         val NIZKOPODLAZNOST = booleanPreferencesKey("nizkopodlaznost")
+        val ODJEZDY = booleanPreferencesKey("odjezdy")
         val NASTAVENI = stringPreferencesKey("nastaveni")
+        val PRUKAZKA = booleanPreferencesKey("prukazka")
     }
 
     object DefaultValues {
         const val VERZE = -1
         val OBLIBENE = listOf<CastSpoje>()
         const val NIZKOPODLAZNOST = false
+        const val ODJEZDY = false
         val NASTAVENI = Nastaveni()
+        const val PRUKAZKA = false
+    }
+
+    private val json = Json {
+        ignoreUnknownKeys = true
     }
 
     val nastaveni = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.NASTAVENI]?.let { Json.decodeFromString<Nastaveni>(it) } ?: DefaultValues.NASTAVENI
+        preferences[PreferenceKeys.NASTAVENI]?.let { json.decodeFromString<Nastaveni>(it) } ?: DefaultValues.NASTAVENI
     }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), DefaultValues.NASTAVENI)
 
     suspend fun zmenitNastaveni(update: (Nastaveni) -> Nastaveni) {
         dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.NASTAVENI]?.let { Json.decodeFromString(it) } ?: DefaultValues.NASTAVENI
+            val lastValue = preferences[PreferenceKeys.NASTAVENI]?.let { json.decodeFromString(it) } ?: DefaultValues.NASTAVENI
             preferences[PreferenceKeys.NASTAVENI] = Json.encodeToString(update(lastValue))
         }
     }
@@ -78,6 +85,26 @@ class PreferenceDataSource(
     suspend fun zmenitNizkopodlaznost(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.NIZKOPODLAZNOST] = value
+        }
+    }
+
+    val odjezdy = dataStore.data.map {
+        it[PreferenceKeys.ODJEZDY] ?: DefaultValues.ODJEZDY
+    }
+
+    suspend fun zmenitOdjezdy(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferenceKeys.ODJEZDY] = value
+        }
+    }
+
+    val maPrukazku = dataStore.data.map {
+        it[PreferenceKeys.PRUKAZKA] ?: DefaultValues.PRUKAZKA
+    }
+
+    suspend fun zmenitPrukazku(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferenceKeys.PRUKAZKA] = value
         }
     }
 }

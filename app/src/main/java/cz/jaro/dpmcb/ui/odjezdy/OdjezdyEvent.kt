@@ -13,4 +13,7 @@ sealed interface OdjezdyEvent {
     data class Zrusil(val typVybiratoru: TypVybiratoru) : OdjezdyEvent
     data object ZmenilKompaktniRezim : OdjezdyEvent
     data object ZmenilJenOdjezdy : OdjezdyEvent
+    data object Scrollovat : OdjezdyEvent
+    data object DalsiDen : OdjezdyEvent
+    data object PredchoziDen : OdjezdyEvent
 }

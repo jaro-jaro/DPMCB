@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.MapInfo
+import androidx.room.MapColumn
 import androidx.room.Query
 import androidx.room.Transaction
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -321,7 +321,6 @@ interface Dao {
     suspend fun spojSeZastavkamiPodleId(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
 
     @Transaction
-    @MapInfo(keyColumn = "id")
     @Query(
         """
         SELECT spoj.id, CASE
@@ -338,7 +337,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevCasAIndex>>
+    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasAIndex>>
 
     @Query(
         """

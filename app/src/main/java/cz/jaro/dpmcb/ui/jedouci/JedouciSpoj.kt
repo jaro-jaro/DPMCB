@@ -6,5 +6,6 @@ data class JedouciSpoj(
     val spojId: String,
     val pristiZastavkaNazev: String,
     val pristiZastavkaCas: LocalTime,
-    val zpozdeni: Int,
+    val zpozdeni: Float,
+    val vuz: Int,
 )

@@ -11,7 +11,8 @@ data class KartickaState(
     val cas: LocalTime,
     val idSpoje: String,
     val nizkopodlaznost: Boolean,
-    val zpozdeni: Int?,
+    val potvrzenaNizkopodlaznost: Boolean?,
+    val zpozdeni: Float?,
     val pojedePres: List<String>,
-    val jedeZa: Duration?,
+    val jedeZa: Duration,
 )

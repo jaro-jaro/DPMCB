@@ -345,8 +345,6 @@ class LoadingViewModel(
 
             val N = if (schema) 5 else 4
 
-            println(N)
-
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
             }

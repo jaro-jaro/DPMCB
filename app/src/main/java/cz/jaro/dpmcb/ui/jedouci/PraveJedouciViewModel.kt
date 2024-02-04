@@ -9,16 +9,13 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel.JedouciSpojADalsiVeci.Companion.jenJedouciSpoje
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
 import org.koin.android.annotation.KoinViewModel
@@ -35,9 +32,11 @@ class PraveJedouciViewModel(
 
     data class Parameters(
         val filtry: List<Int>,
+        val typ: TypPraveJedoucich,
         val navigate: NavigateFunction,
     )
 
+    private val typ = MutableStateFlow(params.typ)
     private val filtry = MutableStateFlow(params.filtry)
     private val nacitaSe = MutableStateFlow(true)
 
@@ -46,74 +45,85 @@ class PraveJedouciViewModel(
             if (e.cisloLinky in filtry.value) filtry.value -= (e.cisloLinky) else filtry.value += (e.cisloLinky)
         }
 
+        is PraveJedouciEvent.ZmenitTyp -> {
+            typ.value = e.typ
+        }
+
         is PraveJedouciEvent.KliklNaSpoj -> {
             params.navigate(SpojDestination(spojId = e.spojId))
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val seznam = filtry.map {
+    private val vysledek = filtry.map {
         it.ifEmpty { null }
     }
-        .combine(dopravaRepo.spojeDPMCBNaMape()) { filtry, spojeNaMape ->
+        .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { filtry, spojeNaMape ->
             nacitaSe.value = true
             filtry?.let {
                 spojeNaMape
                     .filter {
-                        it.lineNumber?.minus(325_000) in filtry
+                        it.linka in filtry
                     }
-                    .map { spojNaMape ->
-                        spojNaMape.id
-                    }
-            } ?: emptyList()
+                    .asSequence()
+            } ?: spojeNaMape.asSequence()
         }
-        .flatMapLatest { idcka ->
-            idcka
-                .map { id ->
-                    dopravaRepo.spojPodleId(id)
-                }
-                .combine {
-                    it.asSequence()
-                }
-                .onEmpty {
-                    emit(emptySequence())
-                }
-        }
-        .map { spoje ->
+        .combine(typ) { spoje, typ ->
             spoje
-                .mapNotNull { (spojNaMape, detailSpoje) ->
-                    detailSpoje?.let { spojNaMape?.to(it) }
-                }
                 .asFlow()
-                .mapNotNull { (spojNaMape, detailSpoje) ->
+                .mapNotNull { spojNaMape ->
                     repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now()).let { (spoj, zastavky) ->
                         JedouciSpojADalsiVeci(
                             spojId = spoj.id,
-                            pristiZastavkaNazev = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].nazev,
-                            pristiZastavkaCas = zastavky[detailSpoje.stations.indexOfFirst { !it.passed }].cas!!,
-                            zpozdeni = spojNaMape.delay,
-                            indexNaLince = detailSpoje.stations.indexOfFirst { !it.passed },
+                            pristiZastavkaNazev = zastavky.lastOrNull { it.cas == spojNaMape.pristiZastavka }?.nazev ?: return@mapNotNull null,
+                            pristiZastavkaCas = zastavky.lastOrNull { it.cas == spojNaMape.pristiZastavka }?.cas ?: return@mapNotNull null,
+                            zpozdeni = spojNaMape.zpozdeniMin ?: return@mapNotNull null,
+                            indexNaLince = zastavky.indexOfLast { it.cas == spojNaMape.pristiZastavka },
                             smer = spoj.smer,
                             cisloLinky = spoj.linka - 325_000,
                             cil = zastavky.last().nazev,
+                            vuz = spojNaMape.vuz ?: return@mapNotNull null,
                         )
                     }
                 }
                 .toList()
-                .sortedWith(
-                    compareBy<JedouciSpojADalsiVeci> { it.cisloLinky }
-                        .thenBy { it.smer }
-                        .thenBy { it.cil }
-                        .thenBy { it.indexNaLince }
-                        .thenByDescending { it.pristiZastavkaCas }
-                )
-                .groupBy { it.cisloLinky to it.cil }
-                .map { (_, seznam) ->
-                    JedouciLinkaVeSmeru(
-                        cisloLinky = seznam.first().cisloLinky,
-                        cilovaZastavka = seznam.first().cil,
-                        spoje = seznam.jenJedouciSpoje()
-                    )
+                .let { it ->
+                    when (typ) {
+                        TypPraveJedoucich.EvC -> it
+                            .sortedWith(
+                                compareBy { it.vuz }
+                            )
+                            .map(JedouciSpojADalsiVeci::toJedouciVuz)
+                            .toVysledek()
+                        TypPraveJedoucich.Poloha -> it
+                            .sortedWith(
+                                compareBy<JedouciSpojADalsiVeci> { it.cisloLinky }
+                                    .thenBy { it.smer }
+                                    .thenBy { it.cil }
+                                    .thenBy { it.indexNaLince }
+                                    .thenByDescending { it.pristiZastavkaCas }
+                            )
+                            .groupBy { it.cisloLinky to it.cil }
+                            .map { (_, seznam) ->
+                                JedouciLinkaVeSmeru(
+                                    cisloLinky = seznam.first().cisloLinky,
+                                    cilovaZastavka = seznam.first().cil,
+                                    spoje = seznam.jenJedouciSpoje()
+                                )
+                            }
+                            .toVysledek()
+
+                        TypPraveJedoucich.Zpozdeni -> it
+                            .sortedWith(
+                                compareByDescending<JedouciSpojADalsiVeci> { it.zpozdeni }
+                                    .thenBy { it.cisloLinky }
+                                    .thenBy { it.smer }
+                                    .thenBy { it.cil }
+                                    .thenBy { it.indexNaLince }
+                                    .thenByDescending { it.pristiZastavkaCas }
+                            )
+                            .map(JedouciSpojADalsiVeci::toJedouciZpozdenySpoj)
+                            .toVysledek()
+                    }
                 }
                 .also { nacitaSe.value = false }
         }
@@ -122,35 +132,49 @@ class PraveJedouciViewModel(
         emit(repo.cislaLinek(LocalDate.now()))
     }
 
-    val state = combine(cislaLinek, seznam, nacitaSe, repo.maPristupKJihu, filtry) { cislaLinek, seznam, nacitaSeSeznam, jeOnline, filtry ->
+    val state = combine(repo.datum, cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ ->
+        if (datum != LocalDate.now()) return@combine PraveJedouciState.NeniDneska
+
         if (!jeOnline) return@combine PraveJedouciState.Offline
 
         if (cislaLinek.isEmpty()) return@combine PraveJedouciState.ZadneLinky
 
-        if (filtry.isEmpty()) return@combine PraveJedouciState.NeniNicVybrano(cislaLinek)
+        if (vysledek.seznam.isNotEmpty()) return@combine PraveJedouciState.OK(cislaLinek, filtry, typ, vysledek)
 
-        if (seznam.isNotEmpty()) return@combine PraveJedouciState.OK(cislaLinek, filtry, seznam)
+        if (nacitaSeSeznam) return@combine PraveJedouciState.Nacitani(cislaLinek, filtry, typ)
 
-        if (nacitaSeSeznam) return@combine PraveJedouciState.Nacitani(cislaLinek, filtry)
-
-        return@combine PraveJedouciState.PraveNicNejede(cislaLinek, filtry)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PraveJedouciState.NacitaniLinek)
+        return@combine PraveJedouciState.PraveNicNejede(cislaLinek, filtry, typ)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PraveJedouciState.NacitaniLinek(params.typ))
 
     data class JedouciSpojADalsiVeci(
         val spojId: String,
         val pristiZastavkaNazev: String,
         val pristiZastavkaCas: LocalTime,
-        val zpozdeni: Int,
+        val zpozdeni: Float,
         val indexNaLince: Int,
         val smer: Smer,
         val cisloLinky: Int,
         val cil: String,
+        val vuz: Int,
     ) {
-        private fun toJedouciSpoj() = JedouciSpoj(
+        fun toJedouciZpozdenySpoj() = JedouciZpozdenySpoj(
+            spojId = spojId,
+            zpozdeni = zpozdeni,
+            cisloLinky = cisloLinky,
+            cilovaZastavka = cil,
+        )
+        fun toJedouciVuz() = JedouciVuz(
+            spojId = spojId,
+            cisloLinky = cisloLinky,
+            cilovaZastavka = cil,
+            vuz = vuz,
+        )
+        fun toJedouciSpoj() = JedouciSpoj(
             spojId = spojId,
             pristiZastavkaNazev = pristiZastavkaNazev,
             pristiZastavkaCas = pristiZastavkaCas,
-            zpozdeni = zpozdeni
+            zpozdeni = zpozdeni,
+            vuz = vuz,
         )
 
         companion object {

@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import android.net.Uri
 import android.widget.Toast
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
+import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Month
@@ -55,6 +57,8 @@ class SpojeRepository(
 
     val zobrazitNizkopodlaznost = preferenceDataSource.nizkopodlaznost
 
+    val zobrazitJenOdjezdy = preferenceDataSource.odjezdy
+
     val oblibene = preferenceDataSource.oblibene
 
     val verze = preferenceDataSource.verze
@@ -62,6 +66,10 @@ class SpojeRepository(
     private val makeText = { text: String ->
         Toast.makeText(ctx, text, Toast.LENGTH_LONG)
     }
+
+    val maPrukazku = preferenceDataSource.maPrukazku
+
+    val prukazka = File(ctx.filesDir, "prukazka.jpg")
 
     init {
         scope.launch {
@@ -214,6 +222,14 @@ class SpojeRepository(
         preferenceDataSource.zmenitNizkopodlaznost(value)
     }
 
+    suspend fun zmenitOdjezdy(value: Boolean) {
+        preferenceDataSource.zmenitOdjezdy(value)
+    }
+
+    suspend fun zmenitPrukazku(value: Boolean) {
+        preferenceDataSource.zmenitPrukazku(value)
+    }
+
     suspend fun upravitOblibeny(cast: CastSpoje) {
         preferenceDataSource.zmenitOblibene { oblibene ->
             listOf(cast).plus(oblibene).distinctBy { it.spojId }
@@ -292,6 +308,16 @@ class SpojeRepository(
             seznam.map { it.first }.filter { !it.jede }.none { datum in it.v },
             datum.jedeDnes(seznam.first().second),
         ).all { it }
+    }
+
+    private val contentResolver = ctx.contentResolver
+
+    fun prekopirovat(oldUri: Uri, newFile: File) {
+        contentResolver.openInputStream(oldUri)!!.use { input ->
+            newFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
     }
 }
 

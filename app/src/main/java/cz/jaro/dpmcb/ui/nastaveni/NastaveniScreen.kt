@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,7 +94,7 @@ fun NastaveniScreen(
                                 onEvent(NastaveniEvent.NavigateBack)
                             }
                         ) {
-                            UtilFunctions.IconWithTooltip(Icons.Default.ArrowBack, "Zpět")
+                            UtilFunctions.IconWithTooltip(Icons.AutoMirrored.Filled.ArrowBack, "Zpět")
                         }
                     }
                 )
@@ -231,23 +231,6 @@ fun NastaveniScreen(
                         onCheckedChange = { value ->
                             onEvent(NastaveniEvent.UpravitNastaveni {
                                 it.copy(kontrolaAktualizaci = value)
-                            })
-                        },
-                    )
-                }
-                rowItem(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Zapamatovat si volbu Zobrazit nízkopodlažnosti v JŘ", Modifier.weight(1F))
-
-                    Switch(
-                        checked = state.nastaveni.zachovavatNizkopodlaznost,
-                        onCheckedChange = { value ->
-                            onEvent(NastaveniEvent.UpravitNastaveni {
-                                it.copy(zachovavatNizkopodlaznost = value)
                             })
                         },
                     )

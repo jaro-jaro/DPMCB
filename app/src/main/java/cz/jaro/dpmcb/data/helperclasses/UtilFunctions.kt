@@ -50,6 +50,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
@@ -112,6 +113,55 @@ object UtilFunctions {
 
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
 
+    /**
+     * Returns a [Flow] whose values are generated with [transform] function by combining
+     * the most recently emitted values by each flow.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T1, T2, T3, T4, T5, T6, R : Any> combine(
+        flow: Flow<T1>,
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        flow4: Flow<T4>,
+        flow5: Flow<T5>,
+        flow6: Flow<T6>,
+        transform: suspend (T1, T2, T3, T4, T5, T6) -> R
+    ): Flow<R> = combine(flow, flow2, flow3, flow4, flow5, flow6) { args: Array<*> ->
+        transform(
+            args[0] as T1,
+            args[1] as T2,
+            args[2] as T3,
+            args[3] as T4,
+            args[4] as T5,
+            args[5] as T6,
+        )
+    }
+    /**
+     * Returns a [Flow] whose values are generated with [transform] function by combining
+     * the most recently emitted values by each flow.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T1, T2, T3, T4, T5, T6, T7, R : Any> combine(
+        flow: Flow<T1>,
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        flow4: Flow<T4>,
+        flow5: Flow<T5>,
+        flow6: Flow<T6>,
+        flow7: Flow<T7>,
+        transform: suspend (T1, T2, T3, T4, T5, T6, T7) -> R
+    ): Flow<R> = combine(flow, flow2, flow3, flow4, flow5, flow6, flow7) { args: Array<*> ->
+        transform(
+            args[0] as T1,
+            args[1] as T2,
+            args[2] as T3,
+            args[3] as T4,
+            args[4] as T5,
+            args[5] as T6,
+            args[6] as T7,
+        )
+    }
+
     fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
     inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
         also { UtilFunctions.funguj(this.transform(), *msg) }
@@ -123,7 +173,13 @@ object UtilFunctions {
     inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
-        -1 -> ""
+        -1 -> "-"
+        1 -> "+"
+        else -> ""
+    }
+
+    fun Long.toSign() = when (sign) {
+        -1 -> "-"
         1 -> "+"
         else -> ""
     }
@@ -135,23 +191,26 @@ object UtilFunctions {
     }
 
     @Composable
-    fun barvaZpozdeniTextu(zpozdeni: Int) = when {
-        zpozdeni > 5 -> Color.Red
-        zpozdeni > 1 -> Color(0xFFCC6600)
+    fun barvaZpozdeniTextu(zpozdeni: Float) = when {
+        zpozdeni < 0 -> Color(0xFF343DFF)
+        zpozdeni >= 4.5 -> Color.Red
+        zpozdeni >= 1.5 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
-    fun barvaZpozdeniBublinyText(zpozdeni: Int) = when {
-        zpozdeni > 5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni > 1 -> Color(0xFFffddaf)
+    fun barvaZpozdeniBublinyText(zpozdeni: Float) = when {
+        zpozdeni < 0 -> Color(0xFF0000EF)
+        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
+        zpozdeni >= 1.5 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
-    fun barvaZpozdeniBublinyKontejner(zpozdeni: Int) = when {
-        zpozdeni > 5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni > 1 -> Color(0xFF614000)
+    fun barvaZpozdeniBublinyKontejner(zpozdeni: Float) = when {
+        zpozdeni < 0 -> Color(0xFFE0E0FF)
+        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.errorContainer
+        zpozdeni >= 1.5 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
@@ -197,7 +256,7 @@ object UtilFunctions {
         )
 
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
-        kotlinx.coroutines.flow.combine(this) { transform(it.toList()) }
+        combine(this) { transform(it.toList()) }
 
     fun String?.toCasDivne() = (this?.run {
         LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())!!
@@ -207,6 +266,11 @@ object UtilFunctions {
         val list = split(":").map(String::toInt)
         LocalTime.of(list[0], list[1])!!
     } ?: ted)
+
+    fun String.toCasOrNull() = this.run {
+        val list = split(":").map(String::toIntOrNull)
+        LocalTime.of(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
+    }
 
     fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
 
@@ -258,9 +322,9 @@ object UtilFunctions {
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
-    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.funguj().navigate(it.funguj()) }
-    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.funguj().navigate(it.funguj { route }) }
+    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
+    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.funguj()) }
+    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
 
     fun List<Boolean>.allTrue() = all { it }
 
@@ -363,6 +427,7 @@ object UtilFunctions {
         }
     }
 
+    fun Int.evC() = if ("$this".length == 1) "0$this" else "$this"
 }
 
 typealias NavigateFunction = (Direction) -> Unit

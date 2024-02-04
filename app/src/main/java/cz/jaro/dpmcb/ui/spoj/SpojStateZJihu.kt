@@ -1,9 +1,12 @@
 package cz.jaro.dpmcb.ui.spoj
 
-import cz.jaro.dpmcb.data.naJihu.ZastavkaSpojeNaJihu
-import kotlin.time.Duration
+import cz.jaro.dpmcb.data.jikord.ZastavkaOnlineSpoje
+import java.time.LocalTime
 
 data class SpojStateZJihu(
-    val zpozdeni: Duration? = null,
-    val zastavkyNaJihu: List<ZastavkaSpojeNaJihu>? = null,
+    val zastavkyNaJihu: List<ZastavkaOnlineSpoje>? = null,
+    val zpozdeni: kotlin.time.Duration? = null,
+    val vuz: Int? = null,
+    val potvrzenaNizkopodlaznost: Boolean? = null,
+    val pristiZastavka: LocalTime? = null,
 )
