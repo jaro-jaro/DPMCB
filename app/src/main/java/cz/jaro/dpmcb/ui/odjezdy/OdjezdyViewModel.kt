@@ -64,6 +64,7 @@ class OdjezdyViewModel(
     }
 
     val maPristupKJihu = repo.maPristupKJihu
+    val datum = repo.datum
 
     private val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->

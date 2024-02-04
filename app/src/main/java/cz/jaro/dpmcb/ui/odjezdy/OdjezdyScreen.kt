@@ -73,6 +73,7 @@ import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
@@ -92,6 +93,7 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
@@ -153,6 +155,7 @@ fun Odjezdy(
     }
 
     val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
+    val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
         info = info,
@@ -160,13 +163,14 @@ fun Odjezdy(
         zastavka = zastavka,
         onEvent = viewModel::onEvent,
         listState = listState,
+        datum = datum,
         navigate = navigator.navigateFunction,
         jeOnline = jeOnline,
     )
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OdjezdyScreen(
     state: OdjezdyState,
@@ -174,6 +178,7 @@ fun OdjezdyScreen(
     zastavka: String,
     listState: LazyListState,
     jeOnline: Boolean,
+    datum: LocalDate,
     onEvent: (OdjezdyEvent) -> Unit,
     navigate: NavigateFunction,
 ) = Scaffold(
@@ -415,7 +420,7 @@ fun OdjezdyScreen(
             ) {
                 Text(
                     when (state) {
-                        OdjezdyState.VubecNicNejede -> "Přes tuto zastávku nic nejede"
+                        OdjezdyState.VubecNicNejede -> "Přes tuto zastávku ${datum.hezky6p()} nic nejede"
                         OdjezdyState.SemNicNejede -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.filtrZastavky}"
                         OdjezdyState.LinkaNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}"
                         OdjezdyState.LinkaSemNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}, který bude zastavovat na zastávce ${info.filtrZastavky}"

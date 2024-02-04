@@ -788,6 +788,7 @@ fun VecZeSupliku(
                         },
                         keyboardOptions = KeyboardOptions(
                             imeAction = if (evc.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                            keyboardType = KeyboardType.Number,
                         ),
                     )
                     TextField(
