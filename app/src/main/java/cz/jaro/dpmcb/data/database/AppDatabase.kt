@@ -7,6 +7,7 @@ import androidx.room.TypeConverters
 import cz.jaro.dpmcb.data.database.AppDatabase.Companion.Converters
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
+import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -14,7 +15,7 @@ import cz.jaro.dpmcb.data.helperclasses.Smer
 import java.time.LocalDate
 import java.time.LocalTime
 
-@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 18)
+@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class, NavaznostKurzu::class], version = 19)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao
@@ -23,7 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
         class Converters {
 
             @TypeConverter
-            fun toSmer(value: Int) = Smer.values()[value]
+            fun toSmer(value: Int) = Smer.entries[value]
 
             @TypeConverter
             fun fromSmer(value: Smer) = value.ordinal

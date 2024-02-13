@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.data.realtions
 import java.time.LocalDate
 import java.time.LocalTime
 
-data class LinkaNizkopodlaznostCasNazevSpojId(
+data class LinkaNizkopodlaznostCasNazevSpojIdTabulka(
     val nizkopodlaznost: Boolean,
     val linka: Int,
     val kurz: String,
@@ -14,4 +14,5 @@ data class LinkaNizkopodlaznostCasNazevSpojId(
     val jede: Boolean,
     val od: LocalDate,
     val `do`: LocalDate,
+    val tab: String,
 )

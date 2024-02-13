@@ -2,22 +2,27 @@ package cz.jaro.dpmcb.ui.spoj
 
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.jikord.ZastavkaOnlineSpoje
-import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLinkaPristi
 import java.time.LocalDate
 import java.time.LocalTime
 
 sealed interface SpojState {
-    sealed interface OK : SpojState {
 
+    sealed interface Existuje : SpojState {
         val spojId: String
-        val zastavky: List<CasNazevSpojIdLInkaPristi>
-        val cisloLinky: Int
-        val nizkopodlaznost: Boolean
         val caskody: List<String>
         val pevneKody: List<String>
         val linkaKod: String
         val nazevSpoje: String
         val deeplink: String
+    }
+
+    sealed interface OK : Existuje {
+
+        val zastavky: List<CasNazevSpojIdLinkaPristi>
+        val cisloLinky: Int
+        val nizkopodlaznost: Boolean
+        val kurz: String?
         val vyluka: Boolean
         val projetychUseku: Int
         val vyska: Float
@@ -26,13 +31,14 @@ sealed interface SpojState {
 
         data class Offline(
             override val spojId: String,
-            override val zastavky: List<CasNazevSpojIdLInkaPristi>,
+            override val zastavky: List<CasNazevSpojIdLinkaPristi>,
             override val cisloLinky: Int,
             override val nizkopodlaznost: Boolean,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
             override val linkaKod: String,
             override val nazevSpoje: String,
+            override val kurz: String?,
             override val deeplink: String,
             override val vyluka: Boolean,
             override val projetychUseku: Int,
@@ -43,13 +49,14 @@ sealed interface SpojState {
 
         data class Online(
             override val spojId: String,
-            override val zastavky: List<CasNazevSpojIdLInkaPristi>,
+            override val zastavky: List<CasNazevSpojIdLinkaPristi>,
             override val cisloLinky: Int,
             override val nizkopodlaznost: Boolean,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
             override val linkaKod: String,
             override val nazevSpoje: String,
+            override val kurz: String?,
             override val deeplink: String,
             override val vyluka: Boolean,
             override val projetychUseku: Int,
@@ -72,7 +79,7 @@ sealed interface SpojState {
                     pristiZastavka: LocalTime,
                 ) = with(state) {
                     Online(
-                        spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje,
+                        spojId, zastavky, cisloLinky, nizkopodlaznost, caskody, pevneKody, linkaKod, nazevSpoje, kurz,
                         deeplink, vyluka, projetychUseku, vyska, oblibeny, chyba, zastavkyNaJihu, zpozdeniMin, vuz, potvrzenaNizkopodlaznost, pristiZastavka
                     )
                 }
@@ -87,9 +94,14 @@ sealed interface SpojState {
     ) : SpojState
 
     data class Nejede(
-        val spojId: String,
+        override val spojId: String,
         val datum: LocalDate,
+        override val caskody: List<String>,
+        override val pevneKody: List<String>,
+        override val linkaKod: String,
+        override val nazevSpoje: String,
+        override val deeplink: String,
         val pristeJedePoDnesku: LocalDate?,
         val pristeJedePoDatu: LocalDate?,
-    ) : SpojState
+    ) : Existuje
 }

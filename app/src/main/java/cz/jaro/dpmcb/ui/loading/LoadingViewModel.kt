@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package cz.jaro.dpmcb.ui.loading
 
 import android.content.Intent
@@ -19,6 +17,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
+import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -30,6 +29,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,6 +66,7 @@ class LoadingViewModel(
         val finish: () -> Unit,
         val schemaFile: File,
         val jrFile: File,
+        val kurzyFile: File,
         val mainActivityIntent: Intent,
         val loadingActivityIntent: Intent,
         val startActivity: (Intent) -> Unit,
@@ -184,11 +185,13 @@ class LoadingViewModel(
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val reference = database.getReference("data${META_VERZE_DAT}/verze")
 
-        val onlineVerze = withTimeoutOrNull(3_000) {
-            reference.get().await().getValue(TI)
-        } ?: -2
+        val onlineVerze = viewModelScope.async {
+            withTimeoutOrNull(3_000) {
+                reference.get().await().getValue(TI)
+            } ?: -2
+        }
 
-        return mistniVerze < onlineVerze
+        return mistniVerze < onlineVerze.await()
     }
 
     private suspend fun jePotrebaAktualizovatAplikaci(): Boolean {
@@ -250,8 +253,8 @@ class LoadingViewModel(
         }
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val referenceVerze = database.getReference("data${META_VERZE_DAT}/verze")
-        val novaVerze = referenceVerze.get().await().getValue(TI) ?: -1
+        val verzeRef = database.getReference("data${META_VERZE_DAT}/verze")
+        val novaVerze = verzeRef.get().await().getValue(TI) ?: -1
         val aktualniVerze = repo.verze.first()
 
         val udelameUplnouAktualizaci = aktualniVerze + 1 != novaVerze
@@ -261,26 +264,24 @@ class LoadingViewModel(
         val casKody: MutableList<CasKod> = mutableListOf()
         val linky: MutableList<Linka> = mutableListOf()
         val spoje: MutableList<Spoj> = mutableListOf()
+        val navaznosti: MutableList<NavaznostKurzu> = mutableListOf()
 
         if (udelameUplnouAktualizaci) {
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/4)" to null
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/6)" to null
             }
 
             db.clearAllTables()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to 0F
             }
 
             val storage = Firebase.storage
+            val kurzyRef = storage.reference.child("kurzy.json")
             val schemaRef = storage.reference.child("schema.pdf")
             val jrRef = storage.reference.child("data${META_VERZE_DAT}/data${novaVerze}.json")
-
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/4)" to 0F
-            }
 
             val jrFile = params.jrFile
 
@@ -290,12 +291,31 @@ class LoadingViewModel(
             ).readText()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (3/4)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/6)" to 0F
+            }
+
+            val kurzyFile = params.kurzyFile
+
+            val json2 = stahnoutSoubor(
+                ref = kurzyRef,
+                file = kurzyFile,
+            ).readText()
+
+            val kurzy = json2.fromJson<Map<String, List<String>>>()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání kurzů (4/6)" to 0F
+            }
+
+            navaznosti += kurzy.extrahovatNavaznosti()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (5/6)" to 0F
             }
 
             val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
-            data.extrahovatData()
+            data.extrahovatData(kurzy)
                 .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
                     zastavkySpoje += zastavkySpojeTabulky
                     casKody += casKodyTabulky
@@ -305,7 +325,7 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (4/4)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
             }
 
             stahnoutSchema(schemaRef)
@@ -315,6 +335,7 @@ class LoadingViewModel(
             }
 
             val storage = Firebase.storage
+            val kurzyRef = storage.reference.child("kurzy.json")
             val schemaRef = storage.reference.child("schema.pdf")
             val zmenyRef = storage.reference.child("data${META_VERZE_DAT}/zmeny$aktualniVerze..$novaVerze.json")
 
@@ -330,7 +351,7 @@ class LoadingViewModel(
             val plus = hodneZmen["+"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
             val minus = hodneZmen["-"]!!.jsonArray.toString().fromJson<List<String>>()
             val zmeny = hodneZmen["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
-            val schema = hodneZmen["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
+            val menitSchema = hodneZmen["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
 
             val minusTabulky = minus
                 .map { it.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
@@ -342,8 +363,12 @@ class LoadingViewModel(
             casKody.addAll(repo.casKody())
             linky.addAll(repo.linky())
             spoje.addAll(repo.spoje())
+            navaznosti.addAll(repo.navaznosti())
 
-            val N = if (schema) 5 else 4
+            val N = when {
+                menitSchema -> 7
+                else -> 6
+            }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
@@ -361,10 +386,29 @@ class LoadingViewModel(
             _state.update { it.first to 5 / 5F }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (3/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$N)" to 0F
             }
 
-            plus.extrahovatData()
+            val kurzyFile = params.kurzyFile
+
+            val json2 = stahnoutSoubor(
+                ref = kurzyRef,
+                file = kurzyFile,
+            ).readText()
+
+            val kurzy = json2.fromJson<Map<String, List<String>>>()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání kurzů (4/$N)" to 0F
+            }
+
+            navaznosti += kurzy.extrahovatNavaznosti()
+
+            _state.update {
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (5/$N)" to 0F
+            }
+
+            plus.extrahovatData(kurzy)
                 .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
                     zastavkySpoje += zastavkySpojeTabulky
                     casKody += casKodyTabulky
@@ -374,10 +418,10 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (6/$N)" to 0F
             }
 
-            zmeny.extrahovatData()
+            zmeny.extrahovatData(kurzy)
                 .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
                     zastavkySpoje += zastavkySpojeTabulky
                     casKody += casKodyTabulky
@@ -386,9 +430,9 @@ class LoadingViewModel(
                     spoje += spojeTabulky
                 }
 
-            if (schema) {
+            if (menitSchema) {
                 _state.update {
-                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
+                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (7/7)" to 0F
                 }
 
                 stahnoutSchema(schemaRef)
@@ -404,6 +448,7 @@ class LoadingViewModel(
         println(zastavky)
         println(zastavkySpoje)
         println(casKody)
+        println(navaznosti)
 
         coroutineScope {
             launch {
@@ -413,15 +458,44 @@ class LoadingViewModel(
                     casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
                     linky = linky.distinctBy { it.tab }.toTypedArray(),
                     spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
+                    navaznosti = navaznosti.distinctBy { it.kurzPotom to it.kurzPredtim }.toTypedArray(),
                     verze = novaVerze,
                 )
             }.join()
         }
     }
 
+    private fun Map<String, List<String>>.extrahovatNavaznosti(): List<NavaznostKurzu> {
+        val c = count()
+        var i = 0F
+
+        return flatMap { (kurz, spoje) ->
+            _state.update {
+                it.first to (++i / c)
+            }
+
+            val predchozi = spoje.takeWhile { it.startsWith("K") }
+            val nasledujici = spoje.takeLastWhile { it.startsWith("K") }
+
+            predchozi.map {
+                NavaznostKurzu(
+                    kurzPredtim = it.removePrefix("K-").split("-").joinToString("/"),
+                    kurzPotom = kurz,
+                )
+            } + nasledujici.map {
+                NavaznostKurzu(
+                    kurzPredtim = kurz,
+                    kurzPotom = it.removePrefix("K-").split("-").joinToString("/"),
+                )
+            }
+        }
+    }
+
     private suspend fun stahnoutSchema(schemaRef: StorageReference) = stahnoutSoubor(schemaRef, params.schemaFile)
 
-    private fun Map<String, Map<String, List<List<String>>>>.extrahovatData(): List<Quintuple<MutableList<ZastavkaSpoje>, MutableList<CasKod>, MutableList<Zastavka>, MutableList<Linka>, MutableList<Spoj>>> {
+    private fun Map<String, Map<String, List<List<String>>>>.extrahovatData(
+        kurzy: Map<String, List<String>>,
+    ): List<Quintuple<MutableList<ZastavkaSpoje>, MutableList<CasKod>, MutableList<Zastavka>, MutableList<Linka>, MutableList<Spoj>>> {
 
         val pocetRadku = this
             .toList()
@@ -509,6 +583,8 @@ class LoadingViewModel(
                                             Smer.fromBoolean(zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu)
                                         },
                                     tab = tab,
+                                    kurz = kurzy.toList().firstOrNull { (_, spoje) -> "S-${radek[0]}-${radek[1]}" in spoje }?.first,
+                                    poradiNaKurzu = kurzy.toList().indexOfFirst { (_, spoje) -> "S-${radek[0]}-${radek[1]}" in spoje }.takeUnless { it == -1 },
                                 ).also { spoj ->
                                     if (casKodyTabulky.none { it.cisloSpoje == spoj.cisloSpoje })
                                         casKodyTabulky += CasKod(

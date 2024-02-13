@@ -26,6 +26,7 @@ class PreferenceDataSource(
 
     object PreferenceKeys {
         val VERZE = intPreferencesKey("verze")
+//        val VERZE_KURZU = intPreferencesKey("verze_kurzu")
         val OBLIBENE = stringPreferencesKey("oblibene_useky")
         val NIZKOPODLAZNOST = booleanPreferencesKey("nizkopodlaznost")
         val ODJEZDY = booleanPreferencesKey("odjezdy")
@@ -35,6 +36,7 @@ class PreferenceDataSource(
 
     object DefaultValues {
         const val VERZE = -1
+//        const val VERZE_KURZU = -1
         val OBLIBENE = listOf<CastSpoje>()
         const val NIZKOPODLAZNOST = false
         const val ODJEZDY = false
@@ -61,11 +63,21 @@ class PreferenceDataSource(
         it[PreferenceKeys.VERZE] ?: DefaultValues.VERZE
     }
 
+//    val SpojverzeKurzu = dataStore.data.map {
+//        it[PreferenceKeys.VERZE_KURZU] ?: DefaultValues.VERZE_KURZU
+//    }
+
     suspend fun zmenitVerzi(value: Int) {
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.VERZE] = value
         }
     }
+
+//    suspend fun zmenitVerziKurzu(value: Int) {
+//        dataStore.edit { preferences ->
+//            preferences[PreferenceKeys.VERZE_KURZU] = value
+//        }
+//    }
 
     val oblibene = dataStore.data.map { preferences ->
         preferences[PreferenceKeys.OBLIBENE]?.let { Json.decodeFromString<List<CastSpoje>>(it) } ?: DefaultValues.OBLIBENE

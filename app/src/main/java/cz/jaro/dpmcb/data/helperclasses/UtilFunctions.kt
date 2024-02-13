@@ -17,8 +17,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltipBox
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -221,7 +224,7 @@ object UtilFunctions {
         modifier: Modifier = Modifier,
         tooltipText: String? = contentDescription,
         tint: Color = LocalContentColor.current,
-    ) = if (tooltipText != null) PlainTooltipBox(
+    ) = if (tooltipText != null) TooltipBox(
         tooltip = {
             DPMCBTheme(
                 useDarkTheme = isSystemInDarkTheme(),
@@ -229,9 +232,13 @@ object UtilFunctions {
                 theme = Theme.Yellow,
                 doTheThing = false,
             ) {
-                Text(text = tooltipText)
+                PlainTooltip {
+                    Text(text = tooltipText)
+                }
             }
         },
+        state = rememberTooltipState(),
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
     ) {
         Icon(
             imageVector = imageVector,

@@ -268,6 +268,7 @@ fun NastaveniScreen(
                 textItem("2021-${LocalDate.now().year} RO studios, člen skupiny JARO")
                 textItem("2019-${LocalDate.now().year} JARO")
                 textItem("Za zobrazená data neručíme")
+                textItem("Veškerá data o kurzech jsou neoficiální")
 
                 item {
                     Text("Simulate crash...", Modifier.clickable {

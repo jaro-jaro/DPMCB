@@ -69,6 +69,7 @@ fun Loading(
                 finish = finish,
                 schemaFile = ctx.schemaFile,
                 jrFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
+                kurzyFile = File(ctx.cacheDir, "kurzy.jaro"),
                 mainActivityIntent = Intent(ctx, MainActivity::class.java),
                 loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
                 startActivity = { it: Intent ->
@@ -160,7 +161,7 @@ fun LoadingScreen(
             } else {
                 val animatedProgress by animateFloatAsState(progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
                 LinearProgressIndicator(
-                    progress = animatedProgress ,
+                    progress = { animatedProgress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),

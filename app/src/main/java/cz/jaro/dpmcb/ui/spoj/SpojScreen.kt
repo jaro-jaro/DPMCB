@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -25,11 +24,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.NotAccessible
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
@@ -76,16 +74,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
@@ -93,6 +89,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
+import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.launch
@@ -126,7 +123,7 @@ fun Spoj(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpojScreen(
     state: SpojState,
@@ -156,6 +153,7 @@ fun SpojScreen(
             }
 
             is SpojState.Nejede -> {
+                @Suppress("KotlinConstantConditions")
                 when {
                     state.pristeJedePoDatu == null && state.pristeJedePoDnesku == null -> {
                         Row(
@@ -225,22 +223,25 @@ fun SpojScreen(
                         }
                     }
                 }
+
+                SpodniRadek(state)
             }
 
             is SpojState.OK -> {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(8.dp), verticalAlignment = Alignment.CenterVertically
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "Linka ${state.cisloLinky}", fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(text = "${state.cisloLinky}", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
                     IconWithTooltip(
                         remember(state.nizkopodlaznost) {
                             when {
                                 Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.Default.Accessible
+                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
                                 state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
-                                state.nizkopodlaznost -> Icons.Default.Accessible
+                                state.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
                                 else -> Icons.Default.NotAccessible
                             }
                         },
@@ -257,24 +258,16 @@ fun SpojScreen(
                             else -> MaterialTheme.colorScheme.onSurface
                         }
                     )
-                    if (state is SpojState.OK.Online) Badge(
-                        containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
-                        contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
-                    ) {
-                        Text(
-                            text = state.zpozdeniMin.toDouble().minutes.run {
-                                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
-                            },
-                        )
-                    }
-                    if (state is SpojState.OK.Online && state.vuz != null) {
-                        Text(
-                            text = "ev. č. ${state.vuz.evC()}",
-                            Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
 
                     Spacer(Modifier.weight(1F))
+
+                    if (state.kurz != null) TextButton(
+                        onClick = {
+                            navigate(KurzDestination(state.kurz!!))
+                        }
+                    ) {
+                        Text("Kurz ${state.kurz!!}")
+                    }
 
                     var show by remember { mutableStateOf(false) }
                     var cast by remember { mutableStateOf(CastSpoje(state.spojId, -1, -1)) }
@@ -470,6 +463,33 @@ fun SpojScreen(
                         }
                     )
                 }
+
+
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state is SpojState.OK.Online) Badge(
+                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
+                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(state.zpozdeniMin),
+                    ) {
+                        Text(
+                            text = state.zpozdeniMin.toDouble().minutes.run {
+                                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
+                            },
+                        )
+                    }
+                    if (state is SpojState.OK.Online && state.vuz != null) {
+                        Text(
+                            text = "ev. č. ${state.vuz.evC()}",
+                            Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+                }
+
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -635,152 +655,145 @@ fun SpojScreen(
                             }
                         }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        var zobrazitMenu by remember { mutableStateOf(false) }
-                        val context = LocalContext.current
 
-                        TextButton(onClick = {
-                            zobrazitMenu = true
-                        }) {
-                            Text("ID: ${state.spojId}")
-                            DropdownMenu(
-                                expanded = zobrazitMenu,
-                                onDismissRequest = {
-                                    zobrazitMenu = false
-                                }
-                            ) {
-                                val clipboardManager = LocalClipboardManager.current
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("Zobrazit v mapě")
-                                    },
-                                    onClick = {},
-                                    enabled = false
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("ID: ${state.spojId}")
-                                    },
-                                    onClick = {},
-                                    trailingIcon = {
-                                        Row {
-                                            IconButton(
-                                                onClick = {
-                                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                                        action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, state.spojId)
-                                                        type = "text/plain"
-                                                    }, "Sdílet ID spoje"))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
-                                            }
-                                            IconButton(
-                                                onClick = {
-                                                    clipboardManager.setText(AnnotatedString(state.spojId))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
-                                            }
-                                        }
-                                    }
-                                )
-                                if (BuildConfig.DEBUG) DropdownMenuItem(
-                                    text = {
-                                        Text("Detail spoje v api na jihu")
-                                    },
-                                    onClick = {
-                                        context.startActivity(Intent.createChooser(Intent().apply {
-                                            action = Intent.ACTION_VIEW
-                                            data = Uri.parse("https://dopravanajihu.cz/idspublicservices/api/servicedetail?id=${state.spojId}")
-                                        }, "Sdílet ID spoje"))
-                                        zobrazitMenu = false
-                                    },
-                                    trailingIcon = {
-                                        IconWithTooltip(Icons.Default.Public, null)
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("Název: ${state.nazevSpoje}")
-                                    },
-                                    onClick = {},
-                                    trailingIcon = {
-                                        Row {
-                                            IconButton(
-                                                onClick = {
-                                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                                        action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
-                                                        type = "text/plain"
-                                                    }, "Sdílet název spoje"))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
-                                            }
-                                            IconButton(
-                                                onClick = {
-                                                    clipboardManager.setText(AnnotatedString(state.nazevSpoje))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
-                                            }
-                                        }
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text("Link: ${state.deeplink.removePrefix("https://jaro-jaro.github.io/DPMCB")}")
-                                    },
-                                    onClick = {},
-                                    trailingIcon = {
-                                        Row {
-                                            IconButton(
-                                                onClick = {
-                                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                                        action = Intent.ACTION_SEND
-                                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
-                                                        type = "text/uri-list"
-                                                    }, "Sdílet deeplink"))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.Share, "Sdílet")
-                                            }
-                                            IconButton(
-                                                onClick = {
-                                                    clipboardManager.setText(AnnotatedString(state.deeplink))
-                                                    zobrazitMenu = false
-                                                }
-                                            ) {
-                                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
-
-                    }
-                    Column {
-                        state.pevneKody.forEach {
-                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        state.caskody.forEach {
-                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(state.linkaKod, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    SpodniRadek(state)
                 }
             }
         }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun SpodniRadek(state: SpojState.Existuje) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
+    ) {
+        var zobrazitMenu by remember { mutableStateOf(false) }
+        val context = LocalContext.current
+
+        TextButton(onClick = {
+            zobrazitMenu = true
+        }) {
+            Text("ID: ${state.spojId}")
+            DropdownMenu(
+                expanded = zobrazitMenu,
+                onDismissRequest = {
+                    zobrazitMenu = false
+                }
+            ) {
+                val clipboardManager = LocalClipboardManager.current
+                DropdownMenuItem(
+                    text = {
+                        Text("Zobrazit v mapě")
+                    },
+                    onClick = {},
+                    enabled = false
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text("ID: ${state.spojId}")
+                    },
+                    onClick = {},
+                    trailingIcon = {
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.spojId)
+                                        type = "text/plain"
+                                    }, "Sdílet ID spoje"))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                            }
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(state.spojId))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                            }
+                        }
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text("Název: ${state.nazevSpoje}")
+                    },
+                    onClick = {},
+                    trailingIcon = {
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.nazevSpoje)
+                                        type = "text/plain"
+                                    }, "Sdílet název spoje"))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                            }
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(state.nazevSpoje))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                            }
+                        }
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text("Link: ${state.deeplink.removePrefix("https://jaro-jaro.github.io/DPMCB")}")
+                    },
+                    onClick = {},
+                    trailingIcon = {
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
+                                        type = "text/uri-list"
+                                    }, "Sdílet deeplink"))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.Share, "Sdílet")
+                            }
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(state.deeplink))
+                                    zobrazitMenu = false
+                                }
+                            ) {
+                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                            }
+                        }
+                    }
+                )
+            }
+        }
+
+    }
+
+    Column {
+        state.pevneKody.forEach {
+            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        state.caskody.forEach {
+            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(state.linkaKod, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

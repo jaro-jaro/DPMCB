@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
@@ -35,6 +35,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -556,9 +557,9 @@ private fun Karticka(
             ) {
                 IconWithTooltip(
                     when {
-                        kartickaState.potvrzenaNizkopodlaznost == true -> Icons.Default.Accessible
+                        kartickaState.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
                         kartickaState.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
-                        kartickaState.nizkopodlaznost -> Icons.Default.Accessible
+                        kartickaState.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
                         else -> Icons.Default.NotAccessible
                     },
                     when {
