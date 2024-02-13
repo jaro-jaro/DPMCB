@@ -51,7 +51,20 @@ class OdjezdyViewModel(
     private val _info = MutableStateFlow(OdjezdyInfo(cas = params.cas, filtrLinky = params.linka, filtrZastavky = params.pres))
     val info = _info.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            repo.zobrazitJenOdjezdy.collect {
+                _info.update { i ->
+                    i.copy(
+                        jenOdjezdy = it
+                    )
+                }
+            }
+        }
+    }
+
     val maPristupKJihu = repo.maPristupKJihu
+    val datum = repo.datum
 
     private val seznam = repo.datum
         .combine(dopravaRepo.seznamSpojuKterePraveJedou()) { datum, spojeNaMape ->
@@ -113,7 +126,6 @@ class OdjezdyViewModel(
                 .also { filtrovanejSeznam ->
                     if (minulyState == null) return@also
                     if (minulyState.cas == info.cas && minulyState.jenOdjezdy == info.jenOdjezdy && minulyState.filtrZastavky == info.filtrZastavky && minulyState.filtrLinky == info.filtrLinky) return@also
-                    println("scrolllllllllllll")
                     if (filtrovanejSeznam.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
                         scrollovat(filtrovanejSeznam.domov(info))
@@ -213,7 +225,11 @@ class OdjezdyViewModel(
             _info.update {
                 it.copy(
                     jenOdjezdy = !it.jenOdjezdy
-                )
+                ).also {
+                    viewModelScope.launch {
+                        repo.zmenitOdjezdy(it.jenOdjezdy)
+                    }
+                }
             }
         }
 
@@ -223,6 +239,24 @@ class OdjezdyViewModel(
                 scrollovat((state.value as OdjezdyState.Jede).seznam.domov(_info.value))
             }
             Unit
+        }
+
+        OdjezdyEvent.DalsiDen -> {
+            repo.upravitDatum(repo.datum.value.plusDays(1))
+            _info.update {
+                it.copy(
+                    cas = LocalTime.of(0, 0)
+                )
+            }
+        }
+
+        OdjezdyEvent.PredchoziDen -> {
+            repo.upravitDatum(repo.datum.value.plusDays(-1))
+            _info.update {
+                it.copy(
+                    cas = LocalTime.of(23, 59)
+                )
+            }
         }
     }
 

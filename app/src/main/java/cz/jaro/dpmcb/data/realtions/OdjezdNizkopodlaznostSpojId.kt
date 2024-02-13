@@ -7,4 +7,5 @@ data class OdjezdNizkopodlaznostSpojId(
     val nizkopodlaznost: Boolean,
     val spojId: String,
     val pevneKody: String,
+    val zpozdeni: Float? = null,
 )

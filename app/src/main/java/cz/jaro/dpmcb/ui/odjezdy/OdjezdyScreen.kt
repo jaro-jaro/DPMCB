@@ -1,8 +1,15 @@
 package cz.jaro.dpmcb.ui.odjezdy
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -15,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -50,9 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,14 +73,12 @@ import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.ted
 import cz.jaro.dpmcb.data.helperclasses.Vysledek
 import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
 import cz.jaro.dpmcb.ui.main.SuplikAkce
-import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.KliklNaSpoj
-import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.KliklNaZjr
-import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Scrolluje
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.Vybral
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenilJenOdjezdy
 import cz.jaro.dpmcb.ui.odjezdy.OdjezdyEvent.ZmenilKompaktniRezim
@@ -89,8 +93,11 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlin.math.roundToLong
 
 @Destination
 @Composable
@@ -132,10 +139,7 @@ fun Odjezdy(
     LaunchedEffect(Unit) {
         viewModel.scrollovat = {
             delay(500)
-            println("A ${listState.firstVisibleItemIndex}")
-            println("->$it")
             listState.scrollToItem(it)
-            println("B ${listState.firstVisibleItemIndex}")
         }
         viewModel.navigovat = navigator.navigateFunction
     }
@@ -145,13 +149,13 @@ fun Odjezdy(
             snapshotFlow { listState.firstVisibleItemIndex }
                 .flowOn(Dispatchers.IO)
                 .collect {
-                    viewModel.onEvent(Scrolluje(it))
-                    println("--${listState.firstVisibleItemIndex}")
+                    viewModel.onEvent(OdjezdyEvent.Scrolluje(it))
                 }
         }
     }
 
     val jeOnline by viewModel.maPristupKJihu.collectAsStateWithLifecycle()
+    val datum by viewModel.datum.collectAsStateWithLifecycle()
 
     OdjezdyScreen(
         info = info,
@@ -159,13 +163,14 @@ fun Odjezdy(
         zastavka = zastavka,
         onEvent = viewModel::onEvent,
         listState = listState,
+        datum = datum,
         navigate = navigator.navigateFunction,
         jeOnline = jeOnline,
     )
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OdjezdyScreen(
     state: OdjezdyState,
@@ -173,38 +178,47 @@ fun OdjezdyScreen(
     zastavka: String,
     listState: LazyListState,
     jeOnline: Boolean,
+    datum: LocalDate,
     onEvent: (OdjezdyEvent) -> Unit,
     navigate: NavigateFunction,
 ) = Scaffold(
     floatingActionButton = {
-        val scope = rememberCoroutineScope()
-        val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-        if (state is OdjezdyState.Jede && (listState.canScrollForward || listState.canScrollBackward)) SmallFloatingActionButton(
-            onClick = {
-                scope.launch(Dispatchers.Main) {
-                    listState.animateScrollToItem(state.seznam.domov(info))
+        if (state is OdjezdyState.Jede) {
+            val scope = rememberCoroutineScope()
+            val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+            val jeNahore = !listState.canScrollBackward
+            val jeDole = !listState.canScrollForward
+
+            val schovatSipkuProtozeJeMocDole = jeDole && i < state.seznam.domov(info)
+            val schovatSipkuProtozeJePobliz = abs(i - state.seznam.domov(info)) <= 1
+
+            AnimatedVisibility(
+                visible = !schovatSipkuProtozeJePobliz && !schovatSipkuProtozeJeMocDole,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessVeryLow)),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessVeryLow)),
+            ) {
+                SmallFloatingActionButton(
+                    onClick = {
+                        scope.launch(Dispatchers.Main) {
+                            listState.animateScrollToItem(state.seznam.domov(info))
+                        }
+                    },
+                ) {
+                    IconWithTooltip(
+                        Icons.Default.ArrowUpward,
+                        "Scrollovat",
+                        Modifier.rotate(
+                            animateFloatAsState(
+                                when {
+                                    i > state.seznam.domov(info) -> 0F
+                                    i < state.seznam.domov(info) -> 180F
+                                    else -> 90F
+                                }, label = "TOČENÍ"
+                            ).value
+                        )
+                    )
                 }
-            },
-            Modifier.alpha(
-                when {
-                    !listState.canScrollBackward && i < state.seznam.domov(info) -> 0F
-                    abs(i - state.seznam.domov(info)) == 2 -> .5F
-                    abs(i - state.seznam.domov(info)) < 2 -> 0F
-                    else -> 1F
-                }
-            )
-        ) {
-            IconWithTooltip(
-                Icons.Default.ArrowUpward,
-                "Scrollovat",
-                Modifier.rotate(
-                    when {
-                        i > state.seznam.domov(info) -> 0F
-                        i < state.seznam.domov(info) -> 180F
-                        else -> 90F
-                    }
-                )
-            )
+            }
         }
     }
 ) {
@@ -238,9 +252,23 @@ fun OdjezdyScreen(
                     zobrazitDialog = false
                 },
                 title = {
-                    Text("Změnit čas")
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Změnit čas")
+                        TextButton(
+                            onClick = {
+                                onEvent(ZmenitCas(LocalTime.now().truncatedTo(ChronoUnit.MINUTES)))
+                                zobrazitDialog = false
+                            }
+                        ) {
+                            Text("Teď")
+                        }
+                    }
                 },
-                initialTime = info.cas
+                initialTime = info.cas,
             )
 
             TextButton(
@@ -392,7 +420,7 @@ fun OdjezdyScreen(
             ) {
                 Text(
                     when (state) {
-                        OdjezdyState.VubecNicNejede -> "Přes tuto zastávku nic nejede"
+                        OdjezdyState.VubecNicNejede -> "Přes tuto zastávku ${datum.hezky6p()} nic nejede"
                         OdjezdyState.SemNicNejede -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.filtrZastavky}"
                         OdjezdyState.LinkaNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}"
                         OdjezdyState.LinkaSemNejede -> "Přes tuto zastávku nejede žádný spoj linky ${info.filtrLinky}, který bude zastavovat na zastávce ${info.filtrZastavky}"
@@ -406,14 +434,69 @@ fun OdjezdyScreen(
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 items(
-                    items = state.seznam,
-                    key = { it.idSpoje to it.cas },
-                    itemContent = { karticka ->
-                        Karticka(
-                            karticka, onEvent, info.kompaktniRezim, modifier = Modifier
-                                .animateContentSize()
-                                .animateItemPlacement()
-                        )
+                    count = state.seznam.size + 2,
+                    key = { i ->
+                        when (i) {
+                            0 -> 0
+                            state.seznam.lastIndex + 2 -> Int.MAX_VALUE
+                            else -> state.seznam[i - 1].idSpoje to state.seznam[i - 1].cas
+                        }
+                    },
+                    itemContent = { i ->
+                        when (i) {
+                            0 -> {
+                                Surface(
+                                    modifier = Modifier.clickable {
+                                        onEvent(OdjezdyEvent.PredchoziDen)
+                                    },
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                    ) {
+                                        Text(
+                                            modifier = Modifier
+                                                .weight(1F),
+                                            text = "Předchozí den…",
+                                            fontSize = 20.sp,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
+                                }
+                            }
+
+                            state.seznam.lastIndex + 2 -> {
+                                HorizontalDivider()
+                                Surface(
+                                    modifier = Modifier.clickable {
+                                        onEvent(OdjezdyEvent.DalsiDen)
+                                    },
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+                                    ) {
+                                        Text(
+                                            modifier = Modifier
+                                                .weight(1F),
+                                            text = "Následující den…",
+                                            fontSize = 20.sp,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
+                                }
+                            }
+
+                            else -> Karticka(
+                                state.seznam[i - 1], onEvent, info.kompaktniRezim, modifier = Modifier
+                                    .animateContentSize()
+//                                    .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
+                            )
+                        }
                     }
                 )
             }
@@ -428,13 +511,13 @@ private fun Karticka(
     onEvent: (OdjezdyEvent) -> Unit,
     zjednodusit: Boolean,
     modifier: Modifier = Modifier,
-) {
-    Divider(modifier)
+) = Column(modifier) {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
+    Divider()
     Surface(
-        modifier = modifier.combinedClickable(
+        modifier = Modifier.combinedClickable(
             onClick = {
-                onEvent(KliklNaSpoj(kartickaState))
+                onEvent(OdjezdyEvent.KliklNaSpoj(kartickaState))
             },
             onLongClick = {
                 showDropDown = true
@@ -453,7 +536,7 @@ private fun Karticka(
                         Text("Zobrazit zastávkové JŘ")
                     },
                     onClick = {
-                        onEvent(KliklNaZjr(kartickaState))
+                        onEvent(OdjezdyEvent.KliklNaZjr(kartickaState))
                         showDropDown = false
                     },
                 )
@@ -536,7 +619,7 @@ private fun Karticka(
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nasledujiciZastavka.second.toString(),
+                        text = nasledujiciZastavka.second.plusMinutes(zpozdeni.roundToLong()).toString(),
                         color = barvaZpozdeniTextu(zpozdeni)
                     )
                 }

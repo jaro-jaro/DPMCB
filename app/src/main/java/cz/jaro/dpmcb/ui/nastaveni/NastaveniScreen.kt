@@ -235,23 +235,6 @@ fun NastaveniScreen(
                         },
                     )
                 }
-                rowItem(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Zapamatovat si volbu Zobrazit nízkopodlažnosti v JŘ", Modifier.weight(1F))
-
-                    Switch(
-                        checked = state.nastaveni.zachovavatNizkopodlaznost,
-                        onCheckedChange = { value ->
-                            onEvent(NastaveniEvent.UpravitNastaveni {
-                                it.copy(zachovavatNizkopodlaznost = value)
-                            })
-                        },
-                    )
-                }
 
                 rowItem(
                     modifier = Modifier

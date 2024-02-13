@@ -69,7 +69,6 @@ fun JizdniRady(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val zobrazitNizkopodlaznostZMinule by viewModel.zobrazitNizkopodlaznostZMinule.collectAsStateWithLifecycle()
-    val nastaveni by viewModel.nstaveni.collectAsStateWithLifecycle()
 
     JizdniRadyScreen(
         cisloLinky = cisloLinky,
@@ -78,7 +77,6 @@ fun JizdniRady(
         state = state,
         navigate = navigator.navigateFunction,
         zobrazitNizkopodlaznostZMinule = zobrazitNizkopodlaznostZMinule,
-        zachovatNizkopodlaznosti = nastaveni.zachovavatNizkopodlaznost,
         upravitZobrazeniNizkopodlaznosti = viewModel::upravitZobrazeniNizkopodlaznosti,
     )
 }
@@ -91,7 +89,6 @@ fun JizdniRadyScreen(
     state: JizdniRadyState,
     navigate: NavigateFunction,
     zobrazitNizkopodlaznostZMinule: Boolean,
-    zachovatNizkopodlaznosti: Boolean,
     upravitZobrazeniNizkopodlaznosti: (Boolean) -> Unit,
 ) {
     Column(
@@ -117,9 +114,7 @@ fun JizdniRadyScreen(
             )
         }
 
-        var zobrazitNizkopodlaznosti by remember(zachovatNizkopodlaznosti, zobrazitNizkopodlaznostZMinule) {
-            mutableStateOf(if (zachovatNizkopodlaznosti) zobrazitNizkopodlaznostZMinule else false)
-        }
+        var zobrazitNizkopodlaznosti by remember(zobrazitNizkopodlaznostZMinule) { mutableStateOf(zobrazitNizkopodlaznostZMinule) }
 
         Row(
             verticalAlignment = Alignment.CenterVertically

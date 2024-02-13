@@ -72,14 +72,14 @@ class DopravaRepository(
                         null
                     }
                 }
-                    ?.transmitters.funguj()
+                    ?.transmitters
                     ?.filter {
                         it.cn?.startsWith("325") ?: false
-                    }.funguj()
-                    ?.map(SpojNaMape::toOnlineSpoj).funguj()
+                    }
+                    ?.map(SpojNaMape::toOnlineSpoj)
                     ?: emptyList()
                 else emptyList()
-            ).funguj())
+            ))
             delay(5000)
         }
     }

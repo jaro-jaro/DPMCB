@@ -61,6 +61,8 @@ class SpojeRepository(
 
     val zobrazitNizkopodlaznost = preferenceDataSource.nizkopodlaznost
 
+    val zobrazitJenOdjezdy = preferenceDataSource.odjezdy
+
     val oblibene = preferenceDataSource.oblibene
 
     val verze = preferenceDataSource.verze
@@ -231,6 +233,10 @@ class SpojeRepository(
 
     suspend fun zmenitNizkopodlaznost(value: Boolean) {
         preferenceDataSource.zmenitNizkopodlaznost(value)
+    }
+
+    suspend fun zmenitOdjezdy(value: Boolean) {
+        preferenceDataSource.zmenitOdjezdy(value)
     }
 
     suspend fun zmenitPrukazku(value: Boolean) {
