@@ -92,6 +92,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
+import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
 import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
@@ -106,6 +107,7 @@ import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Main(
     link: String?,
@@ -168,6 +170,7 @@ fun Main(
                     PraveJedouciDestination::class -> entry.navArgs<PraveJedouciDestination.NavArgs>()
                     OdjezdyDestination::class -> entry.navArgs<OdjezdyDestination.NavArgs>()
                     SpojDestination::class -> entry.navArgs<SpojDestination.NavArgs>()
+                    KurzDestination::class -> entry.navArgs<KurzDestination.NavArgs>()
                     VybiratorDestination::class -> entry.navArgs<VybiratorDestination.NavArgs>()
                     JizdniRadyDestination::class -> entry.navArgs<JizdniRadyDestination.NavArgs>()
                     else -> Unit

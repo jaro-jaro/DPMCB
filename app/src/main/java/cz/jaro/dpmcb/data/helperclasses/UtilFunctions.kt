@@ -226,19 +226,19 @@ object UtilFunctions {
         tint: Color = LocalContentColor.current,
     ) = if (tooltipText != null) TooltipBox(
         tooltip = {
-            PlainTooltip {
-                DPMCBTheme(
-                    useDarkTheme = isSystemInDarkTheme(),
-                    useDynamicColor = true,
-                    theme = Theme.Yellow,
-                    doTheThing = false,
-                ) {
+            DPMCBTheme(
+                useDarkTheme = isSystemInDarkTheme(),
+                useDynamicColor = true,
+                theme = Theme.Yellow,
+                doTheThing = false,
+            ) {
+                PlainTooltip {
                     Text(text = tooltipText)
                 }
             }
         },
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         state = rememberTooltipState(),
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
     ) {
         Icon(
             imageVector = imageVector,
@@ -398,7 +398,7 @@ object UtilFunctions {
         softWrap: Boolean = true,
         maxLines: Int = Int.MAX_VALUE,
         minLines: Int = 1,
-        onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+        onTextLayout: (TextLayoutResult) -> Unit = {},
         style: TextStyle? = null,
     ) {
         item(

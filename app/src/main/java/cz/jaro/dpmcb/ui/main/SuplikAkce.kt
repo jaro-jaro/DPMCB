@@ -30,7 +30,7 @@ enum class SuplikAkce(
     @StringRes val jmeno: Int,
     val icon: ImageVector,
     val multiselect: Boolean,
-    inline val onClick: (
+    val onClick: (
         navigate: (direction: Direction) -> Unit,
         zavrit: () -> Unit,
         startActivity: (KClass<out Activity>) -> Unit,

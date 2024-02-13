@@ -6,6 +6,7 @@ import android.widget.Toast
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
+import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -14,9 +15,13 @@ import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
-import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLInkaPristi
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLinkaPristi
+import cz.jaro.dpmcb.data.realtions.InfoZastavky
+import cz.jaro.dpmcb.data.realtions.InfoZastavkyCaskodyPevneKody
 import cz.jaro.dpmcb.data.realtions.JedeOdDo
+import cz.jaro.dpmcb.data.realtions.Kurz
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
+import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojIdKurz
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.CoroutineScope
@@ -132,16 +137,17 @@ class SpojeRepository(
             }.distinctBy {
                 it.jede to it.v.toString()
             }
-            Quadruple(
+            InfoZastavkyCaskodyPevneKody(
                 first().let {
-                    LinkaNizkopodlaznostSpojId(
+                    LinkaNizkopodlaznostSpojIdKurz(
                         nizkopodlaznost = it.nizkopodlaznost,
                         linka = it.linka - 325_000,
-                        spojId = it.spojId
+                        spojId = it.spojId,
+                        kurz = it.kurz,
                     )
                 },
                 bezkodu.mapIndexed { i, it ->
-                    CasNazevSpojIdLInkaPristi(
+                    CasNazevSpojIdLinkaPristi(
                         cas = it.cas,
                         nazev = it.nazev,
                         linka = it.linka - 325_000,
@@ -152,6 +158,11 @@ class SpojeRepository(
                 caskody,
                 zcitelnitPevneKody(first().pevneKody),
             )
+        }
+
+    suspend fun kody(spojId: String, datum: LocalDate) =
+        localDataSource.kody(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!).run {
+            map { JedeOdDo(jede = it.jede, v = it.od..it.`do`) } to zcitelnitPevneKody(first().pevneKody)
         }
 
     private fun extrahovatCisloLinky(spojId: String) = spojId.split("-")[1].toInt()
@@ -182,12 +193,84 @@ class SpojeRepository(
             datum.jedeDnes(pevneKody)
         }
 
+    suspend fun zobrazitKurz(kurz: String, datum: LocalDate): Kurz {
+        val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz)
+            .groupBy {
+                it.spojId to it.tab
+            }
+            .filter { (a, _) ->
+                val (spojId, tab) = a
+                val pravePouzivanaTabulka = pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))
+                pravePouzivanaTabulka == tab
+            }
+            .map { (_, zastavky) ->
+                val bezkodu = zastavky.distinctBy {
+                    it.copy(pevneKody = "", jede = false, od = LocalDate.now(), `do` = LocalDate.now())
+                }
+                val caskody = zastavky.map {
+                    JedeOdDo(
+                        jede = it.jede,
+                        v = it.od..it.`do`
+                    )
+                }.distinctBy {
+                    it.jede to it.v.toString()
+                }
+                InfoZastavkyCaskodyPevneKody(
+                    zastavky.first().let {
+                        LinkaNizkopodlaznostSpojIdKurz(
+                            nizkopodlaznost = it.nizkopodlaznost,
+                            linka = it.linka - 325_000,
+                            spojId = it.spojId,
+                            kurz = it.kurz,
+                        )
+                    },
+                    bezkodu.mapIndexed { i, it ->
+                        CasNazevSpojIdLinkaPristi(
+                            cas = it.cas,
+                            nazev = it.nazev,
+                            linka = it.linka - 325_000,
+                            pristiZastavka = bezkodu.getOrNull(i + 1)?.nazev,
+                            spojId = it.spojId
+                        )
+                    }.distinct(),
+                    caskody,
+                    zcitelnitPevneKody(zastavky.first().pevneKody),
+                )
+            }
+            .sortedBy {
+                it.zastavky.first().cas
+            }
+
+        val caskody = spoje.first().caskody.filter { kod ->
+            spoje.all {
+                it.caskody.contains(kod)
+            }
+        }
+
+        val pevne = spoje.first().pevneKody.filter { kod ->
+            spoje.all {
+                it.pevneKody.contains(kod)
+            }
+        }
+
+        val navaznosti = localDataSource.navaznostiKurzu(kurz)
+
+        return Kurz(
+            navaznostiPredtim = navaznosti.filter { it.kurzPotom == kurz }.map { it.kurzPredtim },
+            navaznostiPotom = navaznosti.filter { it.kurzPredtim == kurz }.map { it.kurzPotom },
+            spoje = spoje.map { InfoZastavky(it.info, it.zastavky) },
+            spolecneCaskody = caskody,
+            spolecnePevneKody = pevne,
+        )
+    }
+
     suspend fun zapsat(
         zastavkySpoje: Array<ZastavkaSpoje>,
         zastavky: Array<Zastavka>,
         casKody: Array<CasKod>,
         linky: Array<Linka>,
         spoje: Array<Spoj>,
+        navaznosti: Array<NavaznostKurzu>,
         verze: Int,
     ) {
         preferenceDataSource.zmenitVerzi(verze)
@@ -197,6 +280,7 @@ class SpojeRepository(
         localDataSource.vlozitCasKody(*casKody)
         localDataSource.vlozitLinky(*linky)
         localDataSource.vlozitSpoje(*spoje)
+        localDataSource.vlozitNavaznosti(*navaznosti)
     }
 
     suspend fun zastavkySpoje() = localDataSource.zastavkySpoje()
@@ -204,6 +288,7 @@ class SpojeRepository(
     suspend fun casKody() = localDataSource.casKody()
     suspend fun linky() = localDataSource.linky()
     suspend fun spoje() = localDataSource.spoje()
+    suspend fun navaznosti() = localDataSource.navaznosti()
 
     fun upravitDatum(datum: LocalDate, notify: Boolean = true) {
         _datum.update { datum }

@@ -36,18 +36,31 @@ class SpojViewModel(
         val existuje = repo.existujeSpoj(spojId)
         if (!existuje) return@combine SpojState.Neexistuje(spojId)
         val jedeV = repo.spojJedeV(spojId)
+        val platnost = repo.platnostLinky(spojId, datum)
         if (!jedeV(datum)) {
+            val (caskody, pevneKody) = repo.kody(spojId, datum)
             return@combine SpojState.Nejede(
                 spojId = spojId,
                 datum = datum,
                 pristeJedePoDnesku = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { jedeV(it) },
-                pristeJedePoDatu = List(365) { datum.plusDays(it.toLong()) }.firstOrNull { jedeV(it) }
+                pristeJedePoDatu = List(365) { datum.plusDays(it.toLong()) }.firstOrNull { jedeV(it) },
+                caskody = caskody.filterNot {
+                    !it.jede && it.v.start == LocalDate.of(0, 1, 1) && it.v.endInclusive == LocalDate.of(0, 1, 1)
+                }.groupBy({ it.jede }, {
+                    if (it.v.start != it.v.endInclusive) "od ${it.v.start.asString()} do ${it.v.endInclusive.asString()}" else it.v.start.asString()
+                }).map { (jede, terminy) ->
+                    (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
+                },
+                pevneKody = pevneKody,
+                linkaKod = "JŘ linky platí od ${platnost.platnostOd.asString()} do ${platnost.platnostDo.asString()}",
+                nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
+                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+
             )
         }
 
         val (spoj, zastavky, caskody, pevneKody) = repo.spojSeZastavkySpojeNaKterychStaviACaskody(spojId, datum)
         val vyluka = repo.maVyluku(spojId, datum)
-        val platnost = repo.platnostLinky(spojId, datum)
         SpojState.OK.Offline(
             spojId = spojId,
             zastavky = zastavky,
@@ -69,6 +82,7 @@ class SpojViewModel(
             vyska = 0F,
             projetychUseku = 0,
             chyba = online && datum == LocalDate.now() && zastavky.first().cas <= LocalTime.now() && LocalTime.now() <= zastavky.last().cas,
+            kurz = spoj.kurz,
         )
     }
 

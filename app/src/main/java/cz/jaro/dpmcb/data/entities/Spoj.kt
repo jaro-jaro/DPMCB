@@ -12,6 +12,8 @@ data class Spoj(
     val linka: Int,
     val pevneKody: String,
     val smer: Smer,
+    val kurz: String?,
+    val poradiNaKurzu: Int?,
 ) {
     var id = "S-$linka-$cisloSpoje"
         internal set

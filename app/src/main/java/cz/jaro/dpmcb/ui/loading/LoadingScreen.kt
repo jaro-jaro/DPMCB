@@ -69,6 +69,7 @@ fun Loading(
                 finish = finish,
                 schemaFile = ctx.schemaFile,
                 jrFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
+                kurzyFile = File(ctx.cacheDir, "kurzy.jaro"),
                 mainActivityIntent = Intent(ctx, MainActivity::class.java),
                 loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
                 startActivity = { it: Intent ->

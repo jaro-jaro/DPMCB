@@ -7,12 +7,15 @@ import androidx.room.Query
 import androidx.room.Transaction
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
+import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.Smer
 import cz.jaro.dpmcb.data.realtions.CaskodSPevnymiKody
+import cz.jaro.dpmcb.data.realtions.Kody
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
+import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojIdTabulka
 import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.NazevCasAIndex
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
@@ -226,7 +229,7 @@ interface Dao {
         SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
             WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
             ELSE zastavkaspoje.odjezd
-        END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
+        END cas, nazevZastavky nazev, spoj.kurz, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
         JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.tab = zastavkaspoje.tab AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
         JOIN caskod ON caskod.tab = zastavkaspoje.tab AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
@@ -243,6 +246,39 @@ interface Dao {
     """
     )
     suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojId>
+
+    @Query(
+        """
+        SELECT spoj.pevneKody, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM caskod
+        JOIN spoj ON spoj.tab = caskod.tab AND spoj.cisloSpoje = caskod.cisloSpoje
+        AND spoj.id = :spojId
+        AND spoj.tab = :tab
+    """
+    )
+    suspend fun kody(spojId: String, tab: String): List<Kody>
+
+    @Transaction
+    @Query(
+        """
+        SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.kurz, spoj.pevneKody, CASE
+            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+            ELSE zastavkaspoje.odjezd
+        END cas, nazevZastavky nazev, spoj.id spojId, spoj.tab, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
+        JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+        JOIN zastavka ON zastavka.tab = zastavkaspoje.tab AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
+        JOIN caskod ON caskod.tab = zastavkaspoje.tab AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
+        WHERE (
+            NOT zastavkaspoje.odjezd IS null
+            OR NOT zastavkaspoje.prijezd IS null
+        )
+        AND spoj.kurz = :kurz
+        ORDER BY CASE
+           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
+           ELSE -zastavkaSpoje.indexZastavkyNaLince
+        END
+    """
+    )
+    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojIdTabulka>
 
     @Transaction
     @Query(
@@ -347,6 +383,13 @@ interface Dao {
     """
     )
     suspend fun vyluka(tab: String): Boolean
+    @Query(
+        """
+        SELECT * FROM navaznostkurzu
+        WHERE kurzPredtim = :kurz OR kurzPotom = :kurz
+    """
+    )
+    suspend fun navaznostiKurzu(kurz: String): List<NavaznostKurzu>
 
     @Query(
         """
@@ -396,6 +439,9 @@ interface Dao {
     @Insert
     suspend fun vlozitSpoje(vararg spoje: Spoj)
 
+    @Insert
+    suspend fun vlozitNavaznosti(vararg spoje: NavaznostKurzu)
+
     @Query("SELECT * FROM zastavkaspoje")
     suspend fun zastavkySpoje(): List<ZastavkaSpoje>
 
@@ -410,5 +456,7 @@ interface Dao {
 
     @Query("SELECT * FROM spoj")
     suspend fun spoje(): List<Spoj>
-}
 
+    @Query("SELECT * FROM navaznostkurzu")
+    suspend fun navaznosti(): List<NavaznostKurzu>
+}

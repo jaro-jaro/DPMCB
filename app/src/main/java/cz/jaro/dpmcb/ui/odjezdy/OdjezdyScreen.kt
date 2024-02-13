@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -513,7 +514,7 @@ private fun Karticka(
     modifier: Modifier = Modifier,
 ) = Column(modifier) {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
-    HorizontalDivider()
+    Divider()
     Surface(
         modifier = Modifier.combinedClickable(
             onClick = {

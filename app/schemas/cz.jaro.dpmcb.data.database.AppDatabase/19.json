@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 18,
-    "identityHash": "4de6c55ca6c8a732b90d79d37d01337e",
+    "version": 19,
+    "identityHash": "8ea1cb2f64ab56faa1764e4f1f11b1aa",
     "entities": [
       {
         "tableName": "CasKod",
@@ -308,12 +308,39 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "NavaznostKurzu",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kurzPredtim` TEXT NOT NULL, `kurzPotom` TEXT NOT NULL, PRIMARY KEY(`kurzPredtim`, `kurzPotom`))",
+        "fields": [
+          {
+            "fieldPath": "kurzPredtim",
+            "columnName": "kurzPredtim",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kurzPotom",
+            "columnName": "kurzPotom",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "kurzPredtim",
+            "kurzPotom"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4de6c55ca6c8a732b90d79d37d01337e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ea1cb2f64ab56faa1764e4f1f11b1aa')"
     ]
   }
 }
