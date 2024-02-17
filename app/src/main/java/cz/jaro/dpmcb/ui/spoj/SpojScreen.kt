@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -87,6 +89,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.KurzDestination
@@ -234,7 +237,7 @@ fun SpojScreen(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "${state.cisloLinky}", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(text = "${state.cisloLinky}", fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
                     IconWithTooltip(
                         remember(state.nizkopodlaznost) {
                             when {
@@ -266,7 +269,7 @@ fun SpojScreen(
                             navigate(KurzDestination(state.kurz!!))
                         }
                     ) {
-                        Text("Kurz ${state.kurz!!}")
+                        Text("Kurz: ${state.kurz!!.nazevKurzu()}")
                     }
 
                     var show by remember { mutableStateOf(false) }
@@ -485,6 +488,17 @@ fun SpojScreen(
                         Text(
                             text = "ev. č. ${state.vuz.evC()}",
                             Modifier.padding(horizontal = 8.dp)
+                        )
+                        val context = LocalContext.current
+                        IconWithTooltip(
+                            Icons.Default.Info,
+                            "Zobrazit informace o voze",
+                            Modifier.clickable {
+                                context.startActivity(Intent.createChooser(Intent().apply {
+                                    action = Intent.ACTION_VIEW
+                                    data = Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${state.vuz}")
+                                }, "Zobrazit informace o voze"))
+                            },
                         )
                     }
                 }

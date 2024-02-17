@@ -6,7 +6,7 @@ import java.time.LocalTime
 data class LinkaNizkopodlaznostCasNazevSpojId(
     val nizkopodlaznost: Boolean,
     val linka: Int,
-    val kurz: String,
+    val kurz: String?,
     val pevneKody: String,
     val cas: LocalTime,
     val nazev: String,

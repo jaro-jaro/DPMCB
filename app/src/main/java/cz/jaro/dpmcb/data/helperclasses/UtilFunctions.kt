@@ -428,6 +428,36 @@ object UtilFunctions {
     }
 
     fun Int.evC() = if ("$this".length == 1) "0$this" else "$this"
+
+    fun String.nazevKurzu() = split(" + ").joinToString(" + ") {
+        val kurz = it.split("-")
+        val a = kurz[0]
+        val b = kurz.getOrNull(1) ?: ""
+        val vikend = 'V' in b
+        val c = if (vikend) b.drop(1) else b
+        val cast = c.isNotEmpty()
+        buildString {
+            if (cast) append("$c. část ")
+            if (cast && vikend) append("víkendové ")
+            if (!cast && vikend) append("Víkendová ")
+            append(a)
+        }
+    }
+
+    fun String.navaznostKurzu() = "Potenciální návaznost na " + split(" + ").joinToString(" + ") {
+        val kurz = it.split("-")
+        val a = kurz[0]
+        val b = kurz.getOrNull(1) ?: ""
+        val vikend = 'V' in b
+        val c = if (vikend) b.drop(1) else b
+        val cast = c.isNotEmpty()
+        buildString {
+            if (cast) append("$c. část ")
+            if (cast && vikend) append("víkendové ")
+            if (!cast && vikend) append("víkendovou ")
+            append(a)
+        }
+    }
 }
 
 typealias NavigateFunction = (Direction) -> Unit

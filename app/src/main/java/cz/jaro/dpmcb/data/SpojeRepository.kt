@@ -6,12 +6,12 @@ import android.widget.Toast
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
@@ -193,8 +193,8 @@ class SpojeRepository(
             datum.jedeDnes(pevneKody)
         }
 
-    suspend fun zobrazitKurz(kurz: String, datum: LocalDate): Kurz {
-        val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz)
+    suspend fun zobrazitKurz(kurz: String, datum: LocalDate): Kurz? {
+        val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz, "$kurz + %", "% + $kurz").funguj(kurz)
             .groupBy {
                 it.spojId to it.tab
             }
@@ -241,6 +241,8 @@ class SpojeRepository(
                 it.zastavky.first().cas
             }
 
+        if (spoje.isEmpty()) return null
+
         val caskody = spoje.first().caskody.filter { kod ->
             spoje.all {
                 it.caskody.contains(kod)
@@ -253,11 +255,25 @@ class SpojeRepository(
             }
         }
 
-        val navaznosti = localDataSource.navaznostiKurzu(kurz)
+        val prvniPodkurz = spoje.first().info.kurz!!.split(" + ").first()
+        val druhyPodkurz = spoje.first().info.kurz!!.split(" + ").last()
+
+        val predtim = when {
+            prvniPodkurz.matches("[12]/5\\d-V?2".toRegex()) -> listOf(prvniPodkurz.split("-")[0] + "-1", prvniPodkurz.split("-")[0] + "-V1")
+            '-' in prvniPodkurz && prvniPodkurz.endsWith('2') -> listOf(prvniPodkurz.dropLast(1) + '1')
+            else -> listOf()
+        }
+
+        val potom = when {
+            druhyPodkurz.matches("[12]/5\\d-V?1".toRegex()) -> listOf(druhyPodkurz.split("-")[0] + "-2", druhyPodkurz.split("-")[0] + "-V2")
+            '-' in druhyPodkurz && druhyPodkurz.endsWith('1') -> listOf(druhyPodkurz.dropLast(1) + '2')
+            else -> listOf()
+        }
 
         return Kurz(
-            navaznostiPredtim = navaznosti.filter { it.kurzPotom == kurz }.map { it.kurzPredtim },
-            navaznostiPotom = navaznosti.filter { it.kurzPredtim == kurz }.map { it.kurzPotom },
+            nazev = spoje.first().info.kurz!!,
+            navaznostiPredtim = predtim,
+            navaznostiPotom = potom,
             spoje = spoje.map { InfoZastavky(it.info, it.zastavky) },
             spolecneCaskody = caskody,
             spolecnePevneKody = pevne,
@@ -270,7 +286,6 @@ class SpojeRepository(
         casKody: Array<CasKod>,
         linky: Array<Linka>,
         spoje: Array<Spoj>,
-        navaznosti: Array<NavaznostKurzu>,
         verze: Int,
     ) {
         preferenceDataSource.zmenitVerzi(verze)
@@ -280,7 +295,6 @@ class SpojeRepository(
         localDataSource.vlozitCasKody(*casKody)
         localDataSource.vlozitLinky(*linky)
         localDataSource.vlozitSpoje(*spoje)
-        localDataSource.vlozitNavaznosti(*navaznosti)
     }
 
     suspend fun zastavkySpoje() = localDataSource.zastavkySpoje()
@@ -288,7 +302,6 @@ class SpojeRepository(
     suspend fun casKody() = localDataSource.casKody()
     suspend fun linky() = localDataSource.linky()
     suspend fun spoje() = localDataSource.spoje()
-    suspend fun navaznosti() = localDataSource.navaznosti()
 
     fun upravitDatum(datum: LocalDate, notify: Boolean = true) {
         _datum.update { datum }

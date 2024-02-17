@@ -19,11 +19,13 @@ import kotlin.time.Duration.Companion.seconds
 class KurzViewModel(
     private val repo: SpojeRepository,
     dopravaRepo: DopravaRepository,
-    @InjectedParam private val kurz: String,
+    @InjectedParam private val puvodniKurz: String,
 ) : ViewModel() {
 
     private val info: Flow<KurzState> = combine(repo.datum, repo.oblibene, repo.maPristupKJihu) { datum, oblibene, online ->
-        val (predtim, spoje, potom, caskody, pevneKody) = repo.zobrazitKurz(kurz, datum)
+        val (kurz, predtim, spoje, potom, caskody, pevneKody) = (
+            repo.zobrazitKurz(puvodniKurz, datum) ?: return@combine KurzState.Neexistuje(puvodniKurz)
+        )
 
         KurzState.OK.Offline(
             kurz = kurz,

@@ -1,8 +1,13 @@
 package cz.jaro.dpmcb.ui.kurz
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,7 +48,9 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyKontejner
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniBublinyText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navaznostKurzu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.destinations.KurzDestination
@@ -72,7 +81,7 @@ fun Kurz(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun KurzScreen(
     state: KurzState,
@@ -95,13 +104,64 @@ fun KurzScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento kurz (${state.kurz}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+                Text("Tento kurz (${state.kurz.nazevKurzu()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
             }
 
             is KurzState.OK -> {
                 item {
-                    Text(state.kurz, fontSize = 20.sp)
+                    FlowRow(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(state.kurz.nazevKurzu(), fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
+
+                        if (state is KurzState.OK.Online && state.potvrzenaNizkopodlaznost != null) IconWithTooltip(
+                            remember(state.potvrzenaNizkopodlaznost) {
+                                when (state.potvrzenaNizkopodlaznost) {
+                                    true -> Icons.AutoMirrored.Filled.Accessible
+                                    false -> Icons.Default.NotAccessible
+                                }
+                            },
+                            when (state.potvrzenaNizkopodlaznost) {
+                                true -> "Potvrzený nízkopodlažní vůz"
+                                false -> "Potvrzený vysokopodlažní vůz"
+                            },
+                            Modifier.padding(start = 8.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+
+                        if (state is KurzState.OK.Online) Badge(
+                            containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
+                            contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
+                        ) {
+                            Text(
+                                text = state.zpozdeniMin.toDouble().minutes.run {
+                                    "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
+                                },
+                            )
+                        }
+                        if (state is KurzState.OK.Online && state.vuz != null) {
+                            Text(
+                                text = "ev. č. ${state.vuz.evC()}",
+                                Modifier.padding(horizontal = 8.dp)
+                            )
+                            val context = LocalContext.current
+                            IconWithTooltip(
+                                Icons.Default.Info,
+                                "Zobrazit informace o voze",
+                                Modifier.clickable {
+                                    context.startActivity(Intent.createChooser(Intent().apply {
+                                        action = Intent.ACTION_VIEW
+                                        data = Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${state.vuz}")
+                                    }, "Zobrazit informace o voze"))
+                                },
+                            )
+                        }
+                    }
                 }
+
                 item {
                     state.pevneKody.forEach {
                         Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -110,47 +170,10 @@ fun KurzScreen(
                         Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    Text("POZOR! Ne všechny spoje kurzu musí dnes jet! Vždy si rozklikněte detail kurzu pro konkrétní informace o výpravnosti!",
-                        Modifier.padding(vertical = 8.dp), fontSize = 20.sp,  color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-
-                rowItem(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (state is KurzState.OK.Online && state.potvrzenaNizkopodlaznost != null) IconWithTooltip(
-                        remember(state.potvrzenaNizkopodlaznost) {
-                            when (state.potvrzenaNizkopodlaznost) {
-                                true -> Icons.AutoMirrored.Filled.Accessible
-                                false -> Icons.Default.NotAccessible
-                            }
-                        },
-                        when (state.potvrzenaNizkopodlaznost) {
-                            true -> "Potvrzený nízkopodlažní vůz"
-                            false -> "Potvrzený vysokopodlažní vůz"
-                        },
-                        Modifier.padding(start = 8.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    Text(
+                        "POZOR! Ne všechny spoje kurzu musí dnes jet! Vždy si rozklikněte detail kurzu pro konkrétní informace o výpravnosti!",
+                        Modifier.padding(vertical = 8.dp), fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    if (state is KurzState.OK.Online) Badge(
-                        containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
-                        contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
-                    ) {
-                        Text(
-                            text = state.zpozdeniMin.toDouble().minutes.run {
-                                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
-                            },
-                        )
-                    }
-                    if (state is KurzState.OK.Online && state.vuz != null) {
-                        Text(
-                            text = "ev. č. ${state.vuz.evC()}",
-                            Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
                 }
 
                 item {
@@ -164,7 +187,7 @@ fun KurzScreen(
                                 navigate(KurzDestination(it))
                             }
                         ) {
-                            Text("Potenciální návaznost na kurz $it")
+                            Text(it.navaznostKurzu())
                         }
                     }
                     item {
@@ -182,7 +205,7 @@ fun KurzScreen(
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(text = "${spoj.cisloLinky}", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+                                Text(text = "${spoj.cisloLinky}", fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
                                 IconWithTooltip(
                                     remember(spoj.nizkopodlaznost) {
                                         when {
@@ -217,31 +240,44 @@ fun KurzScreen(
                                 }
                             }
                         }
-
-                        if (jede) Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            state as KurzState.OK.Online
-                            Badge(
-                                containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
-                                contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
+                        Surface {
+                            if (jede) Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    text = state.zpozdeniMin.toDouble().minutes.run {
-                                        "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
-                                    },
-                                )
-                            }
-                            if (state.vuz != null) {
-                                Text(
-                                    text = "ev. č. ${state.vuz.evC()}",
-                                    Modifier.padding(horizontal = 8.dp)
-                                )
+                                state as KurzState.OK.Online
+                                Badge(
+                                    containerColor = barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
+                                    contentColor = barvaZpozdeniBublinyText(state.zpozdeniMin),
+                                ) {
+                                    Text(
+                                        text = state.zpozdeniMin.toDouble().minutes.run {
+                                            "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
+                                        },
+                                    )
+                                }
+                                if (state.vuz != null) {
+                                    Text(
+                                        text = "ev. č. ${state.vuz.evC()}",
+                                        Modifier.padding(horizontal = 8.dp)
+                                    )
+                                    val context = LocalContext.current
+                                    IconWithTooltip(
+                                        Icons.Default.Info,
+                                        "Zobrazit informace o voze",
+                                        Modifier.clickable {
+                                            context.startActivity(Intent.createChooser(Intent().apply {
+                                                action = Intent.ACTION_VIEW
+                                                data = Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${state.vuz}")
+                                            }, "Zobrazit informace o voze"))
+                                        },
+                                    )
+                                }
                             }
                         }
+
                     }
                     item {
                         OutlinedCard(
@@ -291,11 +327,14 @@ fun KurzScreen(
                         }
                     }
                     item {
-                        HorizontalDivider(Modifier.fillMaxWidth().padding(top = 16.dp))
+                        HorizontalDivider(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp))
                     }
                 }
 
-                stickyHeader {  }
+                stickyHeader { }
 
                 state.navaznostiPotom.forEach {
                     item {
@@ -304,7 +343,7 @@ fun KurzScreen(
                                 navigate(KurzDestination(it))
                             }
                         ) {
-                            Text("Potenciální návaznost na kurz $it")
+                            Text(it.navaznostKurzu())
                         }
                     }
                     item {

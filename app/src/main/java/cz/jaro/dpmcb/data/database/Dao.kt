@@ -2,12 +2,11 @@ package cz.jaro.dpmcb.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.MapColumn
+import androidx.room.MapInfo
 import androidx.room.Query
 import androidx.room.Transaction
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -271,14 +270,18 @@ interface Dao {
             NOT zastavkaspoje.odjezd IS null
             OR NOT zastavkaspoje.prijezd IS null
         )
-        AND spoj.kurz = :kurz
+        AND (
+            spoj.kurz LIKE :kurz1
+            OR spoj.kurz LIKE :kurz2
+            OR spoj.kurz LIKE :kurz3
+        )
         ORDER BY CASE
            WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
            ELSE -zastavkaSpoje.indexZastavkyNaLince
         END
     """
     )
-    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojIdTabulka>
+    suspend fun spojeKurzuSeZastavkySpojeNaKterychStavi(kurz1: String, kurz2: String, kurz3: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojIdTabulka>
 
     @Transaction
     @Query(
@@ -357,6 +360,7 @@ interface Dao {
     suspend fun spojSeZastavkamiPodleId(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
 
     @Transaction
+    @MapInfo(keyColumn = "id")
     @Query(
         """
         SELECT spoj.id, CASE
@@ -373,7 +377,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasAIndex>>
+    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevCasAIndex>>
 
     @Query(
         """
@@ -383,13 +387,6 @@ interface Dao {
     """
     )
     suspend fun vyluka(tab: String): Boolean
-    @Query(
-        """
-        SELECT * FROM navaznostkurzu
-        WHERE kurzPredtim = :kurz OR kurzPotom = :kurz
-    """
-    )
-    suspend fun navaznostiKurzu(kurz: String): List<NavaznostKurzu>
 
     @Query(
         """
@@ -439,9 +436,6 @@ interface Dao {
     @Insert
     suspend fun vlozitSpoje(vararg spoje: Spoj)
 
-    @Insert
-    suspend fun vlozitNavaznosti(vararg spoje: NavaznostKurzu)
-
     @Query("SELECT * FROM zastavkaspoje")
     suspend fun zastavkySpoje(): List<ZastavkaSpoje>
 
@@ -456,7 +450,4 @@ interface Dao {
 
     @Query("SELECT * FROM spoj")
     suspend fun spoje(): List<Spoj>
-
-    @Query("SELECT * FROM navaznostkurzu")
-    suspend fun navaznosti(): List<NavaznostKurzu>
 }
