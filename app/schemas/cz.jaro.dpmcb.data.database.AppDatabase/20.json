@@ -1,0 +1,319 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 20,
+    "identityHash": "4de6c55ca6c8a732b90d79d37d01337e",
+    "entities": [
+      {
+        "tableName": "CasKod",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `kod` INTEGER NOT NULL, `indexTerminu` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `jede` INTEGER NOT NULL, `platiOd` INTEGER NOT NULL, `platiDo` INTEGER NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`, `kod`, `indexTerminu`))",
+        "fields": [
+          {
+            "fieldPath": "tab",
+            "columnName": "tab",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cisloSpoje",
+            "columnName": "cisloSpoje",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kod",
+            "columnName": "kod",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indexTerminu",
+            "columnName": "indexTerminu",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linka",
+            "columnName": "linka",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jede",
+            "columnName": "jede",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platiOd",
+            "columnName": "platiOd",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platiDo",
+            "columnName": "platiDo",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tab",
+            "cisloSpoje",
+            "kod",
+            "indexTerminu"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "Linka",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cislo` INTEGER NOT NULL, `trasa` TEXT NOT NULL, `typVozidla` TEXT NOT NULL, `typLinky` TEXT NOT NULL, `maVyluku` INTEGER NOT NULL, `platnostOd` INTEGER NOT NULL, `platnostDo` INTEGER NOT NULL, `kratkeCislo` INTEGER NOT NULL, PRIMARY KEY(`tab`))",
+        "fields": [
+          {
+            "fieldPath": "tab",
+            "columnName": "tab",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cislo",
+            "columnName": "cislo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trasa",
+            "columnName": "trasa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typVozidla",
+            "columnName": "typVozidla",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typLinky",
+            "columnName": "typLinky",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maVyluku",
+            "columnName": "maVyluku",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platnostOd",
+            "columnName": "platnostOd",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "platnostDo",
+            "columnName": "platnostDo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kratkeCislo",
+            "columnName": "kratkeCislo",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tab"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "Spoj",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `pevneKody` TEXT NOT NULL, `smer` INTEGER NOT NULL, `kurz` TEXT, `poradiNaKurzu` INTEGER, `id` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`))",
+        "fields": [
+          {
+            "fieldPath": "tab",
+            "columnName": "tab",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cisloSpoje",
+            "columnName": "cisloSpoje",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linka",
+            "columnName": "linka",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pevneKody",
+            "columnName": "pevneKody",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "smer",
+            "columnName": "smer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kurz",
+            "columnName": "kurz",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "poradiNaKurzu",
+            "columnName": "poradiNaKurzu",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tab",
+            "cisloSpoje"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "Zastavka",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloZastavky` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `nazevZastavky` TEXT NOT NULL, `pevneKody` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloZastavky`))",
+        "fields": [
+          {
+            "fieldPath": "tab",
+            "columnName": "tab",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cisloZastavky",
+            "columnName": "cisloZastavky",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linka",
+            "columnName": "linka",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nazevZastavky",
+            "columnName": "nazevZastavky",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pevneKody",
+            "columnName": "pevneKody",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tab",
+            "cisloZastavky"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "ZastavkaSpoje",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `indexZastavkyNaLince` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `cisloZastavky` INTEGER NOT NULL, `kmOdStartu` INTEGER NOT NULL, `prijezd` INTEGER, `odjezd` INTEGER, PRIMARY KEY(`tab`, `cisloSpoje`, `indexZastavkyNaLince`))",
+        "fields": [
+          {
+            "fieldPath": "tab",
+            "columnName": "tab",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cisloSpoje",
+            "columnName": "cisloSpoje",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "indexZastavkyNaLince",
+            "columnName": "indexZastavkyNaLince",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linka",
+            "columnName": "linka",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cisloZastavky",
+            "columnName": "cisloZastavky",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kmOdStartu",
+            "columnName": "kmOdStartu",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prijezd",
+            "columnName": "prijezd",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "odjezd",
+            "columnName": "odjezd",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tab",
+            "cisloSpoje",
+            "indexZastavkyNaLince"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4de6c55ca6c8a732b90d79d37d01337e')"
+    ]
+  }
+}

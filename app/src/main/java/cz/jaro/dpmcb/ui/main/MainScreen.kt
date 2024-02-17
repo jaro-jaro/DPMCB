@@ -32,6 +32,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.logEvent
+import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
@@ -107,7 +108,6 @@ import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Main(
     link: String?,
@@ -631,6 +631,7 @@ fun VecZeSupliku(
     SuplikAkce.NajitSpoj -> {
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         var id by rememberSaveable { mutableStateOf("") }
+        var kurz by rememberSaveable { mutableStateOf("") }
         var jmeno by rememberSaveable { mutableStateOf("") }
         var evc by rememberSaveable { mutableStateOf("") }
         var linka by rememberSaveable { mutableStateOf("") }
@@ -645,6 +646,7 @@ fun VecZeSupliku(
             zobrazitDialog = false
             closeDrawer()
             id = ""
+            kurz = ""
             jmeno = ""
             evc = ""
             linka = ""
@@ -655,6 +657,7 @@ fun VecZeSupliku(
             onDismissRequest = {
                 zobrazitDialog = false
                 id = ""
+                kurz = ""
                 jmeno = ""
                 evc = ""
                 linka = ""
@@ -690,6 +693,21 @@ fun VecZeSupliku(
                         }
                     }
                     else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
+                    else if (kurz.isNotEmpty()) {
+                        navigate(
+                            KurzDestination(
+                                kurz = kurz
+                            )
+                        )
+                        zobrazitDialog = false
+                        closeDrawer()
+                        id = ""
+                        kurz = ""
+                        jmeno = ""
+                        evc = ""
+                        linka = ""
+                        cislo = ""
+                    }
                     else potvrdit(id)
                 }) {
                     Text("Vyhledat")
@@ -699,6 +717,7 @@ fun VecZeSupliku(
                 TextButton(onClick = {
                     zobrazitDialog = false
                     id = ""
+                    kurz = ""
                     jmeno = ""
                     linka = ""
                     cislo = ""
@@ -828,6 +847,37 @@ fun VecZeSupliku(
                         },
                         keyboardActions = KeyboardActions {
                             potvrdit(id)
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Search,
+                        ),
+                    )
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    TextField(
+                        value = kurz,
+                        onValueChange = {
+                            kurz = it
+                        },
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        label = {
+                            Text("Přesný název kurzu")
+                        },
+                        keyboardActions = KeyboardActions {
+                            navigate(
+                                KurzDestination(
+                                    kurz = kurz
+                                )
+                            )
+                            zobrazitDialog = false
+                            closeDrawer()
+                            id = ""
+                            kurz = ""
+                            jmeno = ""
+                            evc = ""
+                            linka = ""
+                            cislo = ""
                         },
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Search,

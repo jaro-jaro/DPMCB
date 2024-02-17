@@ -17,7 +17,6 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.entities.CasKod
 import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.NavaznostKurzu
 import cz.jaro.dpmcb.data.entities.Spoj
 import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
@@ -264,22 +263,22 @@ class LoadingViewModel(
         val casKody: MutableList<CasKod> = mutableListOf()
         val linky: MutableList<Linka> = mutableListOf()
         val spoje: MutableList<Spoj> = mutableListOf()
-        val navaznosti: MutableList<NavaznostKurzu> = mutableListOf()
 
         if (udelameUplnouAktualizaci) {
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/6)" to null
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)" to null
             }
 
             db.clearAllTables()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/6)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
             val storage = Firebase.storage
             val kurzyRef = storage.reference.child("kurzy.json")
+            val navaznostiRef = storage.reference.child("navaznosti.json")
             val schemaRef = storage.reference.child("schema.pdf")
             val jrRef = storage.reference.child("data${META_VERZE_DAT}/data${novaVerze}.json")
 
@@ -291,7 +290,7 @@ class LoadingViewModel(
             ).readText()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/6)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)" to 0F
             }
 
             val kurzyFile = params.kurzyFile
@@ -304,13 +303,7 @@ class LoadingViewModel(
             val kurzy = json2.fromJson<Map<String, List<String>>>()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání kurzů (4/6)" to 0F
-            }
-
-            navaznosti += kurzy.extrahovatNavaznosti()
-
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (5/6)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
             }
 
             val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
@@ -325,7 +318,7 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
             }
 
             stahnoutSchema(schemaRef)
@@ -363,11 +356,10 @@ class LoadingViewModel(
             casKody.addAll(repo.casKody())
             linky.addAll(repo.linky())
             spoje.addAll(repo.spoje())
-            navaznosti.addAll(repo.navaznosti())
 
             val N = when {
-                menitSchema -> 7
-                else -> 6
+                menitSchema -> 6
+                else -> 5
             }
 
             _state.update {
@@ -399,13 +391,7 @@ class LoadingViewModel(
             val kurzy = json2.fromJson<Map<String, List<String>>>()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání kurzů (4/$N)" to 0F
-            }
-
-            navaznosti += kurzy.extrahovatNavaznosti()
-
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (5/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
             }
 
             plus.extrahovatData(kurzy)
@@ -418,7 +404,7 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (6/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$N)" to 0F
             }
 
             zmeny.extrahovatData(kurzy)
@@ -432,7 +418,7 @@ class LoadingViewModel(
 
             if (menitSchema) {
                 _state.update {
-                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (7/7)" to 0F
+                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
                 }
 
                 stahnoutSchema(schemaRef)
@@ -448,7 +434,6 @@ class LoadingViewModel(
         println(zastavky)
         println(zastavkySpoje)
         println(casKody)
-        println(navaznosti)
 
         coroutineScope {
             launch {
@@ -458,36 +443,9 @@ class LoadingViewModel(
                     casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
                     linky = linky.distinctBy { it.tab }.toTypedArray(),
                     spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
-                    navaznosti = navaznosti.distinctBy { it.kurzPotom to it.kurzPredtim }.toTypedArray(),
                     verze = novaVerze,
                 )
             }.join()
-        }
-    }
-
-    private fun Map<String, List<String>>.extrahovatNavaznosti(): List<NavaznostKurzu> {
-        val c = count()
-        var i = 0F
-
-        return flatMap { (kurz, spoje) ->
-            _state.update {
-                it.first to (++i / c)
-            }
-
-            val predchozi = spoje.takeWhile { it.startsWith("K") }
-            val nasledujici = spoje.takeLastWhile { it.startsWith("K") }
-
-            predchozi.map {
-                NavaznostKurzu(
-                    kurzPredtim = it.removePrefix("K-").split("-").joinToString("/"),
-                    kurzPotom = kurz,
-                )
-            } + nasledujici.map {
-                NavaznostKurzu(
-                    kurzPredtim = kurz,
-                    kurzPotom = it.removePrefix("K-").split("-").joinToString("/"),
-                )
-            }
         }
     }
 
