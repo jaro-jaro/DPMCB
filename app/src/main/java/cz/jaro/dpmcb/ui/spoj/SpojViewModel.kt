@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.tedFlow
+import cz.jaro.dpmcb.data.zcitelnitPevneKody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -73,7 +74,7 @@ class SpojViewModel(
             }).map { (jede, terminy) ->
                 (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
             },
-            pevneKody = pevneKody,
+            pevneKody = zcitelnitPevneKody(pevneKody),
             linkaKod = "JŘ linky platí od ${platnost.platnostOd.asString()} do ${platnost.platnostDo.asString()}",
             nazevSpoje = spojId.split("-").let { "${it[1]}/${it[2]}" },
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",

@@ -135,4 +135,11 @@ class MainViewModel(
         }
         Unit
     }
+
+    val najitKurzy = { kurz: String, callback: (List<String>) -> Unit ->
+        viewModelScope.launch {
+            callback(repo.najitKurzy(kurz))
+        }
+        Unit
+    }
 }

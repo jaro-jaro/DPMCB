@@ -156,7 +156,7 @@ class SpojeRepository(
                     )
                 }.distinct(),
                 caskody,
-                zcitelnitPevneKody(first().pevneKody),
+                first().pevneKody,
             )
         }
 
@@ -193,8 +193,68 @@ class SpojeRepository(
             datum.jedeDnes(pevneKody)
         }
 
+    suspend fun najitKurzy(kurz: String) = localDataSource.hledatKurzy("%$kurz%").sortedWith(kurzyComparator)
+
+//    init {
+//        scope.launch {
+//            localDataSource.praveJedouci(LocalTime.now())
+//                .groupBy {
+//                    it.kurz
+//                }
+//                .funguj()
+//                .mapNotNull { (kurz, data1) ->
+//                    val spoje = data1
+//                        .groupBy {
+//                            it.spojId to it.tab
+//                        }
+//                        .funguj()
+//                        .filter { (spoj, _) ->
+//                            val (spojId, tab) = spoj
+//                            val pravePouzivanaTabulka = pravePouzivanaTabulka(LocalDate.now(), extrahovatCisloLinky(spojId))
+//                            pravePouzivanaTabulka == tab
+//                        }
+//                        .funguj()
+//                        .map { (_, zastavky) ->
+//                            val caskody = zastavky.map {
+//                                JedeOdDo(
+//                                    jede = it.jede,
+//                                    v = it.od..it.`do`
+//                                )
+//                            }.distinctBy {
+//                                it.jede to it.v.toString()
+//                            }
+//                            Pair(caskody, zastavky.first().pevneKody)
+//                        }
+//
+//                    if (spoje.isEmpty()) return@mapNotNull null
+//
+//                    val caskody = spoje.first().first.filter { kod ->
+//                        spoje.all {
+//                            it.first.contains(kod)
+//                        }
+//                    }
+//
+//                    val pevne = spoje.first().second.filter { kod ->
+//                        spoje.all {
+//                            it.second.contains(kod)
+//                        }
+//                    }
+//
+//                    Triple(kurz, caskody, pevne).funguj()
+//                }
+//                .filter { (kurz, caskody, pevneKody) ->
+//                    jedeV(caskody, pevneKody, LocalDate.now())
+//                }
+//                .map {
+//                    it.first
+//                }
+//                .sortedWith(kurzyComparator)
+//                .funguj()
+//        }
+//    }
+
     suspend fun zobrazitKurz(kurz: String, datum: LocalDate): Kurz? {
-        val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz, "$kurz + %", "% + $kurz").funguj(kurz)
+        val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz, "$kurz + %", "% + $kurz")
             .groupBy {
                 it.spojId to it.tab
             }
@@ -234,7 +294,7 @@ class SpojeRepository(
                         )
                     }.distinct(),
                     caskody,
-                    zcitelnitPevneKody(zastavky.first().pevneKody),
+                    zastavky.first().pevneKody,
                 )
             }
             .sortedBy {
@@ -401,12 +461,22 @@ class SpojeRepository(
 
         val seznam = localDataSource.pevneKodyCaskody(spojId, tab).map { JedeOdDo(it.jede, it.od..it.`do`) to it.pevneKody }
 
-        listOf(
-            (seznam.map { it.first }.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
-            seznam.map { it.first }.filter { !it.jede }.none { datum in it.v },
-            datum.jedeDnes(seznam.first().second),
-        ).all { it }
+        jedeV(
+            caskody = seznam.map { it.first },
+            pevneKody = seznam.first().second,
+            datum = datum,
+        )
     }
+
+    fun jedeV(
+        caskody: List<JedeOdDo>,
+        pevneKody: String,
+        datum: LocalDate,
+    ): Boolean = listOf(
+        (caskody.filter { it.jede }.ifEmpty { null }?.any { datum in it.v } ?: true),
+        caskody.filter { !it.jede }.none { datum in it.v },
+        datum.jedeDnes(pevneKody),
+    ).all { it }
 
     private val contentResolver = ctx.contentResolver
 
@@ -497,7 +567,7 @@ fun polohaVelkehoPatkuAVelikonocnihoPondeliVRoce(rok: Int): Pair<LocalDate, Loca
     return velkyPatek to velikonocniPondeli
 }
 
-private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
+fun zcitelnitPevneKody(pevneKody: String) = pevneKody
     .split(" ")
     .mapNotNull {
         when (it) {
@@ -516,3 +586,13 @@ private fun zcitelnitPevneKody(pevneKody: String) = pevneKody
             else -> null
         }
     }
+
+private val kurzyComparator = compareBy<String> {
+    it.contains("V")
+}.thenBy {
+    it.split(" + ")[0].split("/")[1].split("-")[0].toIntOrNull() ?: 21
+}.thenBy {
+    it.split(" + ")[0].split("/")[0].toInt()
+}.thenBy {
+    it.split(" + ")[0].split("-").getOrNull(1) ?: ""
+}

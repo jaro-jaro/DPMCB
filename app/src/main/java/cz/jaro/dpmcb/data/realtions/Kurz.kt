@@ -6,5 +6,5 @@ data class Kurz(
     val spoje: List<InfoZastavky>,
     val navaznostiPotom: List<String>,
     val spolecneCaskody: List<JedeOdDo>,
-    val spolecnePevneKody: List<String>,
+    val spolecnePevneKody: String,
 )

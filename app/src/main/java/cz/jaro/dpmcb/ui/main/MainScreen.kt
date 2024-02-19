@@ -7,14 +7,17 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
@@ -35,6 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -90,6 +94,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
@@ -222,6 +227,7 @@ fun Main(
         oddelatPrukazku = viewModel.oddelatPrukazku,
         maPrukazku = maPrukazku,
         najitSpojPodleEvc = viewModel.najitSpojPodleEvc,
+        najitKurzy = viewModel.najitKurzy,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -253,6 +259,7 @@ fun MainScreen(
     aktualizovatData: () -> Unit,
     aktualizovatAplikaci: () -> Unit,
     najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
+    najitKurzy: (String, (List<String>) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -438,7 +445,7 @@ fun MainScreen(
                         }
                     )
                 },
-                colors = if (App.title == R.string.nic)  TopAppBarDefaults.topAppBarColors(
+                colors = if (App.title == R.string.nic) TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFD73139),
                     navigationIconContentColor = Color.Transparent,
                     actionIconContentColor = Color.White,
@@ -534,6 +541,7 @@ fun MainScreen(
                                 closeDrawer = closeDrawer,
                                 startActivity = startActivity,
                                 najitSpojPodleEvc = najitSpojPodleEvc,
+                                najitKurzy = najitKurzy
                             )
                         }
                     }
@@ -547,7 +555,7 @@ fun MainScreen(
 
 private fun Int.dva() = plus(100).toString().takeLast(2)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun VecZeSupliku(
     akce: SuplikAkce,
@@ -561,6 +569,7 @@ fun VecZeSupliku(
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
     najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
+    najitKurzy: (String, (List<String>) -> Unit) -> Unit,
 ) = when (akce) {
     SuplikAkce.ZpetnaVazba -> {
         var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
@@ -630,6 +639,8 @@ fun VecZeSupliku(
 
     SuplikAkce.NajitSpoj -> {
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+        var nenalezen by rememberSaveable { mutableStateOf(false) }
+        var moznosti by rememberSaveable { mutableStateOf(null as List<String>?) }
         var id by rememberSaveable { mutableStateOf("") }
         var kurz by rememberSaveable { mutableStateOf("") }
         var jmeno by rememberSaveable { mutableStateOf("") }
@@ -651,6 +662,29 @@ fun VecZeSupliku(
             evc = ""
             linka = ""
             cislo = ""
+        }
+
+        fun potvrditKurz(kurzId: String) {
+            navigate(
+                KurzDestination(
+                    kurz = kurzId
+                )
+            )
+            zobrazitDialog = false
+            closeDrawer()
+            id = ""
+            kurz = ""
+            moznosti = null
+            jmeno = ""
+            evc = ""
+            linka = ""
+            cislo = ""
+        }
+
+        fun najitKurz(hledany: String) = najitKurzy(hledany) {
+            if (it.isEmpty()) nenalezen = true
+            else if (it.size == 1) potvrditKurz(it[0])
+            else moznosti = it
         }
 
         if (zobrazitDialog) AlertDialog(
@@ -691,24 +725,10 @@ fun VecZeSupliku(
                             }
                             potvrdit(it)
                         }
-                    }
-                    else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
+                    } else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
                     else if (kurz.isNotEmpty()) {
-                        navigate(
-                            KurzDestination(
-                                kurz = kurz
-                            )
-                        )
-                        zobrazitDialog = false
-                        closeDrawer()
-                        id = ""
-                        kurz = ""
-                        jmeno = ""
-                        evc = ""
-                        linka = ""
-                        cislo = ""
-                    }
-                    else potvrdit(id)
+                        najitKurz(kurz)
+                    } else potvrdit(id)
                 }) {
                     Text("Vyhledat")
                 }
@@ -804,8 +824,7 @@ fun VecZeSupliku(
                                     }
                                     potvrdit(it)
                                 }
-                            }
-                            else
+                            } else
                                 focusManager.moveFocus(FocusDirection.Down)
                         },
                         keyboardOptions = KeyboardOptions(
@@ -862,22 +881,10 @@ fun VecZeSupliku(
                             .fillMaxWidth()
                             .padding(top = 8.dp),
                         label = {
-                            Text("Přesný název kurzu")
+                            Text("Názvev kurzu")
                         },
                         keyboardActions = KeyboardActions {
-                            navigate(
-                                KurzDestination(
-                                    kurz = kurz
-                                )
-                            )
-                            zobrazitDialog = false
-                            closeDrawer()
-                            id = ""
-                            kurz = ""
-                            jmeno = ""
-                            evc = ""
-                            linka = ""
-                            cislo = ""
+                            najitKurz(kurz)
                         },
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Search,
@@ -886,6 +893,68 @@ fun VecZeSupliku(
                 }
             }
         )
+
+        if (nenalezen) AlertDialog(
+            onDismissRequest = {
+                nenalezen = false
+            },
+            title = {
+                Text("Kurz nenalezen")
+            },
+            text = {
+                Text("Tento kurz (${kurz.nazevKurzu()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        nenalezen = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+
+        if (moznosti != null) AlertDialog(
+            onDismissRequest = {
+                moznosti = null
+            },
+            title = {
+                Text("Nalezeno více kurzů")
+            },
+            text = {
+                Column(
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text("\"${kurz}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
+                    moznosti!!.forEach {
+                        HorizontalDivider(Modifier.fillMaxWidth())
+                        ListItem(
+                            headlineContent = {
+                                TextButton(
+                                    onClick = {
+                                        potvrditKurz(it)
+                                    }
+                                ) {
+                                    Text(it.nazevKurzu())
+                                }
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        moznosti = null
+                    }
+                ) {
+                    Text("Zrušit")
+                }
+            }
+        )
+
         NavigationDrawerItem(
             label = {
                 Text(stringResource(akce.jmeno))

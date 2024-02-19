@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
+import cz.jaro.dpmcb.data.zcitelnitPevneKody
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -36,7 +37,7 @@ class KurzViewModel(
             }).map { (jede, terminy) ->
                 (if (jede) "Jede " else "Nejede ") + terminy.joinToString()
             },
-            pevneKody = pevneKody,
+            pevneKody = zcitelnitPevneKody(pevneKody),
             navaznostiPredtim = predtim,
             navaznostiPotom = potom,
             spoje = spoje.map { (spoj, zastavky) ->
@@ -47,7 +48,8 @@ class KurzViewModel(
                     nizkopodlaznost = spoj.nizkopodlaznost,
                     jede = false,
                 )
-            }
+            },
+            jedeDnes = repo.jedeV(caskody = caskody, pevneKody = pevneKody, datum = LocalDate.now()),
         )
     }
 

@@ -15,6 +15,7 @@ sealed interface KurzState {
         val spoje: List<SpojKurzuState>
         val caskody: List<String>
         val pevneKody: List<String>
+        val jedeDnes: Boolean
 
         data class Offline(
             override val kurz: String,
@@ -23,6 +24,7 @@ sealed interface KurzState {
             override val spoje: List<SpojKurzuState>,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
+            override val jedeDnes: Boolean,
         ) : OK
 
         data class Online(
@@ -32,6 +34,7 @@ sealed interface KurzState {
             override val spoje: List<SpojKurzuState>,
             override val caskody: List<String>,
             override val pevneKody: List<String>,
+            override val jedeDnes: Boolean,
             val zpozdeniMin: Float,
             val vuz: Int?,
             val potvrzenaNizkopodlaznost: Boolean?,
@@ -44,7 +47,7 @@ sealed interface KurzState {
                     potvrzenaNizkopodlaznost: Boolean?,
                 ) = with(state) {
                     Online(
-                        kurz, navaznostiPredtim, navaznostiPotom, spoje, caskody, pevneKody, zpozdeniMin, vuz, potvrzenaNizkopodlaznost
+                        kurz, navaznostiPredtim, navaznostiPotom, spoje, caskody, pevneKody, jedeDnes, zpozdeniMin, vuz, potvrzenaNizkopodlaznost
                     )
                 }
             }

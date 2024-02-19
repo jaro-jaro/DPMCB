@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,17 +26,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,7 +70,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -81,27 +78,28 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
+import cz.jaro.dpmcb.data.jikord.ZastavkaOnlineSpoje
+import cz.jaro.dpmcb.data.realtions.CasNazevSpojIdLinkaPristi
 import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
 import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
+import cz.jaro.dpmcb.ui.kurz.BublinaZpozdeni
+import cz.jaro.dpmcb.ui.kurz.Nazev
+import cz.jaro.dpmcb.ui.kurz.Vozickar
+import cz.jaro.dpmcb.ui.kurz.Vuz
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.minutes
 
 @Destination
 @Composable
@@ -126,7 +124,6 @@ fun Spoj(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpojScreen(
     state: SpojState,
@@ -141,91 +138,12 @@ fun SpojScreen(
             .padding(8.dp)
     ) {
         when (state) {
-            is SpojState.Loading -> Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            is SpojState.Loading -> Loading()
 
-            is SpojState.Neexistuje -> Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text("Tento spoj (ID ${state.spojId}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
-            }
+            is SpojState.Neexistuje -> Neexistuje(state.spojId)
 
             is SpojState.Nejede -> {
-                @Suppress("KotlinConstantConditions")
-                when {
-                    state.pristeJedePoDatu == null && state.pristeJedePoDnesku == null -> {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text("Tento spoj (ID ${state.spojId}) bohužel ${state.datum.hezky6p()} nejede :(\nZkontrolujte, zda jste zadali správné datum.")
-                        }
-                    }
-
-                    state.pristeJedePoDatu == null && state.pristeJedePoDnesku != null -> {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede, ale pojede ${state.pristeJedePoDnesku.hezky6p()}.")
-                        }
-                        Button(
-                            onClick = {
-                                zmenitdatum(state.pristeJedePoDnesku)
-                            },
-                            Modifier.padding(top = 16.dp)
-                        ) {
-                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky4p()}")
-                        }
-                    }
-
-                    state.pristeJedePoDatu != null && (state.pristeJedePoDnesku == null || state.pristeJedePoDatu == state.pristeJedePoDnesku) -> {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede, ale pojede ${state.pristeJedePoDatu.hezky6p()}.")
-                        }
-                        Button(
-                            onClick = {
-                                zmenitdatum(state.pristeJedePoDatu)
-                            },
-                            Modifier.padding(top = 16.dp)
-                        ) {
-                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky4p()}")
-                        }
-                    }
-
-                    state.pristeJedePoDatu != null && state.pristeJedePoDnesku != null -> {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text("Tento spoj (ID ${state.spojId}) ${state.datum.hezky6p()} nejede. Jede mimo jiné ${state.pristeJedePoDatu.hezky6p()} nebo ${state.pristeJedePoDnesku.hezky6p()}")
-                        }
-                        Button(
-                            onClick = {
-                                zmenitdatum(state.pristeJedePoDatu)
-                            },
-                            Modifier.padding(top = 16.dp)
-                        ) {
-                            Text("Změnit datum na ${state.pristeJedePoDatu.hezky4p()}")
-                        }
-                        Button(
-                            onClick = {
-                                zmenitdatum(state.pristeJedePoDnesku)
-                            },
-                            Modifier.padding(top = 16.dp)
-                        ) {
-                            Text("Změnit datum na ${state.pristeJedePoDnesku.hezky4p()}")
-                        }
-                    }
-                }
+                Chyby(state.pristeJedePoDnesku, zmenitdatum, state.pristeJedePoDatu, state.spojId, state.datum)
 
                 SpodniRadek(state)
             }
@@ -237,270 +155,35 @@ fun SpojScreen(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(text = "${state.cisloLinky}", fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
-                    IconWithTooltip(
-                        remember(state.nizkopodlaznost) {
-                            when {
-                                Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
-                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> Icons.AutoMirrored.Filled.Accessible
-                                state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> Icons.Default.NotAccessible
-                                state.nizkopodlaznost -> Icons.AutoMirrored.Filled.Accessible
-                                else -> Icons.Default.NotAccessible
-                            }
-                        },
-                        when {
-                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true -> "Potvrzený nízkopodlažní vůz"
-                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false -> "Potvrzený vysokopodlažní vůz"
-                            state.nizkopodlaznost -> "Plánovaný nízkopodlažní vůz"
-                            else -> "Nezaručený nízkopodlažní vůz"
-                        },
+                    Nazev("${state.cisloLinky}")
+                    Vozickar(
+                        nizkopodlaznost = state.nizkopodlaznost,
+                        potvrzenaNizkopodlaznost = state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true,
                         Modifier.padding(start = 8.dp),
-                        tint = when {
-                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == false && state.nizkopodlaznost -> MaterialTheme.colorScheme.error
-                            state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost != null -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurface
-                        }
+                        povolitVozik = true,
                     )
 
                     Spacer(Modifier.weight(1F))
 
-                    if (state.kurz != null) TextButton(
-                        onClick = {
-                            navigate(KurzDestination(state.kurz!!))
-                        }
-                    ) {
-                        Text("Kurz: ${state.kurz!!.nazevKurzu()}")
-                    }
+                    TlacitkoKurzu(navigate, state.kurz)
 
-                    var show by remember { mutableStateOf(false) }
-                    var cast by remember { mutableStateOf(CastSpoje(state.spojId, -1, -1)) }
-
-                    FilledIconToggleButton(checked = state.oblibeny != null, onCheckedChange = {
-                        cast = state.oblibeny ?: CastSpoje(state.spojId, -1, -1)
-                        show = true
-                    }) {
-                        IconWithTooltip(Icons.Default.Star, "Oblíbené")
-                    }
-
-                    if (show) AlertDialog(
-                        onDismissRequest = {
-                            show = false
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    upravitOblibene(cast)
-                                    show = false
-                                },
-                                enabled = cast.start != -1 && cast.end != -1
-                            ) {
-                                Text("Potvrdit")
-                            }
-                        },
-                        dismissButton = {
-                            if (state.oblibeny == null) TextButton(
-                                onClick = {
-                                    show = false
-                                }
-                            ) {
-                                Text("Zrušit")
-                            }
-                            else TextButton(
-                                onClick = {
-                                    odstranitOblibene()
-                                    show = false
-                                }
-                            ) {
-                                Text("Odstranit")
-                            }
-                        },
-                        title = {
-                            Text("Upravit oblíbený spoj")
-                        },
-                        icon = {
-                            Icon(Icons.Default.Star, null)
-                        },
-                        text = {
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-//                                    .verticalScroll(rememberScrollState())
-                            ) {
-                                Text("Vyberte Váš oblíbený úsek tohoto spoje:")
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(IntrinsicSize.Max)
-                                        .padding(8.dp)
-                                ) {
-                                    val start = remember { Animatable(cast.start.toFloat()) }
-                                    val end = remember { Animatable(cast.end.toFloat()) }
-                                    val alpha by animateFloatAsState(if (cast.start == -1) 0F else 1F, label = "AlphaAnimation")
-
-                                    val scope = rememberCoroutineScope()
-                                    fun click(i: Int) = scope.launch {
-                                        when {
-                                            cast.start == -1 && i == state.zastavky.lastIndex -> {}
-                                            cast.start == -1 -> {
-                                                start.snapTo(i.toFloat())
-                                                end.snapTo(i.toFloat())
-                                                cast = cast.copy(start = i)
-                                            }
-
-                                            cast.start == i -> {
-                                                cast = cast.copy(start = -1, end = -1)
-                                                end.snapTo(i.toFloat())
-                                            }
-
-                                            cast.end == i -> {
-                                                cast = cast.copy(end = -1)
-                                                end.animateTo(cast.start.toFloat())
-                                            }
-
-                                            i < cast.start -> {
-                                                cast = cast.copy(start = i)
-                                                if (cast.end == -1) launch { end.animateTo(cast.start.toFloat()) }
-                                                start.animateTo(cast.start.toFloat())
-                                            }
-
-                                            else /*cast.start < i*/ -> {
-                                                cast = cast.copy(end = i)
-                                                end.animateTo(cast.end.toFloat())
-                                            }
-                                        }
-                                    }
-
-                                    val barvaVybrano = MaterialTheme.colorScheme.secondary
-                                    val baravCary = MaterialTheme.colorScheme.onSurfaceVariant
-                                    val zastavek = state.zastavky.count()
-
-                                    var canvasHeight by remember { mutableFloatStateOf(0F) }
-                                    Canvas(
-                                        Modifier
-                                            .fillMaxHeight()
-                                            .width(24.dp)
-                                            .padding(horizontal = 8.dp)
-                                            .pointerInput(Unit) {
-                                                detectTapGestures { (_, y) ->
-                                                    val rowHeight = canvasHeight / zastavek
-                                                    val i = (y / rowHeight).toInt()
-                                                    click(i)
-                                                }
-                                            }
-                                    ) {
-                                        canvasHeight = size.height
-                                        val rowHeight = canvasHeight / zastavek
-                                        val lineWidth = 4.5.dp.toPx()
-                                        val lineXOffset = 0F
-                                        val smallCircleRadius = 6.5.dp.toPx()
-                                        val bigCircleRadius = 9.5.dp.toPx()
-
-                                        translate(left = lineXOffset, top = rowHeight * .5F) {
-                                            drawLine(
-                                                color = baravCary,
-                                                start = Offset(),
-                                                end = Offset(y = canvasHeight - rowHeight),
-                                                strokeWidth = lineWidth,
-                                            )
-
-                                            repeat(zastavek) { i ->
-                                                translate(top = i * rowHeight) {
-                                                    if (i.toFloat() <= start.value || end.value <= i.toFloat()) drawCircle(
-                                                        color = baravCary,
-                                                        radius = smallCircleRadius,
-                                                        center = Offset(),
-                                                        style = Fill,
-                                                    )
-                                                }
-                                            }
-
-                                            drawCircle(
-                                                color = barvaVybrano,
-                                                radius = bigCircleRadius,
-                                                center = Offset(y = rowHeight * end.value),
-                                                style = Fill,
-                                                alpha = alpha,
-                                            )
-                                            drawCircle(
-                                                color = barvaVybrano,
-                                                radius = bigCircleRadius,
-                                                center = Offset(y = rowHeight * start.value),
-                                                style = Fill,
-                                                alpha = alpha,
-                                            )
-
-                                            if (cast.start != -1) drawLine(
-                                                color = barvaVybrano,
-                                                start = Offset(y = start.value * rowHeight),
-                                                end = Offset(y = end.value * rowHeight),
-                                                strokeWidth = lineWidth,
-                                            )
-                                        }
-                                    }
-                                    Column(
-                                        Modifier
-                                            .weight(1F)
-                                    ) {
-                                        state.zastavky.forEachIndexed { i, zast ->
-                                            Box(
-                                                Modifier
-                                                    .weight(1F)
-                                                    .defaultMinSize(32.dp, 32.dp),
-                                                contentAlignment = Alignment.CenterStart
-                                            ) {
-                                                Text(
-                                                    text = zast.nazev,
-                                                    Modifier
-                                                        .clickable {
-                                                            click(i)
-                                                        },
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    color = if (i == cast.start || i == cast.end) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    Oblibenovac(
+                        upravitOblibene = upravitOblibene,
+                        odstranitOblibene = odstranitOblibene,
+                        spojId = state.spojId,
+                        oblibenaCastSpoje = state.oblibeny,
+                        zastavky = state.zastavky
                     )
                 }
 
-
-                Row(
+                if (state is SpojState.OK.Online) Row(
                     Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (state is SpojState.OK.Online) Badge(
-                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(state.zpozdeniMin),
-                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(state.zpozdeniMin),
-                    ) {
-                        Text(
-                            text = state.zpozdeniMin.toDouble().minutes.run {
-                                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
-                            },
-                        )
-                    }
-                    if (state is SpojState.OK.Online && state.vuz != null) {
-                        Text(
-                            text = "ev. č. ${state.vuz.evC()}",
-                            Modifier.padding(horizontal = 8.dp)
-                        )
-                        val context = LocalContext.current
-                        IconWithTooltip(
-                            Icons.Default.Info,
-                            "Zobrazit informace o voze",
-                            Modifier.clickable {
-                                context.startActivity(Intent.createChooser(Intent().apply {
-                                    action = Intent.ACTION_VIEW
-                                    data = Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${state.vuz}")
-                                }, "Zobrazit informace o voze"))
-                            },
-                        )
-                    }
+                    BublinaZpozdeni(state.zpozdeniMin)
+                    Vuz(state.vuz)
                 }
 
 
@@ -509,165 +192,22 @@ fun SpojScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    if (state.vyluka) Card(
-                        Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Row(
-                            Modifier.padding(top = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.WarningAmber, null, Modifier.padding(horizontal = 8.dp))
-                            Text(text = "Výluka", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
-                        }
-                        Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
-                    }
-                    if (state !is SpojState.OK.Online && state.chyba) Card(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        )
-                    ) {
-                        Row(
-                            Modifier.padding(top = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.GpsOff, null, Modifier.padding(horizontal = 8.dp))
-                            Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
-                        }
-                        Text(text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel ze své výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data", Modifier.padding(all = 8.dp))
-                    }
+                    if (state.vyluka) Vyluka()
+                    if (state !is SpojState.OK.Online && state.chyba) Chyba()
                     OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Max)
-                                .padding(12.dp)
-                        ) {
-                            Column(
-                                Modifier.weight(1F)
-                            ) {
-                                state.zastavky.forEachIndexed { i, it ->
-                                    MujText(
-                                        text = it.nazev,
-                                        navigate = navigate,
-                                        cas = it.cas,
-                                        zastavka = it.nazev,
-                                        pristiZastavka = it.pristiZastavka,
-                                        linka = it.linka,
-                                        stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
-                                        Modifier.fillMaxWidth(1F),
-                                        color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
-                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                            Column(Modifier.padding(start = 8.dp)) {
-                                state.zastavky.forEachIndexed { i, it ->
-                                    MujText(
-                                        text = it.cas.toString(),
-                                        navigate = navigate,
-                                        cas = it.cas,
-                                        zastavka = it.nazev,
-                                        pristiZastavka = it.pristiZastavka,
-                                        linka = it.linka,
-                                        stanoviste = if (state is SpojState.OK.Online) state.zastavkyNaJihu[i].stanoviste else "",
-                                        color = if (state is SpojState.OK.Online && it.cas == state.pristiZastavka)
-                                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                            }
-                            if (state is SpojState.OK.Online) Column(Modifier.padding(start = 8.dp)) {
-                                state.zastavky
-                                    .zip(state.zastavkyNaJihu)
-                                    .forEach { (zastavka, zastavkaNaJihu) ->
-                                        MujText(
-                                            text = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()).toString(),
-                                            navigate = navigate,
-                                            cas = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()),
-                                            zastavka = zastavka.nazev,
-                                            pristiZastavka = zastavka.pristiZastavka,
-                                            linka = zastavka.linka,
-                                            stanoviste = zastavkaNaJihu.stanoviste,
-                                            color = barvaZpozdeniTextu(zastavkaNaJihu.zpozdeni.toFloat()),
-                                        )
-                                    }
-                            }
-
-                            val projetaBarva = if (state is SpojState.OK.Online) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            val barvaBusu = if (state is SpojState.OK.Online) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                            val barvaPozadi = MaterialTheme.colorScheme.surface
-                            val baravCary = MaterialTheme.colorScheme.surfaceVariant
-                            val zastavek = state.zastavky.count()
-
-                            val animovanaVyska by animateFloatAsState(state.vyska, label = "HeightAnimation")
-
-                            Canvas(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .width(20.dp)
-                                    .padding(horizontal = 8.dp),
-                                contentDescription = "Poloha spoje"
-                            ) {
-                                val canvasHeight = size.height
-                                val lineWidth = 3.dp.toPx()
-                                val lineXOffset = 7.dp.toPx()
-                                val rowHeight = canvasHeight / zastavek
-                                val circleRadius = 5.5.dp.toPx()
-                                val circleStrokeWidth = 3.dp.toPx()
-
-                                translate(left = lineXOffset, top = rowHeight * .5F) {
-                                    drawLine(
-                                        color = baravCary,
-                                        start = Offset(),
-                                        end = Offset(y = canvasHeight - rowHeight),
-                                        strokeWidth = lineWidth,
-                                    )
-
-                                    repeat(zastavek) { i ->
-                                        translate(top = i * rowHeight) {
-                                            val projel = state.projetychUseku >= i
-
-                                            drawCircle(
-                                                color = if (projel) projetaBarva else barvaPozadi,
-                                                radius = circleRadius,
-                                                center = Offset(),
-                                                style = Fill
-                                            )
-                                            drawCircle(
-                                                color = if (projel) projetaBarva else baravCary,
-                                                radius = circleRadius,
-                                                center = Offset(),
-                                                style = Stroke(
-                                                    width = circleStrokeWidth
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    drawLine(
-                                        color = projetaBarva,
-                                        start = Offset(),
-                                        end = Offset(y = rowHeight * animovanaVyska),
-                                        strokeWidth = lineWidth,
-                                    )
-
-                                    if (state.vyska > 0F) drawCircle(
-                                        color = barvaBusu,
-                                        radius = circleRadius - circleStrokeWidth * .5F,
-                                        center = Offset(y = rowHeight * animovanaVyska)
-                                    )
-                                }
-                            }
-                        }
+                        JizdniRad(
+                            navigate = navigate,
+                            zastavkyNaJihu = (state as? SpojState.OK.Online)?.zastavkyNaJihu,
+                            pristiZastavka = (state as? SpojState.OK.Online)?.pristiZastavka,
+                            zastavky = state.zastavky,
+                            projetychUseku = state.projetychUseku,
+                            vyska = state.vyska,
+                            jeOnline = state is SpojState.OK.Online
+                        )
                     }
 
                     SpodniRadek(state)
@@ -678,8 +218,495 @@ fun SpojScreen(
 }
 
 @Composable
+private fun Loading() {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun Neexistuje(
+    spojId: String,
+) = Row(
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.Center
+) {
+    Text("Tento spoj (ID $spojId) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+}
+
+context(ColumnScope)
+@Composable
+private fun Chyby(
+    pristeJedePoDnesku: LocalDate?,
+    zmenitdatum: (LocalDate) -> Unit,
+    pristeJedePoDatu: LocalDate?,
+    spojId: String,
+    datum: LocalDate,
+) {
+    TextChyby(
+        when {
+            pristeJedePoDatu == null && pristeJedePoDnesku == null ->
+                "Tento spoj (ID $spojId) bohužel ${datum.hezky6p()} nejede :(\nZkontrolujte, zda jste zadali správné datum."
+
+            pristeJedePoDatu != null && pristeJedePoDnesku != null && pristeJedePoDatu != pristeJedePoDnesku ->
+                "Tento spoj (ID $spojId) ${datum.hezky6p()} nejede. Jede mimo jiné ${pristeJedePoDatu.hezky6p()} nebo ${pristeJedePoDnesku.hezky6p()}"
+
+            pristeJedePoDatu == null && pristeJedePoDnesku != null ->
+                "Tento spoj (ID $spojId) ${datum.hezky6p()} nejede, ale pojede ${pristeJedePoDnesku.hezky6p()}."
+
+            pristeJedePoDatu != null && pristeJedePoDnesku == null ->
+                "Tento spoj (ID $spojId) ${datum.hezky6p()} nejede, ale pojede ${pristeJedePoDatu.hezky6p()}."
+
+            else -> throw IllegalArgumentException()
+        }
+    )
+
+    if (pristeJedePoDnesku != null) {
+        ZmenitDatum(zmenitdatum, pristeJedePoDnesku)
+    }
+    if (pristeJedePoDatu != null && pristeJedePoDnesku != pristeJedePoDatu) {
+        ZmenitDatum(zmenitdatum, pristeJedePoDatu)
+    }
+}
+
+@Composable
+private fun ZmenitDatum(zmenitdatum: (LocalDate) -> Unit, datum: LocalDate) {
+    Button(
+        onClick = {
+            zmenitdatum(datum)
+        },
+        Modifier.padding(top = 16.dp)
+    ) {
+        Text("Změnit datum na ${datum.hezky4p()}")
+    }
+}
+
+@Composable
+private fun TextChyby(
+    text: String,
+) = Row(
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.Center
+) {
+    Text(text)
+}
+
+@Composable
+fun JizdniRad(
+    zastavky: List<CasNazevSpojIdLinkaPristi>,
+    navigate: NavigateFunction,
+    zastavkyNaJihu: List<ZastavkaOnlineSpoje>?,
+    pristiZastavka: LocalTime?,
+    zobrazitCaru: Boolean = true,
+    projetychUseku: Int = if (!zobrazitCaru) 0 else throw IllegalArgumentException(),
+    vyska: Float = if (!zobrazitCaru) 0F else throw IllegalArgumentException(),
+    jeOnline: Boolean = if (!zobrazitCaru) false else throw IllegalArgumentException(),
+) = Row(
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(IntrinsicSize.Max)
+        .padding(12.dp)
+) {
+    Column(
+        Modifier.weight(1F)
+    ) {
+        zastavky.forEachIndexed { i, it ->
+            MujText(
+                text = it.nazev,
+                navigate = navigate,
+                cas = it.cas,
+                zastavka = it.nazev,
+                pristiZastavka = it.pristiZastavka,
+                linka = it.linka,
+                stanoviste = if (zastavkyNaJihu != null) zastavkyNaJihu[i].stanoviste else "",
+                Modifier.fillMaxWidth(1F),
+                color = if (pristiZastavka != null && it.cas == pristiZastavka)
+                    MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+    Column(Modifier.padding(start = 8.dp)) {
+        zastavky.forEachIndexed { i, it ->
+            MujText(
+                text = it.cas.toString(),
+                navigate = navigate,
+                cas = it.cas,
+                zastavka = it.nazev,
+                pristiZastavka = it.pristiZastavka,
+                linka = it.linka,
+                stanoviste = if (zastavkyNaJihu != null) zastavkyNaJihu[i].stanoviste else "",
+                color = if (pristiZastavka != null && it.cas == pristiZastavka)
+                    MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+    if (zastavkyNaJihu != null) Column(Modifier.padding(start = 8.dp)) {
+        zastavky
+            .zip(zastavkyNaJihu)
+            .forEach { (zastavka, zastavkaNaJihu) ->
+                MujText(
+                    text = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()).toString(),
+                    navigate = navigate,
+                    cas = zastavka.cas.plusMinutes(zastavkaNaJihu.zpozdeni.toLong()),
+                    zastavka = zastavka.nazev,
+                    pristiZastavka = zastavka.pristiZastavka,
+                    linka = zastavka.linka,
+                    stanoviste = zastavkaNaJihu.stanoviste,
+                    color = barvaZpozdeniTextu(zastavkaNaJihu.zpozdeni.toFloat()),
+                )
+            }
+    }
+
+    if (zobrazitCaru) Cara(
+        zastavky = zastavky,
+        projetychUseku = projetychUseku,
+        vyska = vyska,
+        jeOnline = jeOnline
+    )
+}
+
+@Composable
+private fun Cara(
+    zastavky: List<CasNazevSpojIdLinkaPristi>,
+    projetychUseku: Int,
+    vyska: Float,
+    jeOnline: Boolean,
+) {
+    val projetaBarva = if (jeOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val barvaBusu = if (jeOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+    val barvaPozadi = MaterialTheme.colorScheme.surface
+    val baravCary = MaterialTheme.colorScheme.surfaceVariant
+    val zastavek = zastavky.count()
+
+    val animovanaVyska by animateFloatAsState(vyska, label = "HeightAnimation")
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(20.dp)
+            .padding(horizontal = 8.dp),
+        contentDescription = "Poloha spoje"
+    ) {
+        val canvasHeight = size.height
+        val lineWidth = 3.dp.toPx()
+        val lineXOffset = 7.dp.toPx()
+        val rowHeight = canvasHeight / zastavek
+        val circleRadius = 5.5.dp.toPx()
+        val circleStrokeWidth = 3.dp.toPx()
+
+        translate(left = lineXOffset, top = rowHeight * .5F) {
+            drawLine(
+                color = baravCary,
+                start = Offset(),
+                end = Offset(y = canvasHeight - rowHeight),
+                strokeWidth = lineWidth,
+            )
+
+            repeat(zastavek) { i ->
+                translate(top = i * rowHeight) {
+                    val projel = projetychUseku >= i
+
+                    drawCircle(
+                        color = if (projel) projetaBarva else barvaPozadi,
+                        radius = circleRadius,
+                        center = Offset(),
+                        style = Fill
+                    )
+                    drawCircle(
+                        color = if (projel) projetaBarva else baravCary,
+                        radius = circleRadius,
+                        center = Offset(),
+                        style = Stroke(
+                            width = circleStrokeWidth
+                        )
+                    )
+                }
+            }
+
+            drawLine(
+                color = projetaBarva,
+                start = Offset(),
+                end = Offset(y = rowHeight * animovanaVyska),
+                strokeWidth = lineWidth,
+            )
+
+            if (vyska > 0F) drawCircle(
+                color = barvaBusu,
+                radius = circleRadius - circleStrokeWidth * .5F,
+                center = Offset(y = rowHeight * animovanaVyska)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Chyba(
+) = Card(
+    Modifier
+        .fillMaxWidth()
+        .padding(top = 8.dp),
+    colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+    )
+) {
+    Row(
+        Modifier.padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.GpsOff, null, Modifier.padding(horizontal = 8.dp))
+        Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
+    }
+    Text(
+        text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel ze své výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data",
+        Modifier.padding(all = 8.dp)
+    )
+}
+
+@Composable
+private fun Vyluka(
+) = Card(
+    Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.errorContainer
+    )
+) {
+    Row(
+        Modifier.padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.WarningAmber, null, Modifier.padding(horizontal = 8.dp))
+        Text(text = "Výluka", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
+    }
+    Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
+}
+
+@Composable
+private fun TlacitkoKurzu(
+    navigate: NavigateFunction,
+    kurz: String?,
+) {
+    if (kurz != null) TextButton(
+        onClick = {
+            navigate(KurzDestination(kurz))
+        }
+    ) {
+        Text("Kurz: ${kurz.nazevKurzu()}")
+    }
+}
+
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun SpodniRadek(state: SpojState.Existuje) {
+private fun Oblibenovac(
+    upravitOblibene: (CastSpoje) -> Unit,
+    odstranitOblibene: () -> Unit,
+    spojId: String,
+    oblibenaCastSpoje: CastSpoje?,
+    zastavky: List<CasNazevSpojIdLinkaPristi>,
+) {
+    var show by remember { mutableStateOf(false) }
+    var cast by remember { mutableStateOf(CastSpoje(spojId, -1, -1)) }
+
+    FilledIconToggleButton(checked = oblibenaCastSpoje != null, onCheckedChange = {
+        cast = oblibenaCastSpoje ?: CastSpoje(spojId, -1, -1)
+        show = true
+    }) {
+        IconWithTooltip(Icons.Default.Star, "Oblíbené")
+    }
+
+    if (show) AlertDialog(
+        onDismissRequest = {
+            show = false
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    upravitOblibene(cast)
+                    show = false
+                },
+                enabled = cast.start != -1 && cast.end != -1
+            ) {
+                Text("Potvrdit")
+            }
+        },
+        dismissButton = {
+            if (oblibenaCastSpoje == null) TextButton(
+                onClick = {
+                    show = false
+                }
+            ) {
+                Text("Zrušit")
+            }
+            else TextButton(
+                onClick = {
+                    odstranitOblibene()
+                    show = false
+                }
+            ) {
+                Text("Odstranit")
+            }
+        },
+        title = {
+            Text("Upravit oblíbený spoj")
+        },
+        icon = {
+            Icon(Icons.Default.Star, null)
+        },
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+//                                    .verticalScroll(rememberScrollState())
+            ) {
+                Text("Vyberte Váš oblíbený úsek tohoto spoje:")
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max)
+                        .padding(8.dp)
+                ) {
+                    val start = remember { Animatable(cast.start.toFloat()) }
+                    val end = remember { Animatable(cast.end.toFloat()) }
+                    val alpha by animateFloatAsState(if (cast.start == -1) 0F else 1F, label = "AlphaAnimation")
+
+                    val scope = rememberCoroutineScope()
+                    fun click(i: Int) = scope.launch {
+                        when {
+                            cast.start == -1 && i == zastavky.lastIndex -> {}
+                            cast.start == -1 -> {
+                                start.snapTo(i.toFloat())
+                                end.snapTo(i.toFloat())
+                                cast = cast.copy(start = i)
+                            }
+
+                            cast.start == i -> {
+                                cast = cast.copy(start = -1, end = -1)
+                                end.snapTo(i.toFloat())
+                            }
+
+                            cast.end == i -> {
+                                cast = cast.copy(end = -1)
+                                end.animateTo(cast.start.toFloat())
+                            }
+
+                            i < cast.start -> {
+                                cast = cast.copy(start = i)
+                                if (cast.end == -1) launch { end.animateTo(cast.start.toFloat()) }
+                                start.animateTo(cast.start.toFloat())
+                            }
+
+                            else /*cast.start < i*/ -> {
+                                cast = cast.copy(end = i)
+                                end.animateTo(cast.end.toFloat())
+                            }
+                        }
+                    }
+
+                    val barvaVybrano = MaterialTheme.colorScheme.secondary
+                    val baravCary = MaterialTheme.colorScheme.onSurfaceVariant
+                    val zastavek = zastavky.count()
+
+                    var canvasHeight by remember { mutableFloatStateOf(0F) }
+                    Canvas(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(24.dp)
+                            .padding(horizontal = 8.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures { (_, y) ->
+                                    val rowHeight = canvasHeight / zastavek
+                                    val i = (y / rowHeight).toInt()
+                                    click(i)
+                                }
+                            }
+                    ) {
+                        canvasHeight = size.height
+                        val rowHeight = canvasHeight / zastavek
+                        val lineWidth = 4.5.dp.toPx()
+                        val lineXOffset = 0F
+                        val smallCircleRadius = 6.5.dp.toPx()
+                        val bigCircleRadius = 9.5.dp.toPx()
+
+                        translate(left = lineXOffset, top = rowHeight * .5F) {
+                            drawLine(
+                                color = baravCary,
+                                start = Offset(),
+                                end = Offset(y = canvasHeight - rowHeight),
+                                strokeWidth = lineWidth,
+                            )
+
+                            repeat(zastavek) { i ->
+                                translate(top = i * rowHeight) {
+                                    if (i.toFloat() <= start.value || end.value <= i.toFloat()) drawCircle(
+                                        color = baravCary,
+                                        radius = smallCircleRadius,
+                                        center = Offset(),
+                                        style = Fill,
+                                    )
+                                }
+                            }
+
+                            drawCircle(
+                                color = barvaVybrano,
+                                radius = bigCircleRadius,
+                                center = Offset(y = rowHeight * end.value),
+                                style = Fill,
+                                alpha = alpha,
+                            )
+                            drawCircle(
+                                color = barvaVybrano,
+                                radius = bigCircleRadius,
+                                center = Offset(y = rowHeight * start.value),
+                                style = Fill,
+                                alpha = alpha,
+                            )
+
+                            if (cast.start != -1) drawLine(
+                                color = barvaVybrano,
+                                start = Offset(y = start.value * rowHeight),
+                                end = Offset(y = end.value * rowHeight),
+                                strokeWidth = lineWidth,
+                            )
+                        }
+                    }
+                    Column(
+                        Modifier
+                            .weight(1F)
+                    ) {
+                        zastavky.forEachIndexed { i, zast ->
+                            Box(
+                                Modifier
+                                    .weight(1F)
+                                    .defaultMinSize(32.dp, 32.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Text(
+                                    text = zast.nazev,
+                                    Modifier
+                                        .clickable {
+                                            click(i)
+                                        },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = if (i == cast.start || i == cast.end) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+context(ColumnScope)
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun SpodniRadek(
+    state: SpojState.Existuje,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End

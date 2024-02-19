@@ -336,6 +336,37 @@ interface Dao {
         tabs: List<String>,
     ): List<ZastavkaSpojeSeSpojem>
 
+    @Query(
+        """
+        SELECT DISTINCT spoj.kurz FROM spoj
+        WHERE spoj.kurz LIKE :kurz
+    """
+    )
+    suspend fun hledatKurzy(kurz: String): List<String>
+
+//    @Query(
+//        """
+//        SELECT DISTINCT spoj.kurz, caskod.jede, caskod.platiOd od, caskod.platiDo `do`, spoj.pevneKody, spoj.tab, spoj.id spojId FROM zastavkaspoje
+//        JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+//        JOIN caskod ON caskod.tab = zastavkaspoje.tab AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje
+//        JOIN (
+//            SELECT DISTINCT CASE
+//                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+//                ELSE zastavkaspoje.odjezd
+//            END cas, spoj.kurz FROM zastavkaspoje
+//            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+//        ) druhazastavka ON spoj.kurz = druhazastavka.kurz
+//        WHERE druhazastavka.cas < :cas
+//        AND :cas < (
+//            CASE
+//                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+//                ELSE zastavkaspoje.odjezd
+//            END
+//        )
+//    """
+//    )
+//    suspend fun praveJedouci(cas: LocalTime): List<SpojKurzAKody>
+
     @Transaction
     @Query(
         """
