@@ -76,6 +76,7 @@ class OblibeneViewModel(
                     spojId = info.spojId,
                     linka = info.linka,
                     zpozdeni = spojNaMape.zpozdeniMin,
+                    vuz = spojNaMape.vuz,
                     vychoziZastavka = zastavky[cast.start].nazev,
                     vychoziZastavkaCas = zastavky[cast.start].cas,
                     aktualniZastavka = zastavky.last { it.cas == spojNaMape.pristiZastavka }.nazev,

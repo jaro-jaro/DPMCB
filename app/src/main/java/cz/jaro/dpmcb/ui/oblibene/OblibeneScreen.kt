@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,18 +29,18 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.App.Companion.vybrano
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
+import cz.jaro.dpmcb.ui.kurz.BublinaZpozdeni
+import cz.jaro.dpmcb.ui.kurz.Nazev
+import cz.jaro.dpmcb.ui.kurz.Vuz
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
-import kotlin.math.roundToInt
 
 @Destination
 @RootNavGraph(start = true)
@@ -122,18 +121,9 @@ fun OblibeneScreen(
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "${it.linka}")
-                    if (it is KartickaState.Online) Badge(
-                        containerColor = UtilFunctions.barvaZpozdeniBublinyKontejner(it.zpozdeni),
-                        contentColor = UtilFunctions.barvaZpozdeniBublinyText(it.zpozdeni),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(
-                            text = it.zpozdeni.roundToInt().run {
-                                "${toSign()}$this min"
-                            },
-                        )
-                    }
+                    Nazev("${it.linka}")
+                    if (it is KartickaState.Online) BublinaZpozdeni(it.zpozdeni)
+                    if (it is KartickaState.Online) Vuz(it.vuz)
                 }
                 @Composable
                 fun AktualniZastavka() {

@@ -26,6 +26,7 @@ sealed interface KartickaState {
         override val spojId: String,
         override val linka: Int,
         val zpozdeni: Float,
+        val vuz: Int?,
         override val vychoziZastavka: String,
         override val vychoziZastavkaCas: LocalTime,
         val aktualniZastavka: String,
