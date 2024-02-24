@@ -104,13 +104,6 @@ object UtilFunctions {
         }
     }
 
-    fun Smer.toInt(): Int = when (this) {
-        Smer.POZITIVNI -> 1
-        Smer.NEGATIVNI -> -1
-    }
-
-    fun <T> ifTake(condition: Boolean, take: () -> T): T? = if (condition) take() else null
-
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
 
     /**
@@ -159,6 +152,33 @@ object UtilFunctions {
             args[4] as T5,
             args[5] as T6,
             args[6] as T7,
+        )
+    }
+    /**
+     * Returns a [Flow] whose values are generated with [transform] function by combining
+     * the most recently emitted values by each flow.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T1, T2, T3, T4, T5, T6, T7, T8, R : Any> combine(
+        flow: Flow<T1>,
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        flow4: Flow<T4>,
+        flow5: Flow<T5>,
+        flow6: Flow<T6>,
+        flow7: Flow<T7>,
+        flow8: Flow<T8>,
+        transform: suspend (T1, T2, T3, T4, T5, T6, T7, T8) -> R
+    ): Flow<R> = combine(flow, flow2, flow3, flow4, flow5, flow6, flow7, flow8) { args: Array<*> ->
+        transform(
+            args[0] as T1,
+            args[1] as T2,
+            args[2] as T3,
+            args[3] as T4,
+            args[4] as T5,
+            args[5] as T6,
+            args[6] as T7,
+            args[7] as T8,
         )
     }
 

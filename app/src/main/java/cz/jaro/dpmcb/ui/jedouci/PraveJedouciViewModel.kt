@@ -6,13 +6,15 @@ import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
+import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel.JedouciSpojADalsiVeci.Companion.jenJedouciSpoje
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
@@ -20,6 +22,8 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.time.Duration.Companion.seconds
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine as kombajn
 
 @KoinViewModel
 class PraveJedouciViewModel(
@@ -50,6 +54,10 @@ class PraveJedouciViewModel(
         is PraveJedouciEvent.KliklNaSpoj -> {
             params.navigate(SpojDestination(spojId = e.spojId))
         }
+
+        is PraveJedouciEvent.KliklNaKurz -> {
+            params.navigate(KurzDestination(kurz = e.kurz))
+        }
     }
 
     private val vysledek = combine(filtry, dopravaRepo.seznamSpojuKterePraveJedou(), typ) { filtry, spojeNaMape, typ ->
@@ -71,6 +79,7 @@ class PraveJedouciViewModel(
                         cisloLinky = spoj.linka - 325_000,
                         cil = zastavky.last().nazev,
                         vuz = spojNaMape.vuz ?: return@async null,
+                        kurz = spoj.kurz,
                     )
                 }
             }
@@ -98,7 +107,7 @@ class PraveJedouciViewModel(
                             JedouciLinkaVeSmeru(
                                 cisloLinky = seznam.first().cisloLinky,
                                 cilovaZastavka = seznam.first().cil,
-                                spoje = seznam.jenJedouciSpoje()
+                                spoje = seznam.jenJedouciSpoje(),
                             )
                         }
                         .toVysledek()
@@ -123,19 +132,31 @@ class PraveJedouciViewModel(
         emit(repo.cislaLinek(LocalDate.now()))
     }
 
+    private val praveNejedouci = combine(repo.praveJedouci, vysledek, filtry) { praveJedouci, vysledek, filtry ->
+        val opravduJedouci = when (vysledek) {
+            is VysledekPraveJedoucich.EvC -> vysledek.seznam.mapNotNull { it.kurz }
+            is VysledekPraveJedoucich.Poloha -> vysledek.seznam.flatMap { l -> l.spoje.mapNotNull { it.kurz } }
+            is VysledekPraveJedoucich.Zpozdeni -> vysledek.seznam.mapNotNull { it.kurz }
+        }.funguj()
+
+        praveJedouci.funguj().filter { (kurz, linky) ->
+            kurz !in opravduJedouci && (linky.any { it in  filtry} || filtry.isEmpty())
+        }.map { it.first }.funguj()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
+
     val state =
-        combine(repo.datum, cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ ->
-            if (datum != LocalDate.now()) return@combine PraveJedouciState.NeniDneska
+        kombajn(repo.datum, cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ, praveNejedouci) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ, praveNejedouci ->
+            if (datum != LocalDate.now()) return@kombajn PraveJedouciState.NeniDneska
 
-            if (!jeOnline) return@combine PraveJedouciState.Offline
+            if (!jeOnline) return@kombajn PraveJedouciState.Offline
 
-            if (cislaLinek.isEmpty()) return@combine PraveJedouciState.ZadneLinky
+            if (cislaLinek.isEmpty()) return@kombajn PraveJedouciState.ZadneLinky
 
-            if (vysledek.seznam.isNotEmpty()) return@combine PraveJedouciState.OK(cislaLinek, filtry, typ, vysledek)
+            if (vysledek.seznam.isNotEmpty()) return@kombajn PraveJedouciState.OK(cislaLinek, filtry, typ, praveNejedouci, vysledek)
 
-            if (nacitaSeSeznam) return@combine PraveJedouciState.Nacitani(cislaLinek, filtry, typ)
+            if (nacitaSeSeznam) return@kombajn PraveJedouciState.Nacitani(cislaLinek, filtry, typ)
 
-            return@combine PraveJedouciState.PraveNicNejede(cislaLinek, filtry, typ)
+            return@kombajn PraveJedouciState.PraveNicNejede(cislaLinek, filtry, typ, praveNejedouci.funguj())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PraveJedouciState.NacitaniLinek(params.typ))
 
     data class JedouciSpojADalsiVeci(
@@ -148,12 +169,14 @@ class PraveJedouciViewModel(
         val cisloLinky: Int,
         val cil: String,
         val vuz: Int,
+        val kurz: String?,
     ) {
         fun toJedouciZpozdenySpoj() = JedouciZpozdenySpoj(
             spojId = spojId,
             zpozdeni = zpozdeni,
             cisloLinky = cisloLinky,
             cilovaZastavka = cil,
+            kurz = kurz,
         )
 
         fun toJedouciVuz() = JedouciVuz(
@@ -161,6 +184,7 @@ class PraveJedouciViewModel(
             cisloLinky = cisloLinky,
             cilovaZastavka = cil,
             vuz = vuz,
+            kurz = kurz,
         )
 
         fun toJedouciSpoj() = JedouciSpoj(
@@ -169,6 +193,7 @@ class PraveJedouciViewModel(
             pristiZastavkaCas = pristiZastavkaCas,
             zpozdeni = zpozdeni,
             vuz = vuz,
+            kurz = kurz,
         )
 
         companion object {

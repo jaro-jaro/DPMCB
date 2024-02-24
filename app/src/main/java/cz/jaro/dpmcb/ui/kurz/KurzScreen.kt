@@ -158,20 +158,6 @@ fun KurzScreen(
                 }
 
                 item {
-                    state.pevneKody.forEach {
-                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    state.caskody.forEach {
-                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-
-                    Text(
-                        "POZOR! Ne všechny spoje kurzu musí dnes jet! Vždy si rozklikněte detail kurzu pro konkrétní informace o výpravnosti!",
-                        Modifier.padding(vertical = 8.dp), fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                item {
                     HorizontalDivider(Modifier.fillMaxWidth())
                 }
 
@@ -229,7 +215,7 @@ fun KurzScreen(
                                 navigate = navigate,
                                 zastavkyNaJihu = null,
                                 pristiZastavka = null,
-                                zobrazitCaru = false
+                                zobrazitCaru = spoj.jede
                             )
                         }
                     }
