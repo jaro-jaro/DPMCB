@@ -257,26 +257,28 @@ class SpojeRepository(
             datum.jedeDnes(pevneKody)
         }
 
-    suspend fun najitKurzy(kurz: String) = localDataSource.hledatKurzy(
-        kurz1 = kurz,
-        kurz2 = "$kurz-1",
-        kurz3 = "$kurz-2",
-        kurz4 = "$kurz + %",
-        kurz5 = "$kurz-1 + %",
-        kurz6 = "$kurz-2 + %",
-        kurz7 = "% + $kurz",
-        kurz8 = "% + $kurz-1",
-        kurz9 = "% + $kurz-2",
-        kurz10 = "$kurz-V",
-        kurz11 = "$kurz-V1",
-        kurz12 = "$kurz-V2",
-        kurz13 = "$kurz-V + %",
-        kurz14 = "$kurz-V1 + %",
-        kurz15 = "$kurz-V2 + %",
-        kurz16 = "% + $kurz-V",
-        kurz17 = "% + $kurz-V1",
-        kurz18 = "% + $kurz-V2",
-    ).sortedWith(kurzyComparator)
+    suspend fun najitKurzy(kurz: String) = kurz.moznaChybiCast()?.let { k ->
+        localDataSource.hledatKurzy(
+            kurz1 = k,
+            kurz2 = "$k-1",
+            kurz3 = "$k-2",
+            kurz4 = "$k + %",
+            kurz5 = "$k-1 + %",
+            kurz6 = "$k-2 + %",
+            kurz7 = "% + $k",
+            kurz8 = "% + $k-1",
+            kurz9 = "% + $k-2",
+            kurz10 = "$k-V",
+            kurz11 = "$k-V1",
+            kurz12 = "$k-V2",
+            kurz13 = "$k-V + %",
+            kurz14 = "$k-V1 + %",
+            kurz15 = "$k-V2 + %",
+            kurz16 = "% + $k-V",
+            kurz17 = "% + $k-V1",
+            kurz18 = "% + $k-V2",
+        ).sortedWith(kurzyComparator)
+    } ?: emptyList()
 
     val praveJedouci = channelFlow {
         while (currentCoroutineContext().isActive) {
@@ -539,6 +541,11 @@ class SpojeRepository(
         }
     }
 }
+
+private fun String.moznaChybiCast() =
+    if (matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) split("-")[0]
+    else if (matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) "%" + split("-")[0]
+    else null
 
 private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
     .split(" ")

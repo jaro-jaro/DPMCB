@@ -6,7 +6,6 @@ import cz.jaro.dpmcb.data.DopravaRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.ui.destinations.KurzDestination
 import cz.jaro.dpmcb.ui.destinations.SpojDestination
 import cz.jaro.dpmcb.ui.jedouci.PraveJedouciViewModel.JedouciSpojADalsiVeci.Companion.jenJedouciSpoje
@@ -60,12 +59,9 @@ class PraveJedouciViewModel(
         }
     }
 
-    private val vysledek = combine(filtry, dopravaRepo.seznamSpojuKterePraveJedou(), typ) { filtry, spojeNaMape, typ ->
+    private val praveJedouci = combine(filtry, dopravaRepo.seznamSpojuKterePraveJedou(), typ) { filtry, spojeNaMape, typ ->
         nacitaSe.value = true
         spojeNaMape
-            .filter {
-                filtry.isEmpty() || it.linka in filtry
-            }
             .map { spojNaMape ->
                 viewModelScope.async {
                     val (spoj, zastavky) = repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now())
@@ -128,24 +124,32 @@ class PraveJedouciViewModel(
             .also { nacitaSe.value = false }
     }
 
+    private val filtrovanyVysledek = praveJedouci.combine(filtry) { vysledek, filtry ->
+        when (vysledek) {
+            is VysledekPraveJedoucich.EvC -> vysledek.copy(seznam = vysledek.seznam.filter { filtry.isEmpty() || it.cisloLinky in filtry })
+            is VysledekPraveJedoucich.Poloha -> vysledek.copy(seznam = vysledek.seznam.filter { filtry.isEmpty() || it.cisloLinky in filtry })
+            is VysledekPraveJedoucich.Zpozdeni -> vysledek.copy(seznam = vysledek.seznam.filter { filtry.isEmpty() || it.cisloLinky in filtry })
+        }
+    }
+
     private val cislaLinek = flow {
         emit(repo.cislaLinek(LocalDate.now()))
     }
 
-    private val praveNejedouci = combine(repo.praveJedouci, vysledek, filtry) { praveJedouci, vysledek, filtry ->
+    private val praveNejedouci = combine(repo.praveJedouci, praveJedouci, filtry) { praveJedouci, vysledek, filtry ->
         val opravduJedouci = when (vysledek) {
             is VysledekPraveJedoucich.EvC -> vysledek.seznam.mapNotNull { it.kurz }
-            is VysledekPraveJedoucich.Poloha -> vysledek.seznam.flatMap { l -> l.spoje.mapNotNull { it.kurz } }
+            is VysledekPraveJedoucich.Poloha -> vysledek.seznam.flatMap { it.spoje }.mapNotNull { it.kurz }
             is VysledekPraveJedoucich.Zpozdeni -> vysledek.seznam.mapNotNull { it.kurz }
-        }.funguj()
+        }
 
-        praveJedouci.funguj().filter { (kurz, linky) ->
+        praveJedouci.filter { (kurz, linky) ->
             kurz !in opravduJedouci && (linky.any { it in  filtry} || filtry.isEmpty())
-        }.map { it.first }.funguj()
+        }.map { it.first }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state =
-        kombajn(repo.datum, cislaLinek, vysledek, nacitaSe, repo.maPristupKJihu, filtry, typ, praveNejedouci) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ, praveNejedouci ->
+        kombajn(repo.datum, cislaLinek, filtrovanyVysledek, nacitaSe, repo.maPristupKJihu, filtry, typ, praveNejedouci) { datum, cislaLinek, vysledek, nacitaSeSeznam, jeOnline, filtry, typ, praveNejedouci ->
             if (datum != LocalDate.now()) return@kombajn PraveJedouciState.NeniDneska
 
             if (!jeOnline) return@kombajn PraveJedouciState.Offline
@@ -156,7 +160,7 @@ class PraveJedouciViewModel(
 
             if (nacitaSeSeznam) return@kombajn PraveJedouciState.Nacitani(cislaLinek, filtry, typ)
 
-            return@kombajn PraveJedouciState.PraveNicNejede(cislaLinek, filtry, typ, praveNejedouci.funguj())
+            return@kombajn PraveJedouciState.PraveNicNejede(cislaLinek, filtry, typ, praveNejedouci)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PraveJedouciState.NacitaniLinek(params.typ))
 
     data class JedouciSpojADalsiVeci(
