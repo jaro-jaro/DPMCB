@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert
-import androidx.room.MapInfo
+import androidx.room.MapColumn
 import androidx.room.Query
 import androidx.room.Transaction
 import cz.jaro.dpmcb.data.entities.CasKod
@@ -19,8 +19,10 @@ import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.NazevCasAIndex
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.Platnost
+import cz.jaro.dpmcb.data.realtions.SpojKurzAKody
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojem
 import java.time.LocalDate
+import java.time.LocalTime
 
 @Dao
 interface Dao {
@@ -339,33 +341,78 @@ interface Dao {
     @Query(
         """
         SELECT DISTINCT spoj.kurz FROM spoj
-        WHERE spoj.kurz LIKE :kurz
+        WHERE spoj.kurz LIKE :kurz1
+        OR spoj.kurz LIKE :kurz2
+        OR spoj.kurz LIKE :kurz3
+        OR spoj.kurz LIKE :kurz4
+        OR spoj.kurz LIKE :kurz5
+        OR spoj.kurz LIKE :kurz6
+        OR spoj.kurz LIKE :kurz7
+        OR spoj.kurz LIKE :kurz8
+        OR spoj.kurz LIKE :kurz9
+        OR spoj.kurz LIKE :kurz10
+        OR spoj.kurz LIKE :kurz11
+        OR spoj.kurz LIKE :kurz12
+        OR spoj.kurz LIKE :kurz13
+        OR spoj.kurz LIKE :kurz14
+        OR spoj.kurz LIKE :kurz15
+        OR spoj.kurz LIKE :kurz16
+        OR spoj.kurz LIKE :kurz17
+        OR spoj.kurz LIKE :kurz18
     """
     )
-    suspend fun hledatKurzy(kurz: String): List<String>
+    suspend fun hledatKurzy(
+        kurz1: String,
+        kurz2: String,
+        kurz3: String,
+        kurz4: String,
+        kurz5: String,
+        kurz6: String,
+        kurz7: String,
+        kurz8: String,
+        kurz9: String,
+        kurz10: String,
+        kurz11: String,
+        kurz12: String,
+        kurz13: String,
+        kurz14: String,
+        kurz15: String,
+        kurz16: String,
+        kurz17: String,
+        kurz18: String,
+    ): List<String>
 
-//    @Query(
-//        """
-//        SELECT DISTINCT spoj.kurz, caskod.jede, caskod.platiOd od, caskod.platiDo `do`, spoj.pevneKody, spoj.tab, spoj.id spojId FROM zastavkaspoje
-//        JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-//        JOIN caskod ON caskod.tab = zastavkaspoje.tab AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje
-//        JOIN (
-//            SELECT DISTINCT CASE
-//                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-//                ELSE zastavkaspoje.odjezd
-//            END cas, spoj.kurz FROM zastavkaspoje
-//            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-//        ) druhazastavka ON spoj.kurz = druhazastavka.kurz
-//        WHERE druhazastavka.cas < :cas
-//        AND :cas < (
-//            CASE
-//                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-//                ELSE zastavkaspoje.odjezd
-//            END
-//        )
-//    """
-//    )
-//    suspend fun praveJedouci(cas: LocalTime): List<SpojKurzAKody>
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT spoj.kurz, spoj.linka FROM spoj
+        JOIN (
+            SELECT DISTINCT CASE
+                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+                ELSE zastavkaspoje.odjezd
+            END cas, spoj.kurz FROM zastavkaspoje
+            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+        ) druhazastavka ON spoj.kurz = druhazastavka.kurz
+        JOIN (
+            SELECT DISTINCT CASE
+                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+                ELSE zastavkaspoje.odjezd
+            END cas, spoj.kurz FROM zastavkaspoje
+            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
+        ) tretizastavka ON spoj.kurz = tretizastavka.kurz
+        WHERE druhazastavka.cas < :cas
+        AND :cas < tretizastavka.cas
+    """
+    )
+    suspend fun praveJedouci(cas: LocalTime): Map<@MapColumn("kurz") String, List<@MapColumn("linka") Int>>
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT spoj.kurz, caskod.jede, caskod.platiOd od, caskod.platiDo `do`, spoj.pevneKody, spoj.tab, spoj.id spojId FROM spoj
+        JOIN caskod ON caskod.tab = spoj.tab AND caskod.cisloSpoje = spoj.cisloSpoje
+    """
+    )
+    suspend fun kodyKurzu(): Map<@MapColumn("kurz") String, List<SpojKurzAKody>>
 
     @Transaction
     @Query(
@@ -391,7 +438,6 @@ interface Dao {
     suspend fun spojSeZastavkamiPodleId(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
 
     @Transaction
-    @MapInfo(keyColumn = "id")
     @Query(
         """
         SELECT spoj.id, CASE
@@ -408,7 +454,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<String, List<NazevCasAIndex>>
+    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasAIndex>>
 
     @Query(
         """

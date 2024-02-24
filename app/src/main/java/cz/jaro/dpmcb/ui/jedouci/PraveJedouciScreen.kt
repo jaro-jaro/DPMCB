@@ -32,7 +32,9 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.evC
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
 import cz.jaro.dpmcb.ui.main.SuplikAkce
 import org.koin.androidx.compose.koinViewModel
@@ -137,18 +139,17 @@ fun PraveJedouciScreen(
                             )
                         }
                     }
-
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 8.dp)
+                            .padding(horizontal = 8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
                     when (state) {
-                        is PraveJedouciState.PraveNicNejede -> Text("Od vybraných linek právě nic nejede")
-                        is PraveJedouciState.Nacitani -> Text("Načítání...")
-                        is PraveJedouciState.OK -> LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = 8.dp)
-                                .padding(horizontal = 8.dp),
-                            contentPadding = PaddingValues(vertical = 8.dp)
-                        ) {
-                            when (state.vysledek) {
+                        is PraveJedouciState.PraveNicNejede -> textItem("Od vybraných linek právě nic nejede")
+                        is PraveJedouciState.Nacitani -> textItem("Načítání...")
+                        is PraveJedouciState.OK -> when (state.vysledek) {
                                 is VysledekPraveJedoucich.Poloha -> state.vysledek.seznam.forEach { linka ->
                                     stickyHeader(key = linka.cisloLinky to linka.cilovaZastavka) {
                                         Column(
@@ -164,7 +165,7 @@ fun PraveJedouciScreen(
                                                     .fillMaxWidth()
                                                     .padding(top = 8.dp)
                                             ) {
-                                                Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                                                Text(text = "Vůz: příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
                                                 Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
                                             }
                                             Box(
@@ -224,6 +225,17 @@ fun PraveJedouciScreen(
                                 }
                             }
                         }
+
+                        if (state is PraveJedouciState.MaNejedouci && state.praveNejedouci.isNotEmpty()) {
+                            stickyHeader {
+                                Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
+                            }
+                            items(state.praveNejedouci) {
+                                Text(it.nazevKurzu(), Modifier.clickable {
+                                    onEvent(PraveJedouciEvent.KliklNaKurz(it))
+                                })
+                            }
+                        }
                     }
                 }
             }
@@ -231,7 +243,6 @@ fun PraveJedouciScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Chip(
     seznam: List<Int>,

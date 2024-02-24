@@ -6,7 +6,6 @@ import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineSpoj

@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.spoj
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -28,8 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
@@ -145,7 +142,7 @@ fun SpojScreen(
             is SpojState.Nejede -> {
                 Chyby(state.pristeJedePoDnesku, zmenitdatum, state.pristeJedePoDatu, state.spojId, state.datum)
 
-                SpodniRadek(state)
+                KodyASdileni(state)
             }
 
             is SpojState.OK -> {
@@ -158,7 +155,7 @@ fun SpojScreen(
                     Nazev("${state.cisloLinky}")
                     Vozickar(
                         nizkopodlaznost = state.nizkopodlaznost,
-                        potvrzenaNizkopodlaznost = state is SpojState.OK.Online && state.potvrzenaNizkopodlaznost == true,
+                        potvrzenaNizkopodlaznost = (state as? SpojState.OK.Online)?.potvrzenaNizkopodlaznost,
                         Modifier.padding(start = 8.dp),
                         povolitVozik = true,
                     )
@@ -210,7 +207,7 @@ fun SpojScreen(
                         )
                     }
 
-                    SpodniRadek(state)
+                    KodyASdileni(state)
                 }
             }
         }
@@ -301,9 +298,9 @@ fun JizdniRad(
     zastavkyNaJihu: List<ZastavkaOnlineSpoje>?,
     pristiZastavka: LocalTime?,
     zobrazitCaru: Boolean = true,
-    projetychUseku: Int = if (!zobrazitCaru) 0 else throw IllegalArgumentException(),
-    vyska: Float = if (!zobrazitCaru) 0F else throw IllegalArgumentException(),
-    jeOnline: Boolean = if (!zobrazitCaru) false else throw IllegalArgumentException(),
+    projetychUseku: Int = 0,
+    vyska: Float = 0F,
+    jeOnline: Boolean = false,
 ) = Row(
     modifier = Modifier
         .fillMaxWidth()
@@ -460,7 +457,7 @@ private fun Chyba(
         Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
     }
     Text(
-        text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel ze své výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data",
+        text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel z výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data",
         Modifier.padding(all = 8.dp)
     )
 }
@@ -704,7 +701,7 @@ private fun Oblibenovac(
 context(ColumnScope)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun SpodniRadek(
+private fun KodyASdileni(
     state: SpojState.Existuje,
 ) {
     Row(

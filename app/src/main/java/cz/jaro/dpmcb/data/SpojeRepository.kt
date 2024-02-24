@@ -26,13 +26,17 @@ import cz.jaro.dpmcb.data.realtions.NazevACas
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -41,7 +45,9 @@ import org.koin.core.annotation.Single
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.Month
+import kotlin.time.Duration.Companion.seconds
 
 @Single
 class SpojeRepository(
@@ -109,6 +115,64 @@ class SpojeRepository(
 
     private suspend fun pravePouzivanaTabulka(datum: LocalDate, cisloLinky: Int) = tabulkyMap.getOrPut(cisloLinky) { mutableMapOf() }.getOrPut(datum) {
         pravePouzivanaTabulkaInternal(datum, cisloLinky)?.tab
+    }
+
+    private val kurzyMap = mutableMapOf<LocalDate, List<String>>()
+
+    private suspend fun dnesJedouciKurzyInternal(datum: LocalDate): List<String> {
+        return localDataSource.kodyKurzu()
+            .mapNotNull { (kurz, data1) ->
+                val spoje = data1
+                    .groupBy {
+                        it.spojId to it.tab
+                    }
+                    .funguj()
+                    .filter { (spoj, _) ->
+                        val (spojId, tab) = spoj
+                        val pravePouzivanaTabulka = pravePouzivanaTabulka(LocalDate.now(), extrahovatCisloLinky(spojId))
+                        pravePouzivanaTabulka == tab
+                    }
+                    .funguj()
+                    .map { (_, zastavky) ->
+                        val caskody = zastavky.map {
+                            JedeOdDo(
+                                jede = it.jede,
+                                v = it.od..it.`do`
+                            )
+                        }.distinctBy {
+                            it.jede to it.v.toString()
+                        }
+                        Pair(caskody, zastavky.first().pevneKody)
+                    }
+                    .funguj()
+
+                if (spoje.isEmpty()) return@mapNotNull null
+
+                val caskody = spoje.first().first.filter { kod ->
+                    spoje.all {
+                        it.first.contains(kod)
+                    }
+                }
+
+                val pevne = spoje.first().second.filter { kod ->
+                    spoje.all {
+                        it.second.contains(kod)
+                    }
+                }
+
+                Triple(kurz, caskody, pevne).funguj()
+            }
+            .funguj()
+            .filter { (_, caskody, pevneKody) ->
+                jedeV(caskody, pevneKody, datum)
+            }
+            .map {
+                it.first
+            }
+    }
+
+    private suspend fun dnesJedouciKurzy(datum: LocalDate) = kurzyMap.getOrPut(datum) {
+        dnesJedouciKurzyInternal(datum)
     }
 
     private suspend fun LocalDate.jeTatoTabulkaPravePouzivana(tab: String): Boolean {
@@ -193,65 +257,54 @@ class SpojeRepository(
             datum.jedeDnes(pevneKody)
         }
 
-    suspend fun najitKurzy(kurz: String) = localDataSource.hledatKurzy("%$kurz%").sortedWith(kurzyComparator)
+    suspend fun najitKurzy(kurz: String) = kurz.moznaChybiCast()?.let { k ->
+        localDataSource.hledatKurzy(
+            kurz1 = k,
+            kurz2 = "$k-1",
+            kurz3 = "$k-2",
+            kurz4 = "$k + %",
+            kurz5 = "$k-1 + %",
+            kurz6 = "$k-2 + %",
+            kurz7 = "% + $k",
+            kurz8 = "% + $k-1",
+            kurz9 = "% + $k-2",
+            kurz10 = "$k-V",
+            kurz11 = "$k-V1",
+            kurz12 = "$k-V2",
+            kurz13 = "$k-V + %",
+            kurz14 = "$k-V1 + %",
+            kurz15 = "$k-V2 + %",
+            kurz16 = "% + $k-V",
+            kurz17 = "% + $k-V1",
+            kurz18 = "% + $k-V2",
+        ).sortedWith(kurzyComparator)
+    } ?: emptyList()
 
-//    init {
-//        scope.launch {
-//            localDataSource.praveJedouci(LocalTime.now())
-//                .groupBy {
-//                    it.kurz
-//                }
-//                .funguj()
-//                .mapNotNull { (kurz, data1) ->
-//                    val spoje = data1
-//                        .groupBy {
-//                            it.spojId to it.tab
-//                        }
-//                        .funguj()
-//                        .filter { (spoj, _) ->
-//                            val (spojId, tab) = spoj
-//                            val pravePouzivanaTabulka = pravePouzivanaTabulka(LocalDate.now(), extrahovatCisloLinky(spojId))
-//                            pravePouzivanaTabulka == tab
-//                        }
-//                        .funguj()
-//                        .map { (_, zastavky) ->
-//                            val caskody = zastavky.map {
-//                                JedeOdDo(
-//                                    jede = it.jede,
-//                                    v = it.od..it.`do`
-//                                )
-//                            }.distinctBy {
-//                                it.jede to it.v.toString()
-//                            }
-//                            Pair(caskody, zastavky.first().pevneKody)
-//                        }
-//
-//                    if (spoje.isEmpty()) return@mapNotNull null
-//
-//                    val caskody = spoje.first().first.filter { kod ->
-//                        spoje.all {
-//                            it.first.contains(kod)
-//                        }
-//                    }
-//
-//                    val pevne = spoje.first().second.filter { kod ->
-//                        spoje.all {
-//                            it.second.contains(kod)
-//                        }
-//                    }
-//
-//                    Triple(kurz, caskody, pevne).funguj()
-//                }
-//                .filter { (kurz, caskody, pevneKody) ->
-//                    jedeV(caskody, pevneKody, LocalDate.now())
-//                }
-//                .map {
-//                    it.first
-//                }
-//                .sortedWith(kurzyComparator)
-//                .funguj()
-//        }
-//    }
+    val praveJedouci = channelFlow {
+        while (currentCoroutineContext().isActive) {
+            coroutineScope {
+                launch {
+                    send(
+                        localDataSource.praveJedouci(LocalTime.now())
+                            .map { (k, linky) ->
+                                k to linky.map { it - 325_000 }
+                            }
+                            .filter { (kurz, _) ->
+                                kurz in dnesJedouciKurzy(LocalDate.now())
+                            }
+                            .sortedWith(Comparator.comparing({ it.first }, kurzyComparator))
+                    )
+                }
+            }
+            delay(30.seconds)
+        }
+    }
+        .flowOn(Dispatchers.IO)
+        .shareIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            replay = 1
+        )
 
     suspend fun zobrazitKurz(kurz: String, datum: LocalDate): Kurz? {
         val spoje = localDataSource.spojeKurzuSeZastavkySpojeNaKterychStavi(kurz, "$kurz + %", "% + $kurz")
@@ -488,6 +541,11 @@ class SpojeRepository(
         }
     }
 }
+
+private fun String.moznaChybiCast() =
+    if (matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) split("-")[0]
+    else if (matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) "%" + split("-")[0]
+    else null
 
 private fun LocalDate.jedeDnes(pevneKody: String) = pevneKody
     .split(" ")

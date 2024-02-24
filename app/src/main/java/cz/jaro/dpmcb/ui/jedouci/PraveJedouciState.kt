@@ -21,6 +21,10 @@ sealed interface PraveJedouciState {
         val typ: TypPraveJedoucich
     }
 
+    sealed interface MaNejedouci : PraveJedouciState {
+        val praveNejedouci: List<String>
+    }
+
 //    data class NeniNicVybrano(
 //        override val cislaLinek: List<Int>,
 //    ) : LinkyNacteny {
@@ -37,12 +41,14 @@ sealed interface PraveJedouciState {
         override val cislaLinek: List<Int>,
         override val filtry: List<Int>,
         override val typ: TypPraveJedoucich,
-    ) : MaPravoMitFiltry, MaPravoMitTyp
+        override val praveNejedouci: List<String>,
+    ) : MaPravoMitFiltry, MaPravoMitTyp, MaNejedouci
 
     data class OK(
         override val cislaLinek: List<Int>,
         override val filtry: List<Int>,
         override val typ: TypPraveJedoucich,
+        override val praveNejedouci: List<String>,
         val vysledek: VysledekPraveJedoucich<*>,
-    ) : MaPravoMitFiltry, MaPravoMitTyp
+    ) : MaPravoMitFiltry, MaPravoMitTyp, MaNejedouci
 }
