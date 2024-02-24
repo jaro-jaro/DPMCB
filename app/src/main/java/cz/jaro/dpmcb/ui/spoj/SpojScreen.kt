@@ -561,6 +561,7 @@ private fun Oblibenovac(
                 Row(
                     Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .height(IntrinsicSize.Max)
                         .padding(8.dp)
                 ) {
