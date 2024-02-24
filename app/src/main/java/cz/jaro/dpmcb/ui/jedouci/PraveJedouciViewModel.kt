@@ -59,21 +59,23 @@ class PraveJedouciViewModel(
         }
     }
 
-    private val praveJedouci = combine(filtry, dopravaRepo.seznamSpojuKterePraveJedou(), typ) { filtry, spojeNaMape, typ ->
+    private val praveJedouci = combine(dopravaRepo.seznamSpojuKterePraveJedou(), typ) { spojeNaMape, typ ->
         nacitaSe.value = true
         spojeNaMape
             .map { spojNaMape ->
                 viewModelScope.async {
                     val (spoj, zastavky) = repo.spojSeZastavkamiPodleId(spojNaMape.id, LocalDate.now())
+                    val prostredniZastavka = if (spoj.linka - 325_000 in repo.jednosmerneLinky()) repo.najitProstredek(zastavky) else null
+                    val indexNaLince = zastavky.indexOfLast { it.cas == spojNaMape.pristiZastavka }
                     JedouciSpojADalsiVeci(
                         spojId = spoj.id,
                         pristiZastavkaNazev = zastavky.lastOrNull { it.cas == spojNaMape.pristiZastavka }?.nazev ?: return@async null,
                         pristiZastavkaCas = zastavky.lastOrNull { it.cas == spojNaMape.pristiZastavka }?.cas ?: return@async null,
                         zpozdeni = spojNaMape.zpozdeniMin ?: return@async null,
-                        indexNaLince = zastavky.indexOfLast { it.cas == spojNaMape.pristiZastavka },
+                        indexNaLince = indexNaLince,
                         smer = spoj.smer,
                         cisloLinky = spoj.linka - 325_000,
-                        cil = zastavky.last().nazev,
+                        cil = if (prostredniZastavka != null && indexNaLince < prostredniZastavka.index) prostredniZastavka.nazev else zastavky.last().nazev,
                         vuz = spojNaMape.vuz ?: return@async null,
                         kurz = spoj.kurz,
                     )

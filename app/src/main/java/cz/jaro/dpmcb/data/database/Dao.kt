@@ -16,7 +16,7 @@ import cz.jaro.dpmcb.data.realtions.Kody
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojIdTabulka
 import cz.jaro.dpmcb.data.realtions.NazevACas
-import cz.jaro.dpmcb.data.realtions.NazevCasAIndex
+import cz.jaro.dpmcb.data.realtions.NazevCasIndexNaLince
 import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.Platnost
 import cz.jaro.dpmcb.data.realtions.SpojKurzAKody
@@ -437,6 +437,15 @@ interface Dao {
     )
     suspend fun spojSeZastavkamiPodleId(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
 
+    @Query(
+        """
+        SELECT DISTINCT spoj.linka - 325000 FROM spoj
+        GROUP BY spoj.linka
+        HAVING COUNT(DISTINCT spoj.smer) = 1
+    """
+    )
+    suspend fun jednosmerneLinky(): List<Int>
+
     @Transaction
     @Query(
         """
@@ -454,7 +463,7 @@ interface Dao {
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasAIndex>>
+    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasIndexNaLince>>
 
     @Query(
         """

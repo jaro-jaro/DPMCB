@@ -11,7 +11,6 @@ import cz.jaro.dpmcb.data.entities.Zastavka
 import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
 import cz.jaro.dpmcb.data.helperclasses.CastSpoje
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.realtions.CasNazevSpojId
@@ -23,6 +22,8 @@ import cz.jaro.dpmcb.data.realtions.Kurz
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojId
 import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostSpojIdKurz
 import cz.jaro.dpmcb.data.realtions.NazevACas
+import cz.jaro.dpmcb.data.realtions.NazevCasIndex
+import cz.jaro.dpmcb.data.realtions.NazevCasIndexNaLince
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +48,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Month
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
 @Single
@@ -126,13 +128,11 @@ class SpojeRepository(
                     .groupBy {
                         it.spojId to it.tab
                     }
-                    .funguj()
                     .filter { (spoj, _) ->
                         val (spojId, tab) = spoj
                         val pravePouzivanaTabulka = pravePouzivanaTabulka(LocalDate.now(), extrahovatCisloLinky(spojId))
                         pravePouzivanaTabulka == tab
                     }
-                    .funguj()
                     .map { (_, zastavky) ->
                         val caskody = zastavky.map {
                             JedeOdDo(
@@ -144,7 +144,6 @@ class SpojeRepository(
                         }
                         Pair(caskody, zastavky.first().pevneKody)
                     }
-                    .funguj()
 
                 if (spoje.isEmpty()) return@mapNotNull null
 
@@ -160,9 +159,8 @@ class SpojeRepository(
                     }
                 }
 
-                Triple(kurz, caskody, pevne).funguj()
+                Triple(kurz, caskody, pevne)
             }
-            .funguj()
             .filter { (_, caskody, pevneKody) ->
                 jedeV(caskody, pevneKody, datum)
             }
@@ -482,6 +480,48 @@ class SpojeRepository(
                     zastavkySpoje = zastavky
                 )
             }
+    suspend fun jednosmerneLinky() = localDataSource.jednosmerneLinky()
+
+    fun najitProstredek(zastavky: List<NazevACas>): NazevCasIndex {
+        fun NazevACas.poradiDuplikatu() = zastavky.filter { it.nazev == nazev }.takeUnless { it.size == 1 }?.indexOf(this)
+
+        val posledniSpolecnaZastavka = zastavky.indexOfLast {
+            it.poradiDuplikatu() == 0
+        }
+
+        val prvniZnovuspolecnaZastavka = zastavky.indexOfFirst {
+            it.poradiDuplikatu() == 1
+        }
+
+        val posledni = zastavky[(posledniSpolecnaZastavka + prvniZnovuspolecnaZastavka).div(2F).roundToInt()]
+        return NazevCasIndex(
+            posledni.nazev,
+            posledni.cas,
+            zastavky.indexOf(posledni)
+        )
+    }
+
+    @JvmName("najitProstredek2")
+    fun najitProstredek(zastavky: List<NazevCasIndexNaLince>): NazevCasIndex? {
+        fun NazevCasIndexNaLince.poradiDuplikatu() = zastavky.filter { it.nazev == nazev }.takeUnless { it.size == 1 }?.indexOf(this)
+
+        val posledniSpolecnaZastavka = zastavky.indexOfLast {
+            it.poradiDuplikatu() == 0
+        }
+
+        val prvniZnovuspolecnaZastavka = zastavky.indexOfFirst {
+            it.poradiDuplikatu() == 1
+        }
+
+        if (posledniSpolecnaZastavka == -1 || prvniZnovuspolecnaZastavka == -1) return null
+
+        val posledni = zastavky[(posledniSpolecnaZastavka + prvniZnovuspolecnaZastavka).div(2F).roundToInt()]
+        return NazevCasIndex(
+            posledni.nazev,
+            posledni.cas,
+            zastavky.indexOf(posledni)
+        )
+    }
 
     suspend fun spojSeZastavkamiPodleId(spojId: String, datum: LocalDate): Pair<Spoj, List<NazevACas>> =
         localDataSource.spojSeZastavkamiPodleId(spojId, pravePouzivanaTabulka(datum, extrahovatCisloLinky(spojId))!!)

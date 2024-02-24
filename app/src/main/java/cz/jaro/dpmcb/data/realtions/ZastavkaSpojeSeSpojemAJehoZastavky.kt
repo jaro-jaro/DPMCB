@@ -9,5 +9,5 @@ data class ZastavkaSpojeSeSpojemAJehoZastavky(
     val spojId: String,
     val linka: Int,
     val nizkopodlaznost: Boolean,
-    val zastavkySpoje: List<NazevCasAIndex>,
+    val zastavkySpoje: List<NazevCasIndexNaLince>,
 )

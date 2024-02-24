@@ -77,7 +77,8 @@ class OdjezdyViewModel(
                     zast.cas.plusSeconds(spojNaMape?.zpozdeniMin?.times(60)?.roundToLong() ?: 0L)
                 }
                 .map { (zastavka, spojNaMape) ->
-
+                    val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
+                    val prostredniZastavka = if (zastavka.linka in repo.jednosmerneLinky()) repo.najitProstredek(zastavka.zastavkySpoje) else null
                     val posledniZastavka = zastavka.zastavkySpoje.last { it.cas != null }
                     val aktualniNasledujiciZastavka = spojNaMape?.pristiZastavka?.let { pristiZastavka ->
                         zastavka.zastavkySpoje
@@ -85,13 +86,12 @@ class OdjezdyViewModel(
                             .findLast { it.cas!! == pristiZastavka }
                             ?.let { it.nazev to it.cas!! }
                     }
-                    val indexTyhle = zastavka.zastavkySpoje.indexOfFirst { it.indexZastavkyNaLince == zastavka.indexZastavkyNaLince }
                     val posledniIndexTyhle = zastavka.zastavkySpoje.indexOfLast { it.nazev == zastavka.nazev }.let {
                         if (it == indexTyhle) zastavka.zastavkySpoje.lastIndex else it
                     }
 
                     KartickaState(
-                        konecna = posledniZastavka.nazev,
+                        konecna = if (prostredniZastavka != null && (indexTyhle + 1) < prostredniZastavka.index) prostredniZastavka.nazev else posledniZastavka.nazev,
                         cisloLinky = zastavka.linka,
                         cas = zastavka.cas,
                         aktualniNasledujiciZastavka = aktualniNasledujiciZastavka,
