@@ -26,12 +26,15 @@ import cz.jaro.dpmcb.data.realtions.NazevCasIndex
 import cz.jaro.dpmcb.data.realtions.NazevCasIndexNaLince
 import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojemAJehoZastavky
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
@@ -119,10 +122,10 @@ class SpojeRepository(
         pravePouzivanaTabulkaInternal(datum, cisloLinky)?.tab
     }
 
-    private val kurzyMap = mutableMapOf<LocalDate, List<String>>()
+    private val kurzyMap = mutableMapOf<LocalDate, Deferred<List<String>>>()
 
-    private suspend fun dnesJedouciKurzyInternal(datum: LocalDate): List<String> {
-        return localDataSource.kodyKurzu()
+    private suspend fun dnesJedouciKurzyInternal(datum: LocalDate) = scope.async(Dispatchers.IO) {
+        localDataSource.kodyKurzu()
             .mapNotNull { (kurz, data1) ->
                 val spoje = data1
                     .groupBy {
@@ -279,28 +282,28 @@ class SpojeRepository(
     } ?: emptyList()
 
     val praveJedouci = channelFlow {
-        while (currentCoroutineContext().isActive) {
-            coroutineScope {
-                launch {
+        coroutineScope {
+            while (currentCoroutineContext().isActive) {
+                launch(Dispatchers.IO) {
                     send(
                         localDataSource.praveJedouci(LocalTime.now())
                             .map { (k, linky) ->
                                 k to linky.map { it - 325_000 }
                             }
                             .filter { (kurz, _) ->
-                                kurz in dnesJedouciKurzy(LocalDate.now())
+                                kurz in dnesJedouciKurzy(LocalDate.now()).await()
                             }
                             .sortedWith(Comparator.comparing({ it.first }, kurzyComparator))
                     )
                 }
+                delay(30.seconds)
             }
-            delay(30.seconds)
         }
     }
         .flowOn(Dispatchers.IO)
         .shareIn(
             scope = scope,
-            started = SharingStarted.Eagerly,
+            started = SharingStarted.WhileSubscribed(5.seconds),
             replay = 1
         )
 
@@ -480,6 +483,7 @@ class SpojeRepository(
                     zastavkySpoje = zastavky
                 )
             }
+
     suspend fun jednosmerneLinky() = localDataSource.jednosmerneLinky()
 
     fun najitProstredek(zastavky: List<NazevACas>): NazevCasIndex {

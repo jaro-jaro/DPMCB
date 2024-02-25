@@ -223,7 +223,7 @@ fun OblibeneScreen(
                         .fillMaxWidth()
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                 ) {
-                    Text(text = "${it.linka}")
+                    Nazev("${it.linka}")
                 }
                 Row(
                     modifier = Modifier
