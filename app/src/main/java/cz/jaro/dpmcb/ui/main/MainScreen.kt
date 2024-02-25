@@ -11,7 +11,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -993,7 +992,7 @@ fun VecZeSupliku(
     ) {
         Text(
             text = "Používané datum: ${datum.value.asString()}",
-            modifier = Modifier.padding(all = 16.dp)
+            modifier = Modifier.padding(all = 16.dp).weight(1F)
         )
         var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
         if (zobrazitDialog) DatePickerDialog(
@@ -1022,10 +1021,6 @@ fun VecZeSupliku(
                 }
             },
             initialDate = datum.value,
-        )
-
-        Spacer(
-            modifier = Modifier.weight(1F)
         )
 
         IconButton(
