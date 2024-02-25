@@ -251,8 +251,8 @@ class SpojeRepository(
             pristiZastavka = pristiZastavka,
             datum = datum,
             tab = pravePouzivanaTabulka(datum, linka + 325_000)!!
-        ).filter { (_, _, _, pevneKody) ->
-            datum.jedeDnes(pevneKody)
+        ).filter {
+            datum.jedeDnes(it.pevneKody)
         }
 
     suspend fun najitKurzy(kurz: String) = kurz.moznaChybiCast()?.let { k ->
