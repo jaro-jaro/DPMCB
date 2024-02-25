@@ -6,6 +6,7 @@ data class OdjezdNizkopodlaznostSpojId(
     val odjezd: LocalTime,
     val nizkopodlaznost: Boolean,
     val spojId: String,
+    val cil: String,
     val pevneKody: String,
     val zpozdeni: Float? = null,
 )

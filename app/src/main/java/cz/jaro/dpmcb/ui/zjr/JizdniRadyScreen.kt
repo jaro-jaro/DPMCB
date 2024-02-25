@@ -1,6 +1,8 @@
 package cz.jaro.dpmcb.ui.zjr
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -182,6 +187,7 @@ fun JizdniRadyScreen(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ColumnScope.RadekOdjezdu(
     navigate: NavigateFunction,
@@ -200,13 +206,46 @@ fun ColumnScope.RadekOdjezdu(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal
             )
-        vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId) ->
+        vysledek.sortedBy { it.odjezd }.forEach { (odjezd, nizkopodlaznost, spojId, cil) ->
+            var showDropDown by rememberSaveable { mutableStateOf(false) }
+            DropdownMenu(
+                expanded = showDropDown,
+                onDismissRequest = {
+                    showDropDown = false
+                }
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text("-> $cil")
+                    },
+                    onClick = {},
+                    enabled = false
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text("Detail spoje")
+                    },
+                    onClick = {
+                        navigate(
+                            SpojDestination(
+                                spojId = spojId,
+                            )
+                        )
+                        showDropDown = false
+                    },
+                )
+            }
             Box(
                 Modifier
                     .clip(CircleShape)
-                    .clickable {
-                        navigate(SpojDestination(spojId = spojId))
-                    }
+                    .combinedClickable(
+                        onClick = {
+                            navigate(SpojDestination(spojId = spojId))
+                        },
+                        onLongClick = {
+                            showDropDown = true
+                        }
+                    )
                     .padding(4.dp)
                     .requiredSizeIn(minHeight = 32.dp, minWidth = 32.dp),
                 contentAlignment = Alignment.Center

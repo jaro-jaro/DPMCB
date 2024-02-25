@@ -201,9 +201,28 @@ interface Dao {
             )
             GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
             ORDER BY zastavkaSpoje.indexZastavkyNaLince
+        ),
+        konecna(cisloSpoje, cas, nazev) AS (
+            SELECT DISTINCT zastavkaspoje.cisloSpoje, CASE
+                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
+                ELSE zastavkaspoje.odjezd
+            END, zastavka.nazevZastavky FROM zastavkaspoje
+            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
+            JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
+            WHERE (
+                NOT zastavkaspoje.odjezd IS null
+                OR NOT zastavkaspoje.prijezd IS null
+            )
+            AND zastavkaSpoje.linka = :linka
+            AND zastavkaSpoje.tab = :tab
+            GROUP BY zastavkaspoje.cisloSpoje
+            HAVING MAX(CASE
+                WHEN spoj.smer = 1 THEN -zastavkaSpoje.indexZastavkyNaLince
+                ELSE zastavkaSpoje.indexZastavkyNaLince
+            END)
         )
-        SELECT DISTINCT zastavkaspoje.odjezd, (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.id spojId, spoj.pevneKody
-        FROM zastavkaspoje
+        SELECT DISTINCT zastavkaspoje.odjezd, (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.id spojId, spoj.pevneKody, konecna.nazev cil FROM zastavkaspoje
+        JOIN konecna ON konecna.cisloSpoje = zastavkaspoje.cisloSpoje
         JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
         JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
         CROSS JOIN indexyTyhleZastavky tahleZastavka ON zastavkaspoje.indexZastavkyNaLince = tahleZastavka.indexZastavkyNaLince
@@ -213,6 +232,7 @@ interface Dao {
         OR (spoj.smer <> :pozitivni AND negativni.nazevZastavky = :pristiZastavka)
         AND NOT zastavkaspoje.odjezd IS null
         AND spoj.tab = :tab
+        GROUP BY spoj.cisloSpoje
     """
     )
     suspend fun zastavkyJedouciVDatumSPristiZastavkou(

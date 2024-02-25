@@ -78,6 +78,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.barvaZpozdeniTextu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.funguj
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky4p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.hezky6p
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
@@ -243,6 +244,7 @@ private fun Chyby(
     spojId: String,
     datum: LocalDate,
 ) {
+    pristeJedePoDatu.funguj(pristeJedePoDnesku)
     TextChyby(
         when {
             pristeJedePoDatu == null && pristeJedePoDnesku == null ->
@@ -254,7 +256,7 @@ private fun Chyby(
             pristeJedePoDatu == null && pristeJedePoDnesku != null ->
                 "Tento spoj (ID $spojId) ${datum.hezky6p()} nejede, ale pojede ${pristeJedePoDnesku.hezky6p()}."
 
-            pristeJedePoDatu != null && pristeJedePoDnesku == null ->
+            pristeJedePoDatu != null ->
                 "Tento spoj (ID $spojId) ${datum.hezky6p()} nejede, ale pojede ${pristeJedePoDatu.hezky6p()}."
 
             else -> throw IllegalArgumentException()
