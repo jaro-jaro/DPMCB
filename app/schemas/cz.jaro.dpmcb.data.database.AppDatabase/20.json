@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 20,
-    "identityHash": "4de6c55ca6c8a732b90d79d37d01337e",
+    "identityHash": "0c7892e318cccd905192d90133e0dafd",
     "entities": [
       {
-        "tableName": "CasKod",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `kod` INTEGER NOT NULL, `indexTerminu` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `jede` INTEGER NOT NULL, `platiOd` INTEGER NOT NULL, `platiDo` INTEGER NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`, `kod`, `indexTerminu`))",
+        "tableName": "TimeCode",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `connNumber` INTEGER NOT NULL, `code` INTEGER NOT NULL, `termIndex` INTEGER NOT NULL, `line` INTEGER NOT NULL, `runs` INTEGER NOT NULL, `validFrom` INTEGER NOT NULL, `validTo` INTEGER NOT NULL, PRIMARY KEY(`tab`, `connNumber`, `code`, `termIndex`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -15,44 +15,44 @@
             "notNull": true
           },
           {
-            "fieldPath": "cisloSpoje",
-            "columnName": "cisloSpoje",
+            "fieldPath": "connNumber",
+            "columnName": "connNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "kod",
-            "columnName": "kod",
+            "fieldPath": "code",
+            "columnName": "code",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "indexTerminu",
-            "columnName": "indexTerminu",
+            "fieldPath": "termIndex",
+            "columnName": "termIndex",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "linka",
-            "columnName": "linka",
+            "fieldPath": "line",
+            "columnName": "line",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "jede",
-            "columnName": "jede",
+            "fieldPath": "runs",
+            "columnName": "runs",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "platiOd",
-            "columnName": "platiOd",
+            "fieldPath": "validFrom",
+            "columnName": "validFrom",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "platiDo",
-            "columnName": "platiDo",
+            "fieldPath": "validTo",
+            "columnName": "validTo",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -61,17 +61,17 @@
           "autoGenerate": false,
           "columnNames": [
             "tab",
-            "cisloSpoje",
-            "kod",
-            "indexTerminu"
+            "connNumber",
+            "code",
+            "termIndex"
           ]
         },
         "indices": [],
         "foreignKeys": []
       },
       {
-        "tableName": "Linka",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cislo` INTEGER NOT NULL, `trasa` TEXT NOT NULL, `typVozidla` TEXT NOT NULL, `typLinky` TEXT NOT NULL, `maVyluku` INTEGER NOT NULL, `platnostOd` INTEGER NOT NULL, `platnostDo` INTEGER NOT NULL, `kratkeCislo` INTEGER NOT NULL, PRIMARY KEY(`tab`))",
+        "tableName": "Line",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `number` INTEGER NOT NULL, `route` TEXT NOT NULL, `vehicleType` TEXT NOT NULL, `lineType` TEXT NOT NULL, `hasRestriction` INTEGER NOT NULL, `validFrom` INTEGER NOT NULL, `validTo` INTEGER NOT NULL, `shortNumber` INTEGER NOT NULL, PRIMARY KEY(`tab`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -80,50 +80,50 @@
             "notNull": true
           },
           {
-            "fieldPath": "cislo",
-            "columnName": "cislo",
+            "fieldPath": "number",
+            "columnName": "number",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "trasa",
-            "columnName": "trasa",
+            "fieldPath": "route",
+            "columnName": "route",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "typVozidla",
-            "columnName": "typVozidla",
+            "fieldPath": "vehicleType",
+            "columnName": "vehicleType",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "typLinky",
-            "columnName": "typLinky",
+            "fieldPath": "lineType",
+            "columnName": "lineType",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "maVyluku",
-            "columnName": "maVyluku",
+            "fieldPath": "hasRestriction",
+            "columnName": "hasRestriction",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "platnostOd",
-            "columnName": "platnostOd",
+            "fieldPath": "validFrom",
+            "columnName": "validFrom",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "platnostDo",
-            "columnName": "platnostDo",
+            "fieldPath": "validTo",
+            "columnName": "validTo",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "kratkeCislo",
-            "columnName": "kratkeCislo",
+            "fieldPath": "shortNumber",
+            "columnName": "shortNumber",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -138,8 +138,8 @@
         "foreignKeys": []
       },
       {
-        "tableName": "Spoj",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `pevneKody` TEXT NOT NULL, `smer` INTEGER NOT NULL, `kurz` TEXT, `poradiNaKurzu` INTEGER, `id` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`))",
+        "tableName": "Conn",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `connNumber` INTEGER NOT NULL, `line` INTEGER NOT NULL, `fixedCodes` TEXT NOT NULL, `direction` INTEGER NOT NULL, `sequence` TEXT, `orderInSequence` INTEGER, `id` TEXT NOT NULL, PRIMARY KEY(`tab`, `connNumber`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -148,38 +148,38 @@
             "notNull": true
           },
           {
-            "fieldPath": "cisloSpoje",
-            "columnName": "cisloSpoje",
+            "fieldPath": "connNumber",
+            "columnName": "connNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "linka",
-            "columnName": "linka",
+            "fieldPath": "line",
+            "columnName": "line",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "pevneKody",
-            "columnName": "pevneKody",
+            "fieldPath": "fixedCodes",
+            "columnName": "fixedCodes",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "smer",
-            "columnName": "smer",
+            "fieldPath": "direction",
+            "columnName": "direction",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "kurz",
-            "columnName": "kurz",
+            "fieldPath": "sequence",
+            "columnName": "sequence",
             "affinity": "TEXT",
             "notNull": false
           },
           {
-            "fieldPath": "poradiNaKurzu",
-            "columnName": "poradiNaKurzu",
+            "fieldPath": "orderInSequence",
+            "columnName": "orderInSequence",
             "affinity": "INTEGER",
             "notNull": false
           },
@@ -194,15 +194,15 @@
           "autoGenerate": false,
           "columnNames": [
             "tab",
-            "cisloSpoje"
+            "connNumber"
           ]
         },
         "indices": [],
         "foreignKeys": []
       },
       {
-        "tableName": "Zastavka",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloZastavky` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `nazevZastavky` TEXT NOT NULL, `pevneKody` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloZastavky`))",
+        "tableName": "Stop",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `stopNumber` INTEGER NOT NULL, `line` INTEGER NOT NULL, `stopName` TEXT NOT NULL, `fixedCodes` TEXT NOT NULL, PRIMARY KEY(`tab`, `stopNumber`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -211,26 +211,26 @@
             "notNull": true
           },
           {
-            "fieldPath": "cisloZastavky",
-            "columnName": "cisloZastavky",
+            "fieldPath": "stopNumber",
+            "columnName": "stopNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "linka",
-            "columnName": "linka",
+            "fieldPath": "line",
+            "columnName": "line",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "nazevZastavky",
-            "columnName": "nazevZastavky",
+            "fieldPath": "stopName",
+            "columnName": "stopName",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "pevneKody",
-            "columnName": "pevneKody",
+            "fieldPath": "fixedCodes",
+            "columnName": "fixedCodes",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -239,15 +239,15 @@
           "autoGenerate": false,
           "columnNames": [
             "tab",
-            "cisloZastavky"
+            "stopNumber"
           ]
         },
         "indices": [],
         "foreignKeys": []
       },
       {
-        "tableName": "ZastavkaSpoje",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `indexZastavkyNaLince` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `cisloZastavky` INTEGER NOT NULL, `kmOdStartu` INTEGER NOT NULL, `prijezd` INTEGER, `odjezd` INTEGER, PRIMARY KEY(`tab`, `cisloSpoje`, `indexZastavkyNaLince`))",
+        "tableName": "ConnStop",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `connNumber` INTEGER NOT NULL, `stopIndexOnLine` INTEGER NOT NULL, `line` INTEGER NOT NULL, `stopNumber` INTEGER NOT NULL, `kmFromStart` INTEGER NOT NULL, `arrival` INTEGER, `departure` INTEGER, PRIMARY KEY(`tab`, `connNumber`, `stopIndexOnLine`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -256,44 +256,44 @@
             "notNull": true
           },
           {
-            "fieldPath": "cisloSpoje",
-            "columnName": "cisloSpoje",
+            "fieldPath": "connNumber",
+            "columnName": "connNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "indexZastavkyNaLince",
-            "columnName": "indexZastavkyNaLince",
+            "fieldPath": "stopIndexOnLine",
+            "columnName": "stopIndexOnLine",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "linka",
-            "columnName": "linka",
+            "fieldPath": "line",
+            "columnName": "line",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "cisloZastavky",
-            "columnName": "cisloZastavky",
+            "fieldPath": "stopNumber",
+            "columnName": "stopNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "kmOdStartu",
-            "columnName": "kmOdStartu",
+            "fieldPath": "kmFromStart",
+            "columnName": "kmFromStart",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "prijezd",
-            "columnName": "prijezd",
+            "fieldPath": "arrival",
+            "columnName": "arrival",
             "affinity": "INTEGER",
             "notNull": false
           },
           {
-            "fieldPath": "odjezd",
-            "columnName": "odjezd",
+            "fieldPath": "departure",
+            "columnName": "departure",
             "affinity": "INTEGER",
             "notNull": false
           }
@@ -302,8 +302,8 @@
           "autoGenerate": false,
           "columnNames": [
             "tab",
-            "cisloSpoje",
-            "indexZastavkyNaLince"
+            "connNumber",
+            "stopIndexOnLine"
           ]
         },
         "indices": [],
@@ -313,7 +313,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4de6c55ca6c8a732b90d79d37d01337e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0c7892e318cccd905192d90133e0dafd')"
     ]
   }
 }

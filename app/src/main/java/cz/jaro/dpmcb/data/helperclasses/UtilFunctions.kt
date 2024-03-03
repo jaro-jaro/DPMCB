@@ -41,7 +41,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.Nastaveni
+import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +66,7 @@ import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
-    fun LocalDate.hezky6p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.toCzechLocative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnes"
             1L -> "zítra"
@@ -85,7 +85,7 @@ object UtilFunctions {
         }
     }
 
-    fun LocalDate.hezky4p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.toCzechAccusative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnešek"
             1L -> "zítřek"
@@ -182,15 +182,15 @@ object UtilFunctions {
         )
     }
 
-    fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
-    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
-        also { UtilFunctions.funguj(this.transform(), *msg) }
+    fun <R> work(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
+    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.work(vararg msg: R, transform: T.() -> S): T =
+        also { UtilFunctions.work(this.transform(), *msg) }
 
-    inline fun <reified T : Any?, reified R : Any?> T.funguj(vararg msg: R): T = also { funguj(*msg, transform = { this }) }
-    inline fun <reified T : Any?, reified S : Any?> T.funguj(transform: T.() -> S = { this as S }): T =
-        also { funguj(*emptyArray<Any?>(), transform = transform) }
+    inline fun <reified T : Any?, reified R : Any?> T.work(vararg msg: R): T = also { work(*msg, transform = { this }) }
+    inline fun <reified T : Any?, reified S : Any?> T.work(transform: T.() -> S = { this as S }): T =
+        also { work(*emptyArray<Any?>(), transform = transform) }
 
-    inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
+    inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
 
     fun Int.toSign() = when (sign) {
         -1 -> "-"
@@ -211,26 +211,26 @@ object UtilFunctions {
     }
 
     @Composable
-    fun barvaZpozdeniTextu(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFF343DFF)
-        zpozdeni >= 4.5 -> Color.Red
-        zpozdeni >= 1.5 -> Color(0xFFCC6600)
+    fun colorOfDelayText(delay: Float) = when {
+        delay < 0 -> Color(0xFF343DFF)
+        delay >= 4.5 -> Color.Red
+        delay >= 1.5 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
-    fun barvaZpozdeniBublinyText(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFF0000EF)
-        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni >= 1.5 -> Color(0xFFffddaf)
+    fun colorOfDelayBubbleText(delay: Float) = when {
+        delay < 0 -> Color(0xFF0000EF)
+        delay >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
+        delay >= 1.5 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
-    fun barvaZpozdeniBublinyKontejner(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFFE0E0FF)
-        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni >= 1.5 -> Color(0xFF614000)
+    fun colorOfDelayBubbleContainer(delay: Float) = when {
+        delay < 0 -> Color(0xFFE0E0FF)
+        delay >= 4.5 -> MaterialTheme.colorScheme.errorContainer
+        delay >= 1.5 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
@@ -278,23 +278,23 @@ object UtilFunctions {
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         combine(this) { transform(it.toList()) }
 
-    fun String?.toCasDivne() = (this?.run {
+    fun String?.toTimeWeirdly() = (this?.run {
         LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())!!
-    } ?: ted)
+    } ?: now)
 
-    fun String?.toCas() = (this?.run {
+    fun String?.toTime() = (this?.run {
         val list = split(":").map(String::toInt)
         LocalTime.of(list[0], list[1])!!
-    } ?: ted)
+    } ?: now)
 
-    fun String.toCasOrNull() = this.run {
+    fun String.toTimeOrNull() = this.run {
         val list = split(":").map(String::toIntOrNull)
         LocalTime.of(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
     }
 
-    fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
+    fun String.toDateWeirdly() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
 
-    val Context.schemaFile get() = File(filesDir, "schema.pdf")
+    val Context.diagramFile get() = File(filesDir, "schema.pdf")
 
     val Context.isOnline: Boolean
         get() {
@@ -327,30 +327,31 @@ object UtilFunctions {
 
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
-    val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
-    val presneTed get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
+    val now get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
+    val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
 
-    val tedFlow = flow {
+    val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
             delay(500)
-            emit(LocalTime.now().truncatedTo(ChronoUnit.SECONDS))
+            emit(exactlyNow)
         }
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
+        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), now)
 
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
-    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.funguj()) }
-    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
+    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
+    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
+    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
 
     fun List<Boolean>.allTrue() = all { it }
+    fun List<Boolean>.anyTrue() = any { it }
 
     @Composable
-    fun Nastaveni.darkMode(): Boolean {
-        return if (dmPodleSystemu) isSystemInDarkTheme() else dm
+    fun Settings.darkMode(): Boolean {
+        return if (dmAsSystem) isSystemInDarkTheme() else dm
     }
 
     context(LazyListScope)
@@ -447,37 +448,51 @@ object UtilFunctions {
         }
     }
 
-    fun Int.evC() = if ("$this".length == 1) "0$this" else "$this"
+    fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
 
-    fun String.nazevKurzu() = split(" + ").joinToString(" + ") {
-        val kurz = it.split("-")
-        val a = kurz[0]
-        val b = kurz.getOrNull(1) ?: ""
-        val vikend = 'V' in b
-        val c = if (vikend) b.drop(1) else b
-        val cast = c.isNotEmpty()
+    fun String.seqName() = split(" + ").joinToString(" + ") {
+        val seq = it.split("-")
+        val rawSeq = seq[0]
+        val notes = seq.getOrNull(1) ?: ""
+        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
+        val hasValidity = validity != null
+        val part = if (hasValidity) notes.drop(1) else notes
+        val hasPart = part.isNotEmpty()
+        val (validityNominative, validityGenitive) = mapOf(
+            'V' to ("Víkendová" to "víkendvé"),
+            'P' to ("Prázdninová" to "prázdninové"),
+            'T' to ("Páteční" to "páteční"),
+        )[validity] ?: ("" to "")
         buildString {
-            if (cast) append("$c. část ")
-            if (cast && vikend) append("víkendové ")
-            if (!cast && vikend) append("Víkendová ")
-            append(a)
+            if (hasPart) append("$part. část ")
+            if (hasPart && hasValidity) append("$validityGenitive ")
+            if (!hasPart && hasValidity) append("$validityNominative ")
+            append(rawSeq)
         }
     }
 
-    fun String.navaznostKurzu() = "Potenciální návaznost na " + split(" + ").joinToString(" + ") {
-        val kurz = it.split("-")
-        val a = kurz[0]
-        val b = kurz.getOrNull(1) ?: ""
-        val vikend = 'V' in b
-        val c = if (vikend) b.drop(1) else b
-        val cast = c.isNotEmpty()
+    fun String.seqConnection() = "Potenciální návaznost na " + split(" + ").joinToString(" + ") {
+        val seq = it.split("-")
+        val rawSeq = seq[0]
+        val notes = seq.getOrNull(1) ?: ""
+        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
+        val hasValidity = validity != null
+        val part = if (hasValidity) notes.drop(1) else notes
+        val hasPart = part.isNotEmpty()
+        val (validityAccusative, validityGenitive) = mapOf(
+            'V' to ("víkendovou" to "víkendvé"),
+            'P' to ("prázdninovou" to "prázdninové"),
+            'T' to ("páteční" to "páteční"),
+        )[validity] ?: ("" to "")
         buildString {
-            if (cast) append("$c. část ")
-            if (cast && vikend) append("víkendové ")
-            if (!cast && vikend) append("víkendovou ")
-            append(a)
+            if (hasPart) append("$part. část ")
+            if (hasPart && hasValidity) append("$validityGenitive ")
+            if (!hasPart && hasValidity) append("$validityAccusative ")
+            append(rawSeq)
         }
     }
+
+    val noCode = LocalDate.of(1970, 1, 1)!!
 }
 
 typealias NavigateFunction = (Direction) -> Unit

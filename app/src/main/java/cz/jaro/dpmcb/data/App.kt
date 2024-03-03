@@ -12,7 +12,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.database.AppDatabase
-import cz.jaro.dpmcb.ui.main.SuplikAkce
+import cz.jaro.dpmcb.ui.main.DrawerAction
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -25,7 +25,7 @@ class App : Application() {
     companion object {
         var route by mutableStateOf("oblibene")
         var title by mutableIntStateOf(R.string.app_name)
-        var vybrano by mutableStateOf(null as SuplikAkce?)
+        var selected by mutableStateOf(null as DrawerAction?)
     }
 
     init {
@@ -65,7 +65,7 @@ class App : Application() {
                     Retrofit.Builder()
                         .baseUrl("https://jih.mpvnet.cz/jikord/")
                         .build()
-                        .create(DopravaApi::class.java)
+                        .create(OnlineApi::class.java)
                 }
                 single {
                     Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()

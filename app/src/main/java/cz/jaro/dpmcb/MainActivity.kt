@@ -24,16 +24,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+            val settings by repo.settings.collectAsStateWithLifecycle()
             DPMCBTheme(
-                useDarkTheme = nastaveni.darkMode(),
-                useDynamicColor = nastaveni.dynamickeBarvy,
-                theme = nastaveni.tema,
+                useDarkTheme = settings.darkMode(),
+                useDynamicColor = settings.dynamicColors,
+                theme = settings.theme,
             ) {
                 Main(
                     link = intent.getStringExtra(LoadingViewModel.EXTRA_KEY_DEEPLINK),
-                    jePotrebaAktualizovatData = intent.getBooleanExtra(LoadingViewModel.EXTRA_KEY_AKTUALIZOVAT_DATA, false),
-                    jePotrebaAktualizovatAplikaci = intent.getBooleanExtra(LoadingViewModel.EXTRA_KEY_AKTUALIZOVAT_APLIKACI, false),
+                    isDataUpdateNeeded = intent.getBooleanExtra(LoadingViewModel.EXTRA_KEY_UPDATE_DATA, false),
+                    isAppUpdateNeeded = intent.getBooleanExtra(LoadingViewModel.EXTRA_KEY_UPDATE_APP, false),
                 )
             }
         }

@@ -37,7 +37,7 @@ import cz.jaro.dpmcb.ExitActivity
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.schemaFile
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.diagramFile
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.io.File
@@ -52,24 +52,24 @@ fun Loading(
     val ctx = LocalContext.current
 
     var callback by remember { mutableStateOf({}) }
-    var chybaDialog by remember { mutableStateOf(false) }
+    var errorDialog by remember { mutableStateOf(false) }
 
     val viewModel: LoadingViewModel = koinViewModel {
         parametersOf(
             LoadingViewModel.Parameters(
                 uri = uri,
                 update = update,
-                chyba = { it: () -> Unit ->
+                error = { it: () -> Unit ->
                     callback = it
-                    chybaDialog = true
+                    errorDialog = true
                 },
-                potrebaInternet = {
+                internetNeeded = {
                     Toast.makeText(ctx, "Na stažení jizdních řádů je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
                 },
                 finish = finish,
-                schemaFile = ctx.schemaFile,
-                jrFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
-                kurzyFile = File(ctx.cacheDir, "kurzy.jaro"),
+                diagramFile = ctx.diagramFile,
+                dataFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
+                sequencesFile = File(ctx.cacheDir, "kurzy.jaro"),
                 mainActivityIntent = Intent(ctx, MainActivity::class.java),
                 loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
                 startActivity = { it: Intent ->
@@ -84,14 +84,14 @@ fun Loading(
         )
     }
 
-    if (chybaDialog) AlertDialog(
+    if (errorDialog) AlertDialog(
         onDismissRequest = {
             ExitActivity.exitApplication(ctx)
             exitProcess(0)
         },
         confirmButton = {
             TextButton(onClick = {
-                chybaDialog = false
+                errorDialog = false
                 callback()
             }) {
                 Text(text = "Ano")
@@ -115,12 +115,12 @@ fun Loading(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val nastaveni by viewModel.nastaveni.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     LoadingScreen(
         progress = state.second,
         infoText = state.first,
-        darkMode = if (nastaveni.dmPodleSystemu) isSystemInDarkTheme() else nastaveni.dm,
+        darkMode = if (settings.dmAsSystem) isSystemInDarkTheme() else settings.dm,
     )
 }
 
@@ -169,5 +169,4 @@ fun LoadingScreen(
             }
         }
     }
-
 }

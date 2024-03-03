@@ -15,17 +15,18 @@ import com.google.firebase.storage.ktx.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
-import cz.jaro.dpmcb.data.entities.CasKod
-import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.Zastavka
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
+import cz.jaro.dpmcb.data.entities.Conn
+import cz.jaro.dpmcb.data.entities.ConnStop
+import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.helperclasses.Direction
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
-import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.helperclasses.TypyTabulek
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCasDivne
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDatumDivne
+import cz.jaro.dpmcb.data.helperclasses.TableType
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -60,12 +61,12 @@ class LoadingViewModel(
     data class Parameters(
         val uri: String?,
         val update: Boolean,
-        val chyba: (() -> Unit) -> Unit,
-        val potrebaInternet: () -> Unit,
+        val error: (() -> Unit) -> Unit,
+        val internetNeeded: () -> Unit,
         val finish: () -> Unit,
-        val schemaFile: File,
-        val jrFile: File,
-        val kurzyFile: File,
+        val diagramFile: File,
+        val dataFile: File,
+        val sequencesFile: File,
         val mainActivityIntent: Intent,
         val loadingActivityIntent: Intent,
         val startActivity: (Intent) -> Unit,
@@ -74,42 +75,42 @@ class LoadingViewModel(
     )
 
     companion object {
-        const val META_VERZE_DAT = 5
-        const val EXTRA_KEY_AKTUALIZOVAT_DATA = "aktualizovat-data"
-        const val EXTRA_KEY_AKTUALIZOVAT_APLIKACI = "aktualizovat-aplikaci"
+        const val META_DATA_VERSION = 5
+        const val EXTRA_KEY_UPDATE_DATA = "aktualizovat-data"
+        const val EXTRA_KEY_UPDATE_APP = "aktualizovat-aplikaci"
         const val EXTRA_KEY_DEEPLINK = "link"
     }
 
     private val _state = MutableStateFlow("" to (null as Float?))
     val state = _state.asStateFlow()
 
-    val nastaveni = repo.nastaveni
+    val settings = repo.settings
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                params.update || repo.verze.first() == -1
+                params.update || repo.version.first() == -1
             } catch (e: Exception) {
                 Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
-                ukazatChybaDialog()
+                showErrorDialog()
             }
 
-            if (params.update || repo.verze.first() == -1) {
-                stahnoutNoveJizdniRady()
+            if (params.update || repo.version.first() == -1) {
+                downloadNewData()
             }
 
             try {
-                fungujeVse()
+                doesEverythingWork()
             } catch (e: Exception) {
                 Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
-                ukazatChybaDialog()
+                showErrorDialog()
             }
 
-            val intent = vyresitOdkaz(params.mainActivityIntent)
+            val intent = resolveLink(params.mainActivityIntent)
 
-            if (!repo.isOnline.value || !repo.nastaveni.value.kontrolaAktualizaci) {
+            if (!repo.isOnline.value || !repo.settings.value.checkForUpdates) {
                 params.finish()
                 params.startActivity(intent)
                 return@launch
@@ -119,28 +120,28 @@ class LoadingViewModel(
                 "Kontrola dostupnosti aktualizací" to null
             }
 
-            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_DATA, jePotrebaAktualizovatData())
-            intent.putExtra(EXTRA_KEY_AKTUALIZOVAT_APLIKACI, jePotrebaAktualizovatAplikaci())
+            intent.putExtra(EXTRA_KEY_UPDATE_DATA, isDataUpdateNeeded())
+            intent.putExtra(EXTRA_KEY_UPDATE_APP, isAppDataUpdateNeeded())
 
             params.finish()
             params.startActivity(intent)
         }
     }
 
-    private suspend fun fungujeVse(): Nothing? {
-        repo.cislaLinek(LocalDate.now()).ifEmpty {
+    private suspend fun doesEverythingWork(): Nothing? {
+        repo.lineNumbers(LocalDate.now()).ifEmpty {
             throw Exception()
         }
-        if (!params.schemaFile.exists()) {
+        if (!params.diagramFile.exists()) {
             throw Exception()
         }
         return null
     }
 
-    private suspend fun ukazatChybaDialog(): Nothing {
+    private suspend fun showErrorDialog(): Nothing {
         coroutineScope {
             withContext(Dispatchers.Main) {
-                params.chyba {
+                params.error {
                     params.startActivity(params.loadingActivityIntent.apply {
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
                         putExtra("update", true)
@@ -153,9 +154,9 @@ class LoadingViewModel(
         while (true) Unit
     }
 
-    private fun vyresitOdkaz(baseIntent: Intent): Intent {
+    private fun resolveLink(baseIntent: Intent): Intent {
         if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
-            otevriDetailAplikace()
+            openAppDetails()
         }
 
         params.uri?.let {
@@ -165,7 +166,7 @@ class LoadingViewModel(
         return baseIntent
     }
 
-    private fun otevriDetailAplikace(): Nothing {
+    private fun openAppDetails(): Nothing {
         params.finish()
         params.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.fromParts("package", params.packageName, null)
@@ -178,25 +179,25 @@ class LoadingViewModel(
     @Keep
     object TI : GenericTypeIndicator<Int>()
 
-    private suspend fun jePotrebaAktualizovatData(): Boolean {
-        val mistniVerze = repo.verze.first()
+    private suspend fun isDataUpdateNeeded(): Boolean {
+        val localVersion = repo.version.first()
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val reference = database.getReference("data${META_VERZE_DAT}/verze")
+        val reference = database.getReference("data${META_DATA_VERSION}/verze")
 
-        val onlineVerze = viewModelScope.async {
+        val onlineVersion = viewModelScope.async {
             withTimeoutOrNull(3_000) {
                 reference.get().await().getValue(TI)
             } ?: -2
         }
 
-        return mistniVerze < onlineVerze.await()
+        return localVersion < onlineVersion.await()
     }
 
-    private suspend fun jePotrebaAktualizovatAplikaci(): Boolean {
-        val jeDebug = BuildConfig.DEBUG
+    private suspend fun isAppDataUpdateNeeded(): Boolean {
+        val isDebug = BuildConfig.DEBUG
 
-        if (jeDebug) return false
+        if (isDebug) return false
 
         val response = try {
             withContext(Dispatchers.IO) {
@@ -213,13 +214,13 @@ class LoadingViewModel(
 
         if (response.statusCode() != 200) return false
 
-        val mistniVerze = BuildConfig.VERSION_NAME.toVersion(false)
-        val nejnovejsiVerze = response.body().toVersion(false)
+        val localVersion = BuildConfig.VERSION_NAME.toVersion(false)
+        val newestVersion = response.body().toVersion(false)
 
-        return mistniVerze < nejnovejsiVerze
+        return localVersion < newestVersion
     }
 
-    private suspend fun stahnoutSoubor(ref: StorageReference, file: File): File {
+    private suspend fun downloadFile(ref: StorageReference, file: File): File {
 
         val task = ref.getFile(file)
 
@@ -238,11 +239,11 @@ class LoadingViewModel(
         return file
     }
 
-    private suspend fun stahnoutNoveJizdniRady() {
+    private suspend fun downloadNewData() {
 
         if (!repo.isOnline.value) {
             withContext(Dispatchers.Main) {
-                params.potrebaInternet()
+                params.internetNeeded()
             }
             params.exit()
         }
@@ -252,19 +253,19 @@ class LoadingViewModel(
         }
 
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val verzeRef = database.getReference("data${META_VERZE_DAT}/verze")
-        val novaVerze = verzeRef.get().await().getValue(TI) ?: -1
-        val aktualniVerze = repo.verze.first()
+        val versionRef = database.getReference("data${META_DATA_VERSION}/verze")
+        val newVersion = versionRef.get().await().getValue(TI) ?: -1
+        val currentVersion = repo.version.first()
 
-        val udelameUplnouAktualizaci = aktualniVerze + 1 != novaVerze
+        val doFullUpdate = currentVersion + 1 != newVersion
 
-        val zastavkySpoje: MutableList<ZastavkaSpoje> = mutableListOf()
-        val zastavky: MutableList<Zastavka> = mutableListOf()
-        val casKody: MutableList<CasKod> = mutableListOf()
-        val linky: MutableList<Linka> = mutableListOf()
-        val spoje: MutableList<Spoj> = mutableListOf()
+        val connStops: MutableList<ConnStop> = mutableListOf()
+        val stops: MutableList<Stop> = mutableListOf()
+        val timeCodes: MutableList<TimeCode> = mutableListOf()
+        val lines: MutableList<Line> = mutableListOf()
+        val conns: MutableList<Conn> = mutableListOf()
 
-        if (udelameUplnouAktualizaci) {
+        if (doFullUpdate) {
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)" to null
@@ -277,30 +278,29 @@ class LoadingViewModel(
             }
 
             val storage = Firebase.storage
-            val kurzyRef = storage.reference.child("kurzy.json")
-            val navaznostiRef = storage.reference.child("navaznosti.json")
-            val schemaRef = storage.reference.child("schema.pdf")
-            val jrRef = storage.reference.child("data${META_VERZE_DAT}/data${novaVerze}.json")
+            val sequencesRef = storage.reference.child("kurzy.json")
+            val diagramRef = storage.reference.child("schema.pdf")
+            val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
-            val jrFile = params.jrFile
+            val dataFile = params.dataFile
 
-            val json = stahnoutSoubor(
-                ref = jrRef,
-                file = jrFile,
+            val json = downloadFile(
+                ref = dataRef,
+                file = dataFile,
             ).readText()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)" to 0F
             }
 
-            val kurzyFile = params.kurzyFile
+            val sequencesFile = params.sequencesFile
 
-            val json2 = stahnoutSoubor(
-                ref = kurzyRef,
-                file = kurzyFile,
+            val json2 = downloadFile(
+                ref = sequencesRef,
+                file = sequencesFile,
             ).readText()
 
-            val kurzy = json2.fromJson<Map<String, List<String>>>()
+            val sequences = json2.fromJson<Map<String, List<String>>>()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
@@ -308,57 +308,57 @@ class LoadingViewModel(
 
             val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
-            data.extrahovatData(kurzy)
-                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
-                    zastavkySpoje += zastavkySpojeTabulky
-                    casKody += casKodyTabulky
-                    zastavky += zastavkyTabulky
-                    linky += linkyTabulky
-                    spoje += spojeTabulky
+            data.exctractData(sequences)
+                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                    connStops += connStopsOfTable
+                    timeCodes += timeCodesOfTable
+                    stops += stopsOfTable
+                    lines += linesOfTable
+                    conns += connsOfTable
                 }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
             }
 
-            stahnoutSchema(schemaRef)
+            downloadDiagram(diagramRef)
         } else {
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)" to 0F
             }
 
             val storage = Firebase.storage
-            val kurzyRef = storage.reference.child("kurzy.json")
-            val schemaRef = storage.reference.child("schema.pdf")
-            val zmenyRef = storage.reference.child("data${META_VERZE_DAT}/zmeny$aktualniVerze..$novaVerze.json")
+            val sequencesRef = storage.reference.child("kurzy.json")
+            val diagramRef = storage.reference.child("schema.pdf")
+            val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
 
-            val jrFile = params.jrFile
+            val dataFile = params.dataFile
 
-            val json = stahnoutSoubor(
-                ref = zmenyRef,
-                file = jrFile,
+            val json = downloadFile(
+                ref = changesRef,
+                file = dataFile,
             ).readText()
 
-            val hodneZmen = Json.parseToJsonElement(json).jsonObject
+            val manyChanges = Json.parseToJsonElement(json).jsonObject
 
-            val plus = hodneZmen["+"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
-            val minus = hodneZmen["-"]!!.jsonArray.toString().fromJson<List<String>>()
-            val zmeny = hodneZmen["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
-            val menitSchema = hodneZmen["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
+            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
+            val minus = manyChanges["-"]!!.jsonArray.toString().fromJson<List<String>>()
+            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
+            val changeDiagram = manyChanges["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
 
-            val minusTabulky = minus
+            val minusTables = minus
                 .map { it.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
-            val zmenyTabulky = zmeny
+            val changedTables = changes
                 .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
 
-            zastavkySpoje.addAll(repo.zastavkySpoje())
-            zastavky.addAll(repo.zastavky())
-            casKody.addAll(repo.casKody())
-            linky.addAll(repo.linky())
-            spoje.addAll(repo.spoje())
+            connStops.addAll(repo.connStops())
+            stops.addAll(repo.stops())
+            timeCodes.addAll(repo.timeCodes())
+            lines.addAll(repo.lines())
+            conns.addAll(repo.conns())
 
             val N = when {
-                menitSchema -> 6
+                changeDiagram -> 6
                 else -> 5
             }
 
@@ -366,62 +366,62 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
             }
 
-            zastavkySpoje.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            connStops.removeAll { it.tab in minusTables || it.tab in changedTables }
             _state.update { it.first to 1 / 5F }
-            zastavky.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            stops.removeAll { it.tab in minusTables || it.tab in changedTables }
             _state.update { it.first to 2 / 5F }
-            casKody.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            timeCodes.removeAll { it.tab in minusTables || it.tab in changedTables }
             _state.update { it.first to 3 / 5F }
-            linky.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            lines.removeAll { it.tab in minusTables || it.tab in changedTables }
             _state.update { it.first to 4 / 5F }
-            spoje.removeAll { it.tab in minusTabulky || it.tab in zmenyTabulky }
+            conns.removeAll { it.tab in minusTables || it.tab in changedTables }
             _state.update { it.first to 5 / 5F }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$N)" to 0F
             }
 
-            val kurzyFile = params.kurzyFile
+            val sequencesFile = params.sequencesFile
 
-            val json2 = stahnoutSoubor(
-                ref = kurzyRef,
-                file = kurzyFile,
+            val json2 = downloadFile(
+                ref = sequencesRef,
+                file = sequencesFile,
             ).readText()
 
-            val kurzy = json2.fromJson<Map<String, List<String>>>()
+            val sequences = json2.fromJson<Map<String, List<String>>>()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
             }
 
-            plus.extrahovatData(kurzy)
-                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
-                    zastavkySpoje += zastavkySpojeTabulky
-                    casKody += casKodyTabulky
-                    zastavky += zastavkyTabulky
-                    linky += linkyTabulky
-                    spoje += spojeTabulky
+            plus.exctractData(sequences)
+                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                    connStops += connStopsOfTable
+                    timeCodes += timeCodesOfTable
+                    stops += stopsOfTable
+                    lines += linesOfTable
+                    conns += connsOfTable
                 }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$N)" to 0F
             }
 
-            zmeny.extrahovatData(kurzy)
-                .forEach { (zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky) ->
-                    zastavkySpoje += zastavkySpojeTabulky
-                    casKody += casKodyTabulky
-                    zastavky += zastavkyTabulky
-                    linky += linkyTabulky
-                    spoje += spojeTabulky
+            changes.exctractData(sequences)
+                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                    connStops += connStopsOfTable
+                    timeCodes += timeCodesOfTable
+                    stops += stopsOfTable
+                    lines += linesOfTable
+                    conns += connsOfTable
                 }
 
-            if (menitSchema) {
+            if (changeDiagram) {
                 _state.update {
                     "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
                 }
 
-                stahnoutSchema(schemaRef)
+                downloadDiagram(diagramRef)
             }
         }
 
@@ -429,33 +429,33 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání" to null
         }
 
-        println(spoje)
-        println(linky)
-        println(zastavky)
-        println(zastavkySpoje)
-        println(casKody)
+        println(conns)
+        println(lines)
+        println(stops)
+        println(connStops)
+        println(timeCodes)
 
         coroutineScope {
             launch {
-                repo.zapsat(
-                    zastavkySpoje = zastavkySpoje.distinctBy { Triple(it.tab, it.cisloSpoje, it.indexZastavkyNaLince) }.toTypedArray(),
-                    zastavky = zastavky.distinctBy { it.tab to it.cisloZastavky }.toTypedArray(),
-                    casKody = casKody.distinctBy { Quadruple(it.tab, it.kod, it.cisloSpoje, it.indexTerminu) }.toTypedArray(),
-                    linky = linky.distinctBy { it.tab }.toTypedArray(),
-                    spoje = spoje.distinctBy { it.tab to it.cisloSpoje }.toTypedArray(),
-                    verze = novaVerze,
+                repo.write(
+                    connStops = connStops.distinctBy { Triple(it.tab, it.connNumber, it.stopIndexOnLine) }.toTypedArray(),
+                    stops = stops.distinctBy { it.tab to it.stopNumber }.toTypedArray(),
+                    timeCodes = timeCodes.distinctBy { Quadruple(it.tab, it.code, it.connNumber, it.termIndex) }.toTypedArray(),
+                    lines = lines.distinctBy { it.tab }.toTypedArray(),
+                    conns = conns.distinctBy { it.tab to it.connNumber }.toTypedArray(),
+                    version = newVersion,
                 )
             }.join()
         }
     }
 
-    private suspend fun stahnoutSchema(schemaRef: StorageReference) = stahnoutSoubor(schemaRef, params.schemaFile)
+    private suspend fun downloadDiagram(schemaRef: StorageReference) = downloadFile(schemaRef, params.diagramFile)
 
-    private fun Map<String, Map<String, List<List<String>>>>.extrahovatData(
-        kurzy: Map<String, List<String>>,
-    ): List<Quintuple<MutableList<ZastavkaSpoje>, MutableList<CasKod>, MutableList<Zastavka>, MutableList<Linka>, MutableList<Spoj>>> {
+    private fun Map<String, Map<String, List<List<String>>>>.exctractData(
+        sequences: Map<String, List<String>>,
+    ): List<Quintuple<MutableList<ConnStop>, MutableList<TimeCode>, MutableList<Stop>, MutableList<Line>, MutableList<Conn>>> {
 
-        val pocetRadku = this
+        val rowsCount = this
             .toList()
             .flatMap { it0 ->
                 it0.second.flatMap {
@@ -464,111 +464,111 @@ class LoadingViewModel(
             }
             .count()
 
-        var indexRadku = 0F
+        var rowindex = 0F
 
         return this
             .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
             .map { (tab, dataLinky) ->
-                val zastavkySpojeTabulky: MutableList<ZastavkaSpoje> = mutableListOf()
-                val casKodyTabulky: MutableList<CasKod> = mutableListOf()
-                val zastavkyTabulky: MutableList<Zastavka> = mutableListOf()
-                val linkyTabulky: MutableList<Linka> = mutableListOf()
-                val spojeTabulky: MutableList<Spoj> = mutableListOf()
+                val connStopsOfTable: MutableList<ConnStop> = mutableListOf()
+                val timeCodesOfTable: MutableList<TimeCode> = mutableListOf()
+                val stopsOfTable: MutableList<Stop> = mutableListOf()
+                val linesOfTable: MutableList<Line> = mutableListOf()
+                val connsOfTable: MutableList<Conn> = mutableListOf()
                 dataLinky
                     .toList()
-                    .sortedBy { (typTabulky, _) ->
-                        TypyTabulek.entries.indexOf(TypyTabulek.valueOf(typTabulky))
+                    .sortedBy { (tableType, _) ->
+                        TableType.entries.indexOf(TableType.valueOf(tableType))
                     }
-                    .forEach { (typTabulky, tabulka) ->
-                        tabulka.forEach radek@{ radek ->
-                            indexRadku++
+                    .forEach { (typTabulky, table) ->
+                        table.forEach radek@{ row ->
+                            rowindex++
 
                             _state.update {
-                                it.first to indexRadku / pocetRadku
+                                it.first to rowindex / rowsCount
                             }
 
-                            when (TypyTabulek.valueOf(typTabulky)) {
-                                TypyTabulek.Zasspoje -> zastavkySpojeTabulky += ZastavkaSpoje(
-                                    linka = radek[0].toInt(),
-                                    cisloSpoje = radek[1].toInt(),
-                                    indexZastavkyNaLince = radek[2].toInt(),
-                                    cisloZastavky = radek[3].toInt(),
-                                    kmOdStartu = radek[9].ifEmpty { null }?.toInt() ?: return@radek,
-                                    prijezd = radek[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
-                                    odjezd = radek[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toCasDivne(),
+                            when (TableType.valueOf(typTabulky)) {
+                                TableType.Zasspoje -> connStopsOfTable += ConnStop(
+                                    line = row[0].toInt(),
+                                    connNumber = row[1].toInt(),
+                                    stopIndexOnLine = row[2].toInt(),
+                                    stopNumber = row[3].toInt(),
+                                    kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
+                                    arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
+                                    departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Zastavky -> zastavkyTabulky += Zastavka(
-                                    linka = radek[0].toInt(),
-                                    cisloZastavky = radek[1].toInt(),
-                                    nazevZastavky = radek[2],
-                                    pevneKody = radek.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                TableType.Zastavky -> stopsOfTable += Stop(
+                                    line = row[0].toInt(),
+                                    stopNumber = row[1].toInt(),
+                                    stopName = row[2],
+                                    fixedCodes = row.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Caskody -> casKodyTabulky += CasKod(
-                                    linka = radek[0].toInt(),
-                                    cisloSpoje = radek[1].toInt(),
-                                    kod = radek[3].toInt(),
-                                    indexTerminu = radek[2].toInt(),
-                                    jede = radek[4] == "1",
-                                    platiOd = radek[5].toDatumDivne(),
-                                    platiDo = radek[6].ifEmpty { radek[5] }.toDatumDivne(),
+                                TableType.Caskody -> timeCodesOfTable += TimeCode(
+                                    line = row[0].toInt(),
+                                    connNumber = row[1].toInt(),
+                                    code = row[3].toInt(),
+                                    termIndex = row[2].toInt(),
+                                    runs = row[4] == "1",
+                                    validFrom = row[5].toDateWeirdly(),
+                                    validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Linky -> linkyTabulky += Linka(
-                                    cislo = radek[0].toInt(),
-                                    trasa = radek[1],
-                                    typVozidla = Json.decodeFromString("\"${radek[4]}\""),
-                                    typLinky = Json.decodeFromString("\"${radek[3]}\""),
-                                    maVyluku = radek[5] != "0",
-                                    platnostOd = radek[13].toDatumDivne(),
-                                    platnostDo = radek[14].toDatumDivne(),
+                                TableType.Linky -> linesOfTable += Line(
+                                    number = row[0].toInt(),
+                                    route = row[1],
+                                    vehicleType = Json.decodeFromString("\"${row[4]}\""),
+                                    lineType = Json.decodeFromString("\"${row[3]}\""),
+                                    hasRestriction = row[5] != "0",
+                                    validFrom = row[13].toDateWeirdly(),
+                                    validTo = row[14].toDateWeirdly(),
                                     tab = tab,
                                 )
 
-                                TypyTabulek.Spoje -> spojeTabulky += Spoj(
-                                    linka = radek[0].toInt(),
-                                    cisloSpoje = radek[1].toInt(),
-                                    pevneKody = radek.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                    smer = zastavkySpojeTabulky
-                                        .filter { it.cisloSpoje == radek[1].toInt() }
-                                        .sortedBy { it.indexZastavkyNaLince }
-                                        .filter { it.cas != null }
-                                        .let { zast ->
-                                            Smer.fromBoolean(zast.first().cas!! <= zast.last().cas && zast.first().kmOdStartu <= zast.last().kmOdStartu)
+                                TableType.Spoje -> connsOfTable += Conn(
+                                    line = row[0].toInt(),
+                                    connNumber = row[1].toInt(),
+                                    fixedCodes = row.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    direction = connStopsOfTable
+                                        .filter { it.connNumber == row[1].toInt() }
+                                        .sortedBy { it.stopIndexOnLine }
+                                        .filter { it.time != null }
+                                        .let { stops ->
+                                            Direction(stops.first().time!! <= stops.last().time && stops.first().kmFromStart <= stops.last().kmFromStart)
                                         },
                                     tab = tab,
-                                    kurz = kurzy.toList().firstOrNull { (_, spoje) -> "S-${radek[0]}-${radek[1]}" in spoje }?.first,
-                                    poradiNaKurzu = kurzy.toList().indexOfFirst { (_, spoje) -> "S-${radek[0]}-${radek[1]}" in spoje }.takeUnless { it == -1 },
-                                ).also { spoj ->
-                                    if (casKodyTabulky.none { it.cisloSpoje == spoj.cisloSpoje })
-                                        casKodyTabulky += CasKod(
-                                            linka = spoj.linka,
-                                            cisloSpoje = spoj.cisloSpoje,
-                                            kod = 0,
-                                            indexTerminu = 0,
-                                            jede = false,
-                                            platiOd = LocalDate.of(0, 1, 1),
-                                            platiDo = LocalDate.of(0, 1, 1),
-                                            tab = spoj.tab,
+                                    sequence = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }?.first,
+                                    orderInSequence = sequences.toList().indexOfFirst { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }.takeUnless { it == -1 },
+                                ).also { conn ->
+//                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
+                                        timeCodesOfTable += TimeCode(
+                                            line = conn.line,
+                                            connNumber = conn.connNumber,
+                                            code = 0,
+                                            termIndex = 0,
+                                            runs = false,
+                                            validFrom = noCode,
+                                            validTo = noCode,
+                                            tab = conn.tab,
                                         )
                                 }
 
-                                TypyTabulek.Pevnykod -> Unit
-                                TypyTabulek.Zaslinky -> Unit
-                                TypyTabulek.VerzeJDF -> Unit
-                                TypyTabulek.Dopravci -> Unit
-                                TypyTabulek.LinExt -> Unit
-                                TypyTabulek.Udaje -> Unit
+                                TableType.Pevnykod -> Unit
+                                TableType.Zaslinky -> Unit
+                                TableType.VerzeJDF -> Unit
+                                TableType.Dopravci -> Unit
+                                TableType.LinExt -> Unit
+                                TableType.Udaje -> Unit
                             }
                         }
                     }
-                Quintuple(zastavkySpojeTabulky, casKodyTabulky, zastavkyTabulky, linkyTabulky, spojeTabulky)
+                Quintuple(connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable)
             }
     }
 
-    inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
+    private inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
 }

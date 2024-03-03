@@ -7,7 +7,6 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -93,17 +92,12 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nazevKurzu
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
-import cz.jaro.dpmcb.ui.destinations.JizdniRadyDestination
-import cz.jaro.dpmcb.ui.destinations.KurzDestination
-import cz.jaro.dpmcb.ui.destinations.OdjezdyDestination
-import cz.jaro.dpmcb.ui.destinations.PraveJedouciDestination
-import cz.jaro.dpmcb.ui.destinations.SpojDestination
-import cz.jaro.dpmcb.ui.destinations.VybiratorDestination
-import cz.jaro.dpmcb.ui.navArgs
-import cz.jaro.dpmcb.ui.vybirator.autoFocus
+import cz.jaro.dpmcb.ui.chooser.autoFocus
+import cz.jaro.dpmcb.ui.destinations.BusDestination
+import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -115,8 +109,8 @@ import kotlin.reflect.KClass
 @Composable
 fun Main(
     link: String?,
-    jePotrebaAktualizovatData: Boolean,
-    jePotrebaAktualizovatAplikaci: Boolean,
+    isDataUpdateNeeded: Boolean,
+    isAppUpdateNeeded: Boolean,
 ) {
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
@@ -151,36 +145,25 @@ fun Main(
 
     val ctx = LocalContext.current
 
-    val chyba = { it: String ->
+    val logError = { it: String ->
         Toast.makeText(ctx, it, Toast.LENGTH_SHORT)
     }
 
     val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) }, chyba)
+        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) }, logError)
     }
 
-    val jeOnline = viewModel.jeOnline.collectAsStateWithLifecycle()
-    val maPrukazku = viewModel.maPrukazku.collectAsStateWithLifecycle()
-    val onlineMod = viewModel.onlineMod.collectAsStateWithLifecycle()
-    val datum = viewModel.datum.collectAsStateWithLifecycle()
+    val isOnline = viewModel.isOnline.collectAsStateWithLifecycle()
+    val hasCard = viewModel.hasCard.collectAsStateWithLifecycle()
+    val isOnlineModeEnabled = viewModel.isOnlineModeEnabled.collectAsStateWithLifecycle()
+    val date = viewModel.date.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
-                @Suppress("UNCHECKED_CAST")
                 val dest = entry.destination() as DestinationSpec<Any>
 
-                val args: Any = when (dest::class) {
-                    PraveJedouciDestination::class -> entry.navArgs<PraveJedouciDestination.NavArgs>()
-                    OdjezdyDestination::class -> entry.navArgs<OdjezdyDestination.NavArgs>()
-                    SpojDestination::class -> entry.navArgs<SpojDestination.NavArgs>()
-                    KurzDestination::class -> entry.navArgs<KurzDestination.NavArgs>()
-                    VybiratorDestination::class -> entry.navArgs<VybiratorDestination.NavArgs>()
-                    JizdniRadyDestination::class -> entry.navArgs<JizdniRadyDestination.NavArgs>()
-                    else -> Unit
-                }
-
-                App.route = dest(args).route
+                App.route = dest(dest.argsFrom(entry)).route
             }
         }
     }
@@ -196,15 +179,15 @@ fun Main(
             if (drawerState.isClosed) openDrawer() else closeDrawer()
         },
         closeDrawer = closeDrawer,
-        jeOnline = jeOnline,
-        onlineMod = onlineMod,
+        isOnline = isOnline,
+        isOnlineModeEnabled = isOnlineModeEnabled,
         navigate = navController.navigateFunction,
         showToast = { text, duration ->
             Toast.makeText(ctx, text, duration).show()
         },
-        upravitOnlineMod = viewModel.upravitOnlineMod,
-        datum = datum,
-        upravitDatum = viewModel.upravitDatum,
+        editOnlineMode = viewModel.editOnlineMode,
+        date = date,
+        changeDate = viewModel.changeDate,
         tuDuDum = {
             MediaPlayer.create(ctx, R.raw.koncime).apply {
                 setOnCompletionListener {
@@ -219,14 +202,14 @@ fun Main(
                 }
             }
         },
-        jePotrebaAktualizovatAplikaci = jePotrebaAktualizovatAplikaci,
-        aktualizovatAplikaci = viewModel.aktualizovatAplikaci,
-        jePotrebaAktualizovatData = jePotrebaAktualizovatData,
-        aktualizovatData = viewModel.aktualizovatData,
-        oddelatPrukazku = viewModel.oddelatPrukazku,
-        maPrukazku = maPrukazku,
-        najitSpojPodleEvc = viewModel.najitSpojPodleEvc,
-        najitKurzy = viewModel.najitKurzy,
+        isAppUpdateNeeded = isAppUpdateNeeded,
+        updateApp = viewModel.updateApp,
+        isDataUpdateNeeded = isDataUpdateNeeded,
+        updateData = viewModel.updateData,
+        removeCard = viewModel.removeCard,
+        hasCard = hasCard,
+        findBusByEvn = viewModel.findBusByEvn,
+        findSequences = viewModel.findSequences,
     ) {
         DestinationsNavHost(
             navController = navController,
@@ -243,22 +226,22 @@ fun MainScreen(
     drawerState: DrawerState,
     toggleDrawer: () -> Unit,
     closeDrawer: () -> Unit,
-    jeOnline: State<Boolean>,
-    onlineMod: State<Boolean>,
+    isOnline: State<Boolean>,
+    isOnlineModeEnabled: State<Boolean>,
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
     tuDuDum: () -> Unit,
-    maPrukazku: State<Boolean>,
-    oddelatPrukazku: () -> Unit,
-    upravitOnlineMod: (Boolean) -> Unit,
-    datum: State<LocalDate>,
-    upravitDatum: (LocalDate) -> Unit,
-    jePotrebaAktualizovatData: Boolean,
-    jePotrebaAktualizovatAplikaci: Boolean,
-    aktualizovatData: () -> Unit,
-    aktualizovatAplikaci: () -> Unit,
-    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
-    najitKurzy: (String, (List<String>) -> Unit) -> Unit,
+    hasCard: State<Boolean>,
+    removeCard: () -> Unit,
+    editOnlineMode: (Boolean) -> Unit,
+    date: State<LocalDate>,
+    changeDate: (LocalDate) -> Unit,
+    isDataUpdateNeeded: Boolean,
+    isAppUpdateNeeded: Boolean,
+    updateData: () -> Unit,
+    updateApp: () -> Unit,
+    findBusByEvn: (String, (String?) -> Unit) -> Unit,
+    findSequences: (String, (List<String>) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -280,23 +263,23 @@ fun MainScreen(
                     }
                 },
                 actions = {
-                    val cas by UtilFunctions.tedFlow.collectAsStateWithLifecycle()
-                    if (App.vybrano != SuplikAkce.Prukazka)
-                        Text("${cas.hour.dva()}:${cas.minute.dva()}:${cas.second.dva()}", color = MaterialTheme.colorScheme.tertiary)
+                    val time by UtilFunctions.nowFlow.collectAsStateWithLifecycle()
+                    if (App.selected != DrawerAction.TransportCard)
+                        Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
-                    if (App.vybrano != SuplikAkce.Prukazka) IconButton(onClick = {
-                        if (!jeOnline.value) return@IconButton
+                    if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
+                        if (!isOnline.value) return@IconButton
 
-                        upravitOnlineMod(!onlineMod.value)
+                        editOnlineMode(!isOnlineModeEnabled.value)
                     }) {
                         IconWithTooltip(
-                            imageVector = if (jeOnline.value && onlineMod.value) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            imageVector = if (isOnline.value && isOnlineModeEnabled.value) Icons.Default.Wifi else Icons.Default.WifiOff,
                             contentDescription = when {
-                                jeOnline.value && onlineMod.value -> "Online, kliknutím přepnete do offline módu"
-                                jeOnline.value && !onlineMod.value -> "Offline, kliknutím vypnete offline mód"
+                                isOnline.value && isOnlineModeEnabled.value -> "Online, kliknutím přepnete do offline módu"
+                                isOnline.value && !isOnlineModeEnabled.value -> "Offline, kliknutím vypnete offline mód"
                                 else -> "Offline, nejste připojeni k internetu"
                             },
-                            tint = if (jeOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                            tint = if (isOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                         )
                     }
 
@@ -321,12 +304,12 @@ fun MainScreen(
                             open = false
                         }
                     ) {
-                        if (App.vybrano == SuplikAkce.Prukazka && maPrukazku.value) DropdownMenuItem(
+                        if (App.selected == DrawerAction.TransportCard && hasCard.value) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
                             onClick = {
-                                oddelatPrukazku()
+                                removeCard()
                                 open = false
                             },
                             leadingIcon = {
@@ -334,7 +317,7 @@ fun MainScreen(
                             },
                         )
 
-                        if (App.vybrano == SuplikAkce.NajitSpoj) DropdownMenuItem(
+                        if (App.selected == DrawerAction.FindBus) DropdownMenuItem(
                             text = {
                                 Text("Sdílet spoj")
                             },
@@ -444,7 +427,7 @@ fun MainScreen(
                         }
                     )
                 },
-                colors = if (App.title == R.string.nic) TopAppBarDefaults.topAppBarColors(
+                colors = if (App.title == R.string.empty) TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFD73139),
                     navigationIconContentColor = Color.Transparent,
                     actionIconContentColor = Color.White,
@@ -456,55 +439,55 @@ fun MainScreen(
             modifier = Modifier
                 .padding(paddingValues)
         ) {
-            if (jePotrebaAktualizovatData) {
-                var zobrazitDialog by remember { mutableStateOf(true) }
+            if (isDataUpdateNeeded) {
+                var showDialog by remember { mutableStateOf(true) }
 
-                if (zobrazitDialog) AlertDialog(
+                if (showDialog) AlertDialog(
                     onDismissRequest = {
-                        zobrazitDialog = false
+                        showDialog = false
                     },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                zobrazitDialog = false
-                                aktualizovatData()
+                                showDialog = false
+                                updateData()
                             }
                         ) {
-                            Text(stringResource(id = R.string.ano))
+                            Text(stringResource(id = R.string.yes))
                         }
                     },
                     title = {
-                        Text(stringResource(id = R.string.aktualizace_jr))
+                        Text(stringResource(id = R.string.data_update))
                     },
                     text = {
-                        Text(stringResource(id = R.string.chcete_aktualizovat))
+                        Text(stringResource(id = R.string.do_you_want_to_update))
                     },
                     dismissButton = {
                         TextButton(
                             onClick = {
-                                zobrazitDialog = false
+                                showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.ne))
+                            Text(stringResource(id = R.string.no))
                         }
                     },
                 )
             }
-            if (jePotrebaAktualizovatAplikaci) {
-                var zobrazitDialog by remember { mutableStateOf(true) }
+            if (isAppUpdateNeeded) {
+                var showDialog by remember { mutableStateOf(true) }
 
-                if (zobrazitDialog) AlertDialog(
+                if (showDialog) AlertDialog(
                     onDismissRequest = {
-                        zobrazitDialog = false
+                        showDialog = false
                     },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                zobrazitDialog = false
-                                aktualizovatAplikaci()
+                                showDialog = false
+                                updateApp()
                             }
                         ) {
-                            Text(stringResource(id = R.string.ano))
+                            Text(stringResource(id = R.string.yes))
                         }
                     },
                     title = {
@@ -516,10 +499,10 @@ fun MainScreen(
                     dismissButton = {
                         TextButton(
                             onClick = {
-                                zobrazitDialog = false
+                                showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.ne))
+                            Text(stringResource(id = R.string.no))
                         }
                     },
                 )
@@ -527,20 +510,20 @@ fun MainScreen(
             ModalNavigationDrawer(
                 drawerContent = {
                     ModalDrawerSheet {
-                        SuplikAkce.entries.forEach { akce ->
+                        DrawerAction.entries.forEach { action ->
                             VecZeSupliku(
-                                akce = akce,
+                                action = action,
                                 navigate = navigate,
                                 startIntent = startIntent,
-                                jeOnline = jeOnline,
+                                isOnline = isOnline,
                                 showToast = showToast,
-                                datum = datum,
-                                upravitDatum = upravitDatum,
+                                date = date,
+                                changeDate = changeDate,
                                 tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
                                 startActivity = startActivity,
-                                najitSpojPodleEvc = najitSpojPodleEvc,
-                                najitKurzy = najitKurzy
+                                findBusByEvn = findBusByEvn,
+                                findSequences = findSequences
                             )
                         }
                     }
@@ -552,31 +535,31 @@ fun MainScreen(
     }
 }
 
-private fun Int.dva() = plus(100).toString().takeLast(2)
+private fun Int.two() = plus(100).toString().takeLast(2)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun VecZeSupliku(
-    akce: SuplikAkce,
+    action: DrawerAction,
     navigate: NavigateFunction,
     startIntent: (Intent) -> Unit,
-    jeOnline: State<Boolean>,
+    isOnline: State<Boolean>,
     showToast: (String, Int) -> Unit,
-    datum: State<LocalDate>,
-    upravitDatum: (LocalDate) -> Unit,
+    date: State<LocalDate>,
+    changeDate: (LocalDate) -> Unit,
     tuDuDum: () -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
-    najitSpojPodleEvc: (String, (String?) -> Unit) -> Unit,
-    najitKurzy: (String, (List<String>) -> Unit) -> Unit,
-) = when (akce) {
-    SuplikAkce.ZpetnaVazba -> {
-        var hodnoceni by rememberSaveable { mutableIntStateOf(-1) }
-        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
+    findBusByEvn: (String, (String?) -> Unit) -> Unit,
+    findSequences: (String, (List<String>) -> Unit) -> Unit,
+) = when (action) {
+    DrawerAction.Feedback -> {
+        var rating by rememberSaveable { mutableIntStateOf(-1) }
+        var showDialog by rememberSaveable { mutableStateOf(false) }
 
-        if (zobrazitDialog) AlertDialog(
+        if (showDialog) AlertDialog(
             onDismissRequest = {
-                zobrazitDialog = false
+                showDialog = false
             },
             title = {
                 Text("Ohodnotit aplikaci")
@@ -585,9 +568,9 @@ fun VecZeSupliku(
                 TextButton(onClick = {
                     val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
                     val ref = database.getReference("hodnoceni")
-                    ref.push().setValue("${hodnoceni + 1}/5")
-                    hodnoceni = -1
-                    zobrazitDialog = false
+                    ref.push().setValue("${rating + 1}/5")
+                    rating = -1
+                    showDialog = false
                 }) {
                     Text("Odeslat")
                 }
@@ -597,9 +580,9 @@ fun VecZeSupliku(
                     Row {
                         repeat(5) { i ->
                             IconButton(onClick = {
-                                hodnoceni = if (hodnoceni == i) -1 else i
+                                rating = if (rating == i) -1 else i
                             }, Modifier.weight(1F)) {
-                                if (hodnoceni >= i)
+                                if (rating >= i)
                                     Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
                                 else
                                     Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
@@ -609,7 +592,7 @@ fun VecZeSupliku(
                     Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
                     TextButton(onClick = {
                         startIntent(Intent().apply {
-                            action = Intent.ACTION_VIEW
+                            this.action = Intent.ACTION_VIEW
                             data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
                         })
                     }) {
@@ -620,15 +603,15 @@ fun VecZeSupliku(
         )
         NavigationDrawerItem(
             label = {
-                Text(stringResource(akce.jmeno))
+                Text(stringResource(action.label))
             },
             icon = {
-                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                IconWithTooltip(action.icon, stringResource(action.label))
             },
             selected = false,
             onClick = {
-                if (jeOnline.value)
-                    zobrazitDialog = true
+                if (isOnline.value)
+                    showDialog = true
                 else
                     showToast("Jste offline!", Toast.LENGTH_SHORT)
             },
@@ -636,110 +619,110 @@ fun VecZeSupliku(
         )
     }
 
-    SuplikAkce.NajitSpoj -> {
-        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-        var nenalezen by rememberSaveable { mutableStateOf(false) }
-        var moznosti by rememberSaveable { mutableStateOf(null as List<String>?) }
+    DrawerAction.FindBus -> {
+        var showDialog by rememberSaveable { mutableStateOf(false) }
+        var isNotFound by rememberSaveable { mutableStateOf(false) }
+        var options by rememberSaveable { mutableStateOf(null as List<String>?) }
         var id by rememberSaveable { mutableStateOf("") }
-        var kurz by rememberSaveable { mutableStateOf("") }
-        var jmeno by rememberSaveable { mutableStateOf("") }
-        var evc by rememberSaveable { mutableStateOf("") }
-        var linka by rememberSaveable { mutableStateOf("") }
-        var cislo by rememberSaveable { mutableStateOf("") }
+        var sequence by rememberSaveable { mutableStateOf("") }
+        var name by rememberSaveable { mutableStateOf("") }
+        var evn by rememberSaveable { mutableStateOf("") }
+        var line by rememberSaveable { mutableStateOf("") }
+        var number by rememberSaveable { mutableStateOf("") }
 
-        fun potvrdit(spojId: String) {
+        fun confirm(busId: String) {
             navigate(
-                SpojDestination(
-                    spojId = spojId
+                BusDestination(
+                    busId = busId
                 )
             )
-            zobrazitDialog = false
+            showDialog = false
             closeDrawer()
             id = ""
-            kurz = ""
-            jmeno = ""
-            evc = ""
-            linka = ""
-            cislo = ""
+            sequence = ""
+            name = ""
+            evn = ""
+            line = ""
+            number = ""
         }
 
-        fun potvrditKurz(kurzId: String) {
+        fun confirmSeq(seqId: String) {
             navigate(
-                KurzDestination(
-                    kurz = kurzId
+                SequenceDestination(
+                    sequence = seqId
                 )
             )
-            zobrazitDialog = false
+            showDialog = false
             closeDrawer()
             id = ""
-            kurz = ""
-            moznosti = null
-            jmeno = ""
-            evc = ""
-            linka = ""
-            cislo = ""
+            sequence = ""
+            options = null
+            name = ""
+            evn = ""
+            line = ""
+            number = ""
         }
 
-        fun najitKurz(hledany: String) = najitKurzy(hledany) {
-            if (it.isEmpty()) nenalezen = true
-            else if (it.size == 1) potvrditKurz(it[0])
-            else moznosti = it
+        fun findSequence(searched: String) = findSequences(searched) {
+            if (it.isEmpty()) isNotFound = true
+            else if (it.size == 1) confirmSeq(it[0])
+            else options = it
         }
 
-        if (zobrazitDialog) AlertDialog(
+        if (showDialog) AlertDialog(
             onDismissRequest = {
-                zobrazitDialog = false
+                showDialog = false
                 id = ""
-                kurz = ""
-                jmeno = ""
-                evc = ""
-                linka = ""
-                cislo = ""
+                sequence = ""
+                name = ""
+                evn = ""
+                line = ""
+                number = ""
             },
             title = {
-                Text(stringResource(id = R.string.spoj_podle_id))
+                Text(stringResource(id = R.string.find_bus_by_id))
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (linka.isNotEmpty() && cislo.isNotEmpty()) potvrdit(
+                    if (line.isNotEmpty() && number.isNotEmpty()) confirm(
                         "S-325${
-                            when (linka.length) {
-                                1 -> "00$linka"
-                                2 -> "0$linka"
-                                else -> linka
+                            when (line.length) {
+                                1 -> "00$line"
+                                2 -> "0$line"
+                                else -> line
                             }
-                        }-$cislo"
+                        }-$number"
                     )
-                    else if (evc.isNotEmpty()) {
-                        if (!jeOnline.value) {
+                    else if (evn.isNotEmpty()) {
+                        if (!isOnline.value) {
                             showToast("Jste offline", Toast.LENGTH_SHORT)
-                            zobrazitDialog = false
+                            showDialog = false
                             return@TextButton
                         }
-                        najitSpojPodleEvc(evc) {
+                        findBusByEvn(evn) {
                             if (it == null) {
-                                showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
-                                zobrazitDialog = false
-                                return@najitSpojPodleEvc
+                                showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
+                                showDialog = false
+                                return@findBusByEvn
                             }
-                            potvrdit(it)
+                            confirm(it)
                         }
-                    } else if (jmeno.isNotEmpty()) potvrdit("S-${jmeno.replace("/", "-")}")
-                    else if (kurz.isNotEmpty()) {
-                        najitKurz(kurz)
-                    } else potvrdit(id)
+                    } else if (name.isNotEmpty()) confirm("S-${name.replace("/", "-")}")
+                    else if (sequence.isNotEmpty()) {
+                        findSequence(sequence)
+                    } else confirm(id)
                 }) {
                     Text("Vyhledat")
                 }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    zobrazitDialog = false
+                    showDialog = false
                     id = ""
-                    kurz = ""
-                    jmeno = ""
-                    linka = ""
-                    cislo = ""
+                    sequence = ""
+                    name = ""
+                    line = ""
+                    number = ""
                 }) {
                     Text("Zrušit")
                 }
@@ -749,9 +732,9 @@ fun VecZeSupliku(
                 Column {
                     Row {
                         TextField(
-                            value = linka,
+                            value = line,
                             onValueChange = {
-                                linka = it
+                                line = it
                             },
                             Modifier
                                 .weight(1F)
@@ -769,38 +752,38 @@ fun VecZeSupliku(
                             ),
                         )
                         TextField(
-                            value = cislo,
+                            value = number,
                             onValueChange = {
-                                cislo = it
+                                number = it
                             },
                             Modifier.weight(1F),
                             label = {
                                 Text("Č. spoje")
                             },
                             keyboardActions = KeyboardActions {
-                                if (linka.isNotEmpty() && cislo.isNotEmpty())
-                                    potvrdit(
+                                if (line.isNotEmpty() && number.isNotEmpty())
+                                    confirm(
                                         "S-325${
-                                            when (linka.length) {
-                                                1 -> "00$linka"
-                                                2 -> "0$linka"
-                                                else -> linka
+                                            when (line.length) {
+                                                1 -> "00$line"
+                                                2 -> "0$line"
+                                                else -> line
                                             }
-                                        }-$cislo"
+                                        }-$number"
                                     )
                                 else
                                     focusManager.moveFocus(FocusDirection.Down)
                             },
                             keyboardOptions = KeyboardOptions(
-                                imeAction = if (linka.isNotEmpty() && cislo.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                                imeAction = if (line.isNotEmpty() && number.isNotEmpty()) ImeAction.Search else ImeAction.Next,
                                 keyboardType = KeyboardType.Number,
                             ),
                         )
                     }
                     TextField(
-                        value = evc,
+                        value = evn,
                         onValueChange = {
-                            evc = it
+                            evn = it
                         },
                         Modifier
                             .fillMaxWidth()
@@ -809,32 +792,32 @@ fun VecZeSupliku(
                             Text("Ev. č. vozu")
                         },
                         keyboardActions = KeyboardActions {
-                            if (evc.isNotEmpty()) {
-                                if (!jeOnline.value) {
+                            if (evn.isNotEmpty()) {
+                                if (!isOnline.value) {
                                     showToast("Jste offline", Toast.LENGTH_SHORT)
-                                    zobrazitDialog = false
+                                    showDialog = false
                                     return@KeyboardActions
                                 }
-                                najitSpojPodleEvc(evc) {
+                                findBusByEvn(evn) {
                                     if (it == null) {
-                                        showToast("Vůz ev. č. $evc nebyl nalezen.", Toast.LENGTH_LONG)
-                                        zobrazitDialog = false
-                                        return@najitSpojPodleEvc
+                                        showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
+                                        showDialog = false
+                                        return@findBusByEvn
                                     }
-                                    potvrdit(it)
+                                    confirm(it)
                                 }
                             } else
                                 focusManager.moveFocus(FocusDirection.Down)
                         },
                         keyboardOptions = KeyboardOptions(
-                            imeAction = if (evc.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                            imeAction = if (evn.isNotEmpty()) ImeAction.Search else ImeAction.Next,
                             keyboardType = KeyboardType.Number,
                         ),
                     )
                     TextField(
-                        value = jmeno,
+                        value = name,
                         onValueChange = {
-                            jmeno = it
+                            name = it
                         },
                         Modifier
                             .fillMaxWidth()
@@ -843,13 +826,13 @@ fun VecZeSupliku(
                             Text("Jméno spoje")
                         },
                         keyboardActions = KeyboardActions {
-                            if (jmeno.isNotEmpty())
-                                potvrdit("S-${jmeno.replace("/", "-")}")
+                            if (name.isNotEmpty())
+                                confirm("S-${name.replace("/", "-")}")
                             else
                                 focusManager.moveFocus(FocusDirection.Down)
                         },
                         keyboardOptions = KeyboardOptions(
-                            imeAction = if (jmeno.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                            imeAction = if (name.isNotEmpty()) ImeAction.Search else ImeAction.Next,
                         ),
                     )
                     TextField(
@@ -864,7 +847,7 @@ fun VecZeSupliku(
                             Text("ID spoje")
                         },
                         keyboardActions = KeyboardActions {
-                            potvrdit(id)
+                            confirm(id)
                         },
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Search,
@@ -872,9 +855,9 @@ fun VecZeSupliku(
                     )
                     HorizontalDivider(Modifier.padding(vertical = 8.dp))
                     TextField(
-                        value = kurz,
+                        value = sequence,
                         onValueChange = {
-                            kurz = it
+                            sequence = it
                         },
                         Modifier
                             .fillMaxWidth()
@@ -883,7 +866,7 @@ fun VecZeSupliku(
                             Text("Názvev kurzu")
                         },
                         keyboardActions = KeyboardActions {
-                            najitKurz(kurz)
+                            findSequence(sequence)
                         },
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Search,
@@ -893,20 +876,20 @@ fun VecZeSupliku(
             }
         )
 
-        if (nenalezen) AlertDialog(
+        if (isNotFound) AlertDialog(
             onDismissRequest = {
-                nenalezen = false
+                isNotFound = false
             },
             title = {
                 Text("Kurz nenalezen")
             },
             text = {
-                Text("Tento kurz (${kurz.nazevKurzu()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+                Text("Tento kurz (${sequence.seqName()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        nenalezen = false
+                        isNotFound = false
                     }
                 ) {
                     Text("OK")
@@ -914,9 +897,9 @@ fun VecZeSupliku(
             }
         )
 
-        if (moznosti != null) AlertDialog(
+        if (options != null) AlertDialog(
             onDismissRequest = {
-                moznosti = null
+                options = null
             },
             title = {
                 Text("Nalezeno více kurzů")
@@ -926,17 +909,17 @@ fun VecZeSupliku(
                     Modifier
                         .verticalScroll(rememberScrollState())
                 ) {
-                    Text("\"${kurz}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
-                    moznosti!!.forEach {
+                    Text("\"${sequence}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
+                    options!!.forEach {
                         HorizontalDivider(Modifier.fillMaxWidth())
                         ListItem(
                             headlineContent = {
                                 TextButton(
                                     onClick = {
-                                        potvrditKurz(it)
+                                        confirmSeq(it)
                                     }
                                 ) {
-                                    Text(it.nazevKurzu())
+                                    Text(it.seqName())
                                 }
                             }
                         )
@@ -946,7 +929,7 @@ fun VecZeSupliku(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        moznosti = null
+                        options = null
                     }
                 ) {
                     Text("Zrušit")
@@ -956,27 +939,27 @@ fun VecZeSupliku(
 
         NavigationDrawerItem(
             label = {
-                Text(stringResource(akce.jmeno))
+                Text(stringResource(action.label))
             },
             icon = {
-                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                IconWithTooltip(action.icon, stringResource(action.label))
             },
-            selected = App.vybrano == akce,
+            selected = App.selected == action,
             onClick = {
-                zobrazitDialog = true
+                showDialog = true
 //                focusRequester.requestFocus()
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
     }
 
-    SuplikAkce.Vypnout -> {
+    DrawerAction.Exit -> {
         NavigationDrawerItem(
             label = {
-                Text(stringResource(akce.jmeno))
+                Text(stringResource(action.label))
             },
             icon = {
-                IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+                IconWithTooltip(action.icon, stringResource(action.label))
             },
             selected = false,
             onClick = {
@@ -986,22 +969,22 @@ fun VecZeSupliku(
         )
     }
 
-    SuplikAkce.Datum -> Row(
+    DrawerAction.Date -> Row(
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Používané datum: ${datum.value.asString()}",
+            text = "Používané datum: ${date.value.asString()}",
             modifier = Modifier.padding(all = 16.dp).weight(1F)
         )
-        var zobrazitDialog by rememberSaveable { mutableStateOf(false) }
-        if (zobrazitDialog) DatePickerDialog(
+        var showDialog by rememberSaveable { mutableStateOf(false) }
+        if (showDialog) DatePickerDialog(
             onDismissRequest = {
-                zobrazitDialog = false
+                showDialog = false
             },
             onDateChange = {
-                upravitDatum(it)
-                zobrazitDialog = false
+                changeDate(it)
+                showDialog = false
             },
             title = {
                 Row(
@@ -1012,40 +995,40 @@ fun VecZeSupliku(
                     Text("Vybrat nové datum")
                     TextButton(
                         onClick = {
-                            upravitDatum(LocalDate.now())
-                            zobrazitDialog = false
+                            changeDate(LocalDate.now())
+                            showDialog = false
                         }
                     ) {
                         Text("Dnes")
                     }
                 }
             },
-            initialDate = datum.value,
+            initialDate = date.value,
         )
 
         IconButton(
             onClick = {
-                zobrazitDialog = true
+                showDialog = true
             }
         ) {
             IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
         }
     }
 
-    else -> if (akce == SuplikAkce.PraveJedouci && datum.value != LocalDate.now()) Unit
+    else -> if (action == DrawerAction.NowRunning && date.value != LocalDate.now()) Unit
     else NavigationDrawerItem(
         label = {
-            Text(stringResource(akce.jmeno))
+            Text(stringResource(action.label))
         },
         icon = {
-            IconWithTooltip(akce.icon, stringResource(akce.jmeno))
+            IconWithTooltip(action.icon, stringResource(action.label))
         },
-        selected = App.vybrano == akce,
+        selected = App.selected == action,
         onClick = {
-            if (akce.multiselect)
-                App.vybrano = akce
+            if (action.multiselect)
+                App.selected = action
 
-            akce.onClick(
+            action.onClick(
                 navigate,
                 { closeDrawer() },
                 { startActivity(it) },
