@@ -18,6 +18,7 @@ import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodesTab
 import cz.jaro.dpmcb.data.realtions.NameAndTime
 import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
 import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
+import cz.jaro.dpmcb.data.realtions.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.Validity
 import java.time.LocalDate
 import java.time.LocalTime
@@ -393,27 +394,11 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.sequence, conn.line FROM conn
-        JOIN (
-            SELECT DISTINCT CASE
-                WHEN connstop.departure IS null THEN connstop.arrival
-                ELSE connstop.departure
-            END time, conn.sequence FROM connstop
-            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
-        ) druhastop ON conn.sequence = druhastop.sequence
-        JOIN (
-            SELECT DISTINCT CASE
-                WHEN connstop.departure IS null THEN connstop.arrival
-                ELSE connstop.departure
-            END time, conn.sequence FROM connstop
-            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
-        ) tretistop ON conn.sequence = tretistop.sequence
+        SELECT DISTINCT conn.sequence, conn.line - 325000 line FROM conn
         WHERE conn.sequence IN (:todayRunningSequences)
-        AND druhastop.time < :time
-        AND :time < tretistop.time
     """
     )
-    suspend fun nowRunning(time: LocalTime, todayRunningSequences: List<String>): Map<@MapColumn("sequence") String, List<@MapColumn("line") Int>>
+    suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") String, List<@MapColumn("line") Int>>
     @Transaction
     @Query(
         """
@@ -457,8 +442,46 @@ interface Dao {
                 NOT timecode.runs
                 AND COUNT(*) = TimeCodesCountOfSeq.count
             )
+        ),
+        endStopIndexOnThisLine(sequence, time, name) AS (
+            SELECT DISTINCT conn.sequence, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END, stop.stopName FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab IN (:tabs)
+            GROUP BY conn.sequence
+            HAVING MAX(CASE
+                WHEN conn.direction = 1 THEN -connstop.stopIndexOnLine
+                ELSE connstop.stopIndexOnLine
+            END)
+        ),
+        startStopIndexOnThisLine(sequence, time, name) AS (
+            SELECT DISTINCT conn.sequence, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END, stop.stopName FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab IN (:tabs)
+            GROUP BY conn.sequence
+            HAVING MIN(CASE
+                WHEN conn.direction = 1 THEN -connstop.stopIndexOnLine
+                ELSE connstop.stopIndexOnLine
+            END)
         )
-        SELECT conn.sequence, conn.fixedCodes FROM conn
+        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
+        JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
+        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
         WHERE conn.sequence IN TodayRunningSequences
         AND conn.tab IN (:tabs)
     """
@@ -466,7 +489,7 @@ interface Dao {
     suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
         tabs: List<String>
-    ): Map<@MapColumn("sequence") String, List<@MapColumn("fixedCodes") String>>
+    ): Map<TimeOfSequence, List< @MapColumn("fixedCodes")String>>
 
 //    SELECT group_ID
 //    FROM tableName

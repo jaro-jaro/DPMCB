@@ -27,6 +27,7 @@ import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import cz.jaro.dpmcb.data.realtions.Sequence
 import cz.jaro.dpmcb.data.realtions.TimeNameConnId
+import cz.jaro.dpmcb.data.realtions.TimeOfSequence
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -122,9 +123,9 @@ class SpojeRepository(
         nowUsedTabInternal(datum, lineNumber)?.tab
     }
 
-    private val sequencesMap = mutableMapOf<LocalDate, List<String>>()
+    private val sequencesMap = mutableMapOf<LocalDate, List<TimeOfSequence>>()
 
-    private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): List<String> {
+    private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): List<TimeOfSequence> {
         return localDataSource.fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
             date = date,
             tabs = allTables(date),
@@ -133,13 +134,13 @@ class SpojeRepository(
 
                 if (fixedCodes.isEmpty()) return@mapNotNull null
 
-                val pevne = fixedCodes.first().split(" ").filter { kod ->
+                val codes = fixedCodes.first().split(" ").filter { kod ->
                     fixedCodes.all {
                         it.split(" ").contains(kod)
                     }
                 }
 
-                Pair(seq, pevne)
+                Pair(seq, codes)
             }
             .filter { (_, fixedCodes) ->
                 date.runsToday(fixedCodes.joinToString(" "))
@@ -263,10 +264,14 @@ class SpojeRepository(
             while (currentCoroutineContext().isActive) {
                 launch {
                     send(
-                        localDataSource.nowRunning(LocalTime.now(), nowRunningSequencesOrNot(LocalDate.now()))
-                            .map { (s, lines) ->
-                                s to lines.map { it - 325_000 }
-                            }
+                        localDataSource.sequenceLines(
+                            todayRunningSequences = nowRunningSequencesOrNot(LocalDate.now())
+                                .filter {
+                                    it.start < LocalTime.now() && LocalTime.now() < it.end
+                                }
+                                .map { it.sequence }
+                        )
+                            .toList()
                             .sortedWith(Comparator.comparing({ it.first }, sequenceComparator))
                     )
                 }
@@ -452,6 +457,7 @@ class SpojeRepository(
                     busStops = stops
                 )
             }
+
     suspend fun oneWayLines() = localDataSource.oneDirectionLines()
 
     fun findMiddleStop(stops: List<NameAndTime>): NameTimeIndex {
