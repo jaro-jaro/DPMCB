@@ -69,20 +69,29 @@ class MainViewModel(
             null
         }
 
-    private fun String.translateOldCzechLinks() = split("/", limit = 1).let { list ->
-        val base = list[0]
-        val args = list.getOrNull(1)
-        when(base) {
-            "prave_jedouci" -> "now_running"
-            "odjezdy" -> "departures"
-            "spoj" -> "bus"
-            "spojeni" -> "connection"
-            "kurz" -> "sequence"
-            "vybirator" -> "chooser"
-            "jizdni_rady" -> "timetable"
-            else -> base
-        } + (args?.let { "/$it" } ?: "")
-    }
+    private fun String.translateOldCzechLinks() = this
+        .replace("prave_jedouci", "now_running")
+        .replace("filtry", "filters")
+        .replace("typ", "type")
+        .replace("odjezdy", "departures")
+        .replace("zastavka", "stop")
+        .replace("cas", "time")
+        .replace("linka", "line")
+        .replace("pres", "via")
+        .replace("spoj", "bus")
+        .replace("spojId", "busId")
+        .replace("spojeni", "connection")
+        .replace("kurz", "sequence")
+        .replace("vybirator", "chooser")
+        .replace("typ", "type")
+        .replace("cisloLinky", "lineNumber")
+        .replace("zastavka", "stop")
+        .replace("jizdni_rady", "timetable")
+        .replace("cisloLinky", "lineNumber")
+        .replace("zastavka", "stop")
+        .replace("pristiZastavka", "nextStop")
+        .replace("prukazka", "card")
+        .replace("oblibene", "favourites")
 
     init {
         link?.let {
