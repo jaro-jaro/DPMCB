@@ -215,7 +215,9 @@ fun SequenceScreen(
                                 navigate = navigate,
                                 onlineConnStops = null,
                                 nextStopTime = null,
-                                showLine = bus.isRunning
+                                showLine = bus.shouldBeRunning || bus.isRunning,
+                                height = state.height,
+                                traveledSegments = state.traveledSegments,
                             )
                         }
                     }

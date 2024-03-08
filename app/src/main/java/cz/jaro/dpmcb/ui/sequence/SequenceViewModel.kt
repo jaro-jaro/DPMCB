@@ -6,6 +6,7 @@ import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.makeFixedCodesReadable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +16,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -26,9 +29,33 @@ class SequenceViewModel(
 ) : ViewModel() {
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
-        val (sequence, before, bus, after, timeCodes, fixedCodes) = (
-            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence)
-        )
+        val (sequence, before, buses, after, timeCodes, fixedCodes) = (
+                repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence)
+                )
+
+        val runningBus = buses.find { (_, stops) ->
+            stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
+        }
+
+        val traveledSegments = when {
+            runningBus == null -> null
+            date > LocalDate.now() -> null
+            date < LocalDate.now() -> runningBus.stops.lastIndex
+            runningBus.stops.last().time < now -> runningBus.stops.lastIndex
+            else -> runningBus.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
+        }
+
+        val height = if (traveledSegments == null || runningBus == null) 0F else {
+            val departureFromLastStop = runningBus.stops[traveledSegments].time
+
+            val arrivalToNextStop = runningBus.stops.getOrNull(traveledSegments + 1)?.time
+
+            val length = arrivalToNextStop?.let { Duration.between(departureFromLastStop, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
+
+            val passed = Duration.between(departureFromLastStop, now).coerceAtLeast(Duration.ZERO)
+
+            traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceAtMost(1F)
+        }
 
         SequenceState.OK.Offline(
             sequence = sequence,
@@ -42,20 +69,24 @@ class SequenceViewModel(
             fixedCodes = makeFixedCodesReadable(fixedCodes),
             before = before,
             after = after,
-            buses = bus.map { (bus, stops) ->
+            buses = buses.map { (bus, stops) ->
                 BusInSequence(
                     busId = bus.connId,
                     stops = stops,
                     lineNumber = bus.line,
                     lowFloor = bus.lowFloor,
                     isRunning = false,
+                    shouldBeRunning = runningBus?.info?.connId == bus.connId && date == LocalDate.now(),
                 )
             },
             runsToday = repo.runsAt(timeCodes = timeCodes, fixedCodes = fixedCodes, date = LocalDate.now()),
+            height = height,
+            traveledSegments = traveledSegments ?: 0,
         )
     }
 
-    val state = combine(info, onlineRepo.nowRunningBuses()) { info, onlineConns ->
+    val state = combine(info, onlineRepo.nowRunningBuses(), repo.date) { info, onlineConns, date ->
+        if (date != LocalDate.now()) return@combine info
         if (info !is SequenceState.OK) return@combine info
         val onlineConn = onlineConns.find { onlineConn -> onlineConn.id in info.buses.map { it.busId } }
         if (onlineConn?.delayMin == null) return@combine info

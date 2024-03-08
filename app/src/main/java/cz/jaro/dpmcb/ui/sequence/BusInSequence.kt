@@ -8,4 +8,5 @@ data class BusInSequence(
     val lineNumber: Int,
     val lowFloor: Boolean,
     val isRunning: Boolean,
+    val shouldBeRunning: Boolean,
 )

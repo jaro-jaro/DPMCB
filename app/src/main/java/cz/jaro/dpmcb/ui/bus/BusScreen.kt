@@ -299,7 +299,7 @@ fun Timetable(
     navigate: NavigateFunction,
     onlineConnStops: List<OnlineConnStop>?,
     nextStopTime: LocalTime?,
-    showLine: Boolean = false,
+    showLine: Boolean = true,
     traveledSegments: Int = 0,
     height: Float = 0F,
     isOnline: Boolean = false,
