@@ -96,7 +96,9 @@ class MainViewModel(
                         closeDrawer()
                     }
                 } catch (_: IllegalArgumentException) {
-                    logError("Vadná zkratka")
+                    withContext(Dispatchers.Main) {
+                        logError("Vadná zkratka $url")
+                    }
                 }
             }
         }
