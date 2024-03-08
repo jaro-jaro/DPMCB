@@ -28,9 +28,7 @@ import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import cz.jaro.dpmcb.data.realtions.Sequence
 import cz.jaro.dpmcb.data.realtions.TimeNameConnId
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -333,13 +331,13 @@ class SpojeRepository(
 
         if (conns.isEmpty()) return null
 
-        val caskody = conns.first().timeCodes.filter { kod ->
+        val timeCodes = conns.first().timeCodes.filter { kod ->
             conns.all {
                 it.timeCodes.contains(kod)
             }
         }
 
-        val pevne = conns.first().fixedCodes.split(" ").filter { kod ->
+        val fixedCodes = conns.first().fixedCodes.split(" ").filter { kod ->
             conns.all {
                 it.fixedCodes.split(" ").contains(kod)
             }
@@ -365,8 +363,8 @@ class SpojeRepository(
             before = before,
             after = after,
             buses = conns.map { InfoStops(it.info, it.stops) },
-            commonTimeCodes = caskody,
-            commonFixedCodes = pevne.joinToString(" "),
+            commonTimeCodes = timeCodes,
+            commonFixedCodes = fixedCodes.joinToString(" "),
         )
     }
 

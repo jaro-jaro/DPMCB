@@ -312,51 +312,53 @@ fun Timetable(
     Column(
         Modifier.weight(1F)
     ) {
-        stops.forEachIndexed { i, it ->
+        stops.forEach { stop ->
+            val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
             MyText(
-                text = it.name,
+                text = stop.name,
                 navigate = navigate,
-                time = it.time,
-                stop = it.name,
-                nextStop = it.nextStop,
-                line = it.line,
-                platform = if (onlineConnStops != null) onlineConnStops[i].platform else "",
+                time = stop.time,
+                stop = stop.name,
+                nextStop = stop.nextStop,
+                line = stop.line,
+                platform = onlineStop?.platform ?: "",
                 Modifier.fillMaxWidth(1F),
-                color = if (nextStopTime != null && it.time == nextStopTime)
+                color = if (nextStopTime != null && stop.time == nextStopTime)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
-        stops.forEachIndexed { i, it ->
+        stops.forEach { stop ->
+            val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
             MyText(
-                text = it.time.toString(),
+                text = stop.time.toString(),
                 navigate = navigate,
-                time = it.time,
-                stop = it.name,
-                nextStop = it.nextStop,
-                line = it.line,
-                platform = if (onlineConnStops != null) onlineConnStops[i].platform else "",
-                color = if (nextStopTime != null && it.time == nextStopTime)
+                time = stop.time,
+                stop = stop.name,
+                nextStop = stop.nextStop,
+                line = stop.line,
+                platform = onlineStop?.platform ?: "",
+                color = if (nextStopTime != null && stop.time == nextStopTime)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
     if (onlineConnStops != null) Column(Modifier.padding(start = 8.dp)) {
-        stops
-            .zip(onlineConnStops)
-            .forEach { (stop, onlineStop) ->
-                MyText(
-                    text = stop.time.plusMinutes(onlineStop.delay.toLong()).toString(),
-                    navigate = navigate,
-                    time = stop.time.plusMinutes(onlineStop.delay.toLong()),
-                    stop = stop.name,
-                    nextStop = stop.nextStop,
-                    line = stop.line,
-                    platform = onlineStop.platform,
-                    color = colorOfDelayText(onlineStop.delay.toFloat()),
-                )
-            }
+        stops.forEach { stop ->
+            val onlineStop = onlineConnStops.find { it.scheduledTime == stop.time }
+            if (onlineStop != null) MyText(
+                text = stop.time.plusMinutes(onlineStop.delay.toLong()).toString(),
+                navigate = navigate,
+                time = stop.time.plusMinutes(onlineStop.delay.toLong()),
+                stop = stop.name,
+                nextStop = stop.nextStop,
+                line = stop.line,
+                platform = onlineStop.platform,
+                color = colorOfDelayText(onlineStop.delay.toFloat()),
+            )
+            else Text("", Modifier.defaultMinSize(24.dp, 24.dp),)
+        }
     }
 
     if (showLine) Line(

@@ -25,8 +25,8 @@ import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.TableType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -48,7 +48,7 @@ import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.io.File
-import java.net.SocketTimeoutException
+import java.io.IOException
 import java.time.LocalDate
 
 @KoinViewModel
@@ -207,7 +207,7 @@ class LoadingViewModel(
                     .maxBodySize(0)
                     .execute()
             }
-        } catch (e: SocketTimeoutException) {
+        } catch (e: IOException) {
             Firebase.crashlytics.recordException(e)
             return false
         }
