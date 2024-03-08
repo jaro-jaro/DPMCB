@@ -16,6 +16,8 @@ sealed interface SequenceState {
         val timeCodes: List<String>
         val fixedCodes: List<String>
         val runsToday: Boolean
+        val height: Float
+        val traveledSegments: Int
 
         data class Offline(
             override val sequence: String,
@@ -25,6 +27,8 @@ sealed interface SequenceState {
             override val timeCodes: List<String>,
             override val fixedCodes: List<String>,
             override val runsToday: Boolean,
+            override val height: Float,
+            override val traveledSegments: Int,
         ) : OK
 
         data class Online(
@@ -35,6 +39,8 @@ sealed interface SequenceState {
             override val timeCodes: List<String>,
             override val fixedCodes: List<String>,
             override val runsToday: Boolean,
+            override val height: Float,
+            override val traveledSegments: Int,
             val delayMin: Float,
             val vehicle: Int?,
             val confirmedLowFloor: Boolean?,
@@ -47,7 +53,7 @@ sealed interface SequenceState {
                     confirmedLowFloor: Boolean?,
                 ) = with(state) {
                     Online(
-                        sequence, before, after, buses, timeCodes, fixedCodes, runsToday, delayMin, vehicle, confirmedLowFloor
+                        sequence, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, delayMin, vehicle, confirmedLowFloor
                     )
                 }
             }
