@@ -853,34 +853,35 @@ fun MyText(
     style: TextStyle = LocalTextStyle.current,
 ) = Box {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
-    nextStop?.let {
-        DropdownMenu(
-            expanded = showDropDown,
-            onDismissRequest = {
-                showDropDown = false
-            }
-        ) {
-            DropdownMenuItem(
-                text = {
-                    Text("$stop $platform")
-                },
-                onClick = {},
-                enabled = false
-            )
-            DropdownMenuItem(
-                text = {
-                    Text("Zobrazit odjezdy")
-                },
-                onClick = {
-                    navigate(
-                        DeparturesDestination(
-                            time = time,
-                            stop = stop,
-                        )
+
+    DropdownMenu(
+        expanded = showDropDown,
+        onDismissRequest = {
+            showDropDown = false
+        }
+    ) {
+        DropdownMenuItem(
+            text = {
+                Text("$stop $platform")
+            },
+            onClick = {},
+            enabled = false
+        )
+        DropdownMenuItem(
+            text = {
+                Text("Zobrazit odjezdy")
+            },
+            onClick = {
+                navigate(
+                    DeparturesDestination(
+                        time = time,
+                        stop = stop,
                     )
-                    showDropDown = false
-                },
-            )
+                )
+                showDropDown = false
+            },
+        )
+        nextStop?.let {
             DropdownMenuItem(
                 text = {
                     Text("Zobrazit zastávkové JŘ")
