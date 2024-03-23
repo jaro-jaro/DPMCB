@@ -446,7 +446,7 @@ object UtilFunctions {
         val part = if (hasValidity) notes.drop(1) else notes
         val hasPart = part.isNotEmpty()
         val (validityNominative, validityGenitive) = mapOf(
-            'V' to ("Víkendová" to "víkendvé"),
+            'V' to ("Víkendová" to "víkendové"),
             'P' to ("Prázdninová" to "prázdninové"),
             'T' to ("Páteční" to "páteční"),
         )[validity] ?: ("" to "")
