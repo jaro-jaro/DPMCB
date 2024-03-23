@@ -21,7 +21,6 @@ import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
 import cz.jaro.dpmcb.data.realtions.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.Validity
 import java.time.LocalDate
-import java.time.LocalTime
 
 @Dao
 interface Dao {
@@ -457,9 +456,9 @@ interface Dao {
             AND connstop.tab IN (:tabs)
             GROUP BY conn.sequence
             HAVING MAX(CASE
-                WHEN conn.direction = 1 THEN -connstop.stopIndexOnLine
-                ELSE connstop.stopIndexOnLine
-            END)
+                 WHEN connstop.departure IS null THEN connstop.arrival
+                 ELSE connstop.departure
+             END)
         ),
         startStopIndexOnThisLine(sequence, time, name) AS (
             SELECT DISTINCT conn.sequence, CASE
@@ -475,21 +474,21 @@ interface Dao {
             AND connstop.tab IN (:tabs)
             GROUP BY conn.sequence
             HAVING MIN(CASE
-                WHEN conn.direction = 1 THEN -connstop.stopIndexOnLine
-                ELSE connstop.stopIndexOnLine
-            END)
+                 WHEN connstop.departure IS null THEN connstop.arrival
+                 ELSE connstop.departure
+             END)
         )
         SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
         JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
         WHERE conn.sequence IN TodayRunningSequences
         AND conn.tab IN (:tabs)
-    """
+    """ // DISTINCT zde není schválně - chceme pevné kódy pro každý spoj zvlášť, abychom poté získali společné pevné kódy
     )
     suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
         tabs: List<String>
-    ): Map<TimeOfSequence, List< @MapColumn("fixedCodes")String>>
+    ): Map<TimeOfSequence, List<@MapColumn("fixedCodes")String>>
 
 //    SELECT group_ID
 //    FROM tableName

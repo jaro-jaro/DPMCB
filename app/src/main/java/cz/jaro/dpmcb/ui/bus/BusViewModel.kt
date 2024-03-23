@@ -157,7 +157,7 @@ class BusViewModel(
             traveledSegments = traveledSegments ?: 0
         ).let { state ->
             if (onlineState.delay == null || onlineState.onlineConnStops == null || onlineState.nextStopTime == null) state
-            else BusState.OK.Online.invoke(
+            else BusState.OK.Online(
                 state = state,
                 onlineConnStops = onlineState.onlineConnStops,
                 delayMin = onlineState.delay.inWholeSeconds.div(60F),

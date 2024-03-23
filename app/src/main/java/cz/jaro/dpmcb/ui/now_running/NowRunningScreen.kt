@@ -218,7 +218,7 @@ fun NowRunningScreen(
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
                                         Text(
-                                            text = bus.delay.toDouble().minutes.run { "${inWholeSeconds.signed()} min ${inWholeSeconds.absoluteValue % 60} s" },
+                                            text = bus.delay.toDouble().minutes.run { "${inWholeMinutes.signed()} min ${inWholeSeconds.absoluteValue % 60} s" },
                                             color = UtilFunctions.colorOfDelayText(bus.delay)
                                         )
                                     }
