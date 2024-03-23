@@ -61,7 +61,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqConnection
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toSign
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.signed
 import cz.jaro.dpmcb.ui.bus.Timetable
 import cz.jaro.dpmcb.ui.destinations.BusDestination
 import cz.jaro.dpmcb.ui.destinations.SequenceDestination
@@ -356,7 +356,7 @@ fun DelayBubble(delayMin: Float) {
     ) {
         Text(
             text = delayMin.toDouble().minutes.run {
-                "${inWholeSeconds.toSign()}$inWholeMinutes min ${inWholeSeconds % 60} s"
+                "${inWholeSeconds.signed()} min ${inWholeSeconds % 60} s"
             },
         )
     }
