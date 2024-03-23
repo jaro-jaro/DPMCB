@@ -17,6 +17,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.realtions.InfoStops
 import cz.jaro.dpmcb.data.realtions.InfoStopsCodes
+import cz.jaro.dpmcb.data.realtions.InfoStopsCodesSequence
 import cz.jaro.dpmcb.data.realtions.LineLowFloorConnId
 import cz.jaro.dpmcb.data.realtions.LineLowFloorConnIdSeq
 import cz.jaro.dpmcb.data.realtions.LineLowFloorConnIdTimeNameIndexStops
@@ -180,7 +181,7 @@ class SpojeRepository(
             }.distinctBy {
                 it.runs to it.`in`.toString()
             }
-            InfoStopsCodes(
+            InfoStopsCodesSequence(
                 first().let {
                     LineLowFloorConnIdSeq(
                         lowFloor = it.lowFloor,
@@ -200,6 +201,7 @@ class SpojeRepository(
                 }.distinct(),
                 timeCodes,
                 first().fixedCodes,
+                first().sequence?.let { sequenceBuses(it, date) }
             )
         }
 
@@ -372,6 +374,8 @@ class SpojeRepository(
             commonFixedCodes = fixedCodes.joinToString(" "),
         )
     }
+
+    private suspend fun sequenceBuses(seq: String, date: LocalDate) = localDataSource.connsOfSeq(seq, allTables(date)).ifEmpty { null }
 
     suspend fun write(
         connStops: Array<ConnStop>,

@@ -3,8 +3,6 @@ package cz.jaro.dpmcb.ui.main
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ShortcutManager
-import android.media.AudioManager
-import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -83,7 +81,6 @@ import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.spec.DestinationSpec
 import com.ramcosta.composedestinations.utils.destination
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.ExitActivity
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
@@ -161,6 +158,7 @@ fun Main(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
+                @Suppress("UNCHECKED_CAST")
                 val dest = entry.destination() as DestinationSpec<Any>
 
                 App.route = dest(dest.argsFrom(entry)).route
@@ -188,20 +186,20 @@ fun Main(
         editOnlineMode = viewModel.editOnlineMode,
         date = date,
         changeDate = viewModel.changeDate,
-        tuDuDum = {
-            MediaPlayer.create(ctx, R.raw.koncime).apply {
-                setOnCompletionListener {
-                    ExitActivity.exitApplication(ctx)
-                    closeDrawer()
-                }
-                start()
-            }
-            ctx.getSystemService(AudioManager::class.java).apply {
-                repeat(20) {
-                    adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-                }
-            }
-        },
+//        tuDuDum = {
+//            MediaPlayer.create(ctx, R.raw.koncime).apply {
+//                setOnCompletionListener {
+//                    ExitActivity.exitApplication(ctx)
+//                    closeDrawer()
+//                }
+//                start()
+//            }
+//            ctx.getSystemService(AudioManager::class.java).apply {
+//                repeat(20) {
+//                    adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
+//                }
+//            }
+//        },
         isAppUpdateNeeded = isAppUpdateNeeded,
         updateApp = viewModel.updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
@@ -230,7 +228,7 @@ fun MainScreen(
     isOnlineModeEnabled: State<Boolean>,
     navigate: NavigateFunction,
     showToast: (String, Int) -> Unit,
-    tuDuDum: () -> Unit,
+//    tuDuDum: () -> Unit,
     hasCard: State<Boolean>,
     removeCard: () -> Unit,
     editOnlineMode: (Boolean) -> Unit,
@@ -519,7 +517,7 @@ fun MainScreen(
                                 showToast = showToast,
                                 date = date,
                                 changeDate = changeDate,
-                                tuDuDum = tuDuDum,
+//                                tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
                                 startActivity = startActivity,
                                 findBusByEvn = findBusByEvn,
@@ -547,7 +545,7 @@ fun VecZeSupliku(
     showToast: (String, Int) -> Unit,
     date: State<LocalDate>,
     changeDate: (LocalDate) -> Unit,
-    tuDuDum: () -> Unit,
+//    tuDuDum: () -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
     findBusByEvn: (String, (String?) -> Unit) -> Unit,
@@ -953,21 +951,21 @@ fun VecZeSupliku(
         )
     }
 
-    DrawerAction.Exit -> {
-        NavigationDrawerItem(
-            label = {
-                Text(stringResource(action.label))
-            },
-            icon = {
-                IconWithTooltip(action.icon, stringResource(action.label))
-            },
-            selected = false,
-            onClick = {
-                tuDuDum()
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-    }
+//    DrawerAction.Exit -> {
+//        NavigationDrawerItem(
+//            label = {
+//                Text(stringResource(action.label))
+//            },
+//            icon = {
+//                IconWithTooltip(action.icon, stringResource(action.label))
+//            },
+//            selected = false,
+//            onClick = {
+//                tuDuDum()
+//            },
+//            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+//        )
+//    }
 
     DrawerAction.Date -> Row(
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),

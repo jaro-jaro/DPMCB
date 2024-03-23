@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.FirebaseException
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ktx.database
@@ -252,12 +253,19 @@ class LoadingViewModel(
             "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)" to null
         }
 
+        val storage = Firebase.storage
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
         val versionRef = database.getReference("data${META_DATA_VERSION}/verze")
         val newVersion = versionRef.get().await().getValue(TI) ?: -1
         val currentVersion = repo.version.first()
 
-        val doFullUpdate = currentVersion + 1 != newVersion
+        val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
+        val doFullUpdate = (currentVersion + 1 != newVersion) || try {
+            changesRef.downloadUrl.await()
+            false
+        } catch (e: FirebaseException) {
+            true
+        }
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -277,7 +285,6 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
-            val storage = Firebase.storage
             val sequencesRef = storage.reference.child("kurzy.json")
             val diagramRef = storage.reference.child("schema.pdf")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
@@ -327,7 +334,6 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)" to 0F
             }
 
-            val storage = Firebase.storage
             val sequencesRef = storage.reference.child("kurzy.json")
             val diagramRef = storage.reference.child("schema.pdf")
             val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
@@ -529,21 +535,24 @@ class LoadingViewModel(
                                     tab = tab,
                                 )
 
-                                TableType.Spoje -> connsOfTable += Conn(
-                                    line = row[0].toInt(),
-                                    connNumber = row[1].toInt(),
-                                    fixedCodes = row.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
-                                    direction = connStopsOfTable
-                                        .filter { it.connNumber == row[1].toInt() }
-                                        .sortedBy { it.stopIndexOnLine }
-                                        .filter { it.time != null }
-                                        .let { stops ->
-                                            Direction(stops.first().time!! <= stops.last().time && stops.first().kmFromStart <= stops.last().kmFromStart)
-                                        },
-                                    tab = tab,
-                                    sequence = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }?.first,
-                                    orderInSequence = sequences.toList().indexOfFirst { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }.takeUnless { it == -1 },
-                                ).also { conn ->
+                                TableType.Spoje -> {
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }
+
+                                    connsOfTable += Conn(
+                                        line = row[0].toInt(),
+                                        connNumber = row[1].toInt(),
+                                        fixedCodes = row.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                        direction = connStopsOfTable
+                                            .filter { it.connNumber == row[1].toInt() }
+                                            .sortedBy { it.stopIndexOnLine }
+                                            .filter { it.time != null }
+                                            .let { stops ->
+                                                Direction(stops.first().time!! <= stops.last().time && stops.first().kmFromStart <= stops.last().kmFromStart)
+                                            },
+                                        tab = tab,
+                                        sequence = seq?.first,
+                                        orderInSequence = seq?.second?.indexOf("S-${row[0]}-${row[1]}")?.takeUnless { it == -1 },
+                                    ).also { conn ->
 //                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(
                                             line = conn.line,
@@ -555,6 +564,7 @@ class LoadingViewModel(
                                             validTo = noCode,
                                             tab = conn.tab,
                                         )
+                                    }
                                 }
 
                                 TableType.Pevnykod -> Unit

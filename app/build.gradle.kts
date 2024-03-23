@@ -15,8 +15,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.6.0-pre.5"
+        versionCode = 6
+        versionName = "1.6.0-RC.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
