@@ -216,9 +216,10 @@ fun SequenceScreen(
                                 navigate = navigate,
                                 onlineConnStops = null,
                                 nextStopTime = null,
-                                showLine = bus.shouldBeRunning || bus.isRunning,
+                                showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
                                 height = state.height,
                                 traveledSegments = state.traveledSegments,
+                                isOnline = state is SequenceState.OK.Online
                             )
                         }
                     }
@@ -357,7 +358,7 @@ fun DelayBubble(delayMin: Float) {
     ) {
         Text(
             text = delayMin.toDouble().minutes.run {
-                "${inWholeSeconds.signed()} min ${inWholeSeconds.absoluteValue % 60} s"
+                "${inWholeMinutes.signed()} min ${inWholeSeconds.absoluteValue % 60} s"
             },
         )
     }
