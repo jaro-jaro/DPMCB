@@ -192,23 +192,10 @@ object UtilFunctions {
 
     inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
 
-    fun Int.toSign() = when (sign) {
-        -1 -> "-"
+    fun Long.signed() = when (sign) {
         1 -> "+"
         else -> ""
-    }
-
-    fun Long.toSign() = when (sign) {
-        -1 -> "-"
-        1 -> "+"
-        else -> ""
-    }
-
-    fun Float.toSign() = when (sign) {
-        -1F -> "-"
-        1F -> "+"
-        else -> ""
-    }
+    } + this
 
     @Composable
     fun colorOfDelayText(delay: Float) = when {
@@ -459,7 +446,7 @@ object UtilFunctions {
         val part = if (hasValidity) notes.drop(1) else notes
         val hasPart = part.isNotEmpty()
         val (validityNominative, validityGenitive) = mapOf(
-            'V' to ("Víkendová" to "víkendvé"),
+            'V' to ("Víkendová" to "víkendové"),
             'P' to ("Prázdninová" to "prázdninové"),
             'T' to ("Páteční" to "páteční"),
         )[validity] ?: ("" to "")
