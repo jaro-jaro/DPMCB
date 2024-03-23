@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Share
@@ -85,6 +87,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
+import cz.jaro.dpmcb.ui.destinations.BusDestination
 import cz.jaro.dpmcb.ui.destinations.DeparturesDestination
 import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 import cz.jaro.dpmcb.ui.destinations.TimetableDestination
@@ -161,9 +164,10 @@ fun BusScreen(
                         enableCart = true,
                     )
 
-                    Spacer(Modifier.weight(1F))
+                    if (state is BusState.OK.Online) DelayBubble(state.delayMin)
+                    if (state is BusState.OK.Online) Vehicle(state.vehicle)
 
-                    SequenceButton(navigate, state.sequence)
+                    Spacer(Modifier.weight(1F))
 
                     Favouritificator(
                         changeFavourite = changeFavourite,
@@ -174,22 +178,12 @@ fun BusScreen(
                     )
                 }
 
-                if (state is BusState.OK.Online) Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    DelayBubble(state.delayMin)
-                    Vehicle(state.vehicle)
-                }
-
-
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
+                    SequenceRow(navigate, state.sequence, state.nextBus, state.previousBus)
                     if (state.restriction) Restriction()
                     if (state !is BusState.OK.Online && state.error) Error()
                     OutlinedCard(
@@ -484,17 +478,55 @@ private fun Restriction(
     Text(text = "Tento spoj jede podle výlukového jízdního řádu!", Modifier.padding(all = 8.dp))
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SequenceButton(
+private fun SequenceRow(
     navigate: NavigateFunction,
     kurz: String?,
+    nextBus: String?,
+    previousBus: String?,
 ) {
-    if (kurz != null) TextButton(
-        onClick = {
-            navigate(SequenceDestination(kurz))
-        }
+    if (kurz != null) Row(
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Text("Kurz: ${kurz.seqName()}")
+        IconButton(
+            onClick = {
+                previousBus?.let {
+                    navigate(BusDestination(previousBus))
+                }
+            },
+            enabled = previousBus != null,
+        ) {
+            IconWithTooltip(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Předchozí spoj kurzu"
+            )
+        }
+        Box(
+            Modifier.weight(1F),
+            contentAlignment = Alignment.Center,
+        ) {
+            TextButton(
+                onClick = {
+                    navigate(SequenceDestination(kurz))
+                }
+            ) {
+                Text("Kurz: ${kurz.seqName()}")
+            }
+        }
+        IconButton(
+            onClick = {
+                nextBus?.let {
+                    navigate(BusDestination(nextBus))
+                }
+            },
+            enabled = nextBus != null,
+        ) {
+            IconWithTooltip(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Následující spoj kurzu"
+            )
+        }
     }
 }
 

@@ -23,6 +23,8 @@ sealed interface BusState {
         val lineNumber: Int
         val lowFloor: Boolean
         val sequence: String?
+        val nextBus: String?
+        val previousBus: String?
         val restriction: Boolean
         val traveledSegments: Int
         val lineHeight: Float
@@ -39,6 +41,8 @@ sealed interface BusState {
             override val lineCode: String,
             override val busName: String,
             override val sequence: String?,
+            override val nextBus: String?,
+            override val previousBus: String?,
             override val deeplink: String,
             override val restriction: Boolean,
             override val traveledSegments: Int,
@@ -57,6 +61,8 @@ sealed interface BusState {
             override val lineCode: String,
             override val busName: String,
             override val sequence: String?,
+            override val nextBus: String?,
+            override val previousBus: String?,
             override val deeplink: String,
             override val restriction: Boolean,
             override val traveledSegments: Int,
@@ -79,7 +85,7 @@ sealed interface BusState {
                     nextStop: LocalTime,
                 ) = with(state) {
                     Online(
-                        busId, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, busName, sequence,
+                        busId, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, busName, sequence, nextBus, previousBus,
                         deeplink, restriction, traveledSegments, lineHeight, favourite, error, onlineConnStops, delayMin, vehicle, confirmedLowFloor, nextStop
                     )
                 }

@@ -61,7 +61,7 @@ class BusViewModel(
             )
         }
 
-        val (bus, stops, timeCodes, fixedCodes) = repo.busDetail(spojId, date)
+        val (bus, stops, timeCodes, fixedCodes, sequence) = repo.busDetail(spojId, date)
         val restriction = repo.hasRestriction(spojId, date)
         BusState.OK.Offline(
             busId = spojId,
@@ -85,6 +85,14 @@ class BusViewModel(
             traveledSegments = 0,
             error = online && date == LocalDate.now() && stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time,
             sequence = bus.sequence,
+            previousBus = sequence?.let {
+                val i = it.indexOf(spojId)
+                it.getOrNull(i - 1)
+            },
+            nextBus = sequence?.let {
+                val i = it.indexOf(spojId)
+                it.getOrNull(i + 1)
+            },
         )
     }
 

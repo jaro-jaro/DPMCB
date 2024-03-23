@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.DepartureBoard
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -16,13 +15,13 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.ramcosta.composedestinations.spec.Direction
-import cz.jaro.dpmcb.SettingsActivity
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.ui.destinations.MapDestination
-import cz.jaro.dpmcb.ui.destinations.NowRunningDestination
+import cz.jaro.dpmcb.SettingsActivity
+import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.destinations.CardDestination
 import cz.jaro.dpmcb.ui.destinations.ChooserDestination
-import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.destinations.MapDestination
+import cz.jaro.dpmcb.ui.destinations.NowRunningDestination
 import kotlin.reflect.KClass
 
 
@@ -153,10 +152,10 @@ enum class DrawerAction(
         false,
         onClick = { _, _, _ -> }
     ),
-    Exit(
+/*    Exit(
         R.string.exit_app,
         Icons.Default.PowerSettingsNew,
         false,
         onClick = { _, _, _ -> }
-    )
+    )*/
 }

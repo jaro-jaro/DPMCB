@@ -303,6 +303,17 @@ interface Dao {
     )
     suspend fun connsOfSeqWithTheirConnStops(seq1: String, seq2: String, seq3: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodesTab>
 
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY conn.orderInSequence
+    """
+    )
+    suspend fun connsOfSeq(seq: String, tabs: List<String>): List<String>
+
     @Query(
         """
         WITH hereRunningConns AS (
