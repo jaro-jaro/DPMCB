@@ -39,6 +39,7 @@ pdf-viewer = "2.8.2"
 retrofit = "2.9.0"
 semver = "1.4.2"
 stax-api = "1.0-2"
+firebase-config-ktx = "21.6.3"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -84,6 +85,7 @@ pdf-viewer = { module = "com.github.barteksc:android-pdf-viewer", version.ref = 
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 stax-api = { module = "javax.xml.stream:stax-api", version.ref = "stax-api" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebase-config-ktx" }
 
 [plugins]
 android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }

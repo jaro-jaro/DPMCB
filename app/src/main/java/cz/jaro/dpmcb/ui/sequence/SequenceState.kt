@@ -5,13 +5,15 @@ sealed interface SequenceState {
     data object Loading : SequenceState
 
     data class DoesNotExist(
-        val kurz: String,
+        val sequence: String,
+        val sequenceName: String,
     ) : SequenceState
 
     sealed interface OK : SequenceState {
         val sequence: String
-        val before: List<String>
-        val after: List<String>
+        val sequenceName: String
+        val before: List<Pair<String, String>>
+        val after: List<Pair<String, String>>
         val buses: List<BusInSequence>
         val timeCodes: List<String>
         val fixedCodes: List<String>
@@ -21,8 +23,9 @@ sealed interface SequenceState {
 
         data class Offline(
             override val sequence: String,
-            override val before: List<String>,
-            override val after: List<String>,
+            override val sequenceName: String,
+            override val before: List<Pair<String, String>>,
+            override val after: List<Pair<String, String>>,
             override val buses: List<BusInSequence>,
             override val timeCodes: List<String>,
             override val fixedCodes: List<String>,
@@ -33,8 +36,9 @@ sealed interface SequenceState {
 
         data class Online(
             override val sequence: String,
-            override val before: List<String>,
-            override val after: List<String>,
+            override val sequenceName: String,
+            override val before: List<Pair<String, String>>,
+            override val after: List<Pair<String, String>>,
             override val buses: List<BusInSequence>,
             override val timeCodes: List<String>,
             override val fixedCodes: List<String>,
@@ -53,7 +57,7 @@ sealed interface SequenceState {
                     confirmedLowFloor: Boolean?,
                 ) = with(state) {
                     Online(
-                        sequence, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, delayMin, vehicle, confirmedLowFloor
+                        sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, delayMin, vehicle, confirmedLowFloor
                     )
                 }
             }

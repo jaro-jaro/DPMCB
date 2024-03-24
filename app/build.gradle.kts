@@ -107,6 +107,8 @@ dependencies {
     // Crashlytics
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+    // Remote config
+    implementation(libs.firebase.config)
 
     // Jetpack Compose
     implementation(libs.androidx.jetpack.compose.foundation)

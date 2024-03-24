@@ -22,7 +22,7 @@ sealed interface NowRunningState {
     }
 
     sealed interface HasNotRunning : NowRunningState {
-        val nowNotRunning: List<String>
+        val nowNotRunning: List<Pair<String, String>>
     }
 
 //    data class NeniNicVybrano(
@@ -41,14 +41,14 @@ sealed interface NowRunningState {
         override val lineNumbers: List<Int>,
         override val filters: List<Int>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<String>,
+        override val nowNotRunning: List<Pair<String, String>>,
     ) : HasFilters, HasType, HasNotRunning
 
     data class OK(
         override val lineNumbers: List<Int>,
         override val filters: List<Int>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<String>,
+        override val nowNotRunning: List<Pair<String, String>>,
         val result: NowRunningResults<*>,
     ) : HasFilters, HasType, HasNotRunning
 }

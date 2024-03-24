@@ -89,7 +89,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
 import cz.jaro.dpmcb.ui.NavGraphs
 import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
 import cz.jaro.dpmcb.ui.chooser.autoFocus
@@ -239,7 +238,7 @@ fun MainScreen(
     updateData: () -> Unit,
     updateApp: () -> Unit,
     findBusByEvn: (String, (String?) -> Unit) -> Unit,
-    findSequences: (String, (List<String>) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -549,7 +548,7 @@ fun VecZeSupliku(
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
     findBusByEvn: (String, (String?) -> Unit) -> Unit,
-    findSequences: (String, (List<String>) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
 ) = when (action) {
     DrawerAction.Feedback -> {
         var rating by rememberSaveable { mutableIntStateOf(-1) }
@@ -620,7 +619,7 @@ fun VecZeSupliku(
     DrawerAction.FindBus -> {
         var showDialog by rememberSaveable { mutableStateOf(false) }
         var isNotFound by rememberSaveable { mutableStateOf(false) }
-        var options by rememberSaveable { mutableStateOf(null as List<String>?) }
+        var options by rememberSaveable { mutableStateOf(null as List<Pair<String, String>>?) }
         var id by rememberSaveable { mutableStateOf("") }
         var sequence by rememberSaveable { mutableStateOf("") }
         var name by rememberSaveable { mutableStateOf("") }
@@ -663,7 +662,7 @@ fun VecZeSupliku(
 
         fun findSequence(searched: String) = findSequences(searched) {
             if (it.isEmpty()) isNotFound = true
-            else if (it.size == 1) confirmSeq(it[0])
+            else if (it.size == 1) confirmSeq(it[0].first)
             else options = it
         }
 
@@ -882,7 +881,7 @@ fun VecZeSupliku(
                 Text("Kurz nenalezen")
             },
             text = {
-                Text("Tento kurz (${sequence.seqName()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+                Text("Tento kurz ($sequence) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
             },
             confirmButton = {
                 TextButton(
@@ -914,10 +913,10 @@ fun VecZeSupliku(
                             headlineContent = {
                                 TextButton(
                                     onClick = {
-                                        confirmSeq(it)
+                                        confirmSeq(it.first)
                                     }
                                 ) {
-                                    Text(it.seqName())
+                                    Text(it.second)
                                 }
                             }
                         )
