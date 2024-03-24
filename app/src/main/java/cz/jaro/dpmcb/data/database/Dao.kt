@@ -290,18 +290,14 @@ interface Dao {
             NOT connstop.departure IS null
             OR NOT connstop.arrival IS null
         )
-        AND (
-            conn.sequence LIKE :seq1
-            OR conn.sequence LIKE :seq2
-            OR conn.sequence LIKE :seq3
-        )
+        AND conn.sequence LIKE :seq
         ORDER BY CASE
            WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
            ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun connsOfSeqWithTheirConnStops(seq1: String, seq2: String, seq3: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodesTab>
+    suspend fun connsOfSeqWithTheirConnStops(seq: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodesTab>
 
     @Transaction
     @Query(
@@ -366,18 +362,6 @@ interface Dao {
         OR conn.sequence LIKE :sequence4
         OR conn.sequence LIKE :sequence5
         OR conn.sequence LIKE :sequence6
-        OR conn.sequence LIKE :sequence7
-        OR conn.sequence LIKE :sequence8
-        OR conn.sequence LIKE :sequence9
-        OR conn.sequence LIKE :sequence10
-        OR conn.sequence LIKE :sequence11
-        OR conn.sequence LIKE :sequence12
-        OR conn.sequence LIKE :sequence13
-        OR conn.sequence LIKE :sequence14
-        OR conn.sequence LIKE :sequence15
-        OR conn.sequence LIKE :sequence16
-        OR conn.sequence LIKE :sequence17
-        OR conn.sequence LIKE :sequence18
     """
     )
     suspend fun findSequences(
@@ -387,18 +371,6 @@ interface Dao {
         sequence4: String,
         sequence5: String,
         sequence6: String,
-        sequence7: String,
-        sequence8: String,
-        sequence9: String,
-        sequence10: String,
-        sequence11: String,
-        sequence12: String,
-        sequence13: String,
-        sequence14: String,
-        sequence15: String,
-        sequence16: String,
-        sequence17: String,
-        sequence18: String,
     ): List<String>
 
     @Transaction

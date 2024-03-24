@@ -32,7 +32,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.signed
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.ui.main.DrawerAction
@@ -231,8 +230,8 @@ fun NowRunningScreen(
                                 Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
                             }
                             items(state.nowNotRunning) {
-                                Text(it.seqName(), Modifier.clickable {
-                                    onEvent(NowRunningEvent.NavToSeq(it))
+                                Text(it.second, Modifier.clickable {
+                                    onEvent(NowRunningEvent.NavToSeq(it.first))
                                 })
                             }
                         }

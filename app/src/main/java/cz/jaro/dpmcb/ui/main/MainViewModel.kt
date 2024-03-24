@@ -162,7 +162,7 @@ class MainViewModel(
         Unit
     }
 
-    val findSequences = { kurz: String, callback: (List<String>) -> Unit ->
+    val findSequences = { kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
         viewModelScope.launch {
             callback(repo.findSequences(kurz))
         }

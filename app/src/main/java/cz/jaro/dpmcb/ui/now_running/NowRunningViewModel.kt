@@ -149,7 +149,7 @@ class NowRunningViewModel(
 
         nowRunning.filter { (seq, lines) ->
             seq !in reallyRunning && (lines.any { it in  filters} || filters.isEmpty())
-        }.map { it.first }
+        }.map { it.first to repo.seqName(it.first) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state =

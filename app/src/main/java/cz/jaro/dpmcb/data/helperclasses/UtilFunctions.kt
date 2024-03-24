@@ -437,48 +437,6 @@ object UtilFunctions {
 
     fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
 
-    fun String.seqName() = split(" + ").joinToString(" + ") {
-        val seq = it.split("-")
-        val rawSeq = seq[0]
-        val notes = seq.getOrNull(1) ?: ""
-        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
-        val hasValidity = validity != null
-        val part = if (hasValidity) notes.drop(1) else notes
-        val hasPart = part.isNotEmpty()
-        val (validityNominative, validityGenitive) = mapOf(
-            'V' to ("Víkendová" to "víkendové"),
-            'P' to ("Prázdninová" to "prázdninové"),
-            'T' to ("Páteční" to "páteční"),
-        )[validity] ?: ("" to "")
-        buildString {
-            if (hasPart) append("$part. část ")
-            if (hasPart && hasValidity) append("$validityGenitive ")
-            if (!hasPart && hasValidity) append("$validityNominative ")
-            append(rawSeq)
-        }
-    }
-
-    fun String.seqConnection() = "Potenciální návaznost na " + split(" + ").joinToString(" + ") {
-        val seq = it.split("-")
-        val rawSeq = seq[0]
-        val notes = seq.getOrNull(1) ?: ""
-        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
-        val hasValidity = validity != null
-        val part = if (hasValidity) notes.drop(1) else notes
-        val hasPart = part.isNotEmpty()
-        val (validityAccusative, validityGenitive) = mapOf(
-            'V' to ("víkendovou" to "víkendvé"),
-            'P' to ("prázdninovou" to "prázdninové"),
-            'T' to ("páteční" to "páteční"),
-        )[validity] ?: ("" to "")
-        buildString {
-            if (hasPart) append("$part. část ")
-            if (hasPart && hasValidity) append("$validityGenitive ")
-            if (!hasPart && hasValidity) append("$validityAccusative ")
-            append(rawSeq)
-        }
-    }
-
     val noCode = LocalDate.of(1970, 1, 1)!!
 }
 

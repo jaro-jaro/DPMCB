@@ -85,6 +85,7 @@ class BusViewModel(
             traveledSegments = 0,
             error = online && date == LocalDate.now() && stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time,
             sequence = bus.sequence,
+            sequenceName = bus.sequence?.let { repo.seqName(bus.sequence) } ?: "",
             previousBus = sequence?.let {
                 val i = it.indexOf(spojId)
                 it.getOrNull(i - 1)

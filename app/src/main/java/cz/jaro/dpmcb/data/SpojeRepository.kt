@@ -3,6 +3,10 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.net.Uri
 import android.widget.Toast
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.get
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
@@ -11,6 +15,7 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.helperclasses.PartOfConn
 import cz.jaro.dpmcb.data.helperclasses.Quadruple
+import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
@@ -40,13 +45,17 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
 import java.io.File
 import java.time.DayOfWeek
@@ -62,8 +71,28 @@ class SpojeRepository(
     private val localDataSource: Dao,
     private val preferenceDataSource: PreferenceDataSource,
 ) {
-
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    private val remoteConfig = Firebase.remoteConfig
+
+    private val configActive = flow {
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        if (!ctx.isOnline)
+            emit(remoteConfig.activate().await())
+        else
+            emit(remoteConfig.fetchAndActivate().await())
+    }
+
+    private val sequenceTypes = configActive.map {
+        Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"].asString())
+    }//.stateIn(scope, SharingStarted.Eagerly, null)
+
+    private val sequenceConnections = configActive.map {
+        Json.decodeFromString<List<List<String>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
+    }//.stateIn(scope, SharingStarted.Eagerly, null)
 
     private val _date = MutableStateFlow(LocalDate.now())
     val date = _date.asStateFlow()
@@ -243,22 +272,13 @@ class SpojeRepository(
             sequence1 = s,
             sequence2 = "$s-1",
             sequence3 = "$s-2",
-            sequence4 = "$s + %",
-            sequence5 = "$s-1 + %",
-            sequence6 = "$s-2 + %",
-            sequence7 = "% + $s",
-            sequence8 = "% + $s-1",
-            sequence9 = "% + $s-2",
-            sequence10 = "$s-V",
-            sequence11 = "$s-V1",
-            sequence12 = "$s-V2",
-            sequence13 = "$s-V + %",
-            sequence14 = "$s-V1 + %",
-            sequence15 = "$s-V2 + %",
-            sequence16 = "% + $s-V",
-            sequence17 = "% + $s-V1",
-            sequence18 = "% + $s-V2",
-        ).sortedWith(sequenceComparator)
+            sequence4 = "$s-_",
+            sequence5 = "$s-_1",
+            sequence6 = "$s-_2",
+        ).sortedWith(getSequenceComparator())
+            .map {
+                it to seqName(it)
+            }
     } ?: emptyList()
 
     val nowRunningOrNot = channelFlow {
@@ -274,7 +294,7 @@ class SpojeRepository(
                                 .map { it.sequence }
                         )
                             .toList()
-                            .sortedWith(Comparator.comparing({ it.first }, sequenceComparator))
+                            .sortedWith(Comparator.comparing({ it.first }, getSequenceComparator()))
                     )
                 }
                 delay(30.seconds)
@@ -289,7 +309,7 @@ class SpojeRepository(
         )
 
     suspend fun sequence(seq: String, date: LocalDate): Sequence? {
-        val conns = localDataSource.connsOfSeqWithTheirConnStops(seq, "$seq + %", "% + $seq")
+        val conns = localDataSource.connsOfSeqWithTheirConnStops(seq)
             .groupBy {
                 it.connId to it.tab
             }
@@ -350,19 +370,14 @@ class SpojeRepository(
             }
         }
 
-        val firstSeq = conns.first().info.sequence!!.split(" + ").first()
-        val secondSeq = conns.first().info.sequence!!.split(" + ").last()
-
-        val before = when {
-            firstSeq.matches("[12]/5\\d-V?2".toRegex()) -> listOf(firstSeq.split("-")[0] + "-1", firstSeq.split("-")[0] + "-V1")
-            '-' in firstSeq && firstSeq.endsWith('2') -> listOf(firstSeq.dropLast(1) + '1')
-            else -> listOf()
+        val before = buildList {
+            if ('-' in seq && seq.endsWith('2')) add(seq.dropLast(1) + '1')
+            addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
         }
 
-        val after = when {
-            secondSeq.matches("[12]/5\\d-V?1".toRegex()) -> listOf(secondSeq.split("-")[0] + "-2", secondSeq.split("-")[0] + "-V2")
-            '-' in secondSeq && secondSeq.endsWith('1') -> listOf(secondSeq.dropLast(1) + '2')
-            else -> listOf()
+        val after = buildList {
+            if ('-' in seq && seq.endsWith('1')) add(seq.dropLast(1) + '2')
+            addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
         }
 
         return Sequence(
@@ -562,6 +577,64 @@ class SpojeRepository(
             }
         }
     }
+
+    suspend fun seqName(s: String) = s.let {
+        val seq = it.split("-")
+        val rawSeq = seq[0]
+        val notes = seq.getOrNull(1) ?: ""
+        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
+        val hasValidity = validity != null
+        val part = if (hasValidity) notes.drop(1) else notes
+        val hasPart = part.isNotEmpty()
+        val (validityNominative, validityGenitive) = this.sequenceTypes.first().mapValues { (_, type) ->
+            type.nominative to type.genitive
+        }[validity] ?: ("" to "")
+        buildString {
+            if (hasPart) this.append("$part. část ")
+            if (hasPart && hasValidity) this.append("$validityGenitive ")
+            if (!hasPart && hasValidity) this.append("$validityNominative ")
+            this.append(rawSeq)
+        }
+    }
+
+    suspend fun seqConnection(s: String) = "Potenciální návaznost na " + s.let {
+        val seq = it.split("-")
+        val rawSeq = seq[0]
+        val notes = seq.getOrNull(1) ?: ""
+        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
+        val hasValidity = validity != null
+        val part = if (hasValidity) notes.drop(1) else notes
+        val hasPart = part.isNotEmpty()
+        val (validityAccusative, validityGenitive) = this.sequenceTypes.first().mapValues { (_, type) ->
+            type.accusative to type.genitive
+        }[validity] ?: ("" to "")
+
+        buildString {
+            if (hasPart) this.append("$part. část ")
+            if (hasPart && hasValidity) this.append("$validityGenitive ")
+            if (!hasPart && hasValidity) this.append("$validityAccusative ")
+            this.append(rawSeq)
+        }
+    }
+
+    private suspend fun getSequenceComparator(): Comparator<String> {
+        val sequenceTypes = sequenceTypes.first()
+
+        return compareBy<String> {
+            it
+        }.thenBy {
+            val type = "([A-Z])\\d?".toRegex().matchEntire(it.split("-").getOrNull(1) ?: "")?.groups?.get(index = 0)?.value?.get(0)
+            type?.let {
+                sequenceTypes[type]?.order
+            } ?: 0
+        }.thenBy {
+            it.split("/")[1].split("-")[0].toIntOrNull() ?: 21
+        }.thenBy {
+            it.split("/")[0].toInt()
+        }.thenBy {
+            it.split("-").getOrNull(1) ?: ""
+        }
+    }
 }
 
 private fun String.partMayBeMissing() =
@@ -667,13 +740,3 @@ fun makeFixedCodesReadable(fixedCodes: String) = fixedCodes
             else -> null
         }
     }
-
-private val sequenceComparator = compareBy<String> {
-    it.contains("V")
-}.thenBy {
-    it.split(" + ")[0].split("/")[1].split("-")[0].toIntOrNull() ?: 21
-}.thenBy {
-    it.split(" + ")[0].split("/")[0].toInt()
-}.thenBy {
-    it.split(" + ")[0].split("-").getOrNull(1) ?: ""
-}

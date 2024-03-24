@@ -81,7 +81,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
@@ -183,7 +182,7 @@ fun BusScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    SequenceRow(navigate, state.sequence, state.nextBus, state.previousBus)
+                    SequenceRow(navigate, state.sequence, state.sequenceName, state.nextBus, state.previousBus)
                     if (state.restriction) Restriction()
                     if (state !is BusState.OK.Online && state.error) Error()
                     OutlinedCard(
@@ -482,11 +481,12 @@ private fun Restriction(
 @Composable
 private fun SequenceRow(
     navigate: NavigateFunction,
-    kurz: String?,
+    sequence: String?,
+    sequenceName: String,
     nextBus: String?,
     previousBus: String?,
 ) {
-    if (kurz != null) Row(
+    if (sequence != null) Row(
         modifier = Modifier.fillMaxWidth(),
     ) {
         IconButton(
@@ -508,10 +508,10 @@ private fun SequenceRow(
         ) {
             TextButton(
                 onClick = {
-                    navigate(SequenceDestination(kurz))
+                    navigate(SequenceDestination(sequence))
                 }
             ) {
-                Text("Kurz: ${kurz.seqName()}")
+                Text("Kurz: $sequenceName")
             }
         }
         IconButton(

@@ -34,8 +34,8 @@ class SequenceViewModel(
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
         val (sequence, before, buses, after, timeCodes, fixedCodes) = (
-                repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence)
-                )
+            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence))
+        )
 
         val runningBus = buses.find { (_, stops) ->
             stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
@@ -43,6 +43,7 @@ class SequenceViewModel(
 
         SequenceState.OK.Offline(
             sequence = sequence,
+            sequenceName = repo.seqName(sequence),
             timeCodes = timeCodes.filterNot {
                 !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
             }.groupBy({ it.runs }, {
@@ -51,8 +52,8 @@ class SequenceViewModel(
                 (if (runs) "Jede " else "Nejede ") + dates.joinToString()
             },
             fixedCodes = makeFixedCodesReadable(fixedCodes),
-            before = before,
-            after = after,
+            before = before.map { it to repo.seqConnection(it) },
+            after = after.map { it to repo.seqConnection(it) },
             buses = buses.map { (bus, stops) ->
                 BusInSequence(
                     busId = bus.connId,

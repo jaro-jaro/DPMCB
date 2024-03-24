@@ -59,8 +59,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayBubbleText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqConnection
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.seqName
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.signed
 import cz.jaro.dpmcb.ui.bus.Timetable
 import cz.jaro.dpmcb.ui.destinations.BusDestination
@@ -125,7 +123,7 @@ fun SequenceScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento kurz (${state.kurz.seqName()}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+                Text("Tento kurz (${state.sequenceName}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
             }
 
             is SequenceState.OK -> {
@@ -136,7 +134,7 @@ fun SequenceScreen(
                             .padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Name(state.sequence.seqName())
+                        Name(state.sequenceName)
 
                         if (state is SequenceState.OK.Online && state.confirmedLowFloor != null) Wheelchair(
                             lowFloor = state.confirmedLowFloor,
@@ -319,13 +317,13 @@ private fun BusButton(
 @Composable
 private fun Connection(
     navigate: NavigateFunction,
-    sequence: String,
+    sequence: Pair<String, String>,
 ) = TextButton(
     onClick = {
-        navigate(SequenceDestination(sequence))
+        navigate(SequenceDestination(sequence.first))
     }
 ) {
-    Text(sequence.seqConnection())
+    Text(sequence.second)
 }
 
 @Composable
