@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.PartOfConn
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.makeFixedCodesReadable
+import cz.jaro.dpmcb.ui.destinations.BusDestination
+import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,18 +33,19 @@ import kotlin.time.Duration.Companion.seconds
 class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val spojId: String,
+    @InjectedParam private val busId: String,
+    @InjectedParam private val navigate: NavigateFunction,
 ) : ViewModel() {
 
     private val info: Flow<BusState> = combine(repo.date, repo.favourites, repo.hasAccessToMap) { date, favourites, online ->
-        val exists = repo.doesBusExist(spojId)
-        if (!exists) return@combine BusState.DoesNotExist(spojId)
-        val runsAt = repo.doesConnRunAt(spojId)
-        val validity = repo.lineValidity(spojId, date)
+        val exists = repo.doesBusExist(busId)
+        if (!exists) return@combine BusState.DoesNotExist(busId)
+        val runsAt = repo.doesConnRunAt(busId)
+        val validity = repo.lineValidity(busId, date)
         if (!runsAt(date)) {
-            val (timeCodes, fixedCodes) = repo.codes(spojId, date)
+            val (timeCodes, fixedCodes) = repo.codes(busId, date)
             return@combine BusState.DoesNotRun(
-                busId = spojId,
+                busId = busId,
                 date = date,
                 runsNextTimeAfterToday = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
                 runsNextTimeAfterDate = List(365) { date.plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
@@ -55,67 +58,108 @@ class BusViewModel(
                 },
                 fixedCodes = fixedCodes,
                 lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
-                busName = spojId.split("-").let { "${it[1]}/${it[2]}" },
-                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+                busName = busId.split("-").let { "${it[1]}/${it[2]}" },
+                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busId",
 
-            )
+                )
         }
 
-        val (bus, stops, timeCodes, fixedCodes, sequence) = repo.busDetail(spojId, date)
-        val restriction = repo.hasRestriction(spojId, date)
+        val bus = repo.busDetail(busId, date)
+        val restriction = repo.hasRestriction(busId, date)
         BusState.OK.Offline(
-            busId = spojId,
-            stops = stops,
-            lineNumber = bus.line,
-            lowFloor = bus.lowFloor,
-            timeCodes = timeCodes.filterNot {
+            busId = busId,
+            stops = bus.stops,
+            lineNumber = bus.info.line,
+            lowFloor = bus.info.lowFloor,
+            timeCodes = bus.timeCodes.filterNot {
                 !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
             }.groupBy({ it.runs }, {
                 if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
             }).map { (runs, dates) ->
                 (if (runs) "Jede " else "Nejede ") + dates.joinToString()
             },
-            fixedCodes = makeFixedCodesReadable(fixedCodes),
+            fixedCodes = makeFixedCodesReadable(bus.fixedCodes),
             lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
-            busName = spojId.split("-").let { "${it[1]}/${it[2]}" },
-            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$spojId",
+            busName = busId.split("-").let { "${it[1]}/${it[2]}" },
+            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busId",
             restriction = restriction,
-            favourite = favourites.find { it.busId == spojId },
+            favourite = favourites.find { it.busId == busId },
             lineHeight = 0F,
             traveledSegments = 0,
-            error = online && date == LocalDate.now() && stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time,
-            sequence = bus.sequence,
-            sequenceName = bus.sequence?.let { repo.seqName(bus.sequence) } ?: "",
-            previousBus = sequence?.let {
-                val i = it.indexOf(spojId)
-                it.getOrNull(i - 1)
+            error = online && date == LocalDate.now() && bus.stops.first().time <= LocalTime.now() && LocalTime.now() <= bus.stops.last().time,
+            sequence = bus.info.sequence,
+            sequenceName = bus.info.sequence?.let { repo.seqName(bus.info.sequence) } ?: "",
+            previousBus = bus.sequence?.let { seq ->
+                val i = seq.indexOf(busId)
+                seq.getOrNull(i - 1)?.to(false)
+                    ?: bus.before?.let {
+                        if (it.size != 1) null
+                        else repo.lastBusOfSequence(it.first(), date) to true
+                    }
             },
-            nextBus = sequence?.let {
-                val i = it.indexOf(spojId)
-                it.getOrNull(i + 1)
+            nextBus = bus.sequence?.let { seq ->
+                val i = seq.indexOf(busId)
+                seq.getOrNull(i + 1)?.to(false)
+                    ?: bus.after?.let {
+                        if (it.size != 1) null
+                        else repo.firstBusOfSequence(it.first(), date) to true
+                    }
             },
         )
     }
 
-    fun removeFavourite() {
-        viewModelScope.launch {
-            repo.removeFavourite(spojId)
+    fun onEvent(e: BusEvent) = when (e) {
+        is BusEvent.ChangeDate -> {
+            viewModelScope.launch {
+                repo.changeDate(e.date)
+            }
+            Unit
+        }
+
+        is BusEvent.ChangeFavourite -> {
+            viewModelScope.launch {
+                repo.changeFavourite(e.newFavourite)
+            }
+            Unit
+        }
+
+        BusEvent.NextBus -> {
+            val state = state.value
+            if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
+                if (state.nextBus!!.second) viewModelScope.launch(Dispatchers.Main) {
+                    repo.makeText("Změněn kurz!").show()
+                }
+                navigate(BusDestination(state.nextBus!!.first))
+            }
+            Unit
+        }
+        BusEvent.PreviousBus -> {
+            val state = state.value
+            if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
+                if (state.previousBus!!.second) viewModelScope.launch(Dispatchers.Main) {
+                    repo.makeText("Změněn kurz!").show()
+                }
+                navigate(BusDestination(state.previousBus!!.first))
+            }
+            Unit
+        }
+        BusEvent.RemoveFavourite -> {
+            viewModelScope.launch {
+                repo.removeFavourite(busId)
+            }
+            Unit
+        }
+
+        BusEvent.ShowSequence -> {
+            val state = state.value
+            if (state is BusState.OK && state.sequence != null) {
+                navigate(SequenceDestination(state.sequence!!))
+            }
+            Unit
         }
     }
 
-    fun changeFavourite(cast: PartOfConn) {
-        viewModelScope.launch {
-            repo.changeFavourite(cast)
-        }
-    }
-
-    fun changeDate(datum: LocalDate) {
-        viewModelScope.launch {
-            repo.changeDate(datum)
-        }
-    }
-
-    private val onlineState = onlineRepo.busById(spojId).map { (onlineConn, onlineConnStops) ->
+    private val onlineState = onlineRepo.busById(busId).map { (onlineConn, onlineConnStops) ->
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineConnStops = onlineConnStops,

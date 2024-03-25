@@ -310,6 +310,30 @@ interface Dao {
     )
     suspend fun connsOfSeq(seq: String, tabs: List<String>): List<String>
 
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY conn.orderInSequence
+        LIMIT 1
+    """
+    )
+    suspend fun firstConnOfSeq(seq: String, tabs: List<String>): String
+
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY -conn.orderInSequence
+        LIMIT 1
+    """
+    )
+    suspend fun lastConnOfSeq(seq: String, tabs: List<String>): String
+
     @Query(
         """
         WITH hereRunningConns AS (

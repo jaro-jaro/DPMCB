@@ -86,9 +86,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
-import cz.jaro.dpmcb.ui.destinations.BusDestination
 import cz.jaro.dpmcb.ui.destinations.DeparturesDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 import cz.jaro.dpmcb.ui.destinations.TimetableDestination
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.sequence.DelayBubble
@@ -105,10 +103,10 @@ import java.time.LocalTime
 @Composable
 fun Bus(
     busId: String,
-    viewModel: BusViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(busId))
-    },
     navigator: DestinationsNavigator,
+    viewModel: BusViewModel = koinViewModel {
+        ParametersHolder(mutableListOf(busId, navigator.navigateFunction))
+    },
 ) {
     title = R.string.detail_spoje
     App.selected = DrawerAction.FindBus
@@ -118,9 +116,7 @@ fun Bus(
     BusScreen(
         state = state,
         navigate = navigator.navigateFunction,
-        changeFavourite = viewModel::changeFavourite,
-        removeFavourite = viewModel::removeFavourite,
-        changeDate = viewModel::changeDate,
+        onEvent = viewModel::onEvent,
     )
 }
 
@@ -128,9 +124,7 @@ fun Bus(
 fun BusScreen(
     state: BusState,
     navigate: NavigateFunction,
-    changeFavourite: (PartOfConn) -> Unit,
-    removeFavourite: () -> Unit,
-    changeDate: (LocalDate) -> Unit,
+    onEvent: (BusEvent) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -143,7 +137,7 @@ fun BusScreen(
             is BusState.DoesNotExist -> DoesNotExist(state.busId)
 
             is BusState.DoesNotRun -> {
-                Errors(state.runsNextTimeAfterToday, changeDate, state.runsNextTimeAfterDate, state.busId, state.date)
+                Errors(state.runsNextTimeAfterToday, onEvent, state.runsNextTimeAfterDate, state.busId, state.date)
 
                 CodesAndShare(state)
             }
@@ -169,8 +163,7 @@ fun BusScreen(
                     Spacer(Modifier.weight(1F))
 
                     Favouritificator(
-                        changeFavourite = changeFavourite,
-                        removeFavourite = removeFavourite,
+                        onEvent = onEvent,
                         busId = state.busId,
                         favouritePartOfConn = state.favourite,
                         stops = state.stops
@@ -182,7 +175,7 @@ fun BusScreen(
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    SequenceRow(navigate, state.sequence, state.sequenceName, state.nextBus, state.previousBus)
+                    SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
                     if (state.restriction) Restriction()
                     if (state !is BusState.OK.Online && state.error) Error()
                     OutlinedCard(
@@ -232,7 +225,7 @@ context(ColumnScope)
 @Composable
 private fun Errors(
     runsNextTimeAfterToday: LocalDate?,
-    changeDate: (LocalDate) -> Unit,
+    onEvent: (BusEvent) -> Unit,
     runsNextTimeAfterDate: LocalDate?,
     busId: String,
     date: LocalDate,
@@ -257,18 +250,21 @@ private fun Errors(
     )
 
     if (runsNextTimeAfterToday != null) {
-        ChangeDate(changeDate, runsNextTimeAfterToday)
+        ChangeDate(onEvent, runsNextTimeAfterToday)
     }
     if (runsNextTimeAfterDate != null && runsNextTimeAfterToday != runsNextTimeAfterDate) {
-        ChangeDate(changeDate, runsNextTimeAfterDate)
+        ChangeDate(onEvent, runsNextTimeAfterDate)
     }
 }
 
 @Composable
-private fun ChangeDate(changeDate: (LocalDate) -> Unit, date: LocalDate) {
+private fun ChangeDate(
+    onEvent: (BusEvent) -> Unit,
+    date: LocalDate,
+) {
     Button(
         onClick = {
-            changeDate(date)
+            onEvent(BusEvent.ChangeDate(date))
         },
         Modifier.padding(top = 16.dp)
     ) {
@@ -480,22 +476,19 @@ private fun Restriction(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SequenceRow(
-    navigate: NavigateFunction,
-    sequence: String?,
-    sequenceName: String,
-    nextBus: String?,
-    previousBus: String?,
+    onEvent: (BusEvent) -> Unit,
+    sequenceName: String?,
+    hasNextBus: Boolean,
+    hasPreviousBus: Boolean,
 ) {
-    if (sequence != null) Row(
+    if (sequenceName != null) Row(
         modifier = Modifier.fillMaxWidth(),
     ) {
         IconButton(
             onClick = {
-                previousBus?.let {
-                    navigate(BusDestination(previousBus))
-                }
+                if (hasPreviousBus) onEvent(BusEvent.PreviousBus)
             },
-            enabled = previousBus != null,
+            enabled = hasPreviousBus,
         ) {
             IconWithTooltip(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -508,7 +501,7 @@ private fun SequenceRow(
         ) {
             TextButton(
                 onClick = {
-                    navigate(SequenceDestination(sequence))
+                    onEvent(BusEvent.ShowSequence)
                 }
             ) {
                 Text("Kurz: $sequenceName")
@@ -516,11 +509,9 @@ private fun SequenceRow(
         }
         IconButton(
             onClick = {
-                nextBus?.let {
-                    navigate(BusDestination(nextBus))
-                }
+                if (hasNextBus) onEvent(BusEvent.NextBus)
             },
-            enabled = nextBus != null,
+            enabled = hasNextBus,
         ) {
             IconWithTooltip(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -533,8 +524,7 @@ private fun SequenceRow(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Favouritificator(
-    changeFavourite: (PartOfConn) -> Unit,
-    removeFavourite: () -> Unit,
+    onEvent: (BusEvent) -> Unit,
     busId: String,
     favouritePartOfConn: PartOfConn?,
     stops: List<LineTimeNameConnIdNextStop>,
@@ -556,7 +546,7 @@ private fun Favouritificator(
         confirmButton = {
             TextButton(
                 onClick = {
-                    changeFavourite(part)
+                    onEvent(BusEvent.ChangeFavourite(part))
                     show = false
                 },
                 enabled = part.start != -1 && part.end != -1
@@ -574,7 +564,7 @@ private fun Favouritificator(
             }
             else TextButton(
                 onClick = {
-                    removeFavourite()
+                    onEvent(BusEvent.RemoveFavourite)
                     show = false
                 }
             ) {
