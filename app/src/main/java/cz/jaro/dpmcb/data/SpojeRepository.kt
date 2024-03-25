@@ -640,6 +640,7 @@ class SpojeRepository(
 private fun String.partMayBeMissing() =
     if (matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) split("-")[0]
     else if (matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) "%" + split("-")[0]
+    else if (matches("^[0-9A-Z]{1,2}$".toRegex())) "%/$this"
     else null
 
 private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
