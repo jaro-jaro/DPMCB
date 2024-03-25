@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -227,7 +228,9 @@ fun NowRunningScreen(
 
                         if (state is NowRunningState.HasNotRunning && state.nowNotRunning.isNotEmpty()) {
                             stickyHeader {
-                                Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
+                                Surface {
+                                    Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
+                                }
                             }
                             items(state.nowNotRunning) {
                                 Text(it.second, Modifier.clickable {
