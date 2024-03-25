@@ -621,7 +621,7 @@ class SpojeRepository(
         val sequenceTypes = sequenceTypes.first()
 
         return compareBy<String> {
-            it
+            0
         }.thenBy {
             val type = "([A-Z])\\d?".toRegex().matchEntire(it.split("-").getOrNull(1) ?: "")?.groups?.get(index = 0)?.value?.get(0)
             type?.let {
