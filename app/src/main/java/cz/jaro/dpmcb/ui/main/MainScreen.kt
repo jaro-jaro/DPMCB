@@ -989,7 +989,7 @@ fun VecZeSupliku(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Vybrat nové datum")
+                    Text("Změnit datum")
                     TextButton(
                         onClick = {
                             changeDate(LocalDate.now())
