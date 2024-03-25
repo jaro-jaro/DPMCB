@@ -32,12 +32,11 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.signed
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
@@ -217,7 +216,7 @@ fun NowRunningScreen(
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
                                         Text(
-                                            text = bus.delay.toDouble().minutes.run { "${inWholeMinutes.signed()} min ${inWholeSeconds.absoluteValue % 60} s" },
+                                            text = bus.delay.toDouble().minutes.toDelay(),
                                             color = UtilFunctions.colorOfDelayText(bus.delay)
                                         )
                                     }
