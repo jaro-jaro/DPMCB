@@ -850,17 +850,20 @@ fun VecZeSupliku(
                             imeAction = ImeAction.Search,
                         ),
                     )
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    Text(
+                        text = "Najít kurz",
+                        Modifier.padding(bottom = 16.dp, top = 16.dp),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                     TextField(
                         value = sequence,
                         onValueChange = {
                             sequence = it
                         },
                         Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
+                            .fillMaxWidth(),
                         label = {
-                            Text("Název kurzu")
+                            Text("Linka nebo název kurzu")
                         },
                         keyboardActions = KeyboardActions {
                             findSequence(sequence)
@@ -972,7 +975,9 @@ fun VecZeSupliku(
     ) {
         Text(
             text = "Používané datum: ${date.value.asString()}",
-            modifier = Modifier.padding(all = 16.dp).weight(1F)
+            modifier = Modifier
+                .padding(all = 16.dp)
+                .weight(1F)
         )
         var showDialog by rememberSaveable { mutableStateOf(false) }
         if (showDialog) DatePickerDialog(
