@@ -61,7 +61,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.experimental.ExperimentalTypeInference
-import kotlin.math.sign
+import kotlin.math.absoluteValue
 import kotlin.time.toJavaDuration
 
 object UtilFunctions {
@@ -192,10 +192,16 @@ object UtilFunctions {
 
     inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
 
-    fun Long.signed() = when (sign) {
-        1 -> "+"
-        else -> ""
-    } + this
+    fun kotlin.time.Duration.toDelay() = run {
+        val sign = when {
+            inWholeSeconds < 0 -> "-"
+            inWholeSeconds > 0 -> "+"
+            else -> ""
+        }
+        val min = inWholeMinutes.absoluteValue
+        val s = inWholeSeconds.absoluteValue % 60
+        "$sign$min min $s s"
+    }
 
     @Composable
     fun colorOfDelayText(delay: Float) = when {
