@@ -6,4 +6,6 @@ data class InfoStopsCodesSequence(
     val timeCodes: List<RunsFromTo>,
     val fixedCodes: String,
     val sequence: List<String>?,
+    val before: List<String>?,
+    val after: List<String>?,
 )

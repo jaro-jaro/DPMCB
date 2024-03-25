@@ -110,7 +110,7 @@ class SpojeRepository(
 
     val version = preferenceDataSource.version
 
-    private val makeText = { text: String ->
+    internal val makeText = { text: String ->
         Toast.makeText(ctx, text, Toast.LENGTH_LONG)
     }
 
@@ -210,8 +210,23 @@ class SpojeRepository(
             }.distinctBy {
                 it.runs to it.`in`.toString()
             }
+
+            val before = first().sequence?.let { seq ->
+                buildList {
+                    if ('-' in seq && seq.endsWith('2')) add(seq.dropLast(1) + '1')
+                    addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
+                }
+            }
+
+            val after = first().sequence?.let { seq ->
+                buildList {
+                    if ('-' in seq && seq.endsWith('1')) add(seq.dropLast(1) + '2')
+                    addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
+                }
+            }
+
             InfoStopsCodesSequence(
-                first().let {
+                info = first().let {
                     LineLowFloorConnIdSeq(
                         lowFloor = it.lowFloor,
                         line = it.line - 325_000,
@@ -219,7 +234,7 @@ class SpojeRepository(
                         sequence = it.sequence,
                     )
                 },
-                noCodes.mapIndexed { i, it ->
+                stops = noCodes.mapIndexed { i, it ->
                     LineTimeNameConnIdNextStop(
                         time = it.time,
                         name = it.name,
@@ -228,9 +243,11 @@ class SpojeRepository(
                         connId = it.connId
                     )
                 }.distinct(),
-                timeCodes,
-                first().fixedCodes,
-                first().sequence?.let { sequenceBuses(it, date) }
+                timeCodes = timeCodes,
+                fixedCodes = first().fixedCodes,
+                sequence = first().sequence?.let { sequenceBuses(it, date) },
+                before = before,
+                after = after,
             )
         }
 
@@ -391,6 +408,9 @@ class SpojeRepository(
     }
 
     private suspend fun sequenceBuses(seq: String, date: LocalDate) = localDataSource.connsOfSeq(seq, allTables(date)).ifEmpty { null }
+    suspend fun firstBusOfSequence(seq: String, date: LocalDate) = localDataSource.firstConnOfSeq(seq, allTables(date))
+    suspend fun lastBusOfSequence(seq: String, date: LocalDate) = localDataSource.lastConnOfSeq(seq, allTables(date))
+
 
     suspend fun write(
         connStops: Array<ConnStop>,

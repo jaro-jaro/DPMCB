@@ -24,8 +24,8 @@ sealed interface BusState {
         val lowFloor: Boolean
         val sequence: String?
         val sequenceName: String
-        val nextBus: String?
-        val previousBus: String?
+        val nextBus: Pair<String, Boolean>?
+        val previousBus: Pair<String, Boolean>?
         val restriction: Boolean
         val traveledSegments: Int
         val lineHeight: Float
@@ -43,8 +43,8 @@ sealed interface BusState {
             override val busName: String,
             override val sequence: String?,
             override val sequenceName: String,
-            override val nextBus: String?,
-            override val previousBus: String?,
+            override val nextBus: Pair<String, Boolean>?,
+            override val previousBus: Pair<String, Boolean>?,
             override val deeplink: String,
             override val restriction: Boolean,
             override val traveledSegments: Int,
@@ -64,8 +64,8 @@ sealed interface BusState {
             override val busName: String,
             override val sequence: String?,
             override val sequenceName: String,
-            override val nextBus: String?,
-            override val previousBus: String?,
+            override val nextBus: Pair<String, Boolean>?,
+            override val previousBus: Pair<String, Boolean>?,
             override val deeplink: String,
             override val restriction: Boolean,
             override val traveledSegments: Int,
