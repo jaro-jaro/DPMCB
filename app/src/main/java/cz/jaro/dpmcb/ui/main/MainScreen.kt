@@ -860,7 +860,7 @@ fun VecZeSupliku(
                             .fillMaxWidth()
                             .padding(top = 8.dp),
                         label = {
-                            Text("Názvev kurzu")
+                            Text("Název kurzu")
                         },
                         keyboardActions = KeyboardActions {
                             findSequence(sequence)
