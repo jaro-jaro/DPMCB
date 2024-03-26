@@ -254,7 +254,7 @@ private fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
         }.takeUnless {
             it == -1
         } ?: state.buses.indexOfFirst {
-            LocalTime.now() < it.stops.first().time
+            LocalTime.now() < it.stops.last().time
         }.takeIf {
             state.runsToday && state.buses.first().stops.first().time < LocalTime.now() && LocalTime.now() < state.buses.last().stops.last().time
         }
