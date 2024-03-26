@@ -113,33 +113,15 @@ interface Dao {
     @Query(
         """
         WITH TimeCodesCountOfConn AS (
-            SELECT DISTINCT conn.id, COUNT(timecode.termIndex) count FROM connstop
-            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
-            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN timecode ON timecode.connNumber = connstop.connNumber AND timecode.tab = connstop.tab
-            WHERE stop.stopName = :stop
-            AND conn.line = :line
-            AND conn.tab = :tab
-            AND (
-                NOT connstop.departure IS null
-                OR NOT connstop.arrival IS null
-            )
-            GROUP BY conn.id
+            SELECT DISTINCT conn.connNumber, conn.tab, COUNT(timecode.termIndex) count FROM timecode
+            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+            GROUP BY conn.id, conn.tab
         ),
-        hereRunningConns AS (
-            SELECT DISTINCT conn.*, COUNT(timecode.termIndex) FROM connstop
-            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
-            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN timecode ON timecode.connNumber = connstop.connNumber AND timecode.tab = connstop.tab
-            JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.id = conn.id
-            WHERE stop.stopName = :stop
-            AND conn.line = :line
-            AND conn.tab = :tab
-            AND (
-                NOT connstop.departure IS null
-                OR NOT connstop.arrival IS null
-            )
-            AND ((
+        TodayRunningConns AS (
+            SELECT DISTINCT conn.* FROM timecode
+            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+            JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.connNumber = conn.connNumber AND timecodescountofconn.tab = conn.tab
+            WHERE ((
                 timecode.runs 
                 AND timecode.validFrom <= :date
                 AND :date <= timecode.validTo
@@ -150,7 +132,7 @@ interface Dao {
                     AND :date <= timecode.validTo
                 )
             ))
-            GROUP BY conn.id
+            GROUP BY conn.id, conn.tab
             HAVING (
                 timecode.runs 
                 AND COUNT(timecode.termIndex) >= 1
@@ -163,16 +145,15 @@ interface Dao {
             SELECT DISTINCT connstop.stopIndexOnLine FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
             JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab =  connstop.tab
-            WHERE connstop.line = :line
-            AND conn.tab = :tab
+            WHERE conn.tab = :tab
             AND stop.stopName = :stop
             ORDER BY connstop.stopIndexOnLine
         ),
-        negative(max, stopName, indexOnLine, line, connNumber, indexOnThisLine) AS (
-            SELECT DISTINCT MAX(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, :line, conn.connNumber, tahleZastavka.stopIndexOnLine
+        negative(max, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
+            SELECT DISTINCT MAX(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, conn.connNumber, tahleZastavka.stopIndexOnLine
             FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
             CROSS JOIN thisStopIndex tahleZastavka
             WHERE connstop.stopIndexOnLine < tahleZastavka.stopIndexOnLine
             AND conn.tab = :tab
@@ -184,11 +165,11 @@ interface Dao {
             GROUP BY conn.connNumber, tahleZastavka.stopIndexOnLine
             ORDER BY -connstop.stopIndexOnLine
         ),
-        positive(min, stopName, indexOnLine, line, connNumber, indexOnThisLine) AS (
-            SELECT DISTINCT MIN(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, :line, conn.connNumber, tahleZastavka.stopIndexOnLine
+        positive(min, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
+            SELECT DISTINCT MIN(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, conn.connNumber, tahleZastavka.stopIndexOnLine
             FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
             CROSS JOIN thisStopIndex tahleZastavka
             WHERE connstop.stopIndexOnLine > tahleZastavka.stopIndexOnLine
             AND conn.tab = :tab
@@ -211,7 +192,6 @@ interface Dao {
                 NOT connstop.departure IS null
                 OR NOT connstop.arrival IS null
             )
-            AND connstop.line = :line
             AND connstop.tab = :tab
             GROUP BY connstop.connNumber
             HAVING MAX(CASE
@@ -222,7 +202,7 @@ interface Dao {
         SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.id connId, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM connstop
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
         JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+        JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
         CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
         LEFT JOIN positive ON positive.connNumber = conn.connNumber AND positive.indexOnThisLine = connstop.stopIndexOnLine
         LEFT JOIN negative ON negative.connNumber = conn.connNumber AND negative.indexOnThisLine = connstop.stopIndexOnLine
@@ -234,7 +214,6 @@ interface Dao {
     """
     )
     suspend fun connStopsOnLineWithNextStopAtDate(
-        line: Int,
         stop: String,
         nextStop: String,
         date: LocalDate,

@@ -276,7 +276,6 @@ class SpojeRepository(
 
     suspend fun timetable(line: Int, thisStop: String, nextStop: String, date: LocalDate) =
         localDataSource.connStopsOnLineWithNextStopAtDate(
-            line = line + 325_000,
             stop = thisStop,
             nextStop = nextStop,
             date = date,
