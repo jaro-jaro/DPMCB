@@ -3,7 +3,9 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.net.Uri
 import android.widget.Toast
+import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
@@ -76,14 +78,24 @@ class SpojeRepository(
     private val remoteConfig = Firebase.remoteConfig
 
     private val configActive = flow {
-        val configSettings = remoteConfigSettings {
-            minimumFetchIntervalInSeconds = 3600
+        try {
+            val configSettings = remoteConfigSettings {
+                minimumFetchIntervalInSeconds = 3600
+            }
+            remoteConfig.setConfigSettingsAsync(configSettings)
+            if (!ctx.isOnline)
+                emit(remoteConfig.activate().await())
+            else
+                emit(remoteConfig.fetchAndActivate().await())
+        } catch (e: FirebaseRemoteConfigException) {
+            e.printStackTrace()
+            Firebase.crashlytics.recordException(e)
+            try {
+                emit(remoteConfig.activate().await())
+            } catch (e: FirebaseRemoteConfigException) {
+                emit(false)
+            }
         }
-        remoteConfig.setConfigSettingsAsync(configSettings)
-        if (!ctx.isOnline)
-            emit(remoteConfig.activate().await())
-        else
-            emit(remoteConfig.fetchAndActivate().await())
     }
 
     private val sequenceTypes = configActive.map {
