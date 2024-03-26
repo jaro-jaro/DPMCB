@@ -11,6 +11,8 @@ import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 import cz.jaro.dpmcb.BuildConfig
@@ -309,6 +311,13 @@ class LoadingViewModel(
 
             val sequences = json2.fromJson<Map<String, List<String>>>()
 
+            Firebase.remoteConfig.reset().await()
+            val configSettings = remoteConfigSettings {
+                minimumFetchIntervalInSeconds = 3600
+            }
+            Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
+            Firebase.remoteConfig.fetchAndActivate().await()
+
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
             }
@@ -336,7 +345,6 @@ class LoadingViewModel(
 
             val sequencesRef = storage.reference.child("kurzy.json")
             val diagramRef = storage.reference.child("schema.pdf")
-            val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
 
             val dataFile = params.dataFile
 
@@ -395,6 +403,13 @@ class LoadingViewModel(
             ).readText()
 
             val sequences = json2.fromJson<Map<String, List<String>>>()
+
+            Firebase.remoteConfig.reset().await()
+            val configSettings = remoteConfigSettings {
+                minimumFetchIntervalInSeconds = 3600
+            }
+            Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
+            Firebase.remoteConfig.fetchAndActivate().await()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
