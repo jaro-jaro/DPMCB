@@ -253,6 +253,7 @@ class SpojeRepository(
 
     suspend fun codes(connId: String, date: LocalDate) =
         localDataSource.codes(connId, nowUsedTable(date, extractLineNumber(connId))!!).run {
+            if (isEmpty()) return@run emptyList<RunsFromTo>() to emptyList<String>()
             map { RunsFromTo(runs = it.runs, `in` = it.from..it.to) } to makeFixedCodesReadable(first().fixedCodes)
         }
 
@@ -571,7 +572,8 @@ class SpojeRepository(
 
         val list = localDataSource.codes(spojId, tab).map { RunsFromTo(it.runs, it.from..it.to) to it.fixedCodes }
 
-        runsAt(
+        if (list.isEmpty()) false
+        else runsAt(
             timeCodes = list.map { it.first },
             fixedCodes = list.first().second,
             date = datum,

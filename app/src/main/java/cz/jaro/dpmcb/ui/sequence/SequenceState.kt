@@ -7,6 +7,7 @@ sealed interface SequenceState {
     data class DoesNotExist(
         val sequence: String,
         val sequenceName: String,
+        val date: String
     ) : SequenceState
 
     sealed interface OK : SequenceState {

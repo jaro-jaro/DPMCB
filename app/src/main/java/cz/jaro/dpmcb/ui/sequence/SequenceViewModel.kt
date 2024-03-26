@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.makeFixedCodesReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +35,7 @@ class SequenceViewModel(
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
         val (sequence, before, buses, after, timeCodes, fixedCodes) = (
-            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence))
+            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
         )
 
         val runningBus = buses.find { (_, stops) ->

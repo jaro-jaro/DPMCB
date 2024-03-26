@@ -122,7 +122,7 @@ fun SequenceScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento kurz (${state.sequenceName}) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+                Text("Tento kurz (${state.sequenceName}) bohužel ${state.date} neexistuje :(\nBuď jste zadali špatně ID, nebo tento kurz existuje v jiném jízdním řádu, který dnes neplatí.")
             }
 
             is SequenceState.OK -> {
