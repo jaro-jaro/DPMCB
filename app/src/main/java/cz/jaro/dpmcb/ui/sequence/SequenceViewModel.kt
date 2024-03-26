@@ -113,6 +113,8 @@ class SequenceViewModel(
 
         if (runningBus == null) return@combine 0F
 
+        if (runningBus.stops.lastIndex < traveledSegments) return@combine 0F
+
         val departureFromLastStop = runningBus.stops[traveledSegments].time + (onlineConn?.delayMin?.toDouble()?.minutes ?: 0.minutes)
 
         val arrivalToNextStop = (runningBus.stops.getOrNull(traveledSegments + 1)?.time?.plus(onlineConn?.delayMin?.toDouble()?.minutes ?: 0.minutes))
