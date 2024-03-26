@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -16,12 +17,13 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.ActionParameters.Key
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
@@ -154,7 +156,7 @@ class OblibeneWidget : GlanceAppWidget() {
                 val state = prefs[PREFS_KEY_DATA]?.let { Json.decodeFromString<OblibeneWidgetState>(it) } ?: OblibeneWidgetState.NacitaSe
 
                 val style = TextStyle(ColorProvider(R.color.on_background_color))
-                val action = actionStartActivity(LoadingActivity::class.java)
+                val action = actionStartActivity<LoadingActivity>()
 
                 @Composable
                 fun Refresh(text: String) {
@@ -177,8 +179,8 @@ class OblibeneWidget : GlanceAppWidget() {
                     GlanceModifier.background(R.color.background_color).padding(all = 8.dp).fillMaxSize(),
                 ) {
                     when (state) {
-                        OblibeneWidgetState.Error -> Text("Něco se nepovedlo :(", GlanceModifier.clickable(action), style = style)
-                        OblibeneWidgetState.NacitaSe -> Text("Načítání...", GlanceModifier.clickable(action), style = style)
+                        OblibeneWidgetState.Error -> Refresh("Něco se nepovedlo :(")
+                        OblibeneWidgetState.NacitaSe -> Refresh("Načítání...")
                         OblibeneWidgetState.ZadneOblibene -> Refresh("Zatím nemáte žádné oblíbené spoje. Přidejte si je kliknutím na ikonu hvězdičky v detailu spoje")
                         OblibeneWidgetState.PraveNicNejede -> Refresh("Právě nejede žádný z vašich oblíbených spojů")
                         is OblibeneWidgetState.TedJede -> LazyColumn(
@@ -188,7 +190,7 @@ class OblibeneWidget : GlanceAppWidget() {
                                 Refresh("Oblíbené spoje")
                             }
                             items(state.spoje) {
-                                Spoj(state = it, context = context, style = style)
+                                Spoj(state = it, style = style)
                             }
                         }
                     }
@@ -201,15 +203,13 @@ class OblibeneWidget : GlanceAppWidget() {
     @Composable
     private fun Spoj(
         state: KartickaWidgetState,
-        context: Context,
         style: TextStyle,
     ) = Column(
         GlanceModifier.fillMaxWidth(),
     ) {
-        val action = actionStartActivity(Intent(context, LoadingActivity::class.java).apply {
-            action = Intent.ACTION_VIEW
-            data = "https://jaro-jaro.github.io/DPMCB/spoj/${state.spojId}".toUri()
-        })
+        val action = actionStartActivity<LoadingActivity>(parameters = actionParametersOf(
+            Key<Uri>("data") to "https://jaro-jaro.github.io/DPMCB/spoj/${state.spojId}".toUri(),
+        ))
 
         Row(
             modifier = GlanceModifier
