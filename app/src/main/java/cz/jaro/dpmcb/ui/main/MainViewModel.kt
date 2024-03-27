@@ -10,7 +10,7 @@ import androidx.navigation.NavHostController
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.DopravaRepository
+import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
@@ -32,21 +32,21 @@ import kotlin.time.Duration.Companion.seconds
 @KoinViewModel
 class MainViewModel(
     repo: SpojeRepository,
-    dopravaRepository: DopravaRepository,
+    onlineRepository: OnlineRepository,
     @InjectedParam closeDrawer: () -> Unit,
     @InjectedParam link: String?,
     @InjectedParam navController: NavHostController,
     @InjectedParam loadingActivityIntent: Intent,
     @InjectedParam startActivity: (Intent) -> Unit,
-    @InjectedParam chyba: (String) -> Unit,
+    @InjectedParam logError: (String) -> Unit,
 ) : ViewModel() {
 
-    val jeOnline = repo.isOnline
-    val maPrukazku = repo.maPrukazku.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
-    val onlineMod = repo.onlineMod
-    val upravitOnlineMod = repo::upravitOnlineMod
-    val datum = repo.datum
-    val upravitDatum = { it: LocalDate -> repo.upravitDatum(it, false) }
+    val isOnline = repo.isOnline
+    val hasCard = repo.hasCard.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
+    val isOnlineModeEnabled = repo.isOnlineModeEnabled
+    val editOnlineMode = repo::editOnlineMode
+    val date = repo.date
+    val changeDate = { it: LocalDate -> repo.changeDate(it, false) }
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
@@ -69,6 +69,30 @@ class MainViewModel(
             null
         }
 
+    private fun String.translateOldCzechLinks() = this
+        .replace("prave_jedouci", "now_running")
+        .replace("filtry", "filters")
+        .replace("typ", "type")
+        .replace("odjezdy", "departures")
+        .replace("zastavka", "stop")
+        .replace("cas", "time")
+        .replace("linka", "line")
+        .replace("pres", "via")
+        .replace("spoj", "bus")
+        .replace("spojId", "busId")
+        .replace("spojeni", "connection")
+        .replace("kurz", "sequence")
+        .replace("vybirator", "chooser")
+        .replace("typ", "type")
+        .replace("cisloLinky", "lineNumber")
+        .replace("zastavka", "stop")
+        .replace("jizdni_rady", "timetable")
+        .replace("cisloLinky", "lineNumber")
+        .replace("zastavka", "stop")
+        .replace("pristiZastavka", "nextStop")
+        .replace("prukazka", "card")
+        .replace("oblibene", "favourites")
+
     init {
         link?.let {
             viewModelScope.launch(Dispatchers.IO) {
@@ -76,24 +100,26 @@ class MainViewModel(
                 while (navController.graphOrNull == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
-                        App.vybrano = null
-                        navController.navigateToRouteFunction(url)
+                        App.selected = null
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks())
                         closeDrawer()
                     }
                 } catch (_: IllegalArgumentException) {
-                    chyba("Vadná zkratka")
+                    withContext(Dispatchers.Main) {
+                        logError("Vadná zkratka $url")
+                    }
                 }
             }
         }
     }
 
-    val aktualizovatData = {
+    val updateData = {
         startActivity(loadingActivityIntent.apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
             putExtra("update", true)
         })
     }
-    val aktualizovatAplikaci = {
+    val updateApp = {
         viewModelScope.launch(Dispatchers.IO) {
             val response = try {
                 withContext(Dispatchers.IO) {
@@ -110,28 +136,35 @@ class MainViewModel(
 
             if (response.statusCode() != 200) return@launch
 
-            val nejnovejsiVerze = response.body()
+            val newestVersion = response.body()
 
             startActivity(Intent().apply {
                 action = Intent.ACTION_VIEW
-                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$nejnovejsiVerze/Lepsi-DPMCB-v$nejnovejsiVerze.apk")
+                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$newestVersion/Lepsi-DPMCB-v$newestVersion.apk")
             })
         }
         Unit
     }
 
-    val oddelatPrukazku = {
+    val removeCard = {
         viewModelScope.launch {
-            repo.zmenitPrukazku(false)
+            repo.changeCard(false)
         }
         Unit
     }
 
-    val najitSpojPodleEvc = { evc: String, callback: (String?) -> Unit ->
+    val findBusByEvn = { evc: String, callback: (String?) -> Unit ->
         viewModelScope.launch {
-            callback(dopravaRepository.seznamSpojuKterePraveJedou().first().find {
-                it.vuz == evc.toIntOrNull()
+            callback(onlineRepository.nowRunningBuses().first().find {
+                it.vehicle == evc.toIntOrNull()
             }?.id)
+        }
+        Unit
+    }
+
+    val findSequences = { kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
+        viewModelScope.launch {
+            callback(repo.findSequences(kurz))
         }
         Unit
     }

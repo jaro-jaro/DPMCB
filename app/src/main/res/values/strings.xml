@@ -2,29 +2,29 @@
     <string name="app_name" translatable="false">Lepší DPMCB</string>
     <string name="otevrit">Otevřít</string>
     <string name="zavrit">Zavřít</string>
-    <string name="vypnout_aplikaci">Vypnout aplikaci</string>
-    <string name="zpetna_vazba">Zpětná vazba</string>
-    <string name="nastaveni">Nastavení</string>
-    <string name="mapa_linek">Mapa linek</string>
-    <string name="odjezdy">Odjezdy</string>
-    <string name="jizdni_rady">Jízdní řády</string>
+    <string name="exit_app">Vypnout aplikaci</string>
+    <string name="feedback">Zpětná vazba</string>
+    <string name="settings">Nastavení</string>
+    <string name="lines_map">Mapa linek</string>
+    <string name="departures">Odjezdy</string>
+    <string name="timetable">Jízdní řády</string>
     <string name="vyhledat_spojeni">Vyhledat spojení</string>
     <string name="vyberte_zastavku">Vyberte zastávku</string>
     <string name="vyberte_linku">Vyberte linku</string>
     <string name="vyberte_dalsi_zastávku">Vyberte příští zastávku</string>
-    <string name="typ_dne">Typ dne:</string>
+    <string name="day_type">Typ dne:</string>
     <string name="detail_kurzu">Detail kurzu</string>
     <string name="detail_spoje">Detail spoje</string>
     <string name="zastavkove_jizdni_rady">Zastávkové jizdní řády</string>
     <string name="vysledky_vyhledavani">Výsledky vyhledávání</string>
-    <string name="nic" />
+    <string name="empty" />
     <!-- Halo?? Jak vypadaj ty šipky???!!!! -->
     <string name="loading">Načítání dat</string>
     <string name="stahovani_nevypinejte">Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.</string>
-    <string name="aktualizace_jr">Aktualizace JŘ</string>
-    <string name="chcete_aktualizovat">Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?</string>
-    <string name="ne">Ne</string>
-    <string name="ano">Ano</string>
+    <string name="data_update">Aktualizace JŘ</string>
+    <string name="do_you_want_to_update">Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?</string>
+    <string name="no">Ne</string>
+    <string name="yes">Ano</string>
     <string name="aktualizovat_data">Aktualizovat data</string>
     <string name="linka_tato">Linka %s</string>
     <string name="kurz_tento">Kurz %s</string>
@@ -34,11 +34,11 @@
     <string name="nacist_dalsi">Načíst další</string>
     <string name="pouzivane_datum">Používané datum:</string>
     <string name="zjr">Zastávkové jizdní řády</string>
-    <string name="oblibena">Oblíbené spoje</string>
+    <string name="favourites">Oblíbené spoje</string>
     <string name="oblibena_w">Právě jedoucí oblíbené spoje</string>
-    <string name="prukazka">Průkazka</string>
+    <string name="card">Průkazka</string>
     <string name="doprava_na_jihu">Doprava na jihu</string>
-    <string name="prave_jedouci">Právě jedoucí</string>
+    <string name="now_running">Právě jedoucí</string>
     <string name="title_activity_exit">ExitActivity</string>
-    <string name="spoj_podle_id">Najít spoj</string>
+    <string name="find_bus_by_id">Najít spoj</string>
 </resources>

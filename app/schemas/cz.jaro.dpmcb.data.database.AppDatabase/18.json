@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 18,
-    "identityHash": "e5826cbabab26b3fa4082142f8f4887d",
+    "identityHash": "4de6c55ca6c8a732b90d79d37d01337e",
     "entities": [
       {
         "tableName": "CasKod",
@@ -139,7 +139,7 @@
       },
       {
         "tableName": "Spoj",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `pevneKody` TEXT NOT NULL, `smer` INTEGER NOT NULL, `id` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tab` TEXT NOT NULL, `cisloSpoje` INTEGER NOT NULL, `linka` INTEGER NOT NULL, `pevneKody` TEXT NOT NULL, `smer` INTEGER NOT NULL, `kurz` TEXT, `poradiNaKurzu` INTEGER, `id` TEXT NOT NULL, PRIMARY KEY(`tab`, `cisloSpoje`))",
         "fields": [
           {
             "fieldPath": "tab",
@@ -170,6 +170,18 @@
             "columnName": "smer",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "kurz",
+            "columnName": "kurz",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "poradiNaKurzu",
+            "columnName": "poradiNaKurzu",
+            "affinity": "INTEGER",
+            "notNull": false
           },
           {
             "fieldPath": "id",
@@ -301,7 +313,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e5826cbabab26b3fa4082142f8f4887d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4de6c55ca6c8a732b90d79d37d01337e')"
     ]
   }
 }

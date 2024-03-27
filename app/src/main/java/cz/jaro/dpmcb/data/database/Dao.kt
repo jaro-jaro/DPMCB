@@ -5,410 +5,602 @@ import androidx.room.Insert
 import androidx.room.MapColumn
 import androidx.room.Query
 import androidx.room.Transaction
-import cz.jaro.dpmcb.data.entities.CasKod
-import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.Zastavka
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Smer
-import cz.jaro.dpmcb.data.realtions.CaskodSPevnymiKody
-import cz.jaro.dpmcb.data.realtions.LinkaNizkopodlaznostCasNazevSpojId
-import cz.jaro.dpmcb.data.realtions.NazevACas
-import cz.jaro.dpmcb.data.realtions.NazevCasAIndex
-import cz.jaro.dpmcb.data.realtions.OdjezdNizkopodlaznostSpojId
-import cz.jaro.dpmcb.data.realtions.Platnost
-import cz.jaro.dpmcb.data.realtions.ZastavkaSpojeSeSpojem
+import cz.jaro.dpmcb.data.entities.Conn
+import cz.jaro.dpmcb.data.entities.ConnStop
+import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.helperclasses.Direction
+import cz.jaro.dpmcb.data.realtions.Codes
+import cz.jaro.dpmcb.data.realtions.ConnStopWithConnAndCodes
+import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodes
+import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodesTab
+import cz.jaro.dpmcb.data.realtions.NameAndTime
+import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
+import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
+import cz.jaro.dpmcb.data.realtions.TimeOfSequence
+import cz.jaro.dpmcb.data.realtions.Validity
 import java.time.LocalDate
 
 @Dao
 interface Dao {
     @Query(
         """
-        SELECT DISTINCT nazevZastavky FROM zastavka
+        SELECT DISTINCT stopName FROM stop
         WHERE tab IN (:tabs)
-        ORDER BY nazevZastavky
+        ORDER BY stopName
     """
     )
-    suspend fun nazvyZastavek(tabs: List<String>): List<String>
+    suspend fun stopNames(tabs: List<String>): List<String>
 
     @Query(
         """
-        SELECT DISTINCT kratkeCislo FROM linka
+        SELECT DISTINCT shortNumber FROM line
         WHERE tab IN (:tabs)
-        ORDER BY kratkeCislo
+        ORDER BY shortNumber
     """
     )
-    suspend fun cislaLinek(tabs: List<String>): List<Int>
+    suspend fun lineNumbers(tabs: List<String>): List<Int>
 
     @Query(
         """
-        WITH spojeZdeJedouci AS (
-            SELECT DISTINCT spoj.* FROM zastavkaspoje
-            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            WHERE zastavka.nazevZastavky = :tahleZastavka
-            AND zastavkaspoje.linka = :linka
-            AND NOT zastavkaspoje.odjezd IS null
+        WITH hereRunningConns AS (
+            SELECT DISTINCT conn.* FROM connstop
+            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            WHERE stop.stopName = :thisStop
+            AND connstop.line = :line
+            AND NOT connstop.departure IS null
         ),
-        indexyTyhleZastavky AS (
-            SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince, odjezd, zastavkaspoje.cisloSpoje, zastavkaspoje.tab FROM zastavkaSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab =  zastavkaspoje.tab
-            WHERE zastavkaSpoje.linka = :linka
-            AND zastavka.nazevZastavky = :tahleZastavka
-            AND NOT zastavkaspoje.odjezd IS null
-            ORDER BY zastavkaSpoje.indexZastavkyNaLince 
+        indexesOfThisStop AS (
+            SELECT DISTINCT connstop.stopIndexOnLine, departure, connstop.connNumber, connstop.tab FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab =  connstop.tab
+            WHERE connstop.line = :line
+            AND stop.stopName = :thisStop
+            AND NOT connstop.departure IS null
+            ORDER BY connstop.stopIndexOnLine 
         ), 
-        negativni(max, nazevZastavky, indexNaLince, linka, cisloSpoje) AS (
-            SELECT DISTINCT MAX(zastavkaSpoje.indexZastavkyNaLince), zastavka.nazevZastavky, zastavkaspoje.indexZastavkyNaLince, :linka, spoj.cisloSpoje
-            FROM zastavkaspoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-            JOIN indexyTyhleZastavky tahleZastavka ON tahleZastavka.cisloSpoje = zastavkaspoje.cisloSpoje AND tahleZastavka.tab = zastavkaspoje.tab
-            WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
-            AND spoj.tab = :tab
-            AND spoj.smer <> :pozitivni
-            AND NOT zastavkaspoje.prijezd IS null
-            AND NOT tahleZastavka.odjezd IS null
-            GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            ORDER BY -zastavkaSpoje.indexZastavkyNaLince
+        negative(max, stopName, indexOnLine, line, connNumber) AS (
+            SELECT DISTINCT MAX(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, :line, conn.connNumber
+            FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN indexesOfThisStop tahleZastavka ON tahleZastavka.connNumber = connstop.connNumber AND tahleZastavka.tab = connstop.tab
+            WHERE connstop.stopIndexOnLine < tahleZastavka.stopIndexOnLine
+            AND conn.tab = :tab
+            AND conn.direction <> :positive
+            AND NOT connstop.arrival IS null
+            AND NOT tahleZastavka.departure IS null
+            GROUP BY conn.connNumber, tahleZastavka.stopIndexOnLine
+            ORDER BY -connstop.stopIndexOnLine
         ),
-        pozitivni(min, nazevZastavky, indexNaLince, linka, cisloSpoje) AS (
-            SELECT DISTINCT MIN(zastavkaSpoje.indexZastavkyNaLince), zastavka.nazevZastavky, zastavkaspoje.indexZastavkyNaLince, :linka, spoj.cisloSpoje
-            FROM zastavkaspoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-            JOIN indexyTyhleZastavky tahleZastavka ON tahleZastavka.cisloSpoje = zastavkaspoje.cisloSpoje AND tahleZastavka.tab = zastavkaspoje.tab
-            WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
-            AND spoj.tab = :tab
-            AND spoj.smer = :pozitivni
-            AND NOT zastavkaspoje.prijezd IS null
-            AND NOT tahleZastavka.odjezd IS null
-            GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            ORDER BY zastavkaSpoje.indexZastavkyNaLince
+        positive(min, stopName, indexOnLine, line, connNumber) AS (
+            SELECT DISTINCT MIN(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, :line, conn.connNumber
+            FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN indexesOfThisStop tahleZastavka ON tahleZastavka.connNumber = connstop.connNumber AND tahleZastavka.tab = connstop.tab
+            WHERE connstop.stopIndexOnLine > tahleZastavka.stopIndexOnLine
+            AND conn.tab = :tab
+            AND conn.direction = :positive
+            AND NOT connstop.arrival IS null
+            AND NOT tahleZastavka.departure IS null
+            GROUP BY conn.connNumber, tahleZastavka.stopIndexOnLine
+            ORDER BY connstop.stopIndexOnLine
         )
-        SELECT DISTINCT nazevZastavky
-        FROM pozitivni
+        SELECT DISTINCT stopName
+        FROM positive
         UNION
-        SELECT DISTINCT nazevZastavky
-        FROM negativni
+        SELECT DISTINCT stopName
+        FROM negative
     """
     )
-    suspend fun pristiZastavky(linka: Int, tahleZastavka: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): List<String>
+    suspend fun nextStops(line: Int, thisStop: String, tab: String, positive: Direction = Direction.POSITIVE): List<String>
 
     @Query(
         """
-        SELECT DISTINCT zastavka.nazevZastavky FROM zastavkaSpoje
-        JOIN zastavka ON zastavka.cisloZastavky = zastavkaSpoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-        JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-        WHERE zastavkaSpoje.linka = :linka
-        AND spoj.tab = :tab
-        ORDER BY zastavkaSpoje.indexZastavkyNaLince
+        SELECT DISTINCT stop.stopName FROM connstop
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+        WHERE connstop.line = :line
+        AND conn.tab = :tab
+        ORDER BY connstop.stopIndexOnLine
     """
     )
-    suspend fun nazvyZastavekLinky(linka: Int, tab: String): List<String>
+    suspend fun stopNamesOfLine(line: Int, tab: String): List<String>
 
     @Query(
         """
-        WITH pocetCaskoduSpoje AS (
-            SELECT DISTINCT spoj.id, COUNT(caskod.indexTerminu) pocet FROM zastavkaspoje
-            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.tab = zastavkaspoje.tab
-            WHERE zastavka.nazevZastavky = :zastavka
-            AND spoj.linka = :linka
-            AND spoj.tab = :tab
-            AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
-            )
-            GROUP BY spoj.id
+        WITH TimeCodesCountOfConn AS (
+            SELECT DISTINCT conn.connNumber, conn.tab, COUNT(timecode.termIndex) count FROM timecode
+            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+            GROUP BY conn.id, conn.tab
         ),
-        spojeZdeJedouci AS (
-            SELECT DISTINCT spoj.*, COUNT(caskod.indexTerminu) FROM zastavkaspoje
-            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN caskod ON caskod.cisloSpoje = zastavkaspoje.cisloSpoje AND caskod.tab = zastavkaspoje.tab
-            JOIN pocetCaskoduSpoje ON pocetCaskoduSpoje.id = spoj.id
-            WHERE zastavka.nazevZastavky = :zastavka
-            AND spoj.linka = :linka
-            AND spoj.tab = :tab
-            AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
-            )
-            AND ((
-                caskod.jede 
-                AND caskod.platiOd <= :datum
-                AND :datum <= caskod.platiDo
+        TodayRunningConns AS (
+            SELECT DISTINCT conn.* FROM timecode
+            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+            JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.connNumber = conn.connNumber AND timecodescountofconn.tab = conn.tab
+            WHERE ((
+                timecode.runs 
+                AND timecode.validFrom <= :date
+                AND :date <= timecode.validTo
             ) OR (
-                NOT caskod.jede 
+                NOT timecode.runs 
                 AND NOT (
-                    caskod.platiOd <= :datum
-                    AND :datum <= caskod.platiDo
+                    timecode.validFrom <= :date
+                    AND :date <= timecode.validTo
                 )
             ))
-            GROUP BY spoj.id
+            GROUP BY conn.id, conn.tab
             HAVING (
-                caskod.jede 
-                AND COUNT(caskod.indexTerminu) >= 1
+                timecode.runs 
+                AND COUNT(timecode.termIndex) >= 1
             ) OR (
-                NOT caskod.jede
-                AND COUNT(caskod.indexTerminu) = pocetCaskoduSpoje.pocet
+                NOT timecode.runs
+                AND COUNT(timecode.termIndex) = TimeCodesCountOfConn.count
             )
         ),
-        indexyTyhleZastavky AS (
-            SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince FROM zastavkaSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab =  zastavkaspoje.tab
-            WHERE zastavkaSpoje.linka = :linka
-            AND spoj.tab = :tab
-            AND zastavka.nazevZastavky = :zastavka
-            ORDER BY zastavkaSpoje.indexZastavkyNaLince
+        thisStopIndex AS (
+            SELECT DISTINCT connstop.stopIndexOnLine FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab =  connstop.tab
+            WHERE conn.tab = :tab
+            AND stop.stopName = :stop
+            ORDER BY connstop.stopIndexOnLine
         ),
-        negativni(max, nazevZastavky, indexNaLince, linka, cisloSpoje, indexTyhleNaLince) AS (
-            SELECT DISTINCT MAX(zastavkaSpoje.indexZastavkyNaLince), zastavka.nazevZastavky, zastavkaspoje.indexZastavkyNaLince, :linka, spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            FROM zastavkaspoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-            CROSS JOIN indexyTyhleZastavky tahleZastavka
-            WHERE zastavkaspoje.indexZastavkyNaLince < tahleZastavka.indexZastavkyNaLince
-            AND spoj.tab = :tab
-            AND spoj.smer <> :pozitivni
+        negative(max, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
+            SELECT DISTINCT MAX(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, conn.connNumber, tahleZastavka.stopIndexOnLine
+            FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            CROSS JOIN thisStopIndex tahleZastavka
+            WHERE connstop.stopIndexOnLine < tahleZastavka.stopIndexOnLine
+            AND conn.tab = :tab
+            AND conn.direction <> :positive
             AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
             )
-            GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            ORDER BY -zastavkaSpoje.indexZastavkyNaLince
+            GROUP BY conn.connNumber, tahleZastavka.stopIndexOnLine
+            ORDER BY -connstop.stopIndexOnLine
         ),
-        pozitivni(min, nazevZastavky, indexNaLince, linka, cisloSpoje, indexTyhleNaLince) AS (
-            SELECT DISTINCT MIN(zastavkaSpoje.indexZastavkyNaLince), zastavka.nazevZastavky, zastavkaspoje.indexZastavkyNaLince, :linka, spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            FROM zastavkaspoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-            CROSS JOIN indexyTyhleZastavky tahleZastavka
-            WHERE zastavkaspoje.indexZastavkyNaLince > tahleZastavka.indexZastavkyNaLince
-            AND spoj.tab = :tab
-            AND spoj.smer = :pozitivni
+        positive(min, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
+            SELECT DISTINCT MIN(connstop.stopIndexOnLine), stop.stopName, connstop.stopIndexOnLine, conn.connNumber, tahleZastavka.stopIndexOnLine
+            FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            CROSS JOIN thisStopIndex tahleZastavka
+            WHERE connstop.stopIndexOnLine > tahleZastavka.stopIndexOnLine
+            AND conn.tab = :tab
+            AND conn.direction = :positive
             AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
             )
-            GROUP BY spoj.cisloSpoje, tahleZastavka.indexZastavkyNaLince
-            ORDER BY zastavkaSpoje.indexZastavkyNaLince
+            GROUP BY conn.connNumber, tahleZastavka.stopIndexOnLine
+            ORDER BY connstop.stopIndexOnLine
+        ),
+        endStopIndexOnThisLine(connNumber, time, name) AS (
+            SELECT DISTINCT connstop.connNumber, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END, stop.stopName FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab = :tab
+            GROUP BY connstop.connNumber
+            HAVING MAX(CASE
+                WHEN conn.direction = 1 THEN -connstop.stopIndexOnLine
+                ELSE connstop.stopIndexOnLine
+            END)
         )
-        SELECT DISTINCT zastavkaspoje.odjezd, (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.id spojId, spoj.pevneKody
-        FROM zastavkaspoje
-        JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-        CROSS JOIN indexyTyhleZastavky tahleZastavka ON zastavkaspoje.indexZastavkyNaLince = tahleZastavka.indexZastavkyNaLince
-        LEFT JOIN pozitivni ON pozitivni.cisloSpoje = spoj.cisloSpoje AND pozitivni.indexTyhleNaLince = zastavkaspoje.indexZastavkyNaLince
-        LEFT JOIN negativni ON negativni.cisloSpoje = spoj.cisloSpoje AND negativni.indexTyhleNaLince = zastavkaspoje.indexZastavkyNaLince
-        WHERE (spoj.smer = :pozitivni AND pozitivni.nazevZastavky = :pristiZastavka)
-        OR (spoj.smer <> :pozitivni AND negativni.nazevZastavky = :pristiZastavka)
-        AND NOT zastavkaspoje.odjezd IS null
-        AND spoj.tab = :tab
+        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.id connId, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM connstop
+        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+        CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
+        LEFT JOIN positive ON positive.connNumber = conn.connNumber AND positive.indexOnThisLine = connstop.stopIndexOnLine
+        LEFT JOIN negative ON negative.connNumber = conn.connNumber AND negative.indexOnThisLine = connstop.stopIndexOnLine
+        WHERE (conn.direction = :positive AND positive.stopName = :nextStop)
+        OR (conn.direction <> :positive AND negative.stopName = :nextStop)
+        AND NOT connstop.departure IS null
+        AND conn.tab = :tab
+        GROUP BY conn.connNumber
     """
     )
-    suspend fun zastavkyJedouciVDatumSPristiZastavkou(
-        linka: Int,
-        zastavka: String,
-        pristiZastavka: String,
-        datum: LocalDate,
+    suspend fun connStopsOnLineWithNextStopAtDate(
+        stop: String,
+        nextStop: String,
+        date: LocalDate,
         tab: String,
-        pozitivni: Smer = Smer.POZITIVNI,
-    ): List<OdjezdNizkopodlaznostSpojId>
+        positive: Direction = Direction.POSITIVE,
+    ): List<TimeLowFloorConnIdDestinationFixedCodesDelay>
 
     @Transaction
     @Query(
         """
-        SELECT (spoj.pevnekody LIKE '%24%') nizkopodlaznost, spoj.linka, spoj.pevneKody, CASE
-            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-            ELSE zastavkaspoje.odjezd
-        END cas, nazevZastavky nazev, spoj.id spojId, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM zastavkaspoje
-        JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-        JOIN zastavka ON zastavka.tab = zastavkaspoje.tab AND zastavka.cisloZastavky = zastavkaspoje.cisloZastavky 
-        JOIN caskod ON caskod.tab = zastavkaspoje.tab AND caskod.cisloSpoje = zastavkaspoje.cisloSpoje 
+        SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.fixedCodes, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, stopName name, conn.sequence, conn.id connId, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
+        JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
+        JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
         WHERE (
-            NOT zastavkaspoje.odjezd IS null
-            OR NOT zastavkaspoje.prijezd IS null
+            NOT connstop.departure IS null
+            OR NOT connstop.arrival IS null
         )
-        AND spoj.id = :spojId
-        AND spoj.tab = :tab
+        AND conn.id = :connId
+        AND conn.tab = :tab
         ORDER BY CASE
-           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
-           ELSE -zastavkaSpoje.indexZastavkyNaLince
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun spojSeZastavkySpojeNaKterychStavi(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): List<LinkaNizkopodlaznostCasNazevSpojId>
+    suspend fun connWithItsConnStopsAndCodes(connId: String, tab: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodes>
+
+    @Query(
+        """
+        SELECT conn.fixedCodes, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM timecode
+        JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+        AND conn.id = :connId
+        AND conn.tab = :tab
+    """
+    )
+    suspend fun codes(connId: String, tab: String): List<Codes>
 
     @Transaction
     @Query(
         """
-        SELECT spoj.pevneKody, caskod.jede, caskod.platiOd od, caskod.platiDo `do` FROM caskod
-        JOIN spoj ON spoj.tab = caskod.tab AND spoj.cisloSpoje = caskod.cisloSpoje
-        WHERE spoj.id = :spojId
-        AND spoj.tab = :tab
+        SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, stopName name, conn.id connId, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
+        JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
+        JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
+        WHERE (
+            NOT connstop.departure IS null
+            OR NOT connstop.arrival IS null
+        )
+        AND conn.sequence LIKE :seq
+        ORDER BY CASE
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
+        END
     """
     )
-    suspend fun pevneKodyCaskody(spojId: String, tab: String): List<CaskodSPevnymiKody>
+    suspend fun connsOfSeqWithTheirConnStops(seq: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodesTab>
+
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY conn.orderInSequence
+    """
+    )
+    suspend fun connsOfSeq(seq: String, tabs: List<String>): List<String>
+
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY conn.orderInSequence
+        LIMIT 1
+    """
+    )
+    suspend fun firstConnOfSeq(seq: String, tabs: List<String>): String
+
+    @Transaction
+    @Query(
+        """
+        SELECT DISTINCT conn.id connId FROM conn
+        WHERE conn.sequence = :seq
+        AND conn.tab IN (:tabs)
+        ORDER BY -conn.orderInSequence
+        LIMIT 1
+    """
+    )
+    suspend fun lastConnOfSeq(seq: String, tabs: List<String>): String
 
     @Query(
         """
-        WITH spojeZdeJedouci AS (
-            SELECT DISTINCT spoj.* FROM zastavkaspoje
-            JOIN spoj ON spoj.tab = zastavkaspoje.tab AND spoj.cisloSpoje = zastavkaspoje.cisloSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            WHERE zastavka.nazevZastavky = :zastavka
-            AND spoj.tab IN (:tabs)
+        WITH hereRunningConns AS (
+            SELECT DISTINCT conn.* FROM connstop
+            JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            WHERE stop.stopName = :stop
+            AND conn.tab IN (:tabs)
             AND (
-                NOT zastavkaspoje.odjezd IS null
-                OR NOT zastavkaspoje.prijezd IS null
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
             )
         ),
-        indexyTyhleZastavky AS (
-            SELECT DISTINCT zastavkaSpoje.indexZastavkyNaLince, zastavkaspoje.tab FROM zastavkaSpoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab =  zastavkaspoje.tab
-            AND zastavka.nazevZastavky = :zastavka
-            AND spoj.tab IN (:tabs)
-            ORDER BY zastavkaSpoje.indexZastavkyNaLince
+        thisStopIndexes AS (
+            SELECT DISTINCT connstop.stopIndexOnLine, connstop.tab FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab =  connstop.tab
+            AND stop.stopName = :stop
+            AND conn.tab IN (:tabs)
+            ORDER BY connstop.stopIndexOnLine
         ),
-        tahleZastavka AS (
-            SELECT zastavka.nazevZastavky nazev, spoj.pevneKody, CASE
-                WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-                ELSE zastavkaspoje.odjezd
-            END cas, zastavkaspoje.indexZastavkyNaLince, spoj.cisloSpoje, spoj.linka, spoj.tab, (spoj.pevnekody LIKE '%24%') nizkopodlaznost 
-            FROM zastavkaspoje
-            JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-            JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = zastavkaspoje.cisloSpoje AND spoj.tab = zastavkaspoje.tab
-            CROSS JOIN indexyTyhleZastavky tahleZastavka ON zastavkaspoje.tab = tahleZastavka.tab AND zastavkaspoje.indexZastavkyNaLince = tahleZastavka.indexZastavkyNaLince
+        thisStop AS (
+            SELECT stop.stopName name, conn.fixedCodes, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END time, connstop.stopIndexOnLine, conn.connNumber, conn.line, conn.tab, (conn.fixedCodes LIKE '%24%') lowFloor 
+            FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            CROSS JOIN thisStopIndexes tahleZastavka ON connstop.tab = tahleZastavka.tab AND connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
         )
-        SELECT tahleZastavka.*, caskod.jede, caskod.platiOd od, caskod.platiDo `do`
-        FROM tahleZastavka
-        JOIN spojeZdeJedouci spoj ON spoj.cisloSpoje = tahleZastavka.cisloSpoje AND spoj.tab = tahleZastavka.tab
-        JOIN caskod ON caskod.cisloSpoje = tahleZastavka.cisloSpoje AND caskod.tab = tahleZastavka.tab
+        SELECT thisStop.*, timecode.runs, timecode.validFrom `from`, timecode.validTo `to`
+        FROM thisStop
+        JOIN hereRunningConns conn ON conn.connNumber = thisStop.connNumber AND conn.tab = thisStop.tab
+        JOIN timecode ON timecode.connNumber = thisStop.connNumber AND timecode.tab = thisStop.tab
     """
     )
-    suspend fun spojeZastavujiciNaIndexechZastavky(
-        zastavka: String,
+    suspend fun connsStoppingOnStopName(
+        stop: String,
         tabs: List<String>,
-    ): List<ZastavkaSpojeSeSpojem>
+    ): List<ConnStopWithConnAndCodes>
+
+    @Query(
+        """
+        SELECT DISTINCT conn.sequence FROM conn
+        WHERE 0
+        OR conn.sequence LIKE :sequence1
+        OR conn.sequence LIKE :sequence2
+        OR conn.sequence LIKE :sequence3
+        OR conn.sequence LIKE :sequence4
+        OR conn.sequence LIKE :sequence5
+        OR conn.sequence LIKE :sequence6
+    """
+    )
+    suspend fun findSequences(
+        sequence1: String,
+        sequence2: String,
+        sequence3: String,
+        sequence4: String,
+        sequence5: String,
+        sequence6: String,
+    ): List<String>
 
     @Transaction
     @Query(
         """
-        SELECT spoj.*, CASE
-            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-            ELSE zastavkaspoje.odjezd
-        END cas, zastavka.nazevZastavky nazev FROM spoj
-        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.tab = spoj.tab
-        JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-        WHERE spoj.id = :spojId
-        AND spoj.tab = :tab
+        SELECT DISTINCT conn.sequence, conn.line - 325000 line FROM conn
+        WHERE conn.sequence IN (:todayRunningSequences)
+    """
+    )
+    suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") String, List<@MapColumn("line") Int>>
+    @Transaction
+    @Query(
+        """
+        WITH CounOfConnsInSequence AS (
+            SELECT COUNT(DISTINCT connNumber) count, sequence
+            FROM conn
+            GROUP BY sequence
+        ),
+        TimeCodesOfSeq AS (
+            SELECT conn.sequence, timecode.*
+            FROM timecode
+            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
+            JOIN counofconnsinsequence c ON c.sequence = conn.sequence
+            GROUP BY validFrom || validTo || runs, conn.sequence
+            HAVING COUNT(DISTINCT conn.connNumber) =  c.count
+            ORDER BY conn.sequence, runs, validTo, validFrom
+        ),
+        TimeCodesCountOfSeq AS (
+            SELECT DISTINCT sequence, COUNT(*) count FROM TimeCodesOfSeq timecode
+            GROUP BY sequence
+        ),
+        TodayRunningSequences AS (
+            SELECT DISTINCT timecode.sequence FROM TimeCodesOfSeq timecode
+            JOIN TimeCodesCountOfSeq ON TimeCodesCountOfSeq.sequence = timecode.sequence
+            AND ((
+                timecode.runs 
+                AND timecode.validFrom <= :date
+                AND :date <= timecode.validTo
+            ) OR (
+                NOT timecode.runs 
+                AND NOT (
+                    timecode.validFrom <= :date
+                    AND :date <= timecode.validTo
+                )
+            ))
+            GROUP BY timecode.sequence
+            HAVING (
+                timecode.runs 
+                AND COUNT(*) >= 1
+            ) OR (
+                NOT timecode.runs
+                AND COUNT(*) = TimeCodesCountOfSeq.count
+            )
+        ),
+        endStopIndexOnThisLine(sequence, time, name) AS (
+            SELECT DISTINCT conn.sequence, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END, stop.stopName FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab IN (:tabs)
+            GROUP BY conn.sequence
+            HAVING MAX(CASE
+                 WHEN connstop.departure IS null THEN connstop.arrival
+                 ELSE connstop.departure
+             END)
+        ),
+        startStopIndexOnThisLine(sequence, time, name) AS (
+            SELECT DISTINCT conn.sequence, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END, stop.stopName FROM connstop
+            JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab IN (:tabs)
+            GROUP BY conn.sequence
+            HAVING MIN(CASE
+                 WHEN connstop.departure IS null THEN connstop.arrival
+                 ELSE connstop.departure
+             END)
+        )
+        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
+        JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
+        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
+        WHERE conn.sequence IN TodayRunningSequences
+        AND conn.tab IN (:tabs)
+    """ // DISTINCT zde není schválně - chceme pevné kódy pro každý spoj zvlášť, abychom poté získali společné pevné kódy
+    )
+    suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
+        date: LocalDate,
+        tabs: List<String>
+    ): Map<TimeOfSequence, List<@MapColumn("fixedCodes")String>>
+
+//    SELECT group_ID
+//    FROM tableName
+//    GROUP BY group_ID
+//    HAVING COUNT(*) = (SELECT COUNT(DISTINCT uid) AS c FROM tableName);
+
+    @Transaction
+    @Query(
+        """
+        SELECT conn.*, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, stop.stopName name FROM conn
+        JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        WHERE conn.id = :connId
+        AND conn.tab = :tab
         AND (
-            NOT zastavkaspoje.odjezd IS null
-            OR NOT zastavkaspoje.prijezd IS null
+            NOT connstop.departure IS null
+            OR NOT connstop.arrival IS null
         )
         ORDER BY CASE
-           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
-           ELSE -zastavkaSpoje.indexZastavkyNaLince
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun spojSeZastavkamiPodleId(spojId: String, tab: String, pozitivni: Smer = Smer.POZITIVNI): Map<Spoj, List<NazevACas>>
+    suspend fun connWithItsStops(connId: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<NameAndTime>>
+
+    @Query(
+        """
+        SELECT DISTINCT conn.line - 325000 FROM conn
+        GROUP BY conn.line
+        HAVING COUNT(DISTINCT conn.direction) = 1
+    """
+    )
+    suspend fun oneDirectionLines(): List<Int>
 
     @Transaction
     @Query(
         """
-        SELECT spoj.id, CASE
-            WHEN zastavkaspoje.odjezd IS null THEN zastavkaspoje.prijezd
-            ELSE zastavkaspoje.odjezd
-        END cas, zastavka.nazevZastavky nazev, zastavkaspoje.indexZastavkyNaLince FROM spoj
-        JOIN zastavkaspoje ON zastavkaspoje.cisloSpoje = spoj.cisloSpoje AND zastavkaspoje.tab = spoj.tab
-        JOIN zastavka ON zastavka.cisloZastavky = zastavkaspoje.cisloZastavky AND zastavka.tab = zastavkaspoje.tab
-        WHERE spoj.id IN (:spojIds)
-        AND spoj.tab IN (:tabs)
+        SELECT conn.id, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, stop.stopName name, connstop.stopIndexOnLine FROM conn
+        JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        WHERE conn.id IN (:connIds)
+        AND conn.tab IN (:tabs)
         ORDER BY CASE
-           WHEN spoj.smer = :pozitivni THEN zastavkaSpoje.indexZastavkyNaLince
-           ELSE -zastavkaSpoje.indexZastavkyNaLince
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun zastavkySpoju(spojIds: List<String>, tabs: List<String>, pozitivni: Smer = Smer.POZITIVNI): Map<@MapColumn("id") String, List<NazevCasAIndex>>
+    suspend fun connStops(connIds: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("id") String, List<NameTimeIndexOnLine>>
 
     @Query(
         """
-        SELECT maVyluku FROM linka
+        SELECT hasRestriction FROM line
         WHERE tab = :tab
         LIMIT 1
     """
     )
-    suspend fun vyluka(tab: String): Boolean
+    suspend fun hasRestriction(tab: String): Boolean
 
     @Query(
         """
-        SELECT platnostOd, platnostDo FROM linka
+        SELECT validFrom, validTo FROM line
         WHERE tab = :tab
         LIMIT 1
     """
     )
-    suspend fun platnost(tab: String): Platnost
+    suspend fun validity(tab: String): Validity
 
     @Query(
         """
-        SELECT id FROM spoj
-        WHERE id = :spojId
+        SELECT id FROM conn
+        WHERE id = :connId
         LIMIT 1
     """
     )
-    suspend fun existujeSpoj(spojId: String): String?
+    suspend fun doesConnExist(connId: String): String?
 
     @Query(
         """
-        SELECT * FROM linka
-        WHERE cislo = :linka
+        SELECT * FROM line
+        WHERE number = :line
     """
     )
-    suspend fun tabulkyLinky(linka: Int): List<Linka>
+    suspend fun lineTables(line: Int): List<Line>
 
     @Query(
         """
-        SELECT DISTINCT cislo FROM linka
+        SELECT DISTINCT number FROM line
     """
     )
-    suspend fun vsechnyLinky(): List<Int>
+    suspend fun allLineNumbers(): List<Int>
 
     @Insert
-    suspend fun vlozitZastavkySpoje(vararg zastavky: ZastavkaSpoje)
+    suspend fun insertConnStops(vararg connStops: ConnStop)
 
     @Insert
-    suspend fun vlozitZastavky(vararg zastavky: Zastavka)
+    suspend fun insertStops(vararg stops: Stop)
 
     @Insert
-    suspend fun vlozitCasKody(vararg kody: CasKod)
+    suspend fun insertTimeCodes(vararg timeCodes: TimeCode)
 
     @Insert
-    suspend fun vlozitLinky(vararg linky: Linka)
+    suspend fun insertLines(vararg lines: Line)
 
     @Insert
-    suspend fun vlozitSpoje(vararg spoje: Spoj)
+    suspend fun insertConns(vararg conns: Conn)
 
-    @Query("SELECT * FROM zastavkaspoje")
-    suspend fun zastavkySpoje(): List<ZastavkaSpoje>
+    @Query("SELECT * FROM connstop")
+    suspend fun connStops(): List<ConnStop>
 
-    @Query("SELECT * FROM zastavka")
-    suspend fun zastavky(): List<Zastavka>
+    @Query("SELECT * FROM stop")
+    suspend fun stops(): List<Stop>
 
-    @Query("SELECT * FROM caskod")
-    suspend fun casKody(): List<CasKod>
+    @Query("SELECT * FROM timecode")
+    suspend fun timeCodes(): List<TimeCode>
 
-    @Query("SELECT * FROM linka")
-    suspend fun linky(): List<Linka>
+    @Query("SELECT * FROM line")
+    suspend fun lines(): List<Line>
 
-    @Query("SELECT * FROM spoj")
-    suspend fun spoje(): List<Spoj>
+    @Query("SELECT * FROM conn")
+    suspend fun conns(): List<Conn>
 }
-

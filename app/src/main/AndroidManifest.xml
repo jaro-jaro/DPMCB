@@ -42,14 +42,14 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".NastaveniActivity"
+            android:name=".SettingsActivity"
             android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true" />
 
         <receiver
-            android:name=".ui.oblibene.widget.OblibeneWidget$Companion$Reciever"
+            android:name=".ui.favourites.widget.OblibeneWidget$Companion$Reciever"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

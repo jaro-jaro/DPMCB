@@ -5,16 +5,16 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import cz.jaro.dpmcb.data.database.AppDatabase.Companion.Converters
-import cz.jaro.dpmcb.data.entities.CasKod
-import cz.jaro.dpmcb.data.entities.Linka
-import cz.jaro.dpmcb.data.entities.Spoj
-import cz.jaro.dpmcb.data.entities.Zastavka
-import cz.jaro.dpmcb.data.entities.ZastavkaSpoje
-import cz.jaro.dpmcb.data.helperclasses.Smer
+import cz.jaro.dpmcb.data.entities.Conn
+import cz.jaro.dpmcb.data.entities.ConnStop
+import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.helperclasses.Direction
 import java.time.LocalDate
 import java.time.LocalTime
 
-@Database(entities = [CasKod::class, Linka::class, Spoj::class, Zastavka::class, ZastavkaSpoje::class], version = 18)
+@Database(entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class], version = 24)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao
@@ -23,10 +23,10 @@ abstract class AppDatabase : RoomDatabase() {
         class Converters {
 
             @TypeConverter
-            fun toSmer(value: Int) = Smer.values()[value]
+            fun toSmer(value: Int) = Direction.entries[value]
 
             @TypeConverter
-            fun fromSmer(value: Smer) = value.ordinal
+            fun fromSmer(value: Direction) = value.ordinal
 
             @TypeConverter
             fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)!!

@@ -15,8 +15,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.5.0"
+        versionCode = 10
+        versionName = "1.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -107,6 +107,8 @@ dependencies {
     // Crashlytics
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+    // Remote config
+    implementation(libs.firebase.config)
 
     // Jetpack Compose
     implementation(libs.androidx.jetpack.compose.foundation)
@@ -160,4 +162,6 @@ dependencies {
 
     implementation(libs.stax.api)
     implementation(libs.aalto.xml)
+
+    implementation(libs.androidx.browser)
 }

@@ -32,7 +32,7 @@ data class MapData(
     @SerialName("lat") val lat: Double,
     @SerialName("lng") val lng: Double,
     @SerialName("portal") val portal: String,
-    @SerialName("transmitters") val transmitters: List<SpojNaMape>,
+    @SerialName("transmitters") val transmitters: List<Transmitter>,
     @SerialName("routeStops") val routeStops: Nothing?,
     @SerialName("stops") val stops: List<Nothing>,
     @SerialName("selectedStop") val selectedStop: Nothing?,

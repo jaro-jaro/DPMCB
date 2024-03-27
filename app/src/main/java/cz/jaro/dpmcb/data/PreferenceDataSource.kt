@@ -6,7 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import cz.jaro.dpmcb.data.helperclasses.CastSpoje
+import cz.jaro.dpmcb.data.helperclasses.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,86 +25,96 @@ class PreferenceDataSource(
     private val scope = CoroutineScope(Dispatchers.IO)
 
     object PreferenceKeys {
-        val VERZE = intPreferencesKey("verze")
-        val OBLIBENE = stringPreferencesKey("oblibene_useky")
-        val NIZKOPODLAZNOST = booleanPreferencesKey("nizkopodlaznost")
-        val ODJEZDY = booleanPreferencesKey("odjezdy")
-        val NASTAVENI = stringPreferencesKey("nastaveni")
-        val PRUKAZKA = booleanPreferencesKey("prukazka")
+        val VERSION = intPreferencesKey("verze")
+        val FAVOURITES = stringPreferencesKey("oblibene_useky")
+        val LOW_FLOOR = booleanPreferencesKey("nizkopodlaznost")
+        val DEPARTURES = booleanPreferencesKey("odjezdy")
+        val SETTINGS = stringPreferencesKey("nastaveni")
+        val CARD = booleanPreferencesKey("prukazka")
     }
 
     object DefaultValues {
-        const val VERZE = -1
-        val OBLIBENE = listOf<CastSpoje>()
-        const val NIZKOPODLAZNOST = false
-        const val ODJEZDY = false
-        val NASTAVENI = Nastaveni()
-        const val PRUKAZKA = false
+        const val VERSION = -1
+        val FAVOURITES = listOf<PartOfConn>()
+        const val LOW_FLOOR = false
+        const val DEPARTURES = false
+        val SETTINGS = Settings()
+        const val CARD = false
     }
 
     private val json = Json {
         ignoreUnknownKeys = true
     }
 
-    val nastaveni = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.NASTAVENI]?.let { json.decodeFromString<Nastaveni>(it) } ?: DefaultValues.NASTAVENI
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), DefaultValues.NASTAVENI)
+    val settings = dataStore.data.map { preferences ->
+        preferences[PreferenceKeys.SETTINGS]?.let { json.decodeFromString<Settings>(it) } ?: DefaultValues.SETTINGS
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), DefaultValues.SETTINGS)
 
-    suspend fun zmenitNastaveni(update: (Nastaveni) -> Nastaveni) {
+    suspend fun changeSettings(update: (Settings) -> Settings) {
         dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.NASTAVENI]?.let { json.decodeFromString(it) } ?: DefaultValues.NASTAVENI
-            preferences[PreferenceKeys.NASTAVENI] = Json.encodeToString(update(lastValue))
+            val lastValue = preferences[PreferenceKeys.SETTINGS]?.let { json.decodeFromString(it) } ?: DefaultValues.SETTINGS
+            preferences[PreferenceKeys.SETTINGS] = Json.encodeToString(update(lastValue))
         }
     }
 
-    val verze = dataStore.data.map {
-        it[PreferenceKeys.VERZE] ?: DefaultValues.VERZE
+    val version = dataStore.data.map {
+        it[PreferenceKeys.VERSION] ?: DefaultValues.VERSION
     }
 
-    suspend fun zmenitVerzi(value: Int) {
+//    val SpojverzeKurzu = dataStore.data.map {
+//        it[PreferenceKeys.VERZE_KURZU] ?: DefaultValues.VERZE_KURZU
+//    }
+
+    suspend fun changeVersion(value: Int) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.VERZE] = value
+            preferences[PreferenceKeys.VERSION] = value
         }
     }
 
-    val oblibene = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.OBLIBENE]?.let { Json.decodeFromString<List<CastSpoje>>(it) } ?: DefaultValues.OBLIBENE
+//    suspend fun zmenitVerziKurzu(value: Int) {
+//        dataStore.edit { preferences ->
+//            preferences[PreferenceKeys.VERZE_KURZU] = value
+//        }
+//    }
+
+    val favourites = dataStore.data.map { preferences ->
+        preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString<List<PartOfConn>>(it) } ?: DefaultValues.FAVOURITES
     }
 
-    suspend fun zmenitOblibene(update: (List<CastSpoje>) -> List<CastSpoje>) {
+    suspend fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
         dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.OBLIBENE]?.let { Json.decodeFromString(it) } ?: DefaultValues.OBLIBENE
-            preferences[PreferenceKeys.OBLIBENE] = Json.encodeToString(update(lastValue))
+            val lastValue = preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString(it) } ?: DefaultValues.FAVOURITES
+            preferences[PreferenceKeys.FAVOURITES] = Json.encodeToString(update(lastValue))
         }
     }
 
-    val nizkopodlaznost = dataStore.data.map {
-        it[PreferenceKeys.NIZKOPODLAZNOST] ?: DefaultValues.NIZKOPODLAZNOST
+    val lowFloor = dataStore.data.map {
+        it[PreferenceKeys.LOW_FLOOR] ?: DefaultValues.LOW_FLOOR
     }
 
-    suspend fun zmenitNizkopodlaznost(value: Boolean) {
+    suspend fun changeLowFloor(value: Boolean) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.NIZKOPODLAZNOST] = value
+            preferences[PreferenceKeys.LOW_FLOOR] = value
         }
     }
 
-    val odjezdy = dataStore.data.map {
-        it[PreferenceKeys.ODJEZDY] ?: DefaultValues.ODJEZDY
+    val departures = dataStore.data.map {
+        it[PreferenceKeys.DEPARTURES] ?: DefaultValues.DEPARTURES
     }
 
-    suspend fun zmenitOdjezdy(value: Boolean) {
+    suspend fun changeDepartures(value: Boolean) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.ODJEZDY] = value
+            preferences[PreferenceKeys.DEPARTURES] = value
         }
     }
 
-    val maPrukazku = dataStore.data.map {
-        it[PreferenceKeys.PRUKAZKA] ?: DefaultValues.PRUKAZKA
+    val hasCard = dataStore.data.map {
+        it[PreferenceKeys.CARD] ?: DefaultValues.CARD
     }
 
-    suspend fun zmenitPrukazku(value: Boolean) {
+    suspend fun changeCard(value: Boolean) {
         dataStore.edit { preferences ->
-            preferences[PreferenceKeys.PRUKAZKA] = value
+            preferences[PreferenceKeys.CARD] = value
         }
     }
 }

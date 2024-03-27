@@ -23,11 +23,11 @@ class LoadingActivity : AppCompatActivity() {
         val repo by inject<SpojeRepository>()
 
         setContent {
-            val nastaveni by repo.nastaveni.collectAsStateWithLifecycle()
+            val settings by repo.settings.collectAsStateWithLifecycle()
             DPMCBTheme(
-                useDarkTheme = nastaveni.darkMode(),
-                useDynamicColor = nastaveni.dynamickeBarvy,
-                theme = nastaveni.tema,
+                useDarkTheme = settings.darkMode(),
+                useDynamicColor = settings.dynamicColors,
+                theme = settings.theme,
             ) {
                 Loading(uri = uri, update = update, finish = ::finish)
             }

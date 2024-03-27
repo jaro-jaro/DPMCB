@@ -41,7 +41,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
 import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.Nastaveni
+import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
@@ -61,12 +61,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 import kotlin.experimental.ExperimentalTypeInference
-import kotlin.math.sign
+import kotlin.math.absoluteValue
 import kotlin.time.toJavaDuration
 
 object UtilFunctions {
 
-    fun LocalDate.hezky6p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.toCzechLocative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnes"
             1L -> "zítra"
@@ -85,7 +85,7 @@ object UtilFunctions {
         }
     }
 
-    fun LocalDate.hezky4p() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
+    fun LocalDate.toCzechAccusative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
         when (za) {
             0L -> "dnešek"
             1L -> "zítřek"
@@ -103,13 +103,6 @@ object UtilFunctions {
             else -> asString()
         }
     }
-
-    fun Smer.toInt(): Int = when (this) {
-        Smer.POZITIVNI -> 1
-        Smer.NEGATIVNI -> -1
-    }
-
-    fun <T> ifTake(condition: Boolean, take: () -> T): T? = if (condition) take() else null
 
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
 
@@ -161,56 +154,76 @@ object UtilFunctions {
             args[6] as T7,
         )
     }
-
-    fun <R> funguj(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
-    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.funguj(vararg msg: R, transform: T.() -> S): T =
-        also { UtilFunctions.funguj(this.transform(), *msg) }
-
-    inline fun <reified T : Any?, reified R : Any?> T.funguj(vararg msg: R): T = also { funguj(*msg, transform = { this }) }
-    inline fun <reified T : Any?, reified S : Any?> T.funguj(transform: T.() -> S = { this as S }): T =
-        also { funguj(*emptyArray<Any?>(), transform = transform) }
-
-    inline fun <reified T : Any?> T.funguj(): T = also { funguj(*emptyArray<Any?>(), transform = { this }) }
-
-    fun Int.toSign() = when (sign) {
-        -1 -> "-"
-        1 -> "+"
-        else -> ""
+    /**
+     * Returns a [Flow] whose values are generated with [transform] function by combining
+     * the most recently emitted values by each flow.
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun <T1, T2, T3, T4, T5, T6, T7, T8, R : Any> combine(
+        flow: Flow<T1>,
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        flow4: Flow<T4>,
+        flow5: Flow<T5>,
+        flow6: Flow<T6>,
+        flow7: Flow<T7>,
+        flow8: Flow<T8>,
+        transform: suspend (T1, T2, T3, T4, T5, T6, T7, T8) -> R
+    ): Flow<R> = combine(flow, flow2, flow3, flow4, flow5, flow6, flow7, flow8) { args: Array<*> ->
+        transform(
+            args[0] as T1,
+            args[1] as T2,
+            args[2] as T3,
+            args[3] as T4,
+            args[4] as T5,
+            args[5] as T6,
+            args[6] as T7,
+            args[7] as T8,
+        )
     }
 
-    fun Long.toSign() = when (sign) {
-        -1 -> "-"
-        1 -> "+"
-        else -> ""
-    }
+    fun <R> work(vararg msg: R?) = run { if (BuildConfig.DEBUG) Log.d("funguj", msg.joinToString()) }
+    inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.work(vararg msg: R, transform: T.() -> S): T =
+        also { UtilFunctions.work(this.transform(), *msg) }
 
-    fun Float.toSign() = when (sign) {
-        -1F -> "-"
-        1F -> "+"
-        else -> ""
+    inline fun <reified T : Any?, reified R : Any?> T.work(vararg msg: R): T = also { work(*msg, transform = { this }) }
+    inline fun <reified T : Any?, reified S : Any?> T.work(transform: T.() -> S = { this as S }): T =
+        also { work(*emptyArray<Any?>(), transform = transform) }
+
+    inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
+
+    fun kotlin.time.Duration.toDelay() = run {
+        val sign = when {
+            inWholeSeconds < 0 -> "-"
+            inWholeSeconds > 0 -> "+"
+            else -> ""
+        }
+        val min = inWholeMinutes.absoluteValue
+        val s = inWholeSeconds.absoluteValue % 60
+        "$sign$min min $s s"
     }
 
     @Composable
-    fun barvaZpozdeniTextu(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFF343DFF)
-        zpozdeni >= 4.5 -> Color.Red
-        zpozdeni >= 1.5 -> Color(0xFFCC6600)
+    fun colorOfDelayText(delay: Float) = when {
+        delay < 0 -> Color(0xFF343DFF)
+        delay >= 4.5 -> Color.Red
+        delay >= 1.5 -> Color(0xFFCC6600)
         else -> Color.Green
     }
 
     @Composable
-    fun barvaZpozdeniBublinyText(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFF0000EF)
-        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
-        zpozdeni >= 1.5 -> Color(0xFFffddaf)
+    fun colorOfDelayBubbleText(delay: Float) = when {
+        delay < 0 -> Color(0xFF0000EF)
+        delay >= 4.5 -> MaterialTheme.colorScheme.onErrorContainer
+        delay >= 1.5 -> Color(0xFFffddaf)
         else -> Color(0xFFADF0D8)
     }
 
     @Composable
-    fun barvaZpozdeniBublinyKontejner(zpozdeni: Float) = when {
-        zpozdeni < 0 -> Color(0xFFE0E0FF)
-        zpozdeni >= 4.5 -> MaterialTheme.colorScheme.errorContainer
-        zpozdeni >= 1.5 -> Color(0xFF614000)
+    fun colorOfDelayBubbleContainer(delay: Float) = when {
+        delay < 0 -> Color(0xFFE0E0FF)
+        delay >= 4.5 -> MaterialTheme.colorScheme.errorContainer
+        delay >= 1.5 -> Color(0xFF614000)
         else -> Color(0xFF015140)
     }
 
@@ -226,19 +239,19 @@ object UtilFunctions {
         tint: Color = LocalContentColor.current,
     ) = if (tooltipText != null) TooltipBox(
         tooltip = {
-            PlainTooltip {
-                DPMCBTheme(
-                    useDarkTheme = isSystemInDarkTheme(),
-                    useDynamicColor = true,
-                    theme = Theme.Yellow,
-                    doTheThing = false,
-                ) {
+            DPMCBTheme(
+                useDarkTheme = isSystemInDarkTheme(),
+                useDynamicColor = true,
+                theme = Theme.Yellow,
+                doTheThing = false,
+            ) {
+                PlainTooltip {
                     Text(text = tooltipText)
                 }
             }
         },
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         state = rememberTooltipState(),
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
     ) {
         Icon(
             imageVector = imageVector,
@@ -258,23 +271,23 @@ object UtilFunctions {
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         combine(this) { transform(it.toList()) }
 
-    fun String?.toCasDivne() = (this?.run {
+    fun String?.toTimeWeirdly() = (this?.run {
         LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())!!
-    } ?: ted)
+    } ?: now)
 
-    fun String?.toCas() = (this?.run {
+    fun String?.toTime() = (this?.run {
         val list = split(":").map(String::toInt)
         LocalTime.of(list[0], list[1])!!
-    } ?: ted)
+    } ?: now)
 
-    fun String.toCasOrNull() = this.run {
+    fun String.toTimeOrNull() = this.run {
         val list = split(":").map(String::toIntOrNull)
         LocalTime.of(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
     }
 
-    fun String.toDatumDivne() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
+    fun String.toDateWeirdly() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
 
-    val Context.schemaFile get() = File(filesDir, "schema.pdf")
+    val Context.diagramFile get() = File(filesDir, "schema.pdf")
 
     val Context.isOnline: Boolean
         get() {
@@ -307,30 +320,31 @@ object UtilFunctions {
 
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
-    val ted get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
-    val presneTed get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
+    val now get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
+    val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
 
-    val tedFlow = flow {
+    val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
             delay(500)
-            emit(LocalTime.now().truncatedTo(ChronoUnit.SECONDS))
+            emit(exactlyNow)
         }
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), ted)
+        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), now)
 
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
-    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.funguj()) }
-    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.funguj { route }) }
+    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
+    inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
+    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
 
     fun List<Boolean>.allTrue() = all { it }
+    fun List<Boolean>.anyTrue() = any { it }
 
     @Composable
-    fun Nastaveni.darkMode(): Boolean {
-        return if (dmPodleSystemu) isSystemInDarkTheme() else dm
+    fun Settings.darkMode(): Boolean {
+        return if (dmAsSystem) isSystemInDarkTheme() else dm
     }
 
     context(LazyListScope)
@@ -398,7 +412,7 @@ object UtilFunctions {
         softWrap: Boolean = true,
         maxLines: Int = Int.MAX_VALUE,
         minLines: Int = 1,
-        onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+        onTextLayout: (TextLayoutResult) -> Unit = {},
         style: TextStyle? = null,
     ) {
         item(
@@ -427,7 +441,9 @@ object UtilFunctions {
         }
     }
 
-    fun Int.evC() = if ("$this".length == 1) "0$this" else "$this"
+    fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
+
+    val noCode = LocalDate.of(1970, 1, 1)!!
 }
 
 typealias NavigateFunction = (Direction) -> Unit
