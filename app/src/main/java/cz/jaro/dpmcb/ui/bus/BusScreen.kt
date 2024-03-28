@@ -152,13 +152,13 @@ fun BusScreen(
                     Name("${state.lineNumber}")
                     Wheelchair(
                         lowFloor = state.lowFloor,
-                        confirmedLowFloor = (state as? BusState.OK.Online)?.confirmedLowFloor,
+                        confirmedLowFloor = (state as? BusState.Online)?.confirmedLowFloor,
                         Modifier.padding(start = 8.dp),
                         enableCart = true,
                     )
 
-                    if (state is BusState.OK.Online) DelayBubble(state.delayMin)
-                    if (state is BusState.OK.Online) Vehicle(state.vehicle)
+                    if (state is BusState.Online) DelayBubble(state.delayMin)
+                    if (state is BusState.Online) Vehicle(state.vehicle)
 
                     Spacer(Modifier.weight(1F))
 
@@ -177,7 +177,7 @@ fun BusScreen(
                 ) {
                     SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
                     if (state.restriction) Restriction()
-                    if (state !is BusState.OK.Online && state.error) Error()
+                    if (state !is BusState.Online && state.error) Error()
                     OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -185,12 +185,12 @@ fun BusScreen(
                     ) {
                         Timetable(
                             navigate = navigate,
-                            onlineConnStops = (state as? BusState.OK.Online)?.onlineConnStops,
-                            nextStopTime = (state as? BusState.OK.Online)?.nextStop,
+                            onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
+                            nextStopIndex = (state as? BusState.Online)?.nextStopIndex,
                             stops = state.stops,
                             traveledSegments = state.traveledSegments,
                             height = state.lineHeight,
-                            isOnline = state is BusState.OK.Online
+                            isOnline = state is BusState.Online
                         )
                     }
 
@@ -287,7 +287,7 @@ fun Timetable(
     stops: List<LineTimeNameConnIdNextStop>,
     navigate: NavigateFunction,
     onlineConnStops: List<OnlineConnStop>?,
-    nextStopTime: LocalTime?,
+    nextStopIndex: Int?,
     showLine: Boolean = true,
     traveledSegments: Int = 0,
     height: Float = 0F,
@@ -301,7 +301,7 @@ fun Timetable(
     Column(
         Modifier.weight(1F)
     ) {
-        stops.forEach { stop ->
+        stops.forEachIndexed { index, stop ->
             val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
             MyText(
                 text = stop.name,
@@ -312,13 +312,13 @@ fun Timetable(
                 line = stop.line,
                 platform = onlineStop?.platform ?: "",
                 Modifier.fillMaxWidth(1F),
-                color = if (nextStopTime != null && stop.time == nextStopTime)
+                color = if (nextStopIndex != null && index == nextStopIndex)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
-        stops.forEach { stop ->
+        stops.forEachIndexed { index, stop ->
             val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
             MyText(
                 text = stop.time.toString(),
@@ -328,7 +328,7 @@ fun Timetable(
                 nextStop = stop.nextStop,
                 line = stop.line,
                 platform = onlineStop?.platform ?: "",
-                color = if (nextStopTime != null && stop.time == nextStopTime)
+                color = if (nextStopIndex != null && index == nextStopIndex)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
         }
