@@ -152,13 +152,13 @@ fun BusScreen(
                     Name("${state.lineNumber}")
                     Wheelchair(
                         lowFloor = state.lowFloor,
-                        confirmedLowFloor = (state as? BusState.Online)?.confirmedLowFloor,
+                        confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
                         Modifier.padding(start = 8.dp),
                         enableCart = true,
                     )
 
-                    if (state is BusState.Online) DelayBubble(state.delayMin)
-                    if (state is BusState.Online) Vehicle(state.vehicle)
+                    if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+                    if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
 
                     Spacer(Modifier.weight(1F))
 
@@ -177,7 +177,7 @@ fun BusScreen(
                 ) {
                     SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
                     if (state.restriction) Restriction()
-                    if (state !is BusState.Online && state.error) Error()
+                    if (state !is BusState.OnlineRunning && state.error) Error()
                     OutlinedCard(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -186,11 +186,11 @@ fun BusScreen(
                         Timetable(
                             navigate = navigate,
                             onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
-                            nextStopIndex = (state as? BusState.Online)?.nextStopIndex,
+                            nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
                             stops = state.stops,
                             traveledSegments = state.traveledSegments,
                             height = state.lineHeight,
-                            isOnline = state is BusState.Online
+                            isOnline = state is BusState.OnlineRunning
                         )
                     }
 
