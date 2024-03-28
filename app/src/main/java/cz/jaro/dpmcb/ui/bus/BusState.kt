@@ -54,7 +54,11 @@ sealed interface BusState {
         override val error: Boolean,
     ) : OK
 
-    data class Online(
+    sealed interface Online : OK {
+        val onlineConnStops: List<OnlineConnStop>
+    }
+
+    data class OnlineNotRunning(
         override val busId: String,
         override val stops: List<LineTimeNameConnIdNextStop>,
         override val lineNumber: Int,
@@ -73,15 +77,37 @@ sealed interface BusState {
         override val lineHeight: Float,
         override val favourite: PartOfConn?,
         override val error: Boolean,
-        val onlineConnStops: List<OnlineConnStop>,
+        override val onlineConnStops: List<OnlineConnStop>,
+    ) : Online
+
+    data class OnlineRunning(
+        override val busId: String,
+        override val stops: List<LineTimeNameConnIdNextStop>,
+        override val lineNumber: Int,
+        override val lowFloor: Boolean,
+        override val timeCodes: List<String>,
+        override val fixedCodes: List<String>,
+        override val lineCode: String,
+        override val busName: String,
+        override val sequence: String?,
+        override val sequenceName: String?,
+        override val nextBus: Pair<String, Boolean>?,
+        override val previousBus: Pair<String, Boolean>?,
+        override val deeplink: String,
+        override val restriction: Boolean,
+        override val traveledSegments: Int,
+        override val lineHeight: Float,
+        override val favourite: PartOfConn?,
+        override val error: Boolean,
+        override val onlineConnStops: List<OnlineConnStop>,
         val delayMin: Float,
         val vehicle: Int?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int,
-    ) : OK
+    ) : Online
 
     companion object {
-        fun Online(
+        fun OnlineRunning(
             state: Offline,
             onlineConnStops: List<OnlineConnStop>,
             delayMin: Float,
@@ -89,9 +115,19 @@ sealed interface BusState {
             confirmedLowFloor: Boolean?,
             nextStopIndex: Int,
         ) = with(state) {
-            Online(
+            OnlineRunning(
                 busId, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, busName, sequence, sequenceName, nextBus, previousBus,
                 deeplink, restriction, traveledSegments, lineHeight, favourite, error, onlineConnStops, delayMin, vehicle, confirmedLowFloor, nextStopIndex
+            )
+        }
+
+        fun OnlineNotRunning(
+            state: Offline,
+            onlineConnStops: List<OnlineConnStop>,
+        ) = with(state) {
+            OnlineNotRunning(
+                busId, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, busName, sequence, sequenceName, nextBus, previousBus,
+                deeplink, restriction, traveledSegments, lineHeight, favourite, error, onlineConnStops
             )
         }
     }
