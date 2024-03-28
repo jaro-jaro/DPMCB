@@ -135,14 +135,14 @@ fun SequenceScreen(
                     ) {
                         Name(state.sequenceName)
 
-                        if (state is SequenceState.OK.Online && state.confirmedLowFloor != null) Wheelchair(
+                        if (state is SequenceState.Online && state.confirmedLowFloor != null) Wheelchair(
                             lowFloor = state.confirmedLowFloor,
                             confirmedLowFloor = state.confirmedLowFloor,
                             modifier = Modifier.padding(start = 8.dp),
                         )
 
-                        if (state is SequenceState.OK.Online) DelayBubble(state.delayMin)
-                        if (state is SequenceState.OK.Online) Vehicle(state.vehicle)
+                        if (state is SequenceState.Online) DelayBubble(state.delayMin)
+                        if (state is SequenceState.Online) Vehicle(state.vehicle)
                     }
                 }
 
@@ -180,7 +180,7 @@ fun SequenceScreen(
                                 Name("${bus.lineNumber}")
                                 Wheelchair(
                                     lowFloor = bus.lowFloor,
-                                    confirmedLowFloor = (state as? SequenceState.OK.Online)?.confirmedLowFloor?.takeIf { bus.isRunning },
+                                    confirmedLowFloor = (state as? SequenceState.Online)?.confirmedLowFloor?.takeIf { bus.isRunning },
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
 
@@ -190,7 +190,7 @@ fun SequenceScreen(
                             }
                         }
                         Surface {
-                            if (bus.isRunning && state is SequenceState.OK.Online) Row(
+                            if (bus.isRunning && state is SequenceState.Online) Row(
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp, horizontal = 8.dp),
@@ -212,11 +212,11 @@ fun SequenceScreen(
                                 stops = bus.stops,
                                 navigate = navigate,
                                 onlineConnStops = null,
-                                nextStopTime = null,
+                                nextStopIndex = null,
                                 showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
                                 height = state.height,
                                 traveledSegments = state.traveledSegments,
-                                isOnline = state is SequenceState.OK.Online
+                                isOnline = state is SequenceState.Online
                             )
                         }
                     }

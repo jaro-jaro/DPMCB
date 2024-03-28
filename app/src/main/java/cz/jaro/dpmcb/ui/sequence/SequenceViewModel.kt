@@ -42,7 +42,7 @@ class SequenceViewModel(
             stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
         }
 
-        SequenceState.OK.Offline(
+        SequenceState.Offline(
             sequence = sequence,
             sequenceName = repo.seqName(sequence),
             timeCodes = timeCodes.filterNot {
@@ -129,12 +129,12 @@ class SequenceViewModel(
     val state = combine(info, traveledSegments, lineHeight, nowRunningOnlineConn, repo.date) { info, traveledSegments, lineHeight, onlineConn, date ->
         if (date != LocalDate.now()) return@combine info
         if (info !is SequenceState.OK) return@combine info
-        val newInfo = (info as SequenceState.OK.Offline).copy(
+        val newInfo = (info as SequenceState.Offline).copy(
             height = lineHeight,
             traveledSegments = traveledSegments ?: 0,
         )
         if (onlineConn?.delayMin == null) return@combine newInfo
-        SequenceState.OK.Online(
+        SequenceState.Online(
             state = newInfo,
             delayMin = onlineConn.delayMin,
             vehicle = onlineConn.vehicle,
