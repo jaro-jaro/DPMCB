@@ -200,7 +200,7 @@ class BusViewModel(
 
         val passed = Duration.between(departureFromLastStop, now).coerceAtLeast(Duration.ZERO)
 
-        traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceAtMost(1F)
+        traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceIn(0F, 1F)
     }
 
     val state = combine(info, traveledSegments, lineHeight, onlineState) { info, traveledSegments, lineHeight, onlineState ->
