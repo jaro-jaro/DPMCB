@@ -104,8 +104,11 @@ import java.time.LocalTime
 fun Bus(
     busId: String,
     navigator: DestinationsNavigator,
-    viewModel: BusViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(busId, navigator.navigateFunction))
+    viewModel: BusViewModel = run {
+        val navigate = navigator.navigateFunction
+        koinViewModel {
+            ParametersHolder(mutableListOf(busId, navigate))
+        }
     },
 ) {
     title = R.string.detail_spoje
