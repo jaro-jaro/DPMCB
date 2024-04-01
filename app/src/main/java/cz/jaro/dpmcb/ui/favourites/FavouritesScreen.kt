@@ -46,12 +46,15 @@ import java.time.LocalDate
 @Composable
 fun Favourites(
     navigator: DestinationsNavigator,
-    viewModel: FavouritesViewModel = koinViewModel {
-        parametersOf(
-            FavouritesViewModel.Parameters(
-                navigate = navigator.navigateFunction
+    viewModel: FavouritesViewModel = run {
+        val navigate = navigator.navigateFunction
+        koinViewModel {
+            parametersOf(
+                FavouritesViewModel.Parameters(
+                    navigate = navigate
+                )
             )
-        )
+        }
     },
 ) {
     title = R.string.app_name

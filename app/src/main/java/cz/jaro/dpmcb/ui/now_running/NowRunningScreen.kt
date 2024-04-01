@@ -46,8 +46,11 @@ fun NowRunning(
     filters: IntArray = intArrayOf(),
     type: NowRunningType = NowRunningType.Line,
     navigator: DestinationsNavigator,
-    viewModel: NowRunningViewModel = koinViewModel {
-        parametersOf(NowRunningViewModel.Parameters(filters = filters.toList(), type = type, navigate = navigator.navigateFunction))
+    viewModel: NowRunningViewModel = run {
+        val navigate = navigator.navigateFunction
+        koinViewModel {
+            parametersOf(NowRunningViewModel.Parameters(filters = filters.toList(), type = type, navigate = navigate))
+        }
     },
 ) {
     App.title = R.string.now_running
