@@ -106,8 +106,11 @@ fun Bus(
     navigator: DestinationsNavigator,
     viewModel: BusViewModel = run {
         val navigate = navigator.navigateFunction
+        val pop = {
+            navigator.popBackStack()
+        }
         koinViewModel {
-            ParametersHolder(mutableListOf(busId, navigate))
+            ParametersHolder(mutableListOf(busId, navigate, pop))
         }
     },
 ) {
