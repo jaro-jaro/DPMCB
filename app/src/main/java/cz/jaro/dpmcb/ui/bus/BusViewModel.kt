@@ -35,6 +35,7 @@ class BusViewModel(
     onlineRepo: OnlineRepository,
     @InjectedParam private val busId: String,
     @InjectedParam private val navigate: NavigateFunction,
+    @InjectedParam private val pop: () -> Unit,
 ) : ViewModel() {
 
     private val info: Flow<BusState> = combine(repo.date, repo.favourites, repo.hasAccessToMap) { date, favourites, online ->
@@ -129,6 +130,7 @@ class BusViewModel(
                 if (state.nextBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
+                pop()
                 navigate(BusDestination(state.nextBus!!.first))
             }
             Unit
@@ -139,6 +141,7 @@ class BusViewModel(
                 if (state.previousBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
+                pop()
                 navigate(BusDestination(state.previousBus!!.first))
             }
             Unit
