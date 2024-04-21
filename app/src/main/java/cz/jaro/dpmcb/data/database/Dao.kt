@@ -100,18 +100,6 @@ interface Dao {
 
     @Query(
         """
-        SELECT DISTINCT stop.stopName FROM connstop
-        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
-        WHERE connstop.line = :line
-        AND conn.tab = :tab
-        ORDER BY connstop.stopIndexOnLine
-    """
-    )
-    suspend fun stopNamesOfLine(line: Int, tab: String): List<String>
-
-    @Query(
-        """
         WITH TimeCodesCountOfConn AS (
             SELECT DISTINCT conn.connNumber, conn.tab, COUNT(timecode.termIndex) count FROM timecode
             JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
@@ -132,6 +120,7 @@ interface Dao {
                     AND :date <= timecode.validTo
                 )
             ))
+            AND conn.tab = :tab
             GROUP BY conn.id, conn.tab
             HAVING (
                 timecode.runs 
@@ -156,7 +145,6 @@ interface Dao {
             JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
             CROSS JOIN thisStopIndex tahleZastavka
             WHERE connstop.stopIndexOnLine < tahleZastavka.stopIndexOnLine
-            AND conn.tab = :tab
             AND conn.direction <> :positive
             AND (
                 NOT connstop.departure IS null
@@ -172,7 +160,6 @@ interface Dao {
             JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
             CROSS JOIN thisStopIndex tahleZastavka
             WHERE connstop.stopIndexOnLine > tahleZastavka.stopIndexOnLine
-            AND conn.tab = :tab
             AND conn.direction = :positive
             AND (
                 NOT connstop.departure IS null
@@ -199,17 +186,15 @@ interface Dao {
                 ELSE connstop.stopIndexOnLine
             END)
         )
-        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.id connId, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM connstop
+        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.id connId, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
-        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        JOIN TodayRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+        JOIN connstop ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
         CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
         LEFT JOIN positive ON positive.connNumber = conn.connNumber AND positive.indexOnThisLine = connstop.stopIndexOnLine
         LEFT JOIN negative ON negative.connNumber = conn.connNumber AND negative.indexOnThisLine = connstop.stopIndexOnLine
         WHERE (conn.direction = :positive AND positive.stopName = :nextStop)
         OR (conn.direction <> :positive AND negative.stopName = :nextStop)
         AND NOT connstop.departure IS null
-        AND conn.tab = :tab
         GROUP BY conn.connNumber
     """
     )
@@ -220,6 +205,18 @@ interface Dao {
         tab: String,
         positive: Direction = Direction.POSITIVE,
     ): List<TimeLowFloorConnIdDestinationFixedCodesDelay>
+
+    @Query(
+        """
+        SELECT DISTINCT stop.stopName FROM connstop
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+        WHERE connstop.line = :line
+        AND conn.tab = :tab
+        ORDER BY connstop.stopIndexOnLine
+    """
+    )
+    suspend fun stopNamesOfLine(line: Int, tab: String): List<String>
 
     @Transaction
     @Query(
