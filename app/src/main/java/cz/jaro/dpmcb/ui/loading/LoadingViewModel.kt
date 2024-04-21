@@ -456,18 +456,14 @@ class LoadingViewModel(
         println(connStops)
         println(timeCodes)
 
-        coroutineScope {
-            launch {
-                repo.write(
-                    connStops = connStops.distinctBy { Triple(it.tab, it.connNumber, it.stopIndexOnLine) }.toTypedArray(),
-                    stops = stops.distinctBy { it.tab to it.stopNumber }.toTypedArray(),
-                    timeCodes = timeCodes.distinctBy { Quadruple(it.tab, it.code, it.connNumber, it.termIndex) }.toTypedArray(),
-                    lines = lines.distinctBy { it.tab }.toTypedArray(),
-                    conns = conns.distinctBy { it.tab to it.connNumber }.toTypedArray(),
-                    version = newVersion,
-                )
-            }.join()
-        }
+        repo.write(
+            connStops = connStops.distinctBy { Triple(it.tab, it.connNumber, it.stopIndexOnLine) }.toTypedArray(),
+            stops = stops.distinctBy { it.tab to it.stopNumber }.toTypedArray(),
+            timeCodes = timeCodes.distinctBy { Quadruple(it.tab, it.code, it.connNumber, it.termIndex) }.toTypedArray(),
+            lines = lines.distinctBy { it.tab }.toTypedArray(),
+            conns = conns.distinctBy { it.tab to it.connNumber }.toTypedArray(),
+            version = newVersion,
+        )
     }
 
     private suspend fun downloadDiagram(schemaRef: StorageReference) = downloadFile(schemaRef, params.diagramFile)
