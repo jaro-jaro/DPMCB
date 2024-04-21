@@ -393,6 +393,6 @@ fun Wheelchair(
 }
 
 @Composable
-fun Name(name: String) {
-    Text(name, fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
+fun Name(name: String, modifier: Modifier = Modifier) {
+    Text(name, modifier, fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
 }

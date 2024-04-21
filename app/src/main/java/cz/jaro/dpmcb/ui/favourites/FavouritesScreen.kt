@@ -122,7 +122,7 @@ fun FavouritesScreen(
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Name("${it.line}")
+                    Name("${it.line}", Modifier.padding(end = 8.dp))
                     if (it is FavouriteState.Online) DelayBubble(it.delay)
                     if (it is FavouriteState.Online) Vehicle(it.vehicle)
                 }
