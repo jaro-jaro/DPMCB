@@ -35,6 +35,7 @@ class BusViewModel(
     onlineRepo: OnlineRepository,
     @InjectedParam private val busId: String,
     @InjectedParam private val navigate: NavigateFunction,
+    @InjectedParam private val pop: () -> Unit,
 ) : ViewModel() {
 
     private val info: Flow<BusState> = combine(repo.date, repo.favourites, repo.hasAccessToMap) { date, favourites, online ->
@@ -66,7 +67,7 @@ class BusViewModel(
 
         val bus = repo.busDetail(busId, date)
         val restriction = repo.hasRestriction(busId, date)
-        BusState.OK.Offline(
+        BusState.Offline(
             busId = busId,
             stops = bus.stops,
             lineNumber = bus.info.line,
@@ -129,6 +130,7 @@ class BusViewModel(
                 if (state.nextBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
+                pop()
                 navigate(BusDestination(state.nextBus!!.first))
             }
             Unit
@@ -139,6 +141,7 @@ class BusViewModel(
                 if (state.previousBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
+                pop()
                 navigate(BusDestination(state.previousBus!!.first))
             }
             Unit
@@ -159,10 +162,10 @@ class BusViewModel(
         }
     }
 
-    private val onlineState = onlineRepo.busById(busId).map { (onlineConn, onlineConnStops) ->
+    private val onlineState = onlineRepo.busById(busId).map { (onlineConn, onlineConnDetail) ->
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
-            onlineConnStops = onlineConnStops,
+            onlineConnDetail = onlineConnDetail,
             vehicle = onlineConn?.vehicle,
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
@@ -177,7 +180,7 @@ class BusViewModel(
             info.stops.isEmpty() -> null
             date > LocalDate.now() -> null
             date < LocalDate.now() -> info.stops.lastIndex
-            // Je na mapě && má detail spoje
+            state.onlineConnDetail?.nextStopIndex != null -> state.onlineConnDetail.nextStopIndex - 1
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex
             else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
@@ -192,7 +195,7 @@ class BusViewModel(
 
         val departureFromLastStop = info.stops[traveledSegments].time + (state.delay ?: 0.minutes)
 
-        val arrivalToNextStop = state.onlineConnStops?.getOrNull(traveledSegments + 1)?.let {
+        val arrivalToNextStop = state.onlineConnDetail?.stops?.getOrNull(traveledSegments + 1)?.let {
             it.scheduledTime + it.delay.minutes + (state.delay?.inWholeSeconds?.rem(60)?.seconds ?: 0.seconds)
         } ?: (info.stops.getOrNull(traveledSegments + 1)?.time?.plus(state.delay ?: 0.minutes))
 
@@ -200,23 +203,28 @@ class BusViewModel(
 
         val passed = Duration.between(departureFromLastStop, now).coerceAtLeast(Duration.ZERO)
 
-        traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceAtMost(1F)
+        traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceIn(0F, 1F)
     }
 
     val state = combine(info, traveledSegments, lineHeight, onlineState) { info, traveledSegments, lineHeight, onlineState ->
         if (info !is BusState.OK) info
-        else (info as BusState.OK.Offline).copy(
+        else (info as BusState.Offline).copy(
             lineHeight = lineHeight,
             traveledSegments = traveledSegments ?: 0
         ).let { state ->
-            if (onlineState.delay == null || onlineState.onlineConnStops == null || onlineState.nextStopTime == null) state
-            else BusState.OK.Online(
+            onlineState.onlineConnDetail
+            if (onlineState.onlineConnDetail == null) state
+            else if (onlineState.delay == null || onlineState.nextStopTime == null) BusState.OnlineNotRunning(
                 state = state,
-                onlineConnStops = onlineState.onlineConnStops,
+                onlineConnStops = onlineState.onlineConnDetail.stops,
+            )
+            else BusState.OnlineRunning(
+                state = state,
+                onlineConnStops = onlineState.onlineConnDetail.stops,
                 delayMin = onlineState.delay.inWholeSeconds.div(60F),
                 vehicle = onlineState.vehicle,
                 confirmedLowFloor = onlineState.confirmedLowFloor,
-                nextStop = onlineState.nextStopTime,
+                nextStopIndex = onlineState.onlineConnDetail.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)

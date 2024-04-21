@@ -58,14 +58,17 @@ fun Chooser(
     type: ChooserType,
     lineNumber: Int = -1,
     stop: String? = null,
-    viewModel: ChooserViewModel = koinViewModel {
-        parametersOf(ChooserViewModel.Parameters(
-            type = type,
-            lineNumber = lineNumber,
-            stop = stop,
-            navigate = navigator.navigateFunction,
-            navigateBack = { it: Result -> resultNavigator.navigateBack(it) }
-        ))
+    viewModel: ChooserViewModel = run {
+        val navigate = navigator.navigateFunction
+        koinViewModel {
+            parametersOf(ChooserViewModel.Parameters(
+                type = type,
+                lineNumber = lineNumber,
+                stop = stop,
+                navigate = navigate,
+                navigateBack = { it: Result -> resultNavigator.navigateBack(it) }
+            ))
+        }
     },
 ) {
     title = when (type) {

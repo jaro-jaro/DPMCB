@@ -78,13 +78,13 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.destinations.ChooserDestination
-import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
+import cz.jaro.dpmcb.ui.destinations.ChooserDestination
+import cz.jaro.dpmcb.ui.main.DrawerAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -140,8 +140,8 @@ fun Departures(
             delay(500)
             listState.scrollToItem(it)
         }
-        viewModel.navigate = navigator.navigateFunction
     }
+    viewModel.navigate = navigator.navigateFunction
 
     LaunchedEffect(listState) {
         withContext(Dispatchers.IO) {

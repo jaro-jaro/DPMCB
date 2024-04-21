@@ -4,11 +4,13 @@ import android.content.Context
 import android.util.Log
 import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
+import com.gitlab.mvysny.konsumexml.textRecursively
 import com.google.firebase.crashlytics.ktx.crashlytics
 import com.google.firebase.ktx.Firebase
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
+import cz.jaro.dpmcb.data.jikord.OnlineConnDetail
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.Transmitter
 import cz.jaro.dpmcb.data.jikord.toOnlineConn
@@ -92,7 +94,7 @@ class OnlineRepository(
     fun nowRunningBuses() =
         connsFlow
 
-    private val connDeatilFlowMap = mutableMapOf<String, SharedFlow<List<OnlineConnStop>?>>()
+    private val connDeatilFlowMap = mutableMapOf<String, SharedFlow<OnlineConnDetail?>>()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -136,20 +138,33 @@ class OnlineRepository(
                         text.string()
                     }
                         ?.ifBlank { null }
-                        ?.replace("<tr class=\"tAlignCentre\"><td>&darr;</td><td><hr></td><td><hr></td><td><hr></td></tr>", "")
+//                        ?.replace("<tr class=\"tAlignCentre\"><td>&darr;</td><td><hr></td><td><hr></td><td><hr></td></tr>", "")
+                        ?.replace("&darr;", "")
+                        ?.replace("<hr>", "")
                         ?.konsumeXml()
                         ?.run {
                             try {
-                                child("div") {
-                                    child("table") {
-                                        child("tr") {
-                                            childrenText("th")
+                                var line = null as Int?
+                                OnlineConnDetail(
+                                    stops = child("div") {
+                                        child("table") {
+                                            child("tr") {
+                                                childrenText("th")
+                                            }
+                                            var i = -1
+                                            children("tr") {
+                                                i++
+                                                if (attributes.getValueOrNull("class") == "tAlignCentre") {
+                                                    line = i
+                                                    textRecursively()
+                                                    null
+                                                } else
+                                                    OnlineConnStop()
+                                            }.filterNotNull()
                                         }
-                                        children("tr") {
-                                            OnlineConnStop()
-                                        }.filterNotNull()
-                                    }
-                                }
+                                    },
+                                    nextStopIndex = line,
+                                )
                             } catch (e: KonsumerException) {
                                 e.printStackTrace()
                                 Firebase.crashlytics.recordException(e)

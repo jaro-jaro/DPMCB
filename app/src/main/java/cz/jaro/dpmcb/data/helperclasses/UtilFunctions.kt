@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.navigate
@@ -337,7 +339,14 @@ object UtilFunctions {
 
     inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
-    inline val DestinationsNavigator.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
+    inline val DestinationsNavigator.navigateFunction: (Direction) -> Unit
+        @Composable get() {
+            val lifecycleOwner = LocalLifecycleOwner.current
+            return navigate@{ it: Direction ->
+                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.INITIALIZED)) return@navigate
+                this.navigate(it.work { route })
+            }
+        }
 
     fun List<Boolean>.allTrue() = all { it }
     fun List<Boolean>.anyTrue() = any { it }
