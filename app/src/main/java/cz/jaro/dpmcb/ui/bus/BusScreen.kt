@@ -352,7 +352,7 @@ fun Timetable(
                 platform = onlineStop.platform,
                 color = colorOfDelayText(onlineStop.delay.toFloat()),
             )
-            else Text("", Modifier.defaultMinSize(24.dp, 24.dp),)
+            else Text("", Modifier.defaultMinSize(24.dp, 24.dp))
         }
     }
 

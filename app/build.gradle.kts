@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.firebase.crashlytics)
 }
 
@@ -38,8 +39,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
 
-            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
+            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
         }
     }
     compileOptions {
@@ -54,9 +55,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.androidx.jetpack.compose.kotlin.compiler.get()
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -64,11 +62,6 @@ android {
     }
     applicationVariants.all {
         kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
-        sourceSets {
             getByName(name) {
                 kotlin.srcDir("build/generated/ksp/$name/kotlin")
             }

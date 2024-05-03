@@ -371,13 +371,13 @@ class LoadingViewModel(
             lines.addAll(repo.lines())
             conns.addAll(repo.conns())
 
-            val N = when {
+            val n = when {
                 changeDiagram -> 6
                 else -> 5
             }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$n)" to 0F
             }
 
             connStops.removeAll { it.tab in minusTables || it.tab in changedTables }
@@ -392,7 +392,7 @@ class LoadingViewModel(
             _state.update { it.first to 5 / 5F }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)" to 0F
             }
 
             val sequencesFile = params.sequencesFile
@@ -412,7 +412,7 @@ class LoadingViewModel(
             Firebase.remoteConfig.fetchAndActivate().await()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)" to 0F
             }
 
             plus.exctractData(sequences)
@@ -425,7 +425,7 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)" to 0F
             }
 
             changes.exctractData(sequences)

@@ -323,7 +323,7 @@ object UtilFunctions {
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
     val now get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
-    val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
+    private val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
 
     val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
