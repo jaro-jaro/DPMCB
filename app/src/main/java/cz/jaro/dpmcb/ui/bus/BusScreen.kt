@@ -224,7 +224,7 @@ private fun DoesNotExist(
     Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.Center
 ) {
-    Text("Tento kurz ($busId) bohužel neexistuje :(\nAsi jste zadali špatně ID.")
+    Text("Tento spoj ($busId) bohužel neexistuje :(\nAsi jste zadali špatně ID.")
 }
 
 context(ColumnScope)
