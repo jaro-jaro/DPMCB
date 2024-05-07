@@ -13,12 +13,16 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
@@ -27,6 +31,7 @@ import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -162,10 +167,47 @@ class MainViewModel(
         Unit
     }
 
-    val findSequences = { kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
+    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
         viewModelScope.launch {
-            callback(repo.findSequences(kurz))
+            if (kurz == "#02") callback(find02())
+            else callback(repo.findSequences(kurz))
         }
         Unit
     }
+
+    private val find02 = suspend {
+        val onlineConns = onlineRepository.nowRunningBuses().first()
+
+        val reallyRunning = onlineConns.asyncMapNotNull { onlineConn ->
+            repo.seqOfBus(onlineConn.id, LocalDate.now())
+        }
+
+        repo.nowRunningOrNot.first()
+            .map { it.first }
+            .filter { seq ->
+                seq !in reallyRunning
+            }
+            .filter { seq ->
+                val buses = repo.busStopTimesOfSequence(seq, LocalDate.now()).work() ?: return@filter false
+
+                buses.any { (lowFloor, stops) ->
+                    !lowFloor && stops.first() <= LocalTime.now() && LocalTime.now() <= stops.last()
+                }
+            }
+            .map {
+                it to repo.seqName(it)
+            }
+    }
+}
+
+suspend inline fun <T, R> Iterable<T>.asyncMap(crossinline transform: suspend (T) -> R): List<R> = supervisorScope {
+    map {
+        async { transform(it) }
+    }.awaitAll()
+}
+
+suspend inline fun <T, R> Iterable<T>.asyncMapNotNull(crossinline transform: suspend (T) -> R?): List<R> = supervisorScope {
+    map {
+        async { transform(it) }
+    }.awaitAll().filterNotNull()
 }
