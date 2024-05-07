@@ -22,6 +22,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.realtions.InfoStops
 import cz.jaro.dpmcb.data.realtions.InfoStopsCodes
 import cz.jaro.dpmcb.data.realtions.InfoStopsCodesSequence
@@ -419,6 +420,26 @@ class SpojeRepository(
         )
     }
 
+    suspend fun busStopTimesOfSequence(seq: String, date: LocalDate): List<Pair<Boolean, List<LocalTime>>>? {
+        val conns = localDataSource.connsOfSeqWithTheirConnStopTimes(seq)
+            .groupBy { it.connId to it.tab }
+            .filter { (a, _) ->
+                val (connId, tab) = a
+                val nowUsedTable = nowUsedTable(date, extractLineNumber(connId))
+                nowUsedTable == tab
+            }
+            .map { (_, stops) ->
+                stops.first().lowFloor to stops.map { it.time }.distinct()
+            }
+            .sortedBy {
+                it.second.first()
+            }
+
+        if (conns.isEmpty()) return null
+
+        return conns
+    }
+
     private suspend fun sequenceBuses(seq: String, date: LocalDate) = localDataSource.connsOfSeq(seq, allTables(date)).ifEmpty { null }
     suspend fun firstBusOfSequence(seq: String, date: LocalDate) = localDataSource.firstConnOfSeq(seq, allTables(date))
     suspend fun lastBusOfSequence(seq: String, date: LocalDate) = localDataSource.lastConnOfSeq(seq, allTables(date))
@@ -650,7 +671,7 @@ class SpojeRepository(
         }
     }
 
-    private suspend fun getSequenceComparator(): Comparator<String> {
+    suspend fun getSequenceComparator(): Comparator<String> {
         val sequenceTypes = sequenceTypes.first()
 
         return compareBy<String> {
@@ -668,6 +689,13 @@ class SpojeRepository(
             it.split("-").getOrNull(1) ?: ""
         }
     }
+
+    suspend fun seqOfBus(busId: String, date: LocalDate) =
+        localDataSource.seqOfConn(busId, nowUsedTable(date, extractLineNumber(busId))!!)
+            .toList()
+            .first { date.isThisTableNowUsed(it.first) }
+            .work()
+            .second
 }
 
 private fun String.partMayBeMissing() =

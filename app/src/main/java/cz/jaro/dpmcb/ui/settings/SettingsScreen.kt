@@ -247,23 +247,23 @@ fun SettingsScreen(
                     )
                 }
 
-                rowItem(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Speciální režim", Modifier.weight(1F))
-
-                    Switch(
-                        checked = state.settings.special,
-                        onCheckedChange = { value ->
-                            onEvent(SettingsEvent.EditSettings {
-                                it.copy(special = value)
-                            })
-                        },
-                    )
-                }
+//                rowItem(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(16.dp),
+//                    verticalAlignment = Alignment.CenterVertically,
+//                ) {
+//                    Text("Speciální režim", Modifier.weight(1F))
+//
+//                    Switch(
+//                        checked = state.settings.special,
+//                        onCheckedChange = { value ->
+//                            onEvent(SettingsEvent.EditSettings {
+//                                it.copy(special = value)
+//                            })
+//                        },
+//                    )
+//                }
 
                 rowItem(
                     modifier = Modifier

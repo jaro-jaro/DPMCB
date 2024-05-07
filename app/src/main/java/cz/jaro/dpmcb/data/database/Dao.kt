@@ -15,6 +15,7 @@ import cz.jaro.dpmcb.data.realtions.Codes
 import cz.jaro.dpmcb.data.realtions.ConnStopWithConnAndCodes
 import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodes
 import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodesTab
+import cz.jaro.dpmcb.data.realtions.LowFloorTimeConnIdTab
 import cz.jaro.dpmcb.data.realtions.NameAndTime
 import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
 import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
@@ -278,6 +279,27 @@ interface Dao {
     @Transaction
     @Query(
         """
+        SELECT (conn.fixedCodes LIKE '%24%') lowFloor, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, conn.id connId, conn.tab FROM connstop
+        JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber 
+        WHERE (
+            NOT connstop.departure IS null
+            OR NOT connstop.arrival IS null
+        )
+        AND conn.sequence LIKE :seq
+        ORDER BY CASE
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
+        END
+    """
+    )
+    suspend fun connsOfSeqWithTheirConnStopTimes(seq: String, positive: Direction = Direction.POSITIVE): List<LowFloorTimeConnIdTab>
+
+    @Transaction
+    @Query(
+        """
         SELECT DISTINCT conn.id connId FROM conn
         WHERE conn.sequence = :seq
         AND conn.tab IN (:tabs)
@@ -500,6 +522,16 @@ interface Dao {
     """
     )
     suspend fun connWithItsStops(connId: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<NameAndTime>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT conn.sequence, conn.tab FROM conn
+        WHERE conn.id = :connId
+        AND conn.tab = :tab
+    """
+    )
+    suspend fun seqOfConn(connId: String, tab: String): Map<@MapColumn("tab") String, @MapColumn("sequence") String?>
 
     @Query(
         """
