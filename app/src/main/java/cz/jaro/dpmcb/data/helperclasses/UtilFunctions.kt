@@ -453,6 +453,8 @@ object UtilFunctions {
     fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
 
     val noCode = LocalDate.of(1970, 1, 1)!!
+
+    fun Int.two() = plus(100).toString().takeLast(2)
 }
 
 typealias NavigateFunction = (Direction) -> Unit
