@@ -76,8 +76,7 @@ ksp {
 dependencies {
 
     // Core Android
-    //noinspection UseTomlInstead
-    implementation("androidx.core:core-ktx:${libs.versions.androidx.core}")
+    implementation(libs.androidx.core)
 
     // Tests
     testImplementation(libs.junit)

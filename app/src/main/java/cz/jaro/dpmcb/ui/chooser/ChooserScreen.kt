@@ -153,7 +153,7 @@ fun ChooserScreen(
                 },
             label = { Text("Vyhledávání") },
             keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
+                autoCorrectEnabled = false,
                 capitalization = KeyboardCapitalization.None,
                 keyboardType = when (type) {
                     ChooserType.Stops -> KeyboardType.Text
@@ -174,7 +174,7 @@ fun ChooserScreen(
                     ChooserType.ReturnStop2 -> ImeAction.Done
                     ChooserType.ReturnLine -> ImeAction.Done
                     ChooserType.ReturnStop -> ImeAction.Done
-                },
+                }
             ),
             keyboardActions = KeyboardActions {
                 clickedEnter()
