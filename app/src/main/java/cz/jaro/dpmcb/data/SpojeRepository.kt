@@ -716,8 +716,11 @@ private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
             "6" -> dayOfWeek == DayOfWeek.THURSDAY // jede ve čtvrtek
             "7" -> dayOfWeek == DayOfWeek.FRIDAY // jede v pátek
             "8" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
+            "9" -> dayOfWeek == DayOfWeek.SUNDAY // jede v neděli
             "14" -> null // bezbariérově přístupná zastávka
             "19" -> null // ???
+            "21" -> null // zastávka pouze pro výstup
+            "22" -> null // zastávka pouze pro nástup
             "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce
             "28" -> null // zastávka s možností přestupu na železniční dopravu
             else -> null
