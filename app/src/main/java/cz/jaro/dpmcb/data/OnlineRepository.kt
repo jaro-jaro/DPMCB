@@ -29,8 +29,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType
-import okhttp3.RequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.core.annotation.Single
 import java.time.LocalDate
 
@@ -45,42 +45,39 @@ class OnlineRepository(
     private val connsFlow: SharedFlow<List<OnlineConn>> = flow {
         while (currentCoroutineContext().isActive) {
             emit((
-                if (repo.isOnlineModeEnabled.value && repo.date.value == LocalDate.now()) withContext(Dispatchers.IO) {
-                    if (!ctx.isOnline) return@withContext null
-                    val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
-                    val response = try {
-                        onlineApi.mapData(
-                            headers = headers,
-                            body = RequestBody.create(
-                                MediaType.parse("application/json; charset=utf-8"),
-                                data
-                            ),
-                        )
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Firebase.crashlytics.recordException(e)
-                        return@withContext null
-                    }
+                    if (repo.isOnlineModeEnabled.value && repo.date.value == LocalDate.now()) withContext(Dispatchers.IO) {
+                        if (!ctx.isOnline) return@withContext null
+                        val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
+                        val response = try {
+                            onlineApi.mapData(
+                                headers = headers,
+                                body = data.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Firebase.crashlytics.recordException(e)
+                            return@withContext null
+                        }
 
-                    if (response.code() != 200) return@withContext null
+                        if (response.code() != 200) return@withContext null
 
-                    val text = response.body() ?: return@withContext null
-                    try {
-                        json.decodeFromString<MapData>(text.string())
-                    } catch (e: SerializationException) {
-                        e.printStackTrace()
-                        Firebase.crashlytics.recordException(e)
-                        null
+                        val text = response.body() ?: return@withContext null
+                        try {
+                            json.decodeFromString<MapData>(text.string())
+                        } catch (e: SerializationException) {
+                            e.printStackTrace()
+                            Firebase.crashlytics.recordException(e)
+                            null
+                        }
                     }
-                }
-                    ?.transmitters
-                    ?.filter {
-                        it.cn?.startsWith("325") ?: false
-                    }
-                    ?.map(Transmitter::toOnlineConn)
-                    ?: emptyList()
-                else emptyList()
-            ))
+                        ?.transmitters
+                        ?.filter {
+                            it.cn?.startsWith("325") ?: false
+                        }
+                        ?.map(Transmitter::toOnlineConn)
+                        ?: emptyList()
+                    else emptyList()
+                    ))
             delay(5000)
         }
     }
@@ -118,10 +115,7 @@ class OnlineRepository(
                         val response = try {
                             onlineApi.timetable(
                                 headers = headers,
-                                body = RequestBody.create(
-                                    MediaType.parse("application/json; charset=utf-8"),
-                                    """{"num1":"${busId.split("-")[1]}","num2":"${busId.split("-")[2]}","cat":"2"}"""
-                                ),
+                                body = """{"num1":"${busId.split("-")[1]}","num2":"${busId.split("-")[2]}","cat":"2"}""".toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()

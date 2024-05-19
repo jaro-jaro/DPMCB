@@ -84,9 +84,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // PDF Viewer
-    implementation(libs.pdf.viewer)
-
     // Kotlinx Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
@@ -157,4 +154,9 @@ dependencies {
     implementation(libs.aalto.xml)
 
     implementation(libs.androidx.browser)
+
+    // PDF Viewer
+//    implementation(libs.pdf.viewer)
+    implementation(libs.coil)
+    implementation(libs.coil.compose)
 }
