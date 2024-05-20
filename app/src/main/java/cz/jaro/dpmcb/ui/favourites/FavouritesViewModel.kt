@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
-import cz.jaro.dpmcb.ui.destinations.BusDestination
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -36,11 +36,11 @@ class FavouritesViewModel(
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBusToday -> {
-                params.navigate(BusDestination(e.id))
+                params.navigate(Route.Bus(e.id))
             }
 
             is FavouritesEvent.NavToBusOtherDay -> {
-                params.navigate(BusDestination(e.id))
+                params.navigate(Route.Bus(e.id))
             }
         }
     }

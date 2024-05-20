@@ -14,14 +14,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.ramcosta.composedestinations.spec.Direction
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SettingsActivity
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.destinations.CardDestination
-import cz.jaro.dpmcb.ui.destinations.ChooserDestination
-import cz.jaro.dpmcb.ui.destinations.MapDestination
-import cz.jaro.dpmcb.ui.destinations.NowRunningDestination
 import kotlin.reflect.KClass
 
 
@@ -30,7 +26,7 @@ enum class DrawerAction(
     val icon: ImageVector,
     val multiselect: Boolean,
     val onClick: (
-        navigate: (direction: Direction) -> Unit,
+        navigate: NavigateFunction,
         close: () -> Unit,
         startActivity: (KClass<out Activity>) -> Unit,
     ) -> Unit,
@@ -41,7 +37,7 @@ enum class DrawerAction(
         true,
         onClick = { navigate, zavrit, _ ->
             navigate(
-                SpojeniScreenDestination()
+                Route.SpojeniScreen)
             )
             zavrit()
         }
@@ -53,7 +49,7 @@ enum class DrawerAction(
         onClick = { navigate, close, _ ->
 
             navigate(
-                cz.jaro.dpmcb.ui.destinations.FavouritesDestination()
+                Route.Favourites
             )
             close()
         }
@@ -65,7 +61,7 @@ enum class DrawerAction(
         onClick = { navigate, close, _ ->
 
             navigate(
-                ChooserDestination(
+                Route.Chooser(
                     type = ChooserType.Stops,
                     lineNumber = -1,
                     stop = null
@@ -81,7 +77,7 @@ enum class DrawerAction(
         onClick = { navigate, close, _ ->
 
             navigate(
-                NowRunningDestination()
+                Route.NowRunning()
             )
             close()
         }
@@ -93,7 +89,7 @@ enum class DrawerAction(
         onClick = { navigate, close, _ ->
 
             navigate(
-                ChooserDestination(
+                Route.Chooser(
                     type = ChooserType.Lines,
                     lineNumber = -1,
                     stop = null,
@@ -115,7 +111,7 @@ enum class DrawerAction(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                CardDestination()
+                Route.Card
             )
             zavrit()
         }
@@ -127,7 +123,7 @@ enum class DrawerAction(
         onClick = { navigate, zavrit, _ ->
 
             navigate(
-                MapDestination()
+                Route.Map
             )
             zavrit()
         }

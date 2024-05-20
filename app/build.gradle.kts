@@ -137,10 +137,6 @@ dependencies {
     implementation(libs.koin.compose)
     ksp(libs.koin.annotations.ksp)
 
-    // Compose Destinations
-    implementation(libs.compose.destinations.core)
-    ksp(libs.compose.destinations.ksp)
-
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
 
@@ -156,4 +152,5 @@ dependencies {
     implementation(libs.aalto.xml)
 
     implementation(libs.androidx.browser)
+    implementation(kotlin("reflect"))
 }

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.net.Uri
+import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,15 +65,16 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
-import com.ramcosta.composedestinations.DestinationsNavHost
-import com.ramcosta.composedestinations.spec.DestinationSpec
-import com.ramcosta.composedestinations.utils.destination
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
@@ -83,15 +85,49 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
-import cz.jaro.dpmcb.ui.NavGraphs
-import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
+import cz.jaro.dpmcb.ui.bus.Bus
+import cz.jaro.dpmcb.ui.card.Card
+import cz.jaro.dpmcb.ui.chooser.Chooser
+import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.favourites.Favourites
+import cz.jaro.dpmcb.ui.map.Map
+import cz.jaro.dpmcb.ui.now_running.NowRunning
+import cz.jaro.dpmcb.ui.now_running.NowRunningType
+import cz.jaro.dpmcb.ui.sequence.Sequence
+import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
+import kotlin.reflect.typeOf
+
+inline fun <reified T> getKotlinxSerializationType(
+    serializer: KSerializer<T> = serializer(),
+) = typeOf<T>() to getKotlinxSerializationNavType<T>(
+    serializer = serializer
+)
+
+inline fun <reified T> getKotlinxSerializationNavType(
+    serializer: KSerializer<T> = serializer(),
+) = object : NavType<T>(isNullableAllowed = true) {
+    override fun get(bundle: Bundle, key: String): T? =
+        bundle.getString(key)?.let(::parseValue)
+
+    override fun put(bundle: Bundle, key: String, value: T) =
+        bundle.putString(key, serializeAsValue(value))
+
+    override fun parseValue(value: String) = Json.decodeFromString(serializer, value)
+
+    override fun serializeAsValue(value: T) = Json.encodeToString(serializer, value)
+
+    override val name: String = T::class.java.simpleName
+}
 
 @Composable
 fun Main(
@@ -104,11 +140,11 @@ fun Main(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
-        val destinationFlow = navController.appCurrentDestinationFlow
+        val destinationFlow = navController.currentBackStackEntryFlow
 
         destinationFlow.collect { destination ->
             Firebase.analytics.logEvent("navigation") {
-                param("route", destination.route)
+                param("route", destination.destination.route ?: "")
             }
         }
     }
@@ -148,10 +184,7 @@ fun Main(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
-                @Suppress("UNCHECKED_CAST")
-                val dest = entry.destination() as DestinationSpec<Any>
-
-                App.route = dest(dest.argsFrom(entry)).route
+                App.route = entry.destination.route ?: ""
             }
         }
     }
@@ -199,10 +232,59 @@ fun Main(
         findBusByEvn = viewModel.findBusByEvn,
         findSequences = viewModel.findSequences,
     ) {
-        DestinationsNavHost(
+        NavHost(
             navController = navController,
-            navGraph = NavGraphs.root
-        )
+            startDestination = Route.Favourites,
+        ) {
+            composable<Route.Favourites> {
+                val args = it.toRoute<Route.Favourites>()
+                Favourites(args = args, navController = navController)
+            }
+            composable<Route.Chooser>(
+                typeMap = mapOf(
+                    getKotlinxSerializationType<ChooserType>()
+                )
+            ) {
+                val args = it.toRoute<Route.Chooser>()
+                Chooser(args = args, navController = navController)
+            }
+//            composable<Route.Departures>(
+//                typeMap = mapOf(
+//                    getKotlinxSerializationType<@Serializable(with = NullableLocalTimeSerializer::class) LocalTime?>(serializer = NullableLocalTimeSerializer())
+//                )
+//            ) {
+//                val args = it.toRoute<Route.Departures>()
+//                Departures(args = args, navController = navController)
+//            }
+            composable<Route.NowRunning>(
+                typeMap = mapOf(
+                    getKotlinxSerializationType<NowRunningType>()
+                )
+            ) {
+                val args = it.toRoute<Route.NowRunning>()
+                NowRunning(args = args, navController = navController)
+            }
+            composable<Route.Timetable> {
+                val args = it.toRoute<Route.Timetable>()
+                Timetable(args = args, navController = navController)
+            }
+            composable<Route.Bus> {
+                val args = it.toRoute<Route.Bus>()
+                Bus(args = args, navController = navController)
+            }
+            composable<Route.Sequence> {
+                val args = it.toRoute<Route.Sequence>()
+                Sequence(args = args, navController = navController)
+            }
+            composable<Route.Card> {
+                val args = it.toRoute<Route.Card>()
+                Card(args = args, navController = navController)
+            }
+            composable<Route.Map> {
+                val args = it.toRoute<Route.Map>()
+                Map(args = args, navController = navController)
+            }
+        }
     }
 }
 

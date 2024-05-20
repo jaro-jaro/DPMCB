@@ -25,8 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
@@ -36,20 +35,19 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
-@Destination
 fun NowRunning(
-    filters: IntArray = intArrayOf(),
-    type: NowRunningType = NowRunningType.Line,
-    navigator: DestinationsNavigator,
+    args: Route.NowRunning,
+    navController: NavHostController,
     viewModel: NowRunningViewModel = run {
-        val navigate = navigator.navigateFunction
+        val navigate = navController.navigateFunction
         koinViewModel {
-            parametersOf(NowRunningViewModel.Parameters(filters = filters.toList(), type = type, navigate = navigate))
+            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type, navigate = navigate))
         }
     },
 ) {

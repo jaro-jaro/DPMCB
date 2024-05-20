@@ -38,7 +38,7 @@ pdf-viewer = "2.8.2"
 retrofit = "2.9.0"
 semver = "2.0.0"
 stax-api = "1.0-2"
-firebase-config-ktx = "22.0.0"
+firebase-config = "22.0.0"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -61,14 +61,12 @@ androidx-jetpack-room-runtime = { module = "androidx.room:room-runtime", version
 androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-junit" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle-compose" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle-compose" }
-compose-destinations-core = { module = "io.github.raamcosta.compose-destinations:core", version.ref = "compose-destinations" }
-compose-destinations-ksp = { module = "io.github.raamcosta.compose-destinations:ksp", version.ref = "compose-destinations" }
 compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
-firebase-common = { module = "com.google.firebase:firebase-common-ktx", version.ref = "firebase-common" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx", version.ref = "firebase-crashlytics" }
-firebase-database = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebase-database" }
-firebase-storage = { module = "com.google.firebase:firebase-storage-ktx", version.ref = "firebase-storage" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebase-analytics" }
+firebase-common = { module = "com.google.firebase:firebase-common", version.ref = "firebase-common" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebase-crashlytics" }
+firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebase-database" }
+firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebase-storage" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit = { module = "junit:junit", version.ref = "junit" }
 koin-annotations-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
@@ -84,7 +82,7 @@ pdf-viewer = { module = "com.github.barteksc:android-pdf-viewer", version.ref = 
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 stax-api = { module = "javax.xml.stream:stax-api", version.ref = "stax-api" }
-firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebase-config-ktx" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebase-config" }
 
 [plugins]
 android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }

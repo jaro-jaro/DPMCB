@@ -36,42 +36,39 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.result.ResultBackNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@Destination
 @Composable
 fun Chooser(
-    navigator: DestinationsNavigator,
-    resultNavigator: ResultBackNavigator<Result>,
-    type: ChooserType,
-    lineNumber: Int = -1,
-    stop: String? = null,
+    navController: NavHostController,
+    args: Route.Chooser,
     viewModel: ChooserViewModel = run {
-        val navigate = navigator.navigateFunction
+        val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(ChooserViewModel.Parameters(
-                type = type,
-                lineNumber = lineNumber,
-                stop = stop,
+                type = args.type,
+                lineNumber = args.lineNumber,
+                stop = args.stop,
                 navigate = navigate,
-                navigateBack = { it: Result -> resultNavigator.navigateBack(it) }
+                navigateBack = { it: Result ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+                }
             ))
         }
     },
 ) {
-    title = when (type) {
+    title = when (args.type) {
         ChooserType.Stops -> R.string.departures
         ChooserType.Lines -> R.string.timetable
         ChooserType.LineStops -> R.string.timetable
@@ -81,7 +78,7 @@ fun Chooser(
         ChooserType.ReturnLine -> R.string.departures
         ChooserType.ReturnStop -> R.string.departures
     }
-    selected = when (type) {
+    selected = when (args.type) {
         ChooserType.Stops -> DrawerAction.Departures
         ChooserType.Lines -> DrawerAction.Timetable
         ChooserType.LineStops -> DrawerAction.Timetable
@@ -96,7 +93,7 @@ fun Chooser(
     val list by viewModel.list.collectAsStateWithLifecycle()
 
     ChooserScreen(
-        type = type,
+        type = args.type,
         info = viewModel.info,
         search = search,
         wroteSomething = viewModel::wroteSomething,

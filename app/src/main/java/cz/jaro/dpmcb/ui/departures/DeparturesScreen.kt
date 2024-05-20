@@ -61,12 +61,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.result.NavResult
-import com.ramcosta.composedestinations.result.ResultRecipient
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
@@ -83,8 +81,8 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
-import cz.jaro.dpmcb.ui.destinations.ChooserDestination
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -94,36 +92,31 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.Duration
 import java.time.LocalDate
-import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-@Destination
 @Composable
 fun Departures(
-    stop: String,
-    time: LocalTime? = null,
-    line: Int? = null,
-    via: String? = null,
+    args: Route.Departures,
     viewModel: DeparturesViewModel = koinViewModel {
         parametersOf(
             DeparturesViewModel.Parameters(
-                stop = stop,
-                time = time ?: now,
-                line = line,
-                via = via
+                stop = args.stop,
+                time = args.time ?: now,
+                line = args.line,
+                via = args.via
             )
         )
     },
-    navigator: DestinationsNavigator,
-    resultRecipient: ResultRecipient<ChooserDestination, Result>,
+    navController: NavHostController,
 ) {
-    resultRecipient.onNavResult { result ->
-        when (result) {
-            is NavResult.Canceled -> {}
-            is NavResult.Value -> {
-                viewModel.onEvent(WentBack(result.value))
-            }
+    LifecycleResumeEffect(Unit) {
+        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
+
+        if (result != null) viewModel.onEvent(WentBack(result))
+
+        onPauseOrDispose {
+            navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
         }
     }
 
@@ -141,7 +134,7 @@ fun Departures(
             listState.scrollToItem(it)
         }
     }
-    viewModel.navigate = navigator.navigateFunction
+    viewModel.navigate = navController.navigateFunction
 
     LaunchedEffect(listState) {
         withContext(Dispatchers.IO) {
@@ -159,11 +152,11 @@ fun Departures(
     DeparturesScreen(
         info = info,
         state = state,
-        stop = stop,
+        stop = args.stop,
         onEvent = viewModel::onEvent,
         listState = listState,
         date = date,
-        navigate = navigator.navigateFunction,
+        navigate = navController.navigateFunction,
         isOnline = isOnline,
     )
 }
@@ -232,7 +225,7 @@ fun DeparturesScreen(
         ) {
             TextButton(
                 onClick = {
-                    navigate(ChooserDestination(ChooserType.Stops))
+                    navigate(Route.Chooser(ChooserType.Stops))
                 },
             ) {
                 Text(
@@ -356,7 +349,7 @@ fun DeparturesScreen(
             val linePressedState by lineSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (linePressedState is PressInteraction.Release) {
                 navigate(
-                    ChooserDestination(
+                    Route.Chooser(
                         type = ChooserType.ReturnLine,
                     )
                 )
@@ -393,7 +386,7 @@ fun DeparturesScreen(
             val stopPressedState by stopSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (stopPressedState is PressInteraction.Release) {
                 navigate(
-                    ChooserDestination(
+                    Route.Chooser(
                         type = ChooserType.ReturnStop,
                     )
                 )
