@@ -83,6 +83,7 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.toLocalTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -102,8 +103,8 @@ fun Departures(
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
-                time = args.time ?: now,
-                line = args.line,
+                time = args.time?.toLocalTime() ?: now,
+                line = args.line.takeUnless { it == 0 },
                 via = args.via
             )
         )

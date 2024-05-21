@@ -87,6 +87,7 @@ import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.toSimpleTime
 import cz.jaro.dpmcb.ui.sequence.DelayBubble
 import cz.jaro.dpmcb.ui.sequence.Name
 import cz.jaro.dpmcb.ui.sequence.Vehicle
@@ -901,7 +902,7 @@ fun MyText(
             onClick = {
                 navigate(
                     Route.Departures(
-                        time = time,
+                        time = time.toSimpleTime(),
                         stop = stop,
                     )
                 )
@@ -934,7 +935,7 @@ fun MyText(
                 onClick = {
                     navigate(
                         Route.Departures(
-                            time = time,
+                            time = time.toSimpleTime(),
                             stop = stop,
                         )
                     )

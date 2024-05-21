@@ -1,9 +1,11 @@
 package cz.jaro.dpmcb.ui.main
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ShortcutManager
 import android.net.Uri
+import android.os.BaseBundle
 import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -65,10 +67,13 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
+import androidx.navigation.serialization.generateRouteWithArgs
 import androidx.navigation.toRoute
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
@@ -85,10 +90,12 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
@@ -127,6 +134,60 @@ inline fun <reified T> getKotlinxSerializationNavType(
     override fun serializeAsValue(value: T) = Json.encodeToString(serializer, value)
 
     override val name: String = T::class.java.simpleName
+}
+
+inline fun <reified T : Route> typeMap() = when (T::class) {
+    Route.Chooser::class -> mapOf(getKotlinxSerializationType<ChooserType>())
+    Route.Departures::class -> mapOf(getKotlinxSerializationType<SimpleTime?>())
+    Route.NowRunning::class -> mapOf(getKotlinxSerializationType<NowRunningType>())
+    else -> emptyMap()
+}
+inline fun <reified T : Route> deepLinks() = listOf(
+    navDeepLink<T>(
+        basePath = T::class.baseRoute,
+        typeMap = typeMap<T>(),
+    )
+)
+
+val <T : Route> KClass<T>.baseRoute get() = "https://jaro-jaro.github.io/DPMCB/" + when (this) {
+    Route.Bus::class -> "bus"
+    Route.Card::class -> "card"
+    Route.Chooser::class -> "chooser"
+    Route.Departures::class -> "departures"
+    Route.Favourites::class -> "favourites"
+    Route.Map::class -> "map"
+    Route.NowRunning::class -> "now_running"
+    Route.Sequence::class -> "sequence"
+    Route.Timetable::class -> "timetable"
+    else -> ""
+}
+
+val NavBackStackEntry.route get() = toMyRoute()::class.baseRoute + (destination.route?.split("/", "?", limit = 2)?.getOrNull(1) ?: "")
+val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.baseRoute + (generateRouteWithArgs().split("/", "?", limit = 2).getOrNull(1) ?: "")
+
+
+@SuppressLint("RestrictedApi")
+private fun NavBackStackEntry.generateRouteWithArgs(): String {
+    return toMyRoute().generateRouteWithArgs(
+        destination.arguments.mapValues { it.value.type }
+    )
+}
+
+//val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.declaredMemberProperties.fold(route) { route, property ->
+//    route.replace("{${property.name}}", property.get(toMyRoute()))
+//}
+
+fun NavBackStackEntry.toMyRoute() = when(val a = destination.route?.split("/", "?", limit = 2)?.first()) {
+    "Bus" -> toRoute<Route.Bus>()
+    "Card" -> toRoute<Route.Card>()
+    "Chooser" -> toRoute<Route.Chooser>()
+    "Departures" -> toRoute<Route.Departures>()
+    "Favourites" -> toRoute<Route.Favourites>()
+    "Map" -> toRoute<Route.Map>()
+    "NowRunning" -> toRoute<Route.NowRunning>()
+    "Sequence" -> toRoute<Route.Sequence>()
+    "Timetable" -> toRoute<Route.Timetable>()
+    else -> error("Invalid route: ${destination.route}, $a")
 }
 
 @Composable
@@ -184,7 +245,8 @@ fun Main(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
-                App.route = entry.destination.route ?: ""
+                if (entry.destination.route.work() == null) return@collect
+                App.route = entry.routeWithArgs
             }
         }
     }
@@ -236,57 +298,75 @@ fun Main(
             navController = navController,
             startDestination = Route.Favourites,
         ) {
-            composable<Route.Favourites> {
+            composable<Route.Favourites>(
+                typeMap = typeMap<Route.Favourites>(),
+                deepLinks = deepLinks<Route.Favourites>(),
+            ) {
                 val args = it.toRoute<Route.Favourites>()
                 Favourites(args = args, navController = navController)
             }
             composable<Route.Chooser>(
-                typeMap = mapOf(
-                    getKotlinxSerializationType<ChooserType>()
-                )
+                typeMap = typeMap<Route.Chooser>(),
+                deepLinks = deepLinks<Route.Chooser>(),
             ) {
                 val args = it.toRoute<Route.Chooser>()
                 Chooser(args = args, navController = navController)
             }
-//            composable<Route.Departures>(
-//                typeMap = mapOf(
-//                    getKotlinxSerializationType<@Serializable(with = NullableLocalTimeSerializer::class) LocalTime?>(serializer = NullableLocalTimeSerializer())
-//                )
-//            ) {
-//                val args = it.toRoute<Route.Departures>()
-//                Departures(args = args, navController = navController)
-//            }
+            composable<Route.Departures>(
+                typeMap = typeMap<Route.Departures>(),
+                deepLinks = deepLinks<Route.Departures>(),
+            ) {
+                val args = it.toRoute<Route.Departures>()
+                Departures(args = args, navController = navController)
+            }
             composable<Route.NowRunning>(
-                typeMap = mapOf(
-                    getKotlinxSerializationType<NowRunningType>()
-                )
+                typeMap = typeMap<Route.NowRunning>(),
+                deepLinks = deepLinks<Route.NowRunning>(),
             ) {
                 val args = it.toRoute<Route.NowRunning>()
                 NowRunning(args = args, navController = navController)
             }
-            composable<Route.Timetable> {
+            composable<Route.Timetable>(
+                typeMap = typeMap<Route.Timetable>(),
+                deepLinks = deepLinks<Route.Timetable>(),
+            ) {
                 val args = it.toRoute<Route.Timetable>()
                 Timetable(args = args, navController = navController)
             }
-            composable<Route.Bus> {
+            composable<Route.Bus>(
+                typeMap = typeMap<Route.Bus>(),
+                deepLinks = deepLinks<Route.Bus>(),
+            ) {
                 val args = it.toRoute<Route.Bus>()
                 Bus(args = args, navController = navController)
             }
-            composable<Route.Sequence> {
+            composable<Route.Sequence>(
+                typeMap = typeMap<Route.Sequence>(),
+                deepLinks = deepLinks<Route.Sequence>(),
+            ) {
                 val args = it.toRoute<Route.Sequence>()
                 Sequence(args = args, navController = navController)
             }
-            composable<Route.Card> {
+            composable<Route.Card>(
+                typeMap = typeMap<Route.Card>(),
+                deepLinks = deepLinks<Route.Card>(),
+            ) {
                 val args = it.toRoute<Route.Card>()
                 Card(args = args, navController = navController)
             }
-            composable<Route.Map> {
+            composable<Route.Map>(
+                typeMap = typeMap<Route.Map>(),
+                deepLinks = deepLinks<Route.Map>(),
+            ) {
                 val args = it.toRoute<Route.Map>()
                 Map(args = args, navController = navController)
             }
         }
     }
 }
+
+@Suppress("DEPRECATION")
+private fun BaseBundle.toMap() = keySet().associateWith(::get)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
@@ -333,16 +335,16 @@ object UtilFunctions {
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
+//    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
-//    inline val DestinationsNavigator.navigateFunction: (Direction) -> Unit
-//        @Composable get() {
-//            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-//            return navigate@{ it: Direction ->
-//                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.INITIALIZED)) return@navigate
-//                this.navigate(it.work { route })
-//            }
-//        }
+    inline val NavHostController.navigateFunction: (Route) -> Unit
+        @Composable get() {
+            val lifecycleOwner = LocalLifecycleOwner.current
+            return navigate@{ it: Route ->
+                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) return@navigate
+                this.navigate(it.work())
+            }
+        }
 
     fun List<Boolean>.allTrue() = all { it }
     fun List<Boolean>.anyTrue() = any { it }
