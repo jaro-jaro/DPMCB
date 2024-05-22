@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.main
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.net.Uri
 import android.os.BaseBundle
@@ -142,28 +143,39 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.NowRunning::class -> mapOf(getKotlinxSerializationType<NowRunningType>())
     else -> emptyMap()
 }
+
 inline fun <reified T : Route> deepLinks() = listOf(
     navDeepLink<T>(
-        basePath = T::class.baseRoute,
+        basePath = T::class.basePath,
         typeMap = typeMap<T>(),
     )
 )
 
-val <T : Route> KClass<T>.baseRoute get() = "https://jaro-jaro.github.io/DPMCB/" + when (this) {
-    Route.Bus::class -> "bus"
-    Route.Card::class -> "card"
-    Route.Chooser::class -> "chooser"
-    Route.Departures::class -> "departures"
-    Route.Favourites::class -> "favourites"
-    Route.Map::class -> "map"
-    Route.NowRunning::class -> "now_running"
-    Route.Sequence::class -> "sequence"
-    Route.Timetable::class -> "timetable"
+val <T : Route> KClass<T>.basePath
+    get() = "https://jaro-jaro.github.io/DPMCB$baseRoute"
+
+val <T : Route> KClass<T>.baseRoute
+    get() = when (this) {
+        Route.Bus::class -> "/bus"
+        Route.Card::class -> "/card"
+        Route.Chooser::class -> "/chooser"
+        Route.Departures::class -> "/departures"
+        Route.Favourites::class -> "/favourites"
+        Route.Map::class -> "/map"
+        Route.NowRunning::class -> "/now_running"
+        Route.Sequence::class -> "/sequence"
+        Route.Timetable::class -> "/timetable"
+        else -> ""
+    }
+
+val NavBackStackEntry.route get() = toMyRoute()::class.baseRoute + (destination.route?.arguments() ?: "")
+val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.baseRoute + generateRouteWithArgs().arguments().replace("\"", "")
+
+private fun String.arguments() = when {
+    contains("/") -> "/" + split("/", limit = 2)[1]
+    contains("?") -> "?" + split("?")[1]
     else -> ""
 }
-
-val NavBackStackEntry.route get() = toMyRoute()::class.baseRoute + (destination.route?.split("/", "?", limit = 2)?.getOrNull(1) ?: "")
-val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.baseRoute + (generateRouteWithArgs().split("/", "?", limit = 2).getOrNull(1) ?: "")
 
 
 @SuppressLint("RestrictedApi")
@@ -177,7 +189,7 @@ private fun NavBackStackEntry.generateRouteWithArgs(): String {
 //    route.replace("{${property.name}}", property.get(toMyRoute()))
 //}
 
-fun NavBackStackEntry.toMyRoute() = when(val a = destination.route?.split("/", "?", limit = 2)?.first()) {
+fun NavBackStackEntry.toMyRoute() = when (val a = destination.route?.split("/", "?", limit = 2)?.first()) {
     "Bus" -> toRoute<Route.Bus>()
     "Card" -> toRoute<Route.Card>()
     "Chooser" -> toRoute<Route.Chooser>()
@@ -472,7 +484,7 @@ fun MainScreen(
                                 Text("Sdílet spoj")
                             },
                             onClick = {
-                                val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
+                                val deeplink = "https://jaro-jaro.github.io/DPMCB${App.route}"
                                 ctx.startActivity(Intent.createChooser(Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, deeplink)
@@ -515,10 +527,8 @@ fun MainScreen(
                             TextButton(onClick = {
                                 if (shortcutManager.isRequestPinShortcutSupported) {
 
-                                    val baseRoute = route.split("/")[0]
-
-                                    val pinShortcutInfo = android.content.pm.ShortcutInfo
-                                        .Builder(ctx, "shortcut-$baseRoute-$label")
+                                    val pinShortcutInfo = ShortcutInfo
+                                        .Builder(ctx, "$route-$label")
                                         .setShortLabel(label)
                                         .setLongLabel(label)
                                         .setIcon(
@@ -526,7 +536,7 @@ fun MainScreen(
                                                 ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/$route")))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB$route")))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)

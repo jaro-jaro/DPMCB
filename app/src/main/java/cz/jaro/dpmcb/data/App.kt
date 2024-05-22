@@ -23,7 +23,7 @@ import retrofit2.Retrofit
 class App : Application() {
 
     companion object {
-        var route by mutableStateOf("oblibene")
+        var route by mutableStateOf("/favourites")
         var title by mutableIntStateOf(R.string.app_name)
         var selected by mutableStateOf(null as DrawerAction?)
     }

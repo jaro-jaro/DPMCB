@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.helperclasses.TableType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -158,12 +159,13 @@ class LoadingViewModel(
     }
 
     private fun resolveLink(baseIntent: Intent): Intent {
-        if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
-            openAppDetails()
-        }
-
         params.uri?.let {
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
+
+            val link = it.removePrefix("/DPMCB")
+
+            if (link == "/app-details") openAppDetails()
+
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link.work())
         }
 
         return baseIntent

@@ -106,7 +106,7 @@ class MainViewModel(
                 try {
                     withContext(Dispatchers.Main) {
                         App.selected = null
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks())
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks().work())
                         closeDrawer()
                     }
                 } catch (_: IllegalArgumentException) {
