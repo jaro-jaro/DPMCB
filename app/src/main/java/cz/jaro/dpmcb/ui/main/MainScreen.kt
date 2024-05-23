@@ -91,7 +91,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -132,16 +131,16 @@ inline fun <reified T> getKotlinxSerializationNavType(
     serializer: KSerializer<T> = serializer(),
 ) = object : NavType<T>(isNullableAllowed = true) {
     override fun get(bundle: Bundle, key: String): T? =
-        bundle.getString(key.work("A"))?.let(::parseValue)
+        bundle.getString(key)?.let(::parseValue)
 
     override fun put(bundle: Bundle, key: String, value: T) =
-        bundle.putString(key.work("C"), serializeAsValue(value))
+        bundle.putString(key, serializeAsValue(value))
 
     override fun parseValue(value: String) = Json.decodeFromString(serializer, value)
 
     override fun serializeAsValue(value: T) = Json.encodeToString(serializer, value)
 
-    override val name: String = serializer.descriptor.serialName.work("O")
+    override val name: String = serializer.descriptor.serialName
 }
 
 inline fun <reified T : Route> typeMap() = when (T::class) {
@@ -169,7 +168,7 @@ val <T : Route> KClass<T>.baseRoute
 private fun NavBackStackEntry.generateRouteWithArgs(): String {
     return toMyRoute().generateRouteWithArgs(
         destination.arguments.mapValues { it.value.type }
-    ).work()
+    )
 }
 
 fun NavBackStackEntry.toMyRoute() = when (val a = destination.route?.split("/", "?", limit = 2)?.first()) {

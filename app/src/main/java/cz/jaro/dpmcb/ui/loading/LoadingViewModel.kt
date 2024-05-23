@@ -165,7 +165,7 @@ class LoadingViewModel(
 
             if (link == "/app-details") openAppDetails()
 
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link.work(2))
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link)
         }
 
         return baseIntent

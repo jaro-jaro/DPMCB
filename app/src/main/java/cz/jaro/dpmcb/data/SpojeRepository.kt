@@ -694,7 +694,6 @@ class SpojeRepository(
         localDataSource.seqOfConn(busId, nowUsedTable(date, extractLineNumber(busId))!!)
             .toList()
             .first { date.isThisTableNowUsed(it.first) }
-            .work()
             .second
 }
 

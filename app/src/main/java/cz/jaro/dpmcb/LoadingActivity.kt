@@ -19,7 +19,7 @@ class LoadingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         val update = intent.getBooleanExtra("update", false)
-        val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }.work(1)
+        val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }
 
         val repo by inject<SpojeRepository>()
 

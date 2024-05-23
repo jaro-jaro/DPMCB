@@ -82,7 +82,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
 import cz.jaro.dpmcb.ui.main.DrawerAction
@@ -234,7 +233,6 @@ private fun Errors(
     busId: String,
     date: LocalDate,
 ) {
-    runsNextTimeAfterDate.work(runsNextTimeAfterToday)
     ErrorMessage(
         when {
             runsNextTimeAfterDate == null && runsNextTimeAfterToday == null ->
