@@ -39,35 +39,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
-import cz.jaro.dpmcb.ui.destinations.BusDestination
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@Destination
 @Composable
 fun Timetable(
-    lineNumber: Int,
-    stop: String,
-    nextStop: String,
+    args: Route.Timetable,
     viewModel: TimetableViewModel = koinViewModel {
         parametersOf(
             TimetableViewModel.Parameters(
-                lineNumber = lineNumber,
-                stop = stop,
-                nextStop = nextStop
+                lineNumber = args.lineNumber,
+                stop = args.stop,
+                nextStop = args.nextStop,
             )
         )
     },
-    navigator: DestinationsNavigator,
+    navController: NavHostController,
 ) {
     title = R.string.timetable
     selected = DrawerAction.Timetable
@@ -76,11 +72,11 @@ fun Timetable(
     val showLowFloorFromLastTime by viewModel.showLowFloorFromLastTime.collectAsStateWithLifecycle()
 
     TimetableScreen(
-        lineNumber = lineNumber,
-        stop = stop,
-        nextStop = nextStop,
+        lineNumber = args.lineNumber,
+        stop = args.stop,
+        nextStop = args.nextStop,
         state = state,
-        navigate = navigator.navigateFunction,
+        navigate = navController.navigateFunction,
         showLowFloorFromLastTime = showLowFloorFromLastTime,
         editShowLowFloor = viewModel::editShowLowFloor,
     )
@@ -227,7 +223,7 @@ fun ColumnScope.DepartureRow(
                     },
                     onClick = {
                         navigate(
-                            BusDestination(
+                            Route.Bus(
                                 busId = busId,
                             )
                         )
@@ -240,7 +236,7 @@ fun ColumnScope.DepartureRow(
                     .clip(CircleShape)
                     .combinedClickable(
                         onClick = {
-                            navigate(BusDestination(busId = busId))
+                            navigate(Route.Bus(busId = busId))
                         },
                         onLongClick = {
                             showDropDown = true

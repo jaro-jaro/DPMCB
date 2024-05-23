@@ -70,8 +70,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
@@ -83,12 +82,11 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
-import cz.jaro.dpmcb.ui.destinations.DeparturesDestination
-import cz.jaro.dpmcb.ui.destinations.TimetableDestination
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.toSimpleTime
 import cz.jaro.dpmcb.ui.sequence.DelayBubble
 import cz.jaro.dpmcb.ui.sequence.Name
 import cz.jaro.dpmcb.ui.sequence.Vehicle
@@ -99,18 +97,17 @@ import org.koin.core.parameter.ParametersHolder
 import java.time.LocalDate
 import java.time.LocalTime
 
-@Destination
 @Composable
 fun Bus(
-    busId: String,
-    navigator: DestinationsNavigator,
+    args: Route.Bus,
+    navController: NavHostController,
     viewModel: BusViewModel = run {
-        val navigate = navigator.navigateFunction
+        val navigate = navController.navigateFunction
         val pop = {
-            navigator.popBackStack()
+            navController.popBackStack()
         }
         koinViewModel {
-            ParametersHolder(mutableListOf(busId, navigate, pop))
+            ParametersHolder(mutableListOf(args.busId, navigate, pop))
         }
     },
 ) {
@@ -121,7 +118,7 @@ fun Bus(
 
     BusScreen(
         state = state,
-        navigate = navigator.navigateFunction,
+        navigate = navController.navigateFunction,
         onEvent = viewModel::onEvent,
     )
 }
@@ -236,7 +233,6 @@ private fun Errors(
     busId: String,
     date: LocalDate,
 ) {
-    runsNextTimeAfterDate.work(runsNextTimeAfterToday)
     ErrorMessage(
         when {
             runsNextTimeAfterDate == null && runsNextTimeAfterToday == null ->
@@ -903,8 +899,8 @@ fun MyText(
             },
             onClick = {
                 navigate(
-                    DeparturesDestination(
-                        time = time,
+                    Route.Departures(
+                        time = time.toSimpleTime(),
                         stop = stop,
                     )
                 )
@@ -918,7 +914,7 @@ fun MyText(
                 },
                 onClick = {
                     navigate(
-                        TimetableDestination(
+                        Route.Timetable(
                             lineNumber = line,
                             stop = stop,
                             nextStop = nextStop,
@@ -936,8 +932,8 @@ fun MyText(
             .combinedClickable(
                 onClick = {
                     navigate(
-                        DeparturesDestination(
-                            time = time,
+                        Route.Departures(
+                            time = time.toSimpleTime(),
                             stop = stop,
                         )
                     )

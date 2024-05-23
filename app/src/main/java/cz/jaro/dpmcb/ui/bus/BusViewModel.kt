@@ -10,8 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.makeFixedCodesReadable
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -131,7 +130,7 @@ class BusViewModel(
                     repo.makeText("Změněn kurz!").show()
                 }
                 pop()
-                navigate(BusDestination(state.nextBus!!.first))
+                navigate(Route.Bus(state.nextBus!!.first))
             }
             Unit
         }
@@ -142,7 +141,7 @@ class BusViewModel(
                     repo.makeText("Změněn kurz!").show()
                 }
                 pop()
-                navigate(BusDestination(state.previousBus!!.first))
+                navigate(Route.Bus(state.previousBus!!.first))
             }
             Unit
         }
@@ -156,7 +155,7 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(SequenceDestination(state.sequence!!))
+                navigate(Route.Sequence(state.sequence!!))
             }
             Unit
         }

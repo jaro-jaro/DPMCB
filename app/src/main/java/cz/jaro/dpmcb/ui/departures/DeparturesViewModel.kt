@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.departures
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.busOnMapById
@@ -9,8 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.TimetableDestination
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -147,7 +147,7 @@ class DeparturesViewModel(
     fun onEvent(e: DeparturesEvent) = when (e) {
         is DeparturesEvent.GoToBus -> {
             navigate(
-                BusDestination(
+                Route.Bus(
                     e.bus.busId
                 )
             )
@@ -156,7 +156,7 @@ class DeparturesViewModel(
         is DeparturesEvent.GoToTimetable -> {
             e.bus.nextStop?.let {
                 navigate(
-                    TimetableDestination(
+                    Route.Timetable(
                         lineNumber = e.bus.lineNumber,
                         stop = params.stop,
                         nextStop = e.bus.nextStop,

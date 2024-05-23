@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -37,13 +36,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.navigate
-import com.ramcosta.composedestinations.spec.Direction
+import androidx.navigation.NavOptions
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
+import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
@@ -337,14 +336,25 @@ object UtilFunctions {
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
+//    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
-    inline val DestinationsNavigator.navigateFunction: (Direction) -> Unit
+    inline val NavHostController.navigateFunction: NavigateFunction
         @Composable get() {
-            val lifecycleOwner = LocalLifecycleOwner.current
-            return navigate@{ it: Direction ->
-                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.INITIALIZED)) return@navigate
-                this.navigate(it.work { route })
+            val f = navigateWithOptionsFunction
+            return { route: Route ->
+                f(route, null)
+            }
+        }
+    inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFunction
+        @Composable get() {
+            return navigate@{ route: Route, navOptions: NavOptions? ->
+                try {
+                    this.navigate(route.work(), navOptions)
+                } catch (e: IllegalStateException) {
+                    e.printStackTrace()
+                    Firebase.crashlytics.log("Pokus o navigaci na $route")
+                    Firebase.crashlytics.recordException(e)
+                }
             }
         }
 
@@ -457,7 +467,8 @@ object UtilFunctions {
     fun Int.two() = plus(100).toString().takeLast(2)
 }
 
-typealias NavigateFunction = (Direction) -> Unit
+typealias NavigateFunction = (Route) -> Unit
+typealias NavigateWithOptionsFunction = (Route, NavOptions?) -> Unit
 typealias NavigateBackFunction<R> = (R) -> Unit
 
 typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit

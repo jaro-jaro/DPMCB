@@ -7,8 +7,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
+import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.asyncMap
 import cz.jaro.dpmcb.ui.now_running.NowRunningViewModel.RunningConnPlus.Companion.runningBuses
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,11 +50,11 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            params.navigate(BusDestination(busId = e.busId))
+            params.navigate(Route.Bus(busId = e.busId))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(SequenceDestination(sequence = e.seq))
+            params.navigate(Route.Sequence(sequence = e.seq))
         }
     }
 

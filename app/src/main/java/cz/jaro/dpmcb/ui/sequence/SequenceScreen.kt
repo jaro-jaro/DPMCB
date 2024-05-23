@@ -47,8 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
@@ -61,9 +60,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.bus.Timetable
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -71,14 +69,13 @@ import java.time.LocalTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 
-@Destination
 @Composable
 fun Sequence(
-    sequence: String,
+    args: Route.Sequence,
+    navController: NavHostController,
     viewModel: SequenceViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(sequence))
+        ParametersHolder(mutableListOf(args.sequence))
     },
-    navigator: DestinationsNavigator,
 ) {
     title = R.string.detail_kurzu
     App.selected = DrawerAction.FindBus
@@ -87,7 +84,7 @@ fun Sequence(
 
     SequenceScreen(
         state = state,
-        navigate = navigator.navigateFunction,
+        navigate = navController.navigateFunction,
         lazyListState = rememberLazyListState(),
     )
 }
@@ -307,7 +304,7 @@ private fun BusButton(
     bus: BusInSequence,
 ) = TextButton(
     onClick = {
-        navigate(BusDestination(busId = bus.busId))
+        navigate(Route.Bus(busId = bus.busId))
     }
 ) {
     Text("Detail spoje")
@@ -319,7 +316,7 @@ private fun Connection(
     sequence: Pair<String, String>,
 ) = TextButton(
     onClick = {
-        navigate(SequenceDestination(sequence.first))
+        navigate(Route.Sequence(sequence.first))
     }
 ) {
     Text(sequence.second)

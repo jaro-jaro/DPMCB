@@ -6,9 +6,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.Result
-import cz.jaro.dpmcb.ui.destinations.ChooserDestination
-import cz.jaro.dpmcb.ui.destinations.DeparturesDestination
-import cz.jaro.dpmcb.ui.destinations.TimetableDestination
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -116,13 +114,13 @@ class ChooserViewModel(
 //        if (job != null && typ.name.contains("ZPET")) return
         when (params.type) {
             ChooserType.Stops -> params.navigate(
-                DeparturesDestination(
+                Route.Departures(
                     stop = result,
                 )
             )
 
             ChooserType.Lines -> params.navigate(
-                ChooserDestination(
+                Route.Chooser(
                     lineNumber = result.toInt(),
                     stop = null,
                     type = ChooserType.LineStops
@@ -134,13 +132,13 @@ class ChooserViewModel(
                     withContext(Dispatchers.Main) {
                         params.navigate(
                             if (stops.size == 1)
-                                TimetableDestination(
+                                Route.Timetable(
                                     lineNumber = params.lineNumber,
                                     stop = result,
                                     nextStop = stops.first(),
                                 )
                             else
-                                ChooserDestination(
+                                Route.Chooser(
                                     lineNumber = params.lineNumber,
                                     stop = result,
                                     type = ChooserType.NextStop
@@ -151,7 +149,7 @@ class ChooserViewModel(
             }
 
             ChooserType.NextStop -> params.navigate(
-                TimetableDestination(
+                Route.Timetable(
                     lineNumber = params.lineNumber,
                     stop = params.stop!!,
                     nextStop = result,

@@ -7,14 +7,14 @@ import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.FirebaseException
-import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.database.database
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.ktx.storage
+import com.google.firebase.storage.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.helperclasses.TableType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -158,12 +159,13 @@ class LoadingViewModel(
     }
 
     private fun resolveLink(baseIntent: Intent): Intent {
-        if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
-            openAppDetails()
-        }
-
         params.uri?.let {
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
+
+            val link = it.removePrefix("/DPMCB")
+
+            if (link == "/app-details") openAppDetails()
+
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link)
         }
 
         return baseIntent

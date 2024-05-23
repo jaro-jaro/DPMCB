@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.chooser.autoFocus
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
 
 @Composable
 fun FindBusDialog(
@@ -57,7 +55,7 @@ fun FindBusDialog(
 
     fun confirm(busId: String) {
         navigate(
-            BusDestination(
+            Route.Bus(
                 busId = busId
             )
         )
@@ -73,7 +71,7 @@ fun FindBusDialog(
 
     fun confirmSeq(seqId: String) {
         navigate(
-            SequenceDestination(
+            Route.Sequence(
                 sequence = seqId
             )
         )
