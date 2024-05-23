@@ -46,7 +46,7 @@ sealed interface Route {
     @Serializable
     @SerialName("now_running")
     data class NowRunning(
-        val filters: List<Int> = emptyList(),
+        val filters: List<Int> = listOf(),
         val type: NowRunningType = NowRunningType.Line,
     ) : Route
 

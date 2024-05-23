@@ -146,7 +146,7 @@ inline fun <reified T> getKotlinxSerializationNavType(
 inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Chooser::class -> mapOf(getEnumType<ChooserType>())
     Route.Departures::class -> mapOf(getKotlinxSerializationType<SimpleTime?>())
-    Route.NowRunning::class -> mapOf(getEnumType<NowRunningType>())
+    Route.NowRunning::class -> mapOf(getEnumType<NowRunningType>(), getKotlinxSerializationType<List<Int>>())
     else -> emptyMap()
 }
 

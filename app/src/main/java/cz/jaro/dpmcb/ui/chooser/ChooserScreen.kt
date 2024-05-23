@@ -42,6 +42,7 @@ import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.android.awaitFrame
@@ -63,6 +64,7 @@ fun Chooser(
                 navigate = navigate,
                 navigateBack = { it: Result ->
                     navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+                    navController.popBackStack()
                 }
             ))
         }

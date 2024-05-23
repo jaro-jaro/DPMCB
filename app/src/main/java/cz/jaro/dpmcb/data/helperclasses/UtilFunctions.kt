@@ -36,8 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptions
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
@@ -338,16 +338,21 @@ object UtilFunctions {
 
 //    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
-    inline val NavHostController.navigateFunction: (Route) -> Unit
+    inline val NavHostController.navigateFunction: NavigateFunction
         @Composable get() {
-            return navigate@{ it: Route ->
-                if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) != true) {
-                }
+            val f = navigateWithOptionsFunction
+            return { route: Route ->
+                f(route, null)
+            }
+        }
+    inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFunction
+        @Composable get() {
+            return navigate@{ route: Route, navOptions: NavOptions? ->
                 try {
-                    this.navigate(it.work())
+                    this.navigate(route.work(), navOptions)
                 } catch (e: IllegalStateException) {
                     e.printStackTrace()
-                    Firebase.crashlytics.log("Pokus o navigaci na $it")
+                    Firebase.crashlytics.log("Pokus o navigaci na $route")
                     Firebase.crashlytics.recordException(e)
                 }
             }
@@ -463,6 +468,7 @@ object UtilFunctions {
 }
 
 typealias NavigateFunction = (Route) -> Unit
+typealias NavigateWithOptionsFunction = (Route, NavOptions?) -> Unit
 typealias NavigateBackFunction<R> = (R) -> Unit
 
 typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit

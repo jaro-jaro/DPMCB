@@ -61,16 +61,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.navOptions
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
+import cz.jaro.dpmcb.data.helperclasses.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.ui.chooser.ChooserType
@@ -78,6 +83,7 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
+import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.toLocalTime
@@ -108,15 +114,16 @@ fun Departures(
     },
     navController: NavHostController,
 ) {
-//    LifecycleResumeEffect(Unit) {
-//        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
-//
-//        if (result != null) viewModel.onEvent(WentBack(result))
-//
-//        onPauseOrDispose {
-//            navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
-//        }
-//    }
+    LifecycleResumeEffect(Unit) {
+        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
+
+        if (result != null) viewModel.onEvent(WentBack(result))
+
+        onPauseOrDispose {
+            if (navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) == true)
+                navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
+        }
+    }
 
     title = R.string.departures
     App.selected = DrawerAction.Departures
@@ -154,7 +161,7 @@ fun Departures(
         onEvent = viewModel::onEvent,
         listState = listState,
         date = date,
-        navigate = navController.navigateFunction,
+        navigate = navController.navigateWithOptionsFunction,
         isOnline = isOnline,
     )
 }
@@ -170,7 +177,7 @@ fun DeparturesScreen(
     isOnline: Boolean,
     date: LocalDate,
     onEvent: (DeparturesEvent) -> Unit,
-    navigate: NavigateFunction,
+    navigate: NavigateWithOptionsFunction,
 ) = Scaffold(
     floatingActionButton = {
         if (state is DeparturesState.Runs) {
@@ -223,7 +230,7 @@ fun DeparturesScreen(
         ) {
             TextButton(
                 onClick = {
-                    navigate(Route.Chooser(ChooserType.Stops))
+                    navigate(Route.Chooser(ChooserType.Stops), null)
                 },
             ) {
                 Text(
@@ -349,7 +356,10 @@ fun DeparturesScreen(
                 navigate(
                     Route.Chooser(
                         type = ChooserType.ReturnLine,
-                    )
+                    ),
+                    navOptions {
+                        launchSingleTop = true
+                    },
                 )
                 lineSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
@@ -386,7 +396,10 @@ fun DeparturesScreen(
                 navigate(
                     Route.Chooser(
                         type = ChooserType.ReturnStop,
-                    )
+                    ),
+                    navOptions {
+                        launchSingleTop = true
+                    },
                 )
                 stopSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
