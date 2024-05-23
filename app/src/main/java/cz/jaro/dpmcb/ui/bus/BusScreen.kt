@@ -1,6 +1,8 @@
 package cz.jaro.dpmcb.ui.bus
 
 import android.content.Intent
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -27,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Share
@@ -753,10 +756,23 @@ private fun CodesAndShare(
                 val clipboardManager = LocalClipboardManager.current
                 DropdownMenuItem(
                     text = {
-                        Text("Zobrazit v mapě")
+                        Text("Zobrazit na mapě")
                     },
                     onClick = {},
-                    enabled = false
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                CustomTabsIntent.Builder()
+                                    .setShowTitle(true)
+                                    .build()
+                                    .launchUrl(context, Uri.parse("https://jih.mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.replace('/', ',')},0"))
+
+                                showMenu = false
+                            }
+                        ) {
+                            IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Otevřít")
+                        }
+                    }
                 )
                 DropdownMenuItem(
                     text = {
