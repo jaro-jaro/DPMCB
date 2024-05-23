@@ -7,14 +7,14 @@ import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.FirebaseException
-import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.database.database
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.ktx.storage
+import com.google.firebase.storage.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
@@ -165,7 +165,7 @@ class LoadingViewModel(
 
             if (link == "/app-details") openAppDetails()
 
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link.work())
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link.work(2))
         }
 
         return baseIntent

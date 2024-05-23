@@ -61,7 +61,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
@@ -69,7 +68,6 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
@@ -80,7 +78,6 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
-import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.toLocalTime
@@ -111,15 +108,15 @@ fun Departures(
     },
     navController: NavHostController,
 ) {
-    LifecycleResumeEffect(Unit) {
-        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
-
-        if (result != null) viewModel.onEvent(WentBack(result))
-
-        onPauseOrDispose {
-            navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
-        }
-    }
+//    LifecycleResumeEffect(Unit) {
+//        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
+//
+//        if (result != null) viewModel.onEvent(WentBack(result))
+//
+//        onPauseOrDispose {
+//            navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
+//        }
+//    }
 
     title = R.string.departures
     App.selected = DrawerAction.Departures

@@ -37,8 +37,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.ui.main.Route
@@ -339,10 +340,16 @@ object UtilFunctions {
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
     inline val NavHostController.navigateFunction: (Route) -> Unit
         @Composable get() {
-            val lifecycleOwner = LocalLifecycleOwner.current
             return navigate@{ it: Route ->
-                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) return@navigate
-                this.navigate(it.work())
+                if (currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) != true) {
+                }
+                try {
+                    this.navigate(it.work())
+                } catch (e: IllegalStateException) {
+                    e.printStackTrace()
+                    Firebase.crashlytics.log("Pokus o navigaci na $it")
+                    Firebase.crashlytics.recordException(e)
+                }
             }
         }
 

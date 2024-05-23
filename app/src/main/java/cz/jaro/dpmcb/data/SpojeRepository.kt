@@ -3,11 +3,11 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.net.Uri
 import android.widget.Toast
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.crashlytics
+import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.get
-import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.dpmcb.data.database.Dao
 import cz.jaro.dpmcb.data.entities.Conn

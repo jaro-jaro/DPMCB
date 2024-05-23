@@ -76,10 +76,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.serialization.generateRouteWithArgs
 import androidx.navigation.toRoute
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.ktx.logEvent
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.analytics
+import com.google.firebase.analytics.logEvent
+import com.google.firebase.database.database
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
@@ -106,6 +106,8 @@ import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -121,26 +123,31 @@ inline fun <reified T> getKotlinxSerializationType(
     serializer = serializer
 )
 
+inline fun <reified T : Enum<*>> getEnumType(
+    serializer: KSerializer<T> = serializer(),
+) = typeOf<T>() to NavType.EnumType(T::class.java)
+
+@OptIn(ExperimentalSerializationApi::class)
 inline fun <reified T> getKotlinxSerializationNavType(
     serializer: KSerializer<T> = serializer(),
 ) = object : NavType<T>(isNullableAllowed = true) {
     override fun get(bundle: Bundle, key: String): T? =
-        bundle.getString(key)?.let(::parseValue)
+        bundle.getString(key.work("A"))?.let(::parseValue)
 
     override fun put(bundle: Bundle, key: String, value: T) =
-        bundle.putString(key, serializeAsValue(value))
+        bundle.putString(key.work("C"), serializeAsValue(value))
 
     override fun parseValue(value: String) = Json.decodeFromString(serializer, value)
 
     override fun serializeAsValue(value: T) = Json.encodeToString(serializer, value)
 
-    override val name: String = T::class.java.simpleName
+    override val name: String = serializer.descriptor.serialName.work("O")
 }
 
 inline fun <reified T : Route> typeMap() = when (T::class) {
-    Route.Chooser::class -> mapOf(getKotlinxSerializationType<ChooserType>())
+    Route.Chooser::class -> mapOf(getEnumType<ChooserType>())
     Route.Departures::class -> mapOf(getKotlinxSerializationType<SimpleTime?>())
-    Route.NowRunning::class -> mapOf(getKotlinxSerializationType<NowRunningType>())
+    Route.NowRunning::class -> mapOf(getEnumType<NowRunningType>())
     else -> emptyMap()
 }
 
@@ -152,53 +159,29 @@ inline fun <reified T : Route> deepLinks() = listOf(
 )
 
 val <T : Route> KClass<T>.basePath
-    get() = "https://jaro-jaro.github.io/DPMCB$baseRoute"
+    get() = "https://jaro-jaro.github.io/DPMCB/$baseRoute"
 
+@OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
 val <T : Route> KClass<T>.baseRoute
-    get() = when (this) {
-        Route.Bus::class -> "/bus"
-        Route.Card::class -> "/card"
-        Route.Chooser::class -> "/chooser"
-        Route.Departures::class -> "/departures"
-        Route.Favourites::class -> "/favourites"
-        Route.Map::class -> "/map"
-        Route.NowRunning::class -> "/now_running"
-        Route.Sequence::class -> "/sequence"
-        Route.Timetable::class -> "/timetable"
-        else -> ""
-    }
-
-val NavBackStackEntry.route get() = toMyRoute()::class.baseRoute + (destination.route?.arguments() ?: "")
-val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.baseRoute + generateRouteWithArgs().arguments().replace("\"", "")
-
-private fun String.arguments() = when {
-    contains("/") -> "/" + split("/", limit = 2)[1]
-    contains("?") -> "?" + split("?")[1]
-    else -> ""
-}
-
+    get() = serializer().descriptor.serialName
 
 @SuppressLint("RestrictedApi")
 private fun NavBackStackEntry.generateRouteWithArgs(): String {
     return toMyRoute().generateRouteWithArgs(
         destination.arguments.mapValues { it.value.type }
-    )
+    ).work()
 }
 
-//val NavBackStackEntry.routeWithArgs get() = toMyRoute()::class.declaredMemberProperties.fold(route) { route, property ->
-//    route.replace("{${property.name}}", property.get(toMyRoute()))
-//}
-
 fun NavBackStackEntry.toMyRoute() = when (val a = destination.route?.split("/", "?", limit = 2)?.first()) {
-    "Bus" -> toRoute<Route.Bus>()
-    "Card" -> toRoute<Route.Card>()
-    "Chooser" -> toRoute<Route.Chooser>()
-    "Departures" -> toRoute<Route.Departures>()
-    "Favourites" -> toRoute<Route.Favourites>()
-    "Map" -> toRoute<Route.Map>()
-    "NowRunning" -> toRoute<Route.NowRunning>()
-    "Sequence" -> toRoute<Route.Sequence>()
-    "Timetable" -> toRoute<Route.Timetable>()
+    "bus" -> toRoute<Route.Bus>()
+    "card" -> toRoute<Route.Card>()
+    "chooser" -> toRoute<Route.Chooser>()
+    "departures" -> toRoute<Route.Departures>()
+    "favourites" -> toRoute<Route.Favourites>()
+    "map" -> toRoute<Route.Map>()
+    "now_running" -> toRoute<Route.NowRunning>()
+    "sequence" -> toRoute<Route.Sequence>()
+    "timetable" -> toRoute<Route.Timetable>()
     else -> error("Invalid route: ${destination.route}, $a")
 }
 
@@ -213,11 +196,12 @@ fun Main(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
+        navController.enableOnBackPressed(true)
         val destinationFlow = navController.currentBackStackEntryFlow
 
-        destinationFlow.collect { destination ->
+        destinationFlow.collect { entry ->
             Firebase.analytics.logEvent("navigation") {
-                param("route", destination.destination.route ?: "")
+                param("route", entry.generateRouteWithArgs())
             }
         }
     }
@@ -257,8 +241,8 @@ fun Main(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
-                if (entry.destination.route.work() == null) return@collect
-                App.route = entry.routeWithArgs
+                if (entry.destination.route == null) return@collect
+                App.route = entry.generateRouteWithArgs()
             }
         }
     }
@@ -484,7 +468,7 @@ fun MainScreen(
                                 Text("Sdílet spoj")
                             },
                             onClick = {
-                                val deeplink = "https://jaro-jaro.github.io/DPMCB${App.route}"
+                                val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
                                 ctx.startActivity(Intent.createChooser(Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, deeplink)
@@ -536,7 +520,7 @@ fun MainScreen(
                                                 ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB$route")))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/$route")))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)

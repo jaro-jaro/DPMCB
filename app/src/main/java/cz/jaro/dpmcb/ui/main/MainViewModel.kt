@@ -7,8 +7,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -77,7 +77,7 @@ class MainViewModel(
     private fun String.translateOldCzechLinks() = this
         .replace("prave_jedouci", "now_running")
         .replace("filtry", "filters")
-        .replace("typ", "type")
+        .replace("typ[^e]".toRegex(), "type")
         .replace("odjezdy", "departures")
         .replace("zastavka", "stop")
         .replace("cas", "time")
@@ -88,7 +88,7 @@ class MainViewModel(
         .replace("spojeni", "connection")
         .replace("kurz", "sequence")
         .replace("vybirator", "chooser")
-        .replace("typ", "type")
+        .replace("typ[^e]".toRegex(), "type")
         .replace("cisloLinky", "lineNumber")
         .replace("zastavka", "stop")
         .replace("jizdni_rady", "timetable")
@@ -106,10 +106,12 @@ class MainViewModel(
                 try {
                     withContext(Dispatchers.Main) {
                         App.selected = null
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks().work())
+                        navController.graphOrNull?.nodes.work()
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks().work(3))
                         closeDrawer()
                     }
-                } catch (_: IllegalArgumentException) {
+                } catch (e: IllegalArgumentException) {
+                    e.printStackTrace()
                     withContext(Dispatchers.Main) {
                         logError("Vadná zkratka $url")
                     }
@@ -188,7 +190,7 @@ class MainViewModel(
                 seq !in reallyRunning
             }
             .filter { seq ->
-                val buses = repo.busStopTimesOfSequence(seq, LocalDate.now()).work() ?: return@filter false
+                val buses = repo.busStopTimesOfSequence(seq, LocalDate.now()) ?: return@filter false
 
                 buses.any { (lowFloor, stops) ->
                     !lowFloor && stops.first() <= LocalTime.now() && LocalTime.now() <= stops.last()

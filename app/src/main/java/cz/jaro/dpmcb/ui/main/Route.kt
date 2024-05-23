@@ -9,17 +9,17 @@ import kotlinx.serialization.Serializable
 @SerialName("Route")
 sealed interface Route {
     @Serializable
-    @SerialName("Bus")
+    @SerialName("bus")
     data class Bus(
         val busId: String,
     ) : Route
 
     @Serializable
-    @SerialName("Card")
+    @SerialName("card")
     data object Card : Route
 
     @Serializable
-    @SerialName("Chooser")
+    @SerialName("chooser")
     data class Chooser(
         val type: ChooserType,
         val lineNumber: Int = -1,
@@ -27,7 +27,7 @@ sealed interface Route {
     ) : Route
 
     @Serializable
-    @SerialName("Departures")
+    @SerialName("departures")
     data class Departures(
         val stop: String,
         val time: SimpleTime? = null,
@@ -36,28 +36,28 @@ sealed interface Route {
     ) : Route
 
     @Serializable
-    @SerialName("Favourites")
+    @SerialName("favourites")
     data object Favourites : Route
 
     @Serializable
-    @SerialName("Map")
+    @SerialName("map")
     data object Map : Route
 
     @Serializable
-    @SerialName("NowRunning")
+    @SerialName("now_running")
     data class NowRunning(
         val filters: List<Int> = emptyList(),
         val type: NowRunningType = NowRunningType.Line,
     ) : Route
 
     @Serializable
-    @SerialName("Sequence")
+    @SerialName("sequence")
     data class Sequence(
         val sequence: String,
     ) : Route
 
     @Serializable
-    @SerialName("Timetable")
+    @SerialName("timetable")
     data class Timetable(
         val lineNumber: Int,
         val stop: String,
