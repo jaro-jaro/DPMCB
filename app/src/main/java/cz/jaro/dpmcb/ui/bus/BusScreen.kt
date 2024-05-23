@@ -756,7 +756,7 @@ private fun CodesAndShare(
                 val clipboardManager = LocalClipboardManager.current
                 DropdownMenuItem(
                     text = {
-                        Text("Zobrazit v mapě")
+                        Text("Zobrazit na mapě")
                     },
                     onClick = {},
                     trailingIcon = {
@@ -770,7 +770,7 @@ private fun CodesAndShare(
                                 showMenu = false
                             }
                         ) {
-                            IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Sdílet")
+                            IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Otevřít")
                         }
                     }
                 )
