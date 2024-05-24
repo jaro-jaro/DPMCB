@@ -30,7 +30,7 @@ sealed interface Route {
     @SerialName("departures")
     data class Departures(
         val stop: String,
-        val time: SimpleTime? = null,
+        val time: SimpleTime = SimpleTime(1,0),
         val line: Int = 0,
         val via: String? = null,
     ) : Route

@@ -2,9 +2,11 @@ package cz.jaro.dpmcb.ui.bus
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
@@ -33,8 +35,7 @@ class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
     @InjectedParam private val busId: String,
-    @InjectedParam private val navigate: NavigateFunction,
-    @InjectedParam private val pop: () -> Unit,
+    @InjectedParam private val navigate: NavigateWithOptionsFunction,
 ) : ViewModel() {
 
     private val info: Flow<BusState> = combine(repo.date, repo.favourites, repo.hasAccessToMap) { date, favourites, online ->
@@ -129,8 +130,11 @@ class BusViewModel(
                 if (state.nextBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
-                pop()
-                navigate(Route.Bus(state.nextBus!!.first))
+                navigate(Route.Bus(state.nextBus!!.first), navOptions {
+                    popUpTo<Route.Bus> {
+                        inclusive = true
+                    }
+                })
             }
             Unit
         }
@@ -140,8 +144,11 @@ class BusViewModel(
                 if (state.previousBus!!.second) viewModelScope.launch(Dispatchers.Main) {
                     repo.makeText("Změněn kurz!").show()
                 }
-                pop()
-                navigate(Route.Bus(state.previousBus!!.first))
+                navigate(Route.Bus(state.previousBus!!.first), navOptions {
+                    popUpTo<Route.Bus> {
+                        inclusive = true
+                    }
+                })
             }
             Unit
         }
@@ -155,7 +162,7 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence!!))
+                navigate(Route.Sequence(state.sequence!!), null)
             }
             Unit
         }

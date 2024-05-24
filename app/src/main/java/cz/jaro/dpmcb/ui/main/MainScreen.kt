@@ -116,20 +116,10 @@ import java.time.LocalDate
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 
-inline fun <reified T> getKotlinxSerializationType(
-    serializer: KSerializer<T> = serializer(),
-) = typeOf<T>() to getKotlinxSerializationNavType<T>(
-    serializer = serializer
-)
+class KotlinxSerializationType<T : Any>(
+    private val serializer: KSerializer<T>,
+) : NavType<T>(isNullableAllowed = true) {
 
-inline fun <reified T : Enum<*>> getEnumType(
-    serializer: KSerializer<T> = serializer(),
-) = typeOf<T>() to NavType.EnumType(T::class.java)
-
-@OptIn(ExperimentalSerializationApi::class)
-inline fun <reified T> getKotlinxSerializationNavType(
-    serializer: KSerializer<T> = serializer(),
-) = object : NavType<T>(isNullableAllowed = true) {
     override fun get(bundle: Bundle, key: String): T? =
         bundle.getString(key)?.let(::parseValue)
 
@@ -140,15 +130,25 @@ inline fun <reified T> getKotlinxSerializationNavType(
 
     override fun serializeAsValue(value: T) = Json.encodeToString(serializer, value)
 
+    @OptIn(ExperimentalSerializationApi::class)
     override val name: String = serializer.descriptor.serialName
 }
 
 inline fun <reified T : Route> typeMap() = when (T::class) {
-    Route.Chooser::class -> mapOf(getEnumType<ChooserType>())
-    Route.Departures::class -> mapOf(getKotlinxSerializationType<SimpleTime?>())
-    Route.NowRunning::class -> mapOf(getEnumType<NowRunningType>(), getKotlinxSerializationType<List<Int>>())
+    Route.Chooser::class -> mapOf(
+        typeOf<ChooserType>() to NavType.EnumType(classOf<ChooserType>().java),
+    )
+    Route.Departures::class -> mapOf(
+        typeOf<SimpleTime>() to KotlinxSerializationType(serializer<SimpleTime>()),
+    )
+    Route.NowRunning::class -> mapOf(
+        typeOf<NowRunningType>() to NavType.EnumType(classOf<NowRunningType>().java),
+        typeOf<List<Int>>() to KotlinxSerializationType(serializer<List<Int>>()),
+    )
     else -> emptyMap()
 }
+
+inline fun <reified T : Any> classOf() = T::class
 
 inline fun <reified T : Route> deepLinks() = listOf(
     navDeepLink<T>(

@@ -3,8 +3,8 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.net.Uri
 import android.widget.Toast
-import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.remoteConfig
@@ -22,7 +22,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.realtions.InfoStops
 import cz.jaro.dpmcb.data.realtions.InfoStopsCodes
 import cz.jaro.dpmcb.data.realtions.InfoStopsCodesSequence
@@ -532,7 +531,7 @@ class SpojeRepository(
 
     suspend fun oneWayLines() = localDataSource.oneDirectionLines()
 
-    fun findMiddleStop(stops: List<NameAndTime>): NameTimeIndex {
+    fun findMiddleStop(stops: List<NameAndTime>): NameTimeIndex? {
         fun NameAndTime.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
 
         val lastCommonStop = stops.indexOfLast {
@@ -542,6 +541,8 @@ class SpojeRepository(
         val firstReCommonStop = stops.indexOfFirst {
             it.indexOfDuplicate() == 1
         }
+
+        if (firstReCommonStop == -1 || lastCommonStop == -1) return null
 
         val last = stops[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
         return NameTimeIndex(

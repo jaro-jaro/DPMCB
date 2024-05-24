@@ -83,6 +83,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.Offset
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -105,12 +106,9 @@ fun Bus(
     args: Route.Bus,
     navController: NavHostController,
     viewModel: BusViewModel = run {
-        val navigate = navController.navigateFunction
-        val pop = {
-            navController.popBackStack()
-        }
+        val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf(args.busId, navigate, pop))
+            ParametersHolder(mutableListOf(args.busId, navigate))
         }
     },
 ) {
