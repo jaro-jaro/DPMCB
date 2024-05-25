@@ -57,12 +57,12 @@ class SequenceViewModel(
             after = after.map { it to repo.seqConnection(it) },
             buses = buses.map { (bus, stops) ->
                 BusInSequence(
-                    busId = bus.connId,
+                    busName = bus.connName,
                     stops = stops,
                     lineNumber = bus.line,
                     lowFloor = bus.lowFloor,
                     isRunning = false,
-                    shouldBeRunning = runningBus?.info?.connId == bus.connId && date == LocalDate.now(),
+                    shouldBeRunning = runningBus?.info?.connName == bus.connName && date == LocalDate.now(),
                 )
             },
             runsToday = repo.runsAt(timeCodes = timeCodes, fixedCodes = fixedCodes, date = LocalDate.now()),
@@ -74,7 +74,7 @@ class SequenceViewModel(
     private val nowRunningOnlineConn = combine(info, onlineRepo.nowRunningBuses(), repo.date) { info, onlineConns, date ->
         if (date != LocalDate.now()) return@combine null
         if (info !is SequenceState.OK) return@combine null
-        val onlineConn = onlineConns.find { onlineConn -> onlineConn.id in info.buses.map { it.busId } }
+        val onlineConn = onlineConns.find { onlineConn -> onlineConn.name in info.buses.map { it.busName } }
         if (onlineConn?.delayMin == null) return@combine null
         return@combine onlineConn
     }
@@ -85,7 +85,7 @@ class SequenceViewModel(
 
         if (info !is SequenceState.OK) return@combine null
 
-        val runningBus = onlineConn?.let { info.buses.find { it.busId == onlineConn.id } }
+        val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
                 stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
             }
@@ -106,7 +106,7 @@ class SequenceViewModel(
 
         if (traveledSegments == null) return@combine 0F
 
-        val runningBus = onlineConn?.let { info.buses.find { it.busId == onlineConn.id } }
+        val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
                 stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
             }
@@ -142,7 +142,7 @@ class SequenceViewModel(
         ).copy(
             buses = newInfo.buses.map {
                 it.copy(
-                    isRunning = it.busId == onlineConn.id
+                    isRunning = it.busName == onlineConn.name
                 )
             },
         )

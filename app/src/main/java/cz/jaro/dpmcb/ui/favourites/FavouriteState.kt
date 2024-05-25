@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 sealed interface FavouriteState {
-    val busId: String
+    val busName: String
     val line: Int
     val originStopName: String
     val originStopTime: LocalTime
@@ -13,7 +13,7 @@ sealed interface FavouriteState {
     val nextWillRun: LocalDate?
 
     data class Offline(
-        override val busId: String,
+        override val busName: String,
         override val line: Int,
         override val originStopName: String,
         override val originStopTime: LocalTime,
@@ -23,7 +23,7 @@ sealed interface FavouriteState {
     ) : FavouriteState
 
     data class Online(
-        override val busId: String,
+        override val busName: String,
         override val line: Int,
         val delay: Float,
         val vehicle: Int?,

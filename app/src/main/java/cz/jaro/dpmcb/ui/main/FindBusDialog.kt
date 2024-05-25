@@ -46,22 +46,20 @@ fun FindBusDialog(
 ) {
     var isNotFound by rememberSaveable { mutableStateOf(false) }
     var options by rememberSaveable { mutableStateOf(null as List<Pair<String, String>>?) }
-    var id by rememberSaveable { mutableStateOf("") }
     var sequence by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     var evn by rememberSaveable { mutableStateOf("") }
     var line by rememberSaveable { mutableStateOf("") }
     var number by rememberSaveable { mutableStateOf("") }
 
-    fun confirm(busId: String) {
+    fun confirm(busName: String) {
         navigate(
             Route.Bus(
-                busId = busId
+                busName = busName
             )
         )
         onDismiss()
         closeDrawer()
-        id = ""
         sequence = ""
         name = ""
         evn = ""
@@ -77,7 +75,6 @@ fun FindBusDialog(
         )
         onDismiss()
         closeDrawer()
-        id = ""
         sequence = ""
         options = null
         name = ""
@@ -95,7 +92,6 @@ fun FindBusDialog(
     if (showDialog) AlertDialog(
         onDismissRequest = {
             onDismiss()
-            id = ""
             sequence = ""
             name = ""
             evn = ""
@@ -135,10 +131,9 @@ fun FindBusDialog(
                         }
                         confirm(it)
                     }
-                } else if (name.isNotEmpty()) confirm("S-${name.replace("/", "-")}")
-                else if (sequence.isNotEmpty()) {
+                } else if (sequence.isNotEmpty()) {
                     findSequence(sequence)
-                } else confirm(id)
+                } else confirm(name)
             }) {
                 Text("Vyhledat")
             }
@@ -146,7 +141,6 @@ fun FindBusDialog(
         dismissButton = {
             TextButton(onClick = {
                 onDismiss()
-                id = ""
                 sequence = ""
                 name = ""
                 line = ""
@@ -259,28 +253,7 @@ fun FindBusDialog(
                         Text("Jméno spoje")
                     },
                     keyboardActions = KeyboardActions {
-                        if (name.isNotEmpty())
-                            confirm("S-${name.replace("/", "-")}")
-                        else
-                            focusManager.moveFocus(FocusDirection.Down)
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = if (name.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-                    ),
-                )
-                TextField(
-                    value = id,
-                    onValueChange = {
-                        id = it
-                    },
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    label = {
-                        Text("ID spoje")
-                    },
-                    keyboardActions = KeyboardActions {
-                        confirm(id)
+                        confirm(name)
                     },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Search,
@@ -320,7 +293,7 @@ fun FindBusDialog(
             Text("Kurz nenalezen")
         },
         text = {
-            Text("Tento kurz ($sequence) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
+            Text("Tento kurz ($sequence) bohužel neexistuje :(\nZkontrolujte, zdali jste ho zadali správně.")
         },
         confirmButton = {
             TextButton(

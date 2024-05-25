@@ -6,7 +6,7 @@ data class LineLowFloorConnIdTimeNameIndexStops(
     val name: String,
     val time: LocalTime,
     val stopIndexOnLine: Int,
-    val busId: String,
+    val busName: String,
     val line: Int,
     val lowFloor: Boolean,
     val busStops: List<NameTimeIndexOnLine>,

@@ -45,7 +45,7 @@ import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
+import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnDestinationFixedCodesDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
@@ -187,7 +187,7 @@ fun TimetableScreen(
 @Composable
 fun ColumnScope.DepartureRow(
     navigate: NavigateFunction,
-    result: List<TimeLowFloorConnIdDestinationFixedCodesDelay>,
+    result: List<TimeLowFloorConnDestinationFixedCodesDelay>,
     showLowFloor: Boolean,
 ) {
     Row(
@@ -202,7 +202,7 @@ fun ColumnScope.DepartureRow(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal
             )
-        result.sortedBy { it.departure }.forEach { (time, lowFloor, busId, destination) ->
+        result.sortedBy { it.departure }.forEach { (time, lowFloor, busName, destination) ->
             var showDropDown by rememberSaveable { mutableStateOf(false) }
             DropdownMenu(
                 expanded = showDropDown,
@@ -224,7 +224,7 @@ fun ColumnScope.DepartureRow(
                     onClick = {
                         navigate(
                             Route.Bus(
-                                busId = busId,
+                                busName = busName,
                             )
                         )
                         showDropDown = false
@@ -236,7 +236,7 @@ fun ColumnScope.DepartureRow(
                     .clip(CircleShape)
                     .combinedClickable(
                         onClick = {
-                            navigate(Route.Bus(busId = busId))
+                            navigate(Route.Bus(busName = busName))
                         },
                         onLongClick = {
                             showDropDown = true

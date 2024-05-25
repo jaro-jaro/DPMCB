@@ -68,7 +68,10 @@ class App : Application() {
                         .create(OnlineApi::class.java)
                 }
                 single {
-                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
+                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
+//                        .addMigrations(Migration24to25)
+                        .fallbackToDestructiveMigration()
+                        .build()
                 }
                 factory {
                     get<AppDatabase>().dao()

@@ -13,7 +13,6 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -84,7 +83,7 @@ class MainViewModel(
         .replace("linka", "line")
         .replace("pres", "via")
         .replace("spoj", "bus")
-        .replace("spojId", "busId")
+        .replace("spojId", "busName")
         .replace("spojeni", "connection")
         .replace("kurz", "sequence")
         .replace("vybirator", "chooser")
@@ -98,6 +97,9 @@ class MainViewModel(
         .replace("prukazka", "card")
         .replace("oblibene", "favourites")
 
+    private fun String.transformBusIds() = this
+        .replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")
+
     init {
         link?.let {
             viewModelScope.launch(Dispatchers.IO) {
@@ -107,7 +109,7 @@ class MainViewModel(
                     withContext(Dispatchers.Main) {
                         App.selected = null
                         navController.graphOrNull?.nodes
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks())
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds())
                         closeDrawer()
                     }
                 } catch (e: IllegalArgumentException) {
@@ -164,7 +166,7 @@ class MainViewModel(
         viewModelScope.launch {
             callback(onlineRepository.nowRunningBuses().first().find {
                 it.vehicle == evc.toIntOrNull()
-            }?.id)
+            }?.name)
         }
         Unit
     }
@@ -181,7 +183,7 @@ class MainViewModel(
         val onlineConns = onlineRepository.nowRunningBuses().first()
 
         val reallyRunning = onlineConns.asyncMapNotNull { onlineConn ->
-            repo.seqOfBus(onlineConn.id, LocalDate.now())
+            repo.seqOfBus(onlineConn.name, LocalDate.now())
         }
 
         repo.nowRunningOrNot.first()

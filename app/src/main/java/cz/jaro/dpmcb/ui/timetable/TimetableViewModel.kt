@@ -35,7 +35,7 @@ class TimetableViewModel(
         tt.copy(
             data = tt.data.map { bus ->
                 bus.copy(
-                    delay = onlineConns.find { it.id == bus.connId }?.delayMin
+                    delay = onlineConns.find { it.name == bus.connName }?.delayMin
                 )
             }
         )

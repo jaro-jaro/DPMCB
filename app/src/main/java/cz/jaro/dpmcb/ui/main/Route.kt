@@ -17,8 +17,11 @@ sealed interface Route {
     @Serializable
     @SerialName("bus")
     data class Bus(
-        val busId: String,
-    ) : Route
+        val lineNumber: String,
+        val busNumber: String,
+    ) : Route {
+        constructor(busName: String) : this(busName.split("/")[0], busName.split("/")[1])
+    }
 
     @Serializable
     @SerialName("card")

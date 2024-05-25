@@ -177,12 +177,12 @@ fun NowRunningScreen(
                                             )
                                         }
                                     }
-                                    items(line.buses, key = { it.busId }) { bus ->
+                                    items(line.buses, key = { it.busName }) { bus ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable {
-                                                    onEvent(NowRunningEvent.NavToBus(bus.busId))
+                                                    onEvent(NowRunningEvent.NavToBus(bus.busName))
                                                 }
                                         ) {
                                             Text(text = "${bus.vehicle.regN()}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
@@ -196,12 +196,12 @@ fun NowRunningScreen(
                                     }
                                 }
 
-                                is NowRunningResults.RegN -> items(state.result.list, key = { it.busId }) { bus ->
+                                is NowRunningResults.RegN -> items(state.result.list, key = { it.busName }) { bus ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                onEvent(NowRunningEvent.NavToBus(bus.busId))
+                                                onEvent(NowRunningEvent.NavToBus(bus.busName))
                                             }
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
@@ -209,12 +209,12 @@ fun NowRunningScreen(
                                     }
                                 }
 
-                                is NowRunningResults.Delay -> items(state.result.list, key = { it.busId }) { bus ->
+                                is NowRunningResults.Delay -> items(state.result.list, key = { it.busName }) { bus ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                onEvent(NowRunningEvent.NavToBus(bus.busId))
+                                                onEvent(NowRunningEvent.NavToBus(bus.busName))
                                             }
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))

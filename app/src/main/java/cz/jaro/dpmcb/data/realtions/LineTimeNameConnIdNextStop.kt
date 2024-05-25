@@ -7,5 +7,5 @@ data class LineTimeNameConnIdNextStop(
     val name: String,
     val line: Int,
     val nextStop: String?,
-    val connId: String,
+    val connName: String,
 )

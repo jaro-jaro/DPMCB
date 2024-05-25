@@ -36,11 +36,11 @@ class FavouritesViewModel(
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBusToday -> {
-                params.navigate(Route.Bus(e.id))
+                params.navigate(Route.Bus(e.name))
             }
 
             is FavouritesEvent.NavToBusOtherDay -> {
-                params.navigate(Route.Bus(e.id))
+                params.navigate(Route.Bus(e.name))
             }
         }
     }
@@ -50,7 +50,7 @@ class FavouritesViewModel(
         .flatMapLatest { favourites ->
             favourites
                 .map { favourite ->
-                    onlineRepo.busOnMapById(favourite.busId)
+                    onlineRepo.busOnMapByName(favourite.busName)
                 }
                 .combine {
                     it.nullable()
@@ -61,19 +61,19 @@ class FavouritesViewModel(
                 .combine(repo.date) { it, date ->
                     it?.zip(favourites) { onlineConn, favourite ->
                         val bus = try {
-                            repo.favouriteBus(favourite.busId, date)
+                            repo.favouriteBus(favourite.busName, date)
                         } catch (e: Exception) {
                             Firebase.crashlytics.recordException(e)
                             return@zip null
                         }
-                        Quintuple(onlineConn, bus.first, bus.second, repo.doesConnRunAt(favourite.busId), favourite)
+                        Quintuple(onlineConn, bus.first, bus.second, repo.doesConnRunAt(favourite.busName), favourite)
                     }
                 }
         }
         .combine(repo.date) { buses, date ->
             (buses ?: emptyList()).filterNotNull().map { (onlineConn, info, stops, runsAt, favourite) ->
                 if (onlineConn?.delayMin != null && date == LocalDate.now()) FavouriteState.Online(
-                    busId = info.connId,
+                    busName = info.connName,
                     line = info.line,
                     delay = onlineConn.delayMin,
                     vehicle = onlineConn.vehicle,
@@ -90,7 +90,7 @@ class FavouritesViewModel(
                     },
                 )
                 else FavouriteState.Offline(
-                    busId = info.connId,
+                    busName = info.connName,
                     line = info.line,
                     originStopName = stops[favourite.start].name,
                     originStopTime = stops[favourite.start].time,

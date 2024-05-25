@@ -18,7 +18,7 @@ import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodesTab
 import cz.jaro.dpmcb.data.realtions.LowFloorTimeConnIdTab
 import cz.jaro.dpmcb.data.realtions.NameAndTime
 import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
-import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnIdDestinationFixedCodesDelay
+import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnDestinationFixedCodesDelay
 import cz.jaro.dpmcb.data.realtions.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.Validity
 import java.time.LocalDate
@@ -104,7 +104,7 @@ interface Dao {
         WITH TimeCodesCountOfConn AS (
             SELECT DISTINCT conn.connNumber, conn.tab, COUNT(timecode.termIndex) count FROM timecode
             JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
-            GROUP BY conn.id, conn.tab
+            GROUP BY conn.name, conn.tab
         ),
         TodayRunningConns AS (
             SELECT DISTINCT conn.* FROM timecode
@@ -122,7 +122,7 @@ interface Dao {
                 )
             ))
             AND conn.tab = :tab
-            GROUP BY conn.id, conn.tab
+            GROUP BY conn.name, conn.tab
             HAVING (
                 timecode.runs 
                 AND COUNT(timecode.termIndex) >= 1
@@ -187,7 +187,7 @@ interface Dao {
                 ELSE connstop.stopIndexOnLine
             END)
         )
-        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.id connId, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
+        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%24%') lowFloor, conn.name connName, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
         JOIN connstop ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
         CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
@@ -205,7 +205,7 @@ interface Dao {
         date: LocalDate,
         tab: String,
         positive: Direction = Direction.POSITIVE,
-    ): List<TimeLowFloorConnIdDestinationFixedCodesDelay>
+    ): List<TimeLowFloorConnDestinationFixedCodesDelay>
 
     @Query(
         """
@@ -225,7 +225,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stopName name, conn.sequence, conn.id connId, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stopName name, conn.sequence, conn.name connName, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
@@ -233,7 +233,7 @@ interface Dao {
             NOT connstop.departure IS null
             OR NOT connstop.arrival IS null
         )
-        AND conn.id = :connId
+        AND conn.name = :connName
         AND conn.tab = :tab
         ORDER BY CASE
            WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
@@ -241,17 +241,17 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsConnStopsAndCodes(connId: String, tab: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodes>
+    suspend fun connWithItsConnStopsAndCodes(connName: String, tab: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodes>
 
     @Query(
         """
         SELECT conn.fixedCodes, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM timecode
         JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
-        AND conn.id = :connId
+        AND conn.name = :connName
         AND conn.tab = :tab
     """
     )
-    suspend fun codes(connId: String, tab: String): List<Codes>
+    suspend fun codes(connName: String, tab: String): List<Codes>
 
     @Transaction
     @Query(
@@ -259,7 +259,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stopName name, conn.id connId, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stopName name, conn.name connName, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
@@ -282,7 +282,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%24%') lowFloor, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, conn.id connId, conn.tab FROM connstop
+        END time, conn.name connName, conn.tab FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber 
         WHERE (
             NOT connstop.departure IS null
@@ -300,7 +300,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.id connId FROM conn
+        SELECT DISTINCT conn.name connName FROM conn
         WHERE conn.sequence = :seq
         AND conn.tab IN (:tabs)
         ORDER BY conn.orderInSequence
@@ -311,7 +311,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.id connId FROM conn
+        SELECT DISTINCT conn.name connName FROM conn
         WHERE conn.sequence = :seq
         AND conn.tab IN (:tabs)
         ORDER BY conn.orderInSequence
@@ -323,7 +323,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.id connId FROM conn
+        SELECT DISTINCT conn.name connName FROM conn
         WHERE conn.sequence = :seq
         AND conn.tab IN (:tabs)
         ORDER BY -conn.orderInSequence
@@ -509,7 +509,7 @@ interface Dao {
         END time, stop.stopName name FROM conn
         JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
         JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        WHERE conn.id = :connId
+        WHERE conn.name = :connName
         AND conn.tab = :tab
         AND (
             NOT connstop.departure IS null
@@ -521,17 +521,17 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsStops(connId: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<NameAndTime>>
+    suspend fun connWithItsStops(connName: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<NameAndTime>>
 
     @Transaction
     @Query(
         """
         SELECT conn.sequence, conn.tab FROM conn
-        WHERE conn.id = :connId
+        WHERE conn.name = :connName
         AND conn.tab = :tab
     """
     )
-    suspend fun seqOfConn(connId: String, tab: String): Map<@MapColumn("tab") String, @MapColumn("sequence") String?>
+    suspend fun seqOfConn(connName: String, tab: String): Map<@MapColumn("tab") String, @MapColumn("sequence") String?>
 
     @Query(
         """
@@ -545,13 +545,13 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT conn.id, CASE
+        SELECT conn.name, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, stop.stopName name, connstop.stopIndexOnLine FROM conn
         JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
         JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        WHERE conn.id IN (:connIds)
+        WHERE conn.name IN (:connNames)
         AND conn.tab IN (:tabs)
         ORDER BY CASE
            WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
@@ -559,7 +559,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connStops(connIds: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("id") String, List<NameTimeIndexOnLine>>
+    suspend fun connStops(connNames: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("name") String, List<NameTimeIndexOnLine>>
 
     @Query(
         """
@@ -581,12 +581,12 @@ interface Dao {
 
     @Query(
         """
-        SELECT id FROM conn
-        WHERE id = :connId
+        SELECT name FROM conn
+        WHERE name = :connName
         LIMIT 1
     """
     )
-    suspend fun doesConnExist(connId: String): String?
+    suspend fun doesConnExist(connName: String): String?
 
     @Query(
         """

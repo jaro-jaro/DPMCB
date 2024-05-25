@@ -7,7 +7,7 @@ import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.busOnMapById
+import cz.jaro.dpmcb.data.busOnMapByName
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
@@ -95,7 +95,7 @@ class DeparturesViewModel(
         .combine(onlineRepo.nowRunningBuses()) { datum, onlineConns ->
             repo.departures(datum, params.stop)
                 .map {
-                    val onlineConn = onlineConns.busOnMapById(it.busId)
+                    val onlineConn = onlineConns.busOnMapByName(it.busName)
                     it to onlineConn
                 }
                 .sortedBy { (stop, onlineConn) ->
@@ -120,7 +120,7 @@ class DeparturesViewModel(
                         lineNumber = stop.line,
                         time = stop.time,
                         currentNextStop = currentNextStop,
-                        busId = stop.busId,
+                        busName = stop.busName,
                         lowFloor = stop.lowFloor,
                         confirmedLowFloor = onlineConn?.lowFloor,
                         delay = onlineConn?.delayMin,
@@ -173,7 +173,7 @@ class DeparturesViewModel(
         is DeparturesEvent.GoToBus -> {
             navigate(
                 Route.Bus(
-                    e.bus.busId
+                    e.bus.busName
                 )
             )
         }

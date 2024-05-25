@@ -86,11 +86,11 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.toSimpleTime
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.data.helperclasses.toSimpleTime
 import cz.jaro.dpmcb.ui.sequence.DelayBubble
 import cz.jaro.dpmcb.ui.sequence.Name
 import cz.jaro.dpmcb.ui.sequence.Vehicle
@@ -108,7 +108,7 @@ fun Bus(
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf(args.busId, navigate))
+            ParametersHolder(mutableListOf("${args.lineNumber}/${args.busNumber}", navigate))
         }
     },
 ) {
@@ -138,10 +138,10 @@ fun BusScreen(
         when (state) {
             is BusState.Loading -> Loading()
 
-            is BusState.DoesNotExist -> DoesNotExist(state.busId)
+            is BusState.DoesNotExist -> DoesNotExist(state.busName)
 
             is BusState.DoesNotRun -> {
-                Errors(state.runsNextTimeAfterToday, onEvent, state.runsNextTimeAfterDate, state.busId, state.date)
+                Errors(state.runsNextTimeAfterToday, onEvent, state.runsNextTimeAfterDate, state.busName, state.date)
 
                 CodesAndShare(state)
             }
@@ -168,7 +168,7 @@ fun BusScreen(
 
                     Favouritificator(
                         onEvent = onEvent,
-                        busId = state.busId,
+                        busName = state.busName,
                         favouritePartOfConn = state.favourite,
                         stops = state.stops
                     )
@@ -217,12 +217,12 @@ private fun Loading() {
 
 @Composable
 private fun DoesNotExist(
-    busId: String,
+    busName: String,
 ) = Row(
     Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.Center
 ) {
-    Text("Tento spoj ($busId) bohužel neexistuje :(\nAsi jste zadali špatně ID.")
+    Text("Tento spoj ($busName) bohužel neexistuje :(\nAsi jste zadali špatně název.")
 }
 
 context(ColumnScope)
@@ -231,22 +231,22 @@ private fun Errors(
     runsNextTimeAfterToday: LocalDate?,
     onEvent: (BusEvent) -> Unit,
     runsNextTimeAfterDate: LocalDate?,
-    busId: String,
+    busName: String,
     date: LocalDate,
 ) {
     ErrorMessage(
         when {
             runsNextTimeAfterDate == null && runsNextTimeAfterToday == null ->
-                "Tento spoj (ID $busId) bohužel ${date.toCzechLocative()} nejede :(\nZkontrolujte, zda jste zadali správné datum."
+                "Tento spoj ($busName) bohužel ${date.toCzechLocative()} nejede :(\nZkontrolujte, zda jste zadali správné datum."
 
             runsNextTimeAfterDate != null && runsNextTimeAfterToday != null && runsNextTimeAfterDate != runsNextTimeAfterToday ->
-                "Tento spoj (ID $busId) ${date.toCzechLocative()} nejede. Jede mimo jiné ${runsNextTimeAfterDate.toCzechLocative()} nebo ${runsNextTimeAfterToday.toCzechLocative()}"
+                "Tento spoj ($busName) ${date.toCzechLocative()} nejede. Jede mimo jiné ${runsNextTimeAfterDate.toCzechLocative()} nebo ${runsNextTimeAfterToday.toCzechLocative()}"
 
             runsNextTimeAfterDate == null && runsNextTimeAfterToday != null ->
-                "Tento spoj (ID $busId) ${date.toCzechLocative()} nejede, ale pojede ${runsNextTimeAfterToday.toCzechLocative()}."
+                "Tento spoj ($busName) ${date.toCzechLocative()} nejede, ale pojede ${runsNextTimeAfterToday.toCzechLocative()}."
 
             runsNextTimeAfterDate != null ->
-                "Tento spoj (ID $busId) ${date.toCzechLocative()} nejede, ale pojede ${runsNextTimeAfterDate.toCzechLocative()}."
+                "Tento spoj ($busName) ${date.toCzechLocative()} nejede, ale pojede ${runsNextTimeAfterDate.toCzechLocative()}."
 
             else -> throw IllegalArgumentException()
         }
@@ -528,15 +528,15 @@ private fun SequenceRow(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Favouritificator(
     onEvent: (BusEvent) -> Unit,
-    busId: String,
+    busName: String,
     favouritePartOfConn: PartOfConn?,
     stops: List<LineTimeNameConnIdNextStop>,
 ) {
     var show by remember { mutableStateOf(false) }
-    var part by remember { mutableStateOf(PartOfConn(busId, -1, -1)) }
+    var part by remember { mutableStateOf(PartOfConn(busName, -1, -1)) }
 
     FilledIconToggleButton(checked = favouritePartOfConn != null, onCheckedChange = {
-        part = favouritePartOfConn ?: PartOfConn(busId, -1, -1)
+        part = favouritePartOfConn ?: PartOfConn(busName, -1, -1)
         show = true
     }) {
         IconWithTooltip(Icons.Default.Star, "Oblíbené")
@@ -744,7 +744,7 @@ private fun CodesAndShare(
         TextButton(onClick = {
             showMenu = true
         }) {
-            Text("ID: ${state.busId}")
+            Text("Spoj ${state.busName}")
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = {
@@ -769,36 +769,6 @@ private fun CodesAndShare(
                             }
                         ) {
                             IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Otevřít")
-                        }
-                    }
-                )
-                DropdownMenuItem(
-                    text = {
-                        Text("ID: ${state.busId}")
-                    },
-                    onClick = {},
-                    trailingIcon = {
-                        Row {
-                            IconButton(
-                                onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, state.busId)
-                                        type = "text/plain"
-                                    }, "Sdílet ID spoje"))
-                                    showMenu = false
-                                }
-                            ) {
-                                IconWithTooltip(Icons.Default.Share, "Sdílet")
-                            }
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(state.busId))
-                                    showMenu = false
-                                }
-                            ) {
-                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
-                            }
                         }
                     }
                 )

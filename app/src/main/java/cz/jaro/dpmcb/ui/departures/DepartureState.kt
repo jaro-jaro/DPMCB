@@ -9,7 +9,7 @@ data class DepartureState(
     val nextStop: String?,
     val lineNumber: Int,
     val time: LocalTime,
-    val busId: String,
+    val busName: String,
     val lowFloor: Boolean,
     val confirmedLowFloor: Boolean?,
     val delay: Float?,
