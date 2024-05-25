@@ -209,8 +209,8 @@ class SpojeRepository(
     suspend fun stopNames(datum: LocalDate) = localDataSource.stopNames(allTables(datum))
     suspend fun lineNumbers(datum: LocalDate) = localDataSource.lineNumbers(allTables(datum))
 
-    suspend fun busDetail(busId: String, date: LocalDate) =
-        localDataSource.connWithItsConnStopsAndCodes(busId, nowUsedTable(date, extractLineNumber(busId))!!).run {
+    suspend fun busDetail(busName: String, date: LocalDate) =
+        localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!).run {
             val noCodes = distinctBy {
                 it.copy(fixedCodes = "", runs = false, from = LocalDate.now(), to = LocalDate.now())
             }
@@ -242,7 +242,7 @@ class SpojeRepository(
                     LineLowFloorConnIdSeq(
                         lowFloor = it.lowFloor,
                         line = it.line - 325_000,
-                        connId = it.connId,
+                        connName = it.connName,
                         sequence = it.sequence,
                     )
                 },
@@ -252,7 +252,7 @@ class SpojeRepository(
                         name = it.name,
                         line = it.line - 325_000,
                         nextStop = noCodes.getOrNull(i + 1)?.name,
-                        connId = it.connId
+                        connName = it.connName
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
@@ -263,20 +263,20 @@ class SpojeRepository(
             )
         }
 
-    suspend fun codes(connId: String, date: LocalDate) =
-        localDataSource.codes(connId, nowUsedTable(date, extractLineNumber(connId))!!).run {
+    suspend fun codes(connName: String, date: LocalDate) =
+        localDataSource.codes(connName, nowUsedTable(date, extractLineNumber(connName))!!).run {
             if (isEmpty()) return@run emptyList<RunsFromTo>() to emptyList<String>()
             map { RunsFromTo(runs = it.runs, `in` = it.from..it.to) } to makeFixedCodesReadable(first().fixedCodes)
         }
 
-    private fun extractLineNumber(connId: String) = connId.split("-")[1].toInt()
+    private fun extractLineNumber(connName: String) = connName.split("/")[0].toInt()
 
-    suspend fun favouriteBus(busId: String, date: LocalDate) =
-        localDataSource.connWithItsConnStopsAndCodes(busId, nowUsedTable(date, extractLineNumber(busId))!!)
+    suspend fun favouriteBus(busName: String, date: LocalDate) =
+        localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!)
             .run {
                 Pair(
-                    first().let { LineLowFloorConnId(it.lowFloor, it.line - 325_000, it.connId) },
-                    map { TimeNameConnId(it.time, it.name, it.connId) }.distinct(),
+                    first().let { LineLowFloorConnId(it.lowFloor, it.line - 325_000, it.connName) },
+                    map { TimeNameConnId(it.time, it.name, it.connName) }.distinct(),
                 )
             }
 
@@ -340,11 +340,11 @@ class SpojeRepository(
     suspend fun sequence(seq: String, date: LocalDate): Sequence? {
         val conns = localDataSource.connsOfSeqWithTheirConnStops(seq)
             .groupBy {
-                it.connId to it.tab
+                it.connName to it.tab
             }
             .filter { (a, _) ->
-                val (connId, tab) = a
-                val nowUsedTable = nowUsedTable(date, extractLineNumber(connId))
+                val (connName, tab) = a
+                val nowUsedTable = nowUsedTable(date, extractLineNumber(connName))
                 nowUsedTable == tab
             }
             .map { (_, stops) ->
@@ -364,7 +364,7 @@ class SpojeRepository(
                         LineLowFloorConnIdSeq(
                             lowFloor = it.lowFloor,
                             line = it.line - 325_000,
-                            connId = it.connId,
+                            connName = it.connName,
                             sequence = it.sequence,
                         )
                     },
@@ -374,7 +374,7 @@ class SpojeRepository(
                             name = it.name,
                             line = it.line - 325_000,
                             nextStop = noCodes.getOrNull(i + 1)?.name,
-                            connId = it.connId
+                            connName = it.connName
                         )
                     }.distinct(),
                     timeCodes,
@@ -421,10 +421,10 @@ class SpojeRepository(
 
     suspend fun busStopTimesOfSequence(seq: String, date: LocalDate): List<Pair<Boolean, List<LocalTime>>>? {
         val conns = localDataSource.connsOfSeqWithTheirConnStopTimes(seq)
-            .groupBy { it.connId to it.tab }
+            .groupBy { it.connName to it.tab }
             .filter { (a, _) ->
-                val (connId, tab) = a
-                val nowUsedTable = nowUsedTable(date, extractLineNumber(connId))
+                val (connName, tab) = a
+                val nowUsedTable = nowUsedTable(date, extractLineNumber(connName))
                 nowUsedTable == tab
             }
             .map { (_, stops) ->
@@ -494,13 +494,13 @@ class SpojeRepository(
 
     suspend fun changeFavourite(part: PartOfConn) {
         preferenceDataSource.changeFavourites { favourites ->
-            listOf(part).plus(favourites).distinctBy { it.busId }
+            listOf(part).plus(favourites).distinctBy { it.busName }
         }
     }
 
-    suspend fun removeFavourite(id: String) {
+    suspend fun removeFavourite(name: String) {
         preferenceDataSource.changeFavourites { favourites ->
-            favourites - favourites.first { it.busId == id }
+            favourites - favourites.first { it.busName == name }
         }
     }
 
@@ -517,12 +517,12 @@ class SpojeRepository(
                 val connStops = localDataSource.connStops(list.map { it.first }, allTables(date))
                 list.map { Quadruple(it.first, it.second, it.third, connStops[it.first]!!) }
             }
-            .map { (connId, stopIndexOnLine, info, stops) ->
+            .map { (connName, stopIndexOnLine, info, stops) ->
                 LineLowFloorConnIdTimeNameIndexStops(
                     name = info.name,
                     time = info.time,
                     stopIndexOnLine = stopIndexOnLine,
-                    busId = connId,
+                    busName = connName,
                     line = info.line - 325_000,
                     lowFloor = info.lowFloor,
                     busStops = stops
@@ -574,8 +574,8 @@ class SpojeRepository(
         )
     }
 
-    suspend fun nowRunningBus(busId: String, date: LocalDate): Pair<Conn, List<NameAndTime>> =
-        localDataSource.connWithItsStops(busId, nowUsedTable(date, extractLineNumber(busId))!!)
+    suspend fun nowRunningBus(busName: String, date: LocalDate): Pair<Conn, List<NameAndTime>> =
+        localDataSource.connWithItsStops(busName, nowUsedTable(date, extractLineNumber(busName))!!)
             .toList()
             .first { date.isThisTableNowUsed(it.first.tab) }
 
@@ -590,14 +590,14 @@ class SpojeRepository(
         isOnline && onlineMode
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline && settings.value.autoOnline)
 
-    suspend fun hasRestriction(busId: String, date: LocalDate) =
-        localDataSource.hasRestriction(nowUsedTable(date, extractLineNumber(busId))!!)
+    suspend fun hasRestriction(busName: String, date: LocalDate) =
+        localDataSource.hasRestriction(nowUsedTable(date, extractLineNumber(busName))!!)
 
-    suspend fun lineValidity(busId: String, date: LocalDate) =
-        localDataSource.validity(nowUsedTable(date, extractLineNumber(busId))!!)
+    suspend fun lineValidity(busName: String, date: LocalDate) =
+        localDataSource.validity(nowUsedTable(date, extractLineNumber(busName))!!)
 
-    suspend fun doesBusExist(busId: String): Boolean {
-        return localDataSource.doesConnExist(busId) != null
+    suspend fun doesBusExist(busName: String): Boolean {
+        return localDataSource.doesConnExist(busName) != null
     }
 
     fun doesConnRunAt(spojId: String): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
@@ -691,8 +691,8 @@ class SpojeRepository(
         }
     }
 
-    suspend fun seqOfBus(busId: String, date: LocalDate) =
-        localDataSource.seqOfConn(busId, nowUsedTable(date, extractLineNumber(busId))!!)
+    suspend fun seqOfBus(busName: String, date: LocalDate) =
+        localDataSource.seqOfConn(busName, nowUsedTable(date, extractLineNumber(busName))!!)
             .toList()
             .first { date.isThisTableNowUsed(it.first) }
             .second

@@ -5,5 +5,5 @@ import java.time.LocalTime
 data class TimeNameConnId(
     val time: LocalTime,
     val name: String,
-    val connId: String,
+    val connName: String,
 )

@@ -5,6 +5,6 @@ import java.time.LocalTime
 data class LowFloorTimeConnIdTab(
     val lowFloor: Boolean,
     val time: LocalTime,
-    val connId: String,
+    val connName: String,
     val tab: String,
 )

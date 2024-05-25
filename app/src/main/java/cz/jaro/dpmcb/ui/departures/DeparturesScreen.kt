@@ -444,7 +444,7 @@ fun DeparturesScreen(
                         when (i) {
                             0 -> 0
                             state.line.lastIndex + 2 -> Int.MAX_VALUE
-                            else -> state.line[i - 1].busId to state.line[i - 1].time
+                            else -> state.line[i - 1].busName to state.line[i - 1].time
                         }
                     },
                     itemContent = { i ->

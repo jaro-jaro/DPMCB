@@ -14,7 +14,10 @@ import cz.jaro.dpmcb.data.helperclasses.Direction
 import java.time.LocalDate
 import java.time.LocalTime
 
-@Database(entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class], version = 24)
+@Database(
+    entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class],
+    version = 25,
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao

@@ -85,7 +85,7 @@ class OblibeneWidget : GlanceAppWidget() {
                         val ids =
                             repo.favourites.first().map { cast ->
                                 try {
-                                    val a = repo.favouriteBus(cast.busId, LocalDate.now())
+                                    val a = repo.favouriteBus(cast.busName, LocalDate.now())
                                     Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
                                     Firebase.crashlytics.recordException(e)
@@ -96,9 +96,9 @@ class OblibeneWidget : GlanceAppWidget() {
                         if (ids.isEmpty()) return@state OblibeneWidgetState.ZadneOblibene
 
                         val tedJede = ids.map { (info, zastavky, cast) ->
-                            val jedeV = repo.doesConnRunAt(info.connId)
+                            val jedeV = repo.doesConnRunAt(info.connName)
                             KartickaWidgetState(
-                                spojId = info.connId,
+                                spojId = info.connName,
                                 linka = info.line,
                                 vychoziZastavka = zastavky[cast.start].name,
                                 vychoziZastavkaCas = zastavky[cast.start].time,

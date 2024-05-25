@@ -179,7 +179,7 @@ fun FavouritesScreen(
 
             if (it is FavouriteState.Online) ElevatedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusToday(it.busId))
+                    onEvent(FavouritesEvent.NavToBusToday(it.busName))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -188,7 +188,7 @@ fun FavouritesScreen(
             )
             else OutlinedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusToday(it.busId))
+                    onEvent(FavouritesEvent.NavToBusToday(it.busName))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -208,11 +208,11 @@ fun FavouritesScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsOtherDay, key = { it.busId }) {
+        items(state.runsOtherDay, key = { it.busName }) {
 
             OutlinedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusOtherDay(it.busId, it.nextWillRun))
+                    onEvent(FavouritesEvent.NavToBusOtherDay(it.busName, it.nextWillRun))
                 },
                 Modifier
                     .fillMaxWidth()

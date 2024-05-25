@@ -66,7 +66,7 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            params.navigate(Route.Bus(busId = e.busId))
+            params.navigate(Route.Bus(busName = e.busName))
         }
 
         is NowRunningEvent.NavToSeq -> {
@@ -78,11 +78,11 @@ class NowRunningViewModel(
         loading.value = true
         onlineConns
             .asyncMap { onlineConn ->
-                val (conn, stops) = repo.nowRunningBus(onlineConn.id, LocalDate.now())
+                val (conn, stops) = repo.nowRunningBus(onlineConn.name, LocalDate.now())
                 val middleStop = if (conn.line - 325_000 in repo.oneWayLines()) repo.findMiddleStop(stops) else null
                 val indexOnLine = stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
-                    busId = conn.id,
+                    busName = conn.name,
                     nextStopName = stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@asyncMap null,
                     nextStopTime = stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@asyncMap null,
                     delay = onlineConn.delayMin ?: return@asyncMap null,
@@ -179,7 +179,7 @@ class NowRunningViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
 
     data class RunningConnPlus(
-        val busId: String,
+        val busName: String,
         val nextStopName: String,
         val nextStopTime: LocalTime,
         val delay: Float,
@@ -191,7 +191,7 @@ class NowRunningViewModel(
         val sequence: String?,
     ) {
         fun toRunningDelayedBus() = RunningDelayedBus(
-            busId = busId,
+            busName = busName,
             delay = delay,
             lineNumber = lineNumber,
             destination = destination,
@@ -199,7 +199,7 @@ class NowRunningViewModel(
         )
 
         fun toRunningVehicle() = RunningVehicle(
-            busId = busId,
+            busName = busName,
             lineNumber = lineNumber,
             destination = destination,
             vehicle = vehicle,
@@ -207,7 +207,7 @@ class NowRunningViewModel(
         )
 
         fun toRunningBus() = RunningBus(
-            busId = busId,
+            busName = busName,
             nextStopName = nextStopName,
             nextStopTime = nextStopTime,
             delay = delay,

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("CastSpoje")
 data class PartOfConn(
-    @SerialName("spojId") val busId: String,
+    @SerialName("spojId") val busName: String,
     val start: Int,
     val end: Int,
 )

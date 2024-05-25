@@ -15,6 +15,6 @@ data class Conn(
     val sequence: String?,
     val orderInSequence: Int?,
 ) {
-    var id = "S-$line-$connNumber"
+    var name = "$line/$connNumber"
         internal set
 }
