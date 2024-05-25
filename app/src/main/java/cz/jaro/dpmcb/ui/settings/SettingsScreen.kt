@@ -7,13 +7,13 @@ import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -22,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,15 +37,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
@@ -293,7 +295,7 @@ fun SettingsScreen(
                     }
                 }
                 textItem("Aktuální verze dat: ${state.dataMetaVersion}.${state.dataVersion}")
-                textItem("Aktuální verze aplikace: ${state.version}")
+                textItem("Aktuální verze aplikace: ${state.version}${if (BuildConfig.DEBUG) "-DEBUG" else ""}")
 
                 textItem("")
 
@@ -316,16 +318,25 @@ fun SettingsScreen(
                             }
                         }
                     }
-                    ClickableText(
+                    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+                    Text(
                         text = text,
-                        style = LocalTextStyle.current,
-                        onClick = { offset ->
-                            text.getStringAnnotations(tag = "cis", start = offset, end = offset).firstOrNull()?.let { stringRange ->
-                                CustomTabsIntent.Builder()
-                                    .setShowTitle(true)
-                                    .build()
-                                    .launchUrl(context, Uri.parse(stringRange.item))
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures { pos ->
+                                layoutResult?.let { layoutResult ->
+                                    val offset = layoutResult.getOffsetForPosition(pos)
+                                    text.getStringAnnotations(tag = "cis", start = offset, end = offset).firstOrNull()?.let { stringRange ->
+                                        CustomTabsIntent.Builder()
+                                            .setShowTitle(true)
+                                            .build()
+                                            .launchUrl(context, Uri.parse(stringRange.item))
+                                    }
+                                }
                             }
+                        },
+                        onTextLayout = {
+                            layoutResult = it
                         }
                     )
                 }

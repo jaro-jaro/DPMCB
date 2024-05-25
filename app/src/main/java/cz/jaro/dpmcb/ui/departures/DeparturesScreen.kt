@@ -78,6 +78,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.toLocalTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
@@ -86,7 +87,6 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.toLocalTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -102,17 +102,20 @@ import kotlin.math.roundToLong
 @Composable
 fun Departures(
     args: Route.Departures,
+    navController: NavHostController,
     viewModel: DeparturesViewModel = koinViewModel {
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
                 time = args.time?.toLocalTime() ?: now,
-                line = args.line.takeUnless { it == 0 },
-                via = args.via
+                line = args.line.takeUnless { it == -1 },
+                via = args.via,
+                onlyDepartures = args.onlyDepartures,
+                simple = args.simple,
+                getNavDestination = { navController.currentBackStackEntry?.destination }
             )
         )
     },
-    navController: NavHostController,
 ) {
     LifecycleResumeEffect(Unit) {
         val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")

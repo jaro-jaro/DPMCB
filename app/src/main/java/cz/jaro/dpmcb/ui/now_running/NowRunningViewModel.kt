@@ -1,7 +1,10 @@
 package cz.jaro.dpmcb.ui.now_running
 
+import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavDestination
+import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.Direction
@@ -9,6 +12,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.asyncMap
+import cz.jaro.dpmcb.ui.main.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.now_running.NowRunningViewModel.RunningConnPlus.Companion.runningBuses
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,19 +38,31 @@ class NowRunningViewModel(
         val filters: List<Int>,
         val type: NowRunningType,
         val navigate: NavigateFunction,
+        val getNavDestination: () -> NavDestination?,
     )
 
     private val type = MutableStateFlow(params.type)
-    private val filers = MutableStateFlow(params.filters)
+    private val filters = MutableStateFlow(params.filters)
     private val loading = MutableStateFlow(true)
+
+
+    @SuppressLint("RestrictedApi")
+    private fun changeCurrentRoute() {
+        App.route = Route.NowRunning(
+            filters = filters.value,
+            type = type.value,
+        ).generateRouteWithArgs(params.getNavDestination() ?: return)
+    }
 
     fun onEvent(e: NowRunningEvent) = when (e) {
         is NowRunningEvent.ChangeFilter -> {
-            if (e.lineNumber in filers.value) filers.value -= (e.lineNumber) else filers.value += (e.lineNumber)
+            if (e.lineNumber in filters.value) filters.value -= (e.lineNumber) else filters.value += (e.lineNumber)
+            changeCurrentRoute()
         }
 
         is NowRunningEvent.ChangeType -> {
             type.value = e.typ
+            changeCurrentRoute()
         }
 
         is NowRunningEvent.NavToBus -> {
@@ -123,7 +139,7 @@ class NowRunningViewModel(
         }
     }
 
-    private val filteredResult = nowRunning.combine(filers) { result, filters ->
+    private val filteredResult = nowRunning.combine(filters) { result, filters ->
         when (result) {
             is NowRunningResults.RegN -> result.copy(list = result.list.filter { filters.isEmpty() || it.lineNumber in filters })
             is NowRunningResults.Lines -> result.copy(list = result.list.filter { filters.isEmpty() || it.lineNumber in filters })
@@ -135,7 +151,7 @@ class NowRunningViewModel(
         emit(repo.lineNumbers(LocalDate.now()))
     }
 
-    private val nowNotRunning = combine(repo.nowRunningOrNot, nowRunning, filers) { nowRunning, result, filters ->
+    private val nowNotRunning = combine(repo.nowRunningOrNot, nowRunning, filters) { nowRunning, result, filters ->
         val reallyRunning = when (result) {
             is NowRunningResults.RegN -> result.list.mapNotNull { it.sequence }
             is NowRunningResults.Lines -> result.list.flatMap { it.buses }.mapNotNull { it.sequence }
@@ -148,7 +164,7 @@ class NowRunningViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state =
-        combine(repo.date, lineNumbers, filteredResult, loading, repo.hasAccessToMap, filers, type, nowNotRunning) { date, lineNumbers, result, listIsLoading, isOnline, filters, type, nowNotRunning ->
+        combine(repo.date, lineNumbers, filteredResult, loading, repo.hasAccessToMap, filters, type, nowNotRunning) { date, lineNumbers, result, listIsLoading, isOnline, filters, type, nowNotRunning ->
             if (date != LocalDate.now()) return@combine NowRunningState.IsNotToday
 
             if (!isOnline) return@combine NowRunningState.Offline

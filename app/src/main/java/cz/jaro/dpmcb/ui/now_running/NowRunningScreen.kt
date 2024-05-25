@@ -46,8 +46,9 @@ fun NowRunning(
     navController: NavHostController,
     viewModel: NowRunningViewModel = run {
         val navigate = navController.navigateFunction
+        val getNavDestination = { navController.currentBackStackEntry?.destination }
         koinViewModel {
-            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type, navigate = navigate))
+            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type, navigate = navigate, getNavDestination = getNavDestination))
         }
     },
 ) {

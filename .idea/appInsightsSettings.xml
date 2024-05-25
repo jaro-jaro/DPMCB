@@ -9,14 +9,29 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="cz.jaro.dpmcb.debug" />
-                  <option name="mobileSdkAppId" value="1:867578529394:android:1d0cc0213273c873bba4eb" />
+                  <option name="appId" value="cz.jaro.dpmcb" />
+                  <option name="mobileSdkAppId" value="1:867578529394:android:04a8b1ae3e1abfd2bba4eb" />
                   <option name="projectId" value="dpmcb-jaro" />
                   <option name="projectNumber" value="867578529394" />
                 </ConnectionSetting>
               </option>
+              <option name="failureTypes">
+                <list>
+                  <option value="FATAL" />
+                  <option value="ANR" />
+                </list>
+              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
+              <option name="versions">
+                <list>
+                  <VersionSetting>
+                    <option name="buildVersion" value="22" />
+                    <option name="displayName" value="1.6.3-alpha.4 (22)" />
+                    <option name="displayVersion" value="1.6.3-alpha.4" />
+                  </VersionSetting>
+                </list>
+              </option>
               <option name="visibilityType" value="ALL" />
             </InsightsFilterSettings>
           </value>

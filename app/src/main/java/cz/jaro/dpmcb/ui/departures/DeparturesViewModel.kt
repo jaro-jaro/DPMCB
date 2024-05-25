@@ -1,7 +1,9 @@
 package cz.jaro.dpmcb.ui.departures
 
+import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -9,8 +11,10 @@ import cz.jaro.dpmcb.data.busOnMapById
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.toSimpleTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.generateRouteWithArgs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,24 +47,45 @@ class DeparturesViewModel(
         val time: LocalTime,
         val line: Int?,
         val via: String?,
+        val onlyDepartures: Boolean?,
+        val simple: Boolean?,
+        val getNavDestination: () -> NavDestination?,
     )
 
     lateinit var scroll: suspend (Int) -> Unit
     lateinit var navigate: NavigateFunction
 
-    private val _info = MutableStateFlow(DeparturesInfo(time = params.time, lineFilter = params.line, stopFilter = params.via))
+    private val _info = MutableStateFlow(DeparturesInfo(
+        time = params.time,
+        lineFilter = params.line,
+        stopFilter = params.via,
+        justDepartures = params.onlyDepartures ?: false,
+        compactMode = params.simple ?: false,
+    ))
     val info = _info.asStateFlow()
 
     init {
         viewModelScope.launch {
             repo.showDeparturesOnly.collect {
-                _info.update { i ->
+                if (params.onlyDepartures != null) _info.update { i ->
                     i.copy(
                         justDepartures = it
                     )
                 }
             }
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    private fun changeCurrentRoute(info: DeparturesInfo) {
+        App.route = Route.Departures(
+            stop = params.stop,
+            time = info.time.toSimpleTime(),
+            line = info.lineFilter,
+            via = info.stopFilter,
+            onlyDepartures = info.justDepartures,
+            simple = info.compactMode,
+        ).generateRouteWithArgs(params.getNavDestination() ?: return)
     }
 
     val hasMapAccess = repo.hasAccessToMap
@@ -170,7 +195,7 @@ class DeparturesViewModel(
                 _info.update { oldState ->
                     oldState.copy(
                         time = e.time,
-                    )
+                    ).also(::changeCurrentRoute)
                 }
             }
             Unit
@@ -194,7 +219,7 @@ class DeparturesViewModel(
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toInt())
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = e.result.value)
                         else -> return@launch
-                    }
+                    }.also(::changeCurrentRoute)
                 }
             }
             Unit

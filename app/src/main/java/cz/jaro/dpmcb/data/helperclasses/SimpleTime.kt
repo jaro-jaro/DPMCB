@@ -1,4 +1,4 @@
-package cz.jaro.dpmcb.ui.main
+package cz.jaro.dpmcb.data.helperclasses
 
 import kotlinx.serialization.Serializable
 import java.time.LocalTime

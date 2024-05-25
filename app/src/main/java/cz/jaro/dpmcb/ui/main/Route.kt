@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.main
 
+import cz.jaro.dpmcb.data.helperclasses.SimpleTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import kotlinx.serialization.SerialName
@@ -8,6 +9,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("Route")
 sealed interface Route {
+    companion object {
+        val routes =
+            listOf(Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class, NowRunning::class, Sequence::class, Timetable::class)
+    }
+
     @Serializable
     @SerialName("bus")
     data class Bus(
@@ -30,9 +36,11 @@ sealed interface Route {
     @SerialName("departures")
     data class Departures(
         val stop: String,
-        val time: SimpleTime = SimpleTime(1,0),
-        val line: Int = 0,
+        val time: SimpleTime? = null,
+        val line: Int? = null,
         val via: String? = null,
+        val onlyDepartures: Boolean? = null,
+        val simple: Boolean? = null,
     ) : Route
 
     @Serializable
