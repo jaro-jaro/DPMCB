@@ -33,6 +33,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import cz.jaro.dpmcb.ui.sequence.DelayBubble
 import cz.jaro.dpmcb.ui.sequence.Name
 import cz.jaro.dpmcb.ui.sequence.Vehicle
@@ -40,12 +41,13 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
+context(TransitionScope)
 @Composable
 @Suppress("UNUSED_PARAMETER")
 fun Favourites(
     args: Route.Favourites,
     navController: NavHostController,
-    viewModel: FavouritesViewModel = run {
+    viewModel: FavouritesViewModel = Unit.run {
         val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(
@@ -67,6 +69,7 @@ fun Favourites(
     )
 }
 
+context(TransitionScope)
 @Composable
 fun FavouritesScreen(
     state: FavouritesState,
@@ -121,8 +124,8 @@ fun FavouritesScreen(
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Name("${it.line}", Modifier.padding(end = 8.dp))
-                    if (it is FavouriteState.Online) DelayBubble(it.delay)
+                    Name("${it.line}", it.busName, Modifier.padding(end = 8.dp))
+                    if (it is FavouriteState.Online) DelayBubble(it.delay, it.busName)
                     if (it is FavouriteState.Online) Vehicle(it.vehicle)
                 }
                 @Composable
@@ -223,7 +226,7 @@ fun FavouritesScreen(
                         .fillMaxWidth()
                         .padding(start = 8.dp, top = 8.dp, end = 8.dp),
                 ) {
-                    Name("${it.line}")
+                    Name("${it.line}", it.busName)
                 }
                 Row(
                     modifier = Modifier

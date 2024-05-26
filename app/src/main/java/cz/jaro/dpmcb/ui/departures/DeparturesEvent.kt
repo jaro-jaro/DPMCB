@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.departures
 
-import cz.jaro.dpmcb.data.helperclasses.Result
+import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import java.time.LocalTime
 

@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
-import cz.jaro.dpmcb.data.helperclasses.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction
 import java.time.LocalDate
 import java.time.LocalTime
 

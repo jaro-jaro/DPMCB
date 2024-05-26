@@ -55,7 +55,8 @@ class App : Application() {
                         migrations = listOf(
                             SharedPreferencesMigration({
                                 get<Context>().getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-                            })
+                            }),
+                            DataStoreMigrationConnName(),
                         )
                     ) {
                         get<Context>().dataStoreFile("DPMCB_DataStore.preferences_pb")
@@ -69,7 +70,6 @@ class App : Application() {
                 }
                 single {
                     Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
-//                        .addMigrations(Migration24to25)
                         .fallbackToDestructiveMigration()
                         .build()
                 }

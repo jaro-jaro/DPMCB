@@ -74,18 +74,22 @@ import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.SimpleTime
+import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
-import cz.jaro.dpmcb.data.helperclasses.enumTypePair
-import cz.jaro.dpmcb.data.helperclasses.serializationTypePair
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.common.MySharedTransitionLayout
+import cz.jaro.dpmcb.ui.common.enumTypePair
+import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.route
+import cz.jaro.dpmcb.ui.common.serializationTypePair
+import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.map.Map
@@ -105,15 +109,26 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
     )
+
     Route.Departures::class -> mapOf(
-        serializationTypePair<SimpleTime?>(),
+        typePair<SimpleTime?>(
+            parseValue = { time ->
+                if (time == "null") null
+                else time.split(":").map(String::toInt).let { SimpleTime(h = it[0], min = it[1]) }
+            },
+            serializeAsValue = {
+                it?.let { "${it.h}:${it.min}" } ?: "null"
+            }
+        ),
         serializationTypePair<Int?>(),
         serializationTypePair<Boolean?>(),
     )
+
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
         serializationTypePair<List<Int>>(),
     )
+
     else -> emptyMap()
 }
 
@@ -209,19 +224,21 @@ fun Main(
         findBusByEvn = viewModel.findBusByEvn,
         findSequences = viewModel.findSequences,
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = Route.Favourites,
-        ) {
-            route<Route.Favourites> { Favourites(args = it, navController = navController) }
-            route<Route.Chooser> { Chooser(args = it, navController = navController) }
-            route<Route.Departures> { Departures(args = it, navController = navController) }
-            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
-            route<Route.Timetable> { Timetable(args = it, navController = navController) }
-            route<Route.Bus> { Bus(args = it, navController = navController) }
-            route<Route.Sequence> { Sequence(args = it, navController = navController) }
-            route<Route.Card> { Card(args = it, navController = navController) }
-            route<Route.Map> { Map(args = it, navController = navController) }
+        MySharedTransitionLayout {
+            NavHost(
+                navController = navController,
+                startDestination = Route.Favourites,
+            ) {
+                route<Route.Favourites> { Favourites(args = it, navController = navController) }
+                route<Route.Chooser> { Chooser(args = it, navController = navController) }
+                route<Route.Departures> { Departures(args = it, navController = navController) }
+                route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
+                route<Route.Timetable> { Timetable(args = it, navController = navController) }
+                route<Route.Bus> { Bus(args = it, navController = navController) }
+                route<Route.Sequence> { Sequence(args = it, navController = navController) }
+                route<Route.Card> { Card(args = it, navController = navController) }
+                route<Route.Map> { Map(args = it, navController = navController) }
+            }
         }
     }
 }

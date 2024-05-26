@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.sequence
 import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.ui.common.SequenceToBusTransitionData
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayBubbleContainer
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayBubbleText
@@ -59,9 +61,11 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
-import cz.jaro.dpmcb.ui.bus.Timetable
+import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
+import cz.jaro.dpmcb.ui.common.sharedElement
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
@@ -69,6 +73,7 @@ import java.time.LocalTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 
+context(TransitionScope)
 @Composable
 fun Sequence(
     args: Route.Sequence,
@@ -89,8 +94,9 @@ fun Sequence(
     )
 }
 
+context(TransitionScope)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun SequenceScreen(
     state: SequenceState,
@@ -130,15 +136,16 @@ fun SequenceScreen(
                             .padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Name(state.sequenceName)
+                        Name(state.sequenceName, state.sequenceName)
 
                         if (state is SequenceState.Online && state.confirmedLowFloor != null) Wheelchair(
                             lowFloor = state.confirmedLowFloor,
                             confirmedLowFloor = state.confirmedLowFloor,
+                            key = state.sequenceName,
                             modifier = Modifier.padding(start = 8.dp),
                         )
 
-                        if (state is SequenceState.Online) DelayBubble(state.delayMin)
+                        if (state is SequenceState.Online) DelayBubble(state.delayMin, state.sequenceName)
                         if (state is SequenceState.Online) Vehicle(state.vehicle)
                     }
                 }
@@ -174,16 +181,17 @@ fun SequenceScreen(
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Name("${bus.lineNumber}")
+                                Name("${bus.lineNumber}", bus.busName)
                                 Wheelchair(
                                     lowFloor = bus.lowFloor,
                                     confirmedLowFloor = (state as? SequenceState.Online)?.confirmedLowFloor?.takeIf { bus.isRunning },
-                                    modifier = Modifier.padding(start = 8.dp)
+                                    key = bus.busName,
+                                    modifier = Modifier.padding(start = 8.dp),
                                 )
 
                                 Spacer(Modifier.weight(1F))
 
-                                BusButton(navigate, bus)
+                                BusButton(navigate, bus, state)
                             }
                         }
                         Surface {
@@ -193,7 +201,7 @@ fun SequenceScreen(
                                     .padding(vertical = 8.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                DelayBubble(state.delayMin)
+                                DelayBubble(state.delayMin, bus.busName)
                                 Vehicle(state.vehicle)
                             }
                         }
@@ -204,6 +212,7 @@ fun SequenceScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp)
+                                .sharedElement("timetable-${bus.busName}")
                         ) {
                             Timetable(
                                 stops = bus.stops,
@@ -298,12 +307,15 @@ private fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
     }
 }
 
+context(TransitionScope)
 @Composable
 private fun BusButton(
     navigate: NavigateFunction,
     bus: BusInSequence,
+    state: SequenceState.OK,
 ) = TextButton(
     onClick = {
+        sharedTransitionData = SequenceToBusTransitionData(bus, state)
         navigate(Route.Bus(busName = bus.busName))
     }
 ) {
@@ -322,13 +334,14 @@ private fun Connection(
     Text(sequence.second)
 }
 
+context(TransitionScope)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun Vehicle(vehicle: Int?) {
     if (vehicle != null) {
         Text(
             text = "ev. č. ${vehicle.regN()}",
-            Modifier.padding(horizontal = 8.dp)
+            Modifier.padding(horizontal = 8.dp).sharedElement("vehicle-${vehicle}"),
         )
         val context = LocalContext.current
         IconWithTooltip(
@@ -339,14 +352,16 @@ fun Vehicle(vehicle: Int?) {
                     .setShowTitle(true)
                     .build()
                     .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle"))
-            },
+            }.sharedElement("vehicle-${vehicle}-info"),
         )
     }
 }
 
+context(TransitionScope)
 @Composable
-fun DelayBubble(delayMin: Float) {
+fun DelayBubble(delayMin: Float, key: String) {
     Badge(
+        Modifier.sharedElement("delayBubble-${key}"),
         containerColor = colorOfDelayBubbleContainer(delayMin),
         contentColor = colorOfDelayBubbleText(delayMin),
     ) {
@@ -356,11 +371,13 @@ fun DelayBubble(delayMin: Float) {
     }
 }
 
+context(TransitionScope)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun Wheelchair(
     lowFloor: Boolean,
     confirmedLowFloor: Boolean?,
+    key: String,
     modifier: Modifier = Modifier,
     enableCart: Boolean = false,
 ) {
@@ -380,7 +397,7 @@ fun Wheelchair(
             lowFloor -> "Plánovaný nízkopodlažní vůz"
             else -> "Nezaručený nízkopodlažní vůz"
         },
-        modifier,
+        modifier.sharedElement("wheelchair-${key}"),
         tint = when {
             confirmedLowFloor == false && lowFloor -> MaterialTheme.colorScheme.error
             confirmedLowFloor != null -> MaterialTheme.colorScheme.primary
@@ -389,7 +406,8 @@ fun Wheelchair(
     )
 }
 
+context(TransitionScope)
 @Composable
-fun Name(name: String, modifier: Modifier = Modifier) {
-    Text(name, modifier, fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
+fun Name(name: String, key: String, modifier: Modifier = Modifier) {
+    Text(name, modifier.sharedElement("name-$key"), fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
 }

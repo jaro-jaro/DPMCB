@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import cz.jaro.dpmcb.data.helperclasses.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction
 
 @Entity(primaryKeys = ["tab", "connNumber"])
 data class Conn(

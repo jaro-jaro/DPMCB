@@ -15,27 +15,28 @@ import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
-import cz.jaro.dpmcb.data.helperclasses.PartOfConn
-import cz.jaro.dpmcb.data.helperclasses.Quadruple
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.realtions.InfoStops
-import cz.jaro.dpmcb.data.realtions.InfoStopsCodes
-import cz.jaro.dpmcb.data.realtions.InfoStopsCodesSequence
-import cz.jaro.dpmcb.data.realtions.LineLowFloorConnId
-import cz.jaro.dpmcb.data.realtions.LineLowFloorConnIdSeq
-import cz.jaro.dpmcb.data.realtions.LineLowFloorConnIdTimeNameIndexStops
-import cz.jaro.dpmcb.data.realtions.LineTimeNameConnIdNextStop
-import cz.jaro.dpmcb.data.realtions.NameAndTime
-import cz.jaro.dpmcb.data.realtions.NameTimeIndex
-import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
+import cz.jaro.dpmcb.data.realtions.BusInfo
+import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.MiddleStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
-import cz.jaro.dpmcb.data.realtions.Sequence
-import cz.jaro.dpmcb.data.realtions.TimeNameConnId
-import cz.jaro.dpmcb.data.realtions.TimeOfSequence
+import cz.jaro.dpmcb.data.realtions.bus.BusDetail
+import cz.jaro.dpmcb.data.realtions.departures.Departure
+import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
+import cz.jaro.dpmcb.data.realtions.favourites.Favourite
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
+import cz.jaro.dpmcb.data.realtions.now_running.NowRunning
+import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
+import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
+import cz.jaro.dpmcb.data.realtions.sequence.InterBusOfSequence
+import cz.jaro.dpmcb.data.realtions.sequence.Sequence
+import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
+import cz.jaro.dpmcb.data.tuples.Quadruple
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -237,9 +238,9 @@ class SpojeRepository(
                 }
             }
 
-            InfoStopsCodesSequence(
+            BusDetail(
                 info = first().let {
-                    LineLowFloorConnIdSeq(
+                    BusInfo(
                         lowFloor = it.lowFloor,
                         line = it.line - 325_000,
                         connName = it.connName,
@@ -247,7 +248,7 @@ class SpojeRepository(
                     )
                 },
                 stops = noCodes.mapIndexed { i, it ->
-                    LineTimeNameConnIdNextStop(
+                    BusStop(
                         time = it.time,
                         name = it.name,
                         line = it.line - 325_000,
@@ -275,8 +276,8 @@ class SpojeRepository(
         localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!)
             .run {
                 Pair(
-                    first().let { LineLowFloorConnId(it.lowFloor, it.line - 325_000, it.connName) },
-                    map { TimeNameConnId(it.time, it.name, it.connName) }.distinct(),
+                    first().let { Favourite(it.lowFloor, it.line - 325_000, it.connName) },
+                    map { StopOfFavourite(it.time, it.name, it.connName) }.distinct(),
                 )
             }
 
@@ -359,9 +360,9 @@ class SpojeRepository(
                 }.distinctBy {
                     it.runs to it.`in`.toString()
                 }
-                InfoStopsCodes(
+                InterBusOfSequence(
                     stops.first().let {
-                        LineLowFloorConnIdSeq(
+                        BusInfo(
                             lowFloor = it.lowFloor,
                             line = it.line - 325_000,
                             connName = it.connName,
@@ -369,7 +370,7 @@ class SpojeRepository(
                         )
                     },
                     noCodes.mapIndexed { i, it ->
-                        LineTimeNameConnIdNextStop(
+                        BusStop(
                             time = it.time,
                             name = it.name,
                             line = it.line - 325_000,
@@ -413,7 +414,7 @@ class SpojeRepository(
             name = conns.first().info.sequence!!,
             before = before,
             after = after,
-            buses = conns.map { InfoStops(it.info, it.stops) },
+            buses = conns.map { BusOfSequence(it.info, it.stops) },
             commonTimeCodes = timeCodes,
             commonFixedCodes = fixedCodes.joinToString(" "),
         )
@@ -504,8 +505,8 @@ class SpojeRepository(
         }
     }
 
-    suspend fun departures(date: LocalDate, stop: String): List<LineLowFloorConnIdTimeNameIndexStops> =
-        localDataSource.connsStoppingOnStopName(stop, allTables(date))
+    suspend fun departures(date: LocalDate, stop: String): List<Departure> =
+        localDataSource.departures(stop, allTables(date))
             .groupBy { "S-${it.line}-${it.connNumber}" to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
@@ -518,7 +519,7 @@ class SpojeRepository(
                 list.map { Quadruple(it.first, it.second, it.third, connStops[it.first]!!) }
             }
             .map { (connName, stopIndexOnLine, info, stops) ->
-                LineLowFloorConnIdTimeNameIndexStops(
+                Departure(
                     name = info.name,
                     time = info.time,
                     stopIndexOnLine = stopIndexOnLine,
@@ -531,8 +532,8 @@ class SpojeRepository(
 
     suspend fun oneWayLines() = localDataSource.oneDirectionLines()
 
-    fun findMiddleStop(stops: List<NameAndTime>): NameTimeIndex? {
-        fun NameAndTime.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
+    fun findMiddleStop(stops: List<StopOfNowRunning>): MiddleStop? {
+        fun StopOfNowRunning.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
 
         val lastCommonStop = stops.indexOfLast {
             it.indexOfDuplicate() == 0
@@ -545,7 +546,7 @@ class SpojeRepository(
         if (firstReCommonStop == -1 || lastCommonStop == -1) return null
 
         val last = stops[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
-        return NameTimeIndex(
+        return MiddleStop(
             last.name,
             last.time,
             stops.indexOf(last)
@@ -553,8 +554,8 @@ class SpojeRepository(
     }
 
     @JvmName("findMiddleStop2")
-    fun findMiddleStop(stops: List<NameTimeIndexOnLine>): NameTimeIndex? {
-        fun NameTimeIndexOnLine.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
+    fun findMiddleStop(stops: List<StopOfDeparture>): MiddleStop? {
+        fun StopOfDeparture.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
 
         val lastCommonStop = stops.indexOfLast {
             it.indexOfDuplicate() == 0
@@ -567,17 +568,26 @@ class SpojeRepository(
         if (lastCommonStop == -1 || firstReCommonStop == -1) return null
 
         val last = stops[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
-        return NameTimeIndex(
+        return MiddleStop(
             last.name,
             last.time,
             stops.indexOf(last)
         )
     }
 
-    suspend fun nowRunningBus(busName: String, date: LocalDate): Pair<Conn, List<NameAndTime>> =
+    suspend fun nowRunningBus(busName: String, date: LocalDate): NowRunning =
         localDataSource.connWithItsStops(busName, nowUsedTable(date, extractLineNumber(busName))!!)
             .toList()
             .first { date.isThisTableNowUsed(it.first.tab) }
+            .let { (conn, stops) ->
+                NowRunning(
+                    busName = conn.name,
+                    lineNumber = conn.line - 325_000,
+                    direction = conn.direction,
+                    sequence = conn.sequence,
+                    stops = stops,
+                )
+            }
 
     val isOnline = flow {
         while (currentCoroutineContext().isActive) {

@@ -36,15 +36,17 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.minutes
 
+context(TransitionScope)
 @Composable
 fun NowRunning(
     args: Route.NowRunning,
     navController: NavHostController,
-    viewModel: NowRunningViewModel = run {
+    viewModel: NowRunningViewModel = Unit.run {
         val navigate = navController.navigateFunction
         val getNavDestination = { navController.currentBackStackEntry?.destination }
         koinViewModel {
@@ -63,6 +65,7 @@ fun NowRunning(
     )
 }
 
+context(TransitionScope)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun NowRunningScreen(

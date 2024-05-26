@@ -26,11 +26,13 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 var callback = { _: Uri? -> }
 
+context(TransitionScope)
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun Card(
@@ -66,6 +68,7 @@ fun Card(
     )
 }
 
+context(TransitionScope)
 @Composable
 fun CardScreen(
     card: ImageBitmap?,

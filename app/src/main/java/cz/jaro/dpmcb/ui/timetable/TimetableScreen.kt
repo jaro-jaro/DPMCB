@@ -45,12 +45,14 @@ import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnDestinationFixedCodesDelay
+import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+context(TransitionScope)
 @Composable
 fun Timetable(
     args: Route.Timetable,
@@ -82,6 +84,7 @@ fun Timetable(
     )
 }
 
+context(TransitionScope)
 @Composable
 fun TimetableScreen(
     lineNumber: Int,
@@ -187,7 +190,7 @@ fun TimetableScreen(
 @Composable
 fun ColumnScope.DepartureRow(
     navigate: NavigateFunction,
-    result: List<TimeLowFloorConnDestinationFixedCodesDelay>,
+    result: List<BusInTimetable>,
     showLowFloor: Boolean,
 ) {
     Row(
