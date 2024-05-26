@@ -11,10 +11,10 @@ import cz.jaro.dpmcb.data.busOnMapByName
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.toSimpleTime
+import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

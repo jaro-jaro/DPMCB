@@ -32,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,21 +39,22 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.data.helperclasses.Result
+import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+context(TransitionScope)
 @Composable
 fun Chooser(
     navController: NavHostController,
     args: Route.Chooser,
-    viewModel: ChooserViewModel = run {
+    viewModel: ChooserViewModel = Unit.run {
         val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(ChooserViewModel.Parameters(
@@ -105,6 +105,7 @@ fun Chooser(
     )
 }
 
+context(TransitionScope)
 @Composable
 fun ChooserScreen(
     type: ChooserType,
@@ -227,22 +228,4 @@ fun Modifier.autoFocus() = composed {
     }
 
     focusRequester(focusRequester)
-}
-
-@Preview
-@Composable
-fun ChooserPreview() {
-    MaterialTheme {
-        Surface {
-            ChooserScreen(
-                type = ChooserType.Stops,
-                info = "",
-                search = "u ko",
-                wroteSomething = {},
-                clickedEnter = {},
-                clickedOnListItem = {},
-                list = listOf("U Koníčka"),
-            )
-        }
-    }
 }

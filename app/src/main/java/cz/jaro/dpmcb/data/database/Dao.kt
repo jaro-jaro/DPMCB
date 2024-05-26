@@ -10,17 +10,17 @@ import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
-import cz.jaro.dpmcb.data.helperclasses.Direction
-import cz.jaro.dpmcb.data.realtions.Codes
-import cz.jaro.dpmcb.data.realtions.ConnStopWithConnAndCodes
-import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodes
-import cz.jaro.dpmcb.data.realtions.LineLowFloorSeqTimeNameConnIdCodesTab
-import cz.jaro.dpmcb.data.realtions.LowFloorTimeConnIdTab
-import cz.jaro.dpmcb.data.realtions.NameAndTime
-import cz.jaro.dpmcb.data.realtions.NameTimeIndexOnLine
-import cz.jaro.dpmcb.data.realtions.TimeLowFloorConnDestinationFixedCodesDelay
-import cz.jaro.dpmcb.data.realtions.TimeOfSequence
+import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.realtions.CoreBus
+import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
+import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
+import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
+import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
+import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
+import cz.jaro.dpmcb.data.realtions.other.TimeStopOf02
 import cz.jaro.dpmcb.data.realtions.Validity
+import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
+import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import java.time.LocalDate
 
 @Dao
@@ -205,7 +205,7 @@ interface Dao {
         date: LocalDate,
         tab: String,
         positive: Direction = Direction.POSITIVE,
-    ): List<TimeLowFloorConnDestinationFixedCodesDelay>
+    ): List<BusInTimetable>
 
     @Query(
         """
@@ -241,7 +241,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsConnStopsAndCodes(connName: String, tab: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodes>
+    suspend fun connWithItsConnStopsAndCodes(connName: String, tab: String, positive: Direction = Direction.POSITIVE): List<CoreBus>
 
     @Query(
         """
@@ -251,7 +251,7 @@ interface Dao {
         AND conn.tab = :tab
     """
     )
-    suspend fun codes(connName: String, tab: String): List<Codes>
+    suspend fun codes(connName: String, tab: String): List<CodesOfBus>
 
     @Transaction
     @Query(
@@ -274,7 +274,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connsOfSeqWithTheirConnStops(seq: String, positive: Direction = Direction.POSITIVE): List<LineLowFloorSeqTimeNameConnIdCodesTab>
+    suspend fun connsOfSeqWithTheirConnStops(seq: String, positive: Direction = Direction.POSITIVE): List<CoreBusOfSequence>
 
     @Transaction
     @Query(
@@ -295,7 +295,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connsOfSeqWithTheirConnStopTimes(seq: String, positive: Direction = Direction.POSITIVE): List<LowFloorTimeConnIdTab>
+    suspend fun connsOfSeqWithTheirConnStopTimes(seq: String, positive: Direction = Direction.POSITIVE): List<TimeStopOf02>
 
     @Transaction
     @Query(
@@ -369,10 +369,10 @@ interface Dao {
         JOIN timecode ON timecode.connNumber = thisStop.connNumber AND timecode.tab = thisStop.tab
     """
     )
-    suspend fun connsStoppingOnStopName(
+    suspend fun departures(
         stop: String,
         tabs: List<String>,
-    ): List<ConnStopWithConnAndCodes>
+    ): List<CoreDeparture>
 
     @Query(
         """
@@ -521,7 +521,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsStops(connName: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<NameAndTime>>
+    suspend fun connWithItsStops(connName: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<StopOfNowRunning>>
 
     @Transaction
     @Query(
@@ -559,7 +559,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connStops(connNames: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("name") String, List<NameTimeIndexOnLine>>
+    suspend fun connStops(connNames: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("name") String, List<StopOfDeparture>>
 
     @Query(
         """

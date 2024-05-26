@@ -71,14 +71,14 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
-import cz.jaro.dpmcb.data.helperclasses.Result
+import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.toLocalTime
+import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
@@ -87,6 +87,7 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -99,6 +100,7 @@ import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
+context(TransitionScope)
 @Composable
 fun Departures(
     args: Route.Departures,
@@ -169,6 +171,7 @@ fun Departures(
     )
 }
 
+context(TransitionScope)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

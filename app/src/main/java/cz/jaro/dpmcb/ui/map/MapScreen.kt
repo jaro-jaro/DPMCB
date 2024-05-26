@@ -11,7 +11,9 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.diagramFile
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.common.TransitionScope
 
+context(TransitionScope)
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun Map(
@@ -24,6 +26,7 @@ fun Map(
     MapScreen()
 }
 
+context(TransitionScope)
 @Composable
 fun MapScreen() = AndroidView(
     modifier = Modifier.fillMaxSize(),

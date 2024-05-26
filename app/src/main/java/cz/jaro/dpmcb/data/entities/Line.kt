@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
 import androidx.room.Entity
-import cz.jaro.dpmcb.data.helperclasses.LineType
-import cz.jaro.dpmcb.data.helperclasses.VehicleType
+import cz.jaro.dpmcb.data.entities.types.LineType
+import cz.jaro.dpmcb.data.entities.types.VehicleType
 import java.time.LocalDate
 
 @Entity(primaryKeys = ["tab"])

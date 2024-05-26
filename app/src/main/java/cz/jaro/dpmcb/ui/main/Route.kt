@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.main
 
-import cz.jaro.dpmcb.data.helperclasses.SimpleTime
+import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import kotlinx.serialization.SerialName

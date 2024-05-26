@@ -7,7 +7,7 @@ import com.google.firebase.Firebase
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.Quintuple
+import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
 import cz.jaro.dpmcb.ui.main.Route

@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.jikord
 
-import cz.jaro.dpmcb.data.helperclasses.LocalTimeSerializer
+import cz.jaro.dpmcb.data.serializers.LocalTimeSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.LocalTime
