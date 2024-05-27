@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.data
 
 import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
-import cz.jaro.dpmcb.data.helperclasses.PartOfConn
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString

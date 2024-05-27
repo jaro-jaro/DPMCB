@@ -7,12 +7,12 @@ import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.asyncMap
-import cz.jaro.dpmcb.ui.main.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.now_running.NowRunningViewModel.RunningConnPlus.Companion.runningBuses
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,20 +78,20 @@ class NowRunningViewModel(
         loading.value = true
         onlineConns
             .asyncMap { onlineConn ->
-                val (conn, stops) = repo.nowRunningBus(onlineConn.name, LocalDate.now())
-                val middleStop = if (conn.line - 325_000 in repo.oneWayLines()) repo.findMiddleStop(stops) else null
-                val indexOnLine = stops.indexOfLast { it.time == onlineConn.nextStop }
+                val bus = repo.nowRunningBus(onlineConn.name, LocalDate.now())
+                val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
+                val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
-                    busName = conn.name,
-                    nextStopName = stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@asyncMap null,
-                    nextStopTime = stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@asyncMap null,
+                    busName = bus.busName,
+                    nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@asyncMap null,
+                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@asyncMap null,
                     delay = onlineConn.delayMin ?: return@asyncMap null,
                     indexOnLine = indexOnLine,
-                    direction = conn.direction,
-                    lineNumber = conn.line - 325_000,
-                    destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else stops.last().name,
+                    direction = bus.direction,
+                    lineNumber = bus.lineNumber,
+                    destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else bus.stops.last().name,
                     vehicle = onlineConn.vehicle ?: return@asyncMap null,
-                    sequence = conn.sequence,
+                    sequence = bus.sequence,
                 )
             }
             .filterNotNull()

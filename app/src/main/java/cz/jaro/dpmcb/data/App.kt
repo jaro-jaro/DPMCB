@@ -70,7 +70,6 @@ class App : Application() {
                 }
                 single {
                     Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
-//                        .addMigrations(Migration24to25)
                         .fallbackToDestructiveMigration()
                         .build()
                 }
