@@ -37,11 +37,11 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.common.TransitionScope
 import cz.jaro.dpmcb.ui.common.sharedElement
-import cz.jaro.dpmcb.ui.sequence.DelayBubble
-import cz.jaro.dpmcb.ui.sequence.Name
+import cz.jaro.dpmcb.ui.common.DelayBubble
+import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.sequence.SequenceState
-import cz.jaro.dpmcb.ui.sequence.Vehicle
-import cz.jaro.dpmcb.ui.sequence.Wheelchair
+import cz.jaro.dpmcb.ui.common.Vehicle
+import cz.jaro.dpmcb.ui.common.Wheelchair
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
 

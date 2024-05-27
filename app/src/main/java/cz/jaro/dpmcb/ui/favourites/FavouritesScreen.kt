@@ -34,9 +34,9 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.common.TransitionScope
-import cz.jaro.dpmcb.ui.sequence.DelayBubble
-import cz.jaro.dpmcb.ui.sequence.Name
-import cz.jaro.dpmcb.ui.sequence.Vehicle
+import cz.jaro.dpmcb.ui.common.DelayBubble
+import cz.jaro.dpmcb.ui.common.Name
+import cz.jaro.dpmcb.ui.common.Vehicle
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate

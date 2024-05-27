@@ -22,18 +22,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,20 +78,27 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.bus.BusEvent
 import cz.jaro.dpmcb.ui.bus.BusState
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.sequence.BusInSequence
+import cz.jaro.dpmcb.ui.sequence.SequenceState
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 fun BusDoesNotExist(
@@ -800,4 +817,166 @@ fun TimetableText(
         overflow = TextOverflow.Ellipsis,
         style = style,
     )
+}
+
+@Composable
+fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
+    fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 3
+
+    val now = remember(state.buses) {
+        state.buses.indexOfFirst {
+            it.isRunning
+        }.takeUnless {
+            it == -1
+        } ?: state.buses.indexOfFirst {
+            LocalTime.now() < it.stops.last().time
+        }.takeIf {
+            state.runsToday && state.buses.first().stops.first().time < LocalTime.now() && LocalTime.now() < state.buses.last().stops.last().time
+        }
+    }
+
+    val scope = rememberCoroutineScope()
+    Column {
+        SmallFloatingActionButton(
+            onClick = {
+                scope.launch {
+                    lazyListState.animateScrollToItem(0)
+                }
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowUpward,
+                contentDescription = null
+            )
+        }
+        if (now != null) SmallFloatingActionButton(
+            onClick = {
+                scope.launch {
+                    lazyListState.animateScrollToItem(now.busIndexToListIndex())
+                }
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Default.GpsFixed,
+                contentDescription = null
+            )
+        }
+        SmallFloatingActionButton(
+            onClick = {
+                scope.launch {
+                    lazyListState.animateScrollToItem(Int.MAX_VALUE)
+                }
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowDownward,
+                contentDescription = null
+            )
+        }
+    }
+}
+
+context(TransitionScope)
+@Composable
+fun BusButton(
+    navigate: NavigateFunction,
+    bus: BusInSequence,
+    state: SequenceState.OK,
+) = TextButton(
+    onClick = {
+        sharedTransitionData = SequenceToBusTransitionData(bus, state)
+        navigate(Route.Bus(busName = bus.busName))
+    }
+) {
+    Text("Detail spoje")
+}
+
+@Composable
+fun Connection(
+    navigate: NavigateFunction,
+    sequence: Pair<String, String>,
+) = TextButton(
+    onClick = {
+        navigate(Route.Sequence(sequence.first))
+    }
+) {
+    Text(sequence.second)
+}
+
+context(TransitionScope)
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun Vehicle(vehicle: Int?) {
+    if (vehicle != null) {
+        Text(
+            text = "ev. č. ${vehicle.regN()}",
+            Modifier.padding(horizontal = 8.dp).sharedElement("vehicle-${vehicle}"),
+        )
+        val context = LocalContext.current
+        UtilFunctions.IconWithTooltip(
+            Icons.Default.Info,
+            "Zobrazit informace o voze",
+            Modifier.clickable {
+                CustomTabsIntent.Builder()
+                    .setShowTitle(true)
+                    .build()
+                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle"))
+            }.sharedElement("vehicle-${vehicle}-info"),
+        )
+    }
+}
+
+context(TransitionScope)
+@Composable
+fun DelayBubble(delayMin: Float, key: String) {
+    Badge(
+        Modifier.sharedElement("delayBubble-${key}"),
+        containerColor = UtilFunctions.colorOfDelayBubbleContainer(delayMin),
+        contentColor = UtilFunctions.colorOfDelayBubbleText(delayMin),
+    ) {
+        Text(
+            text = delayMin.toDouble().minutes.toDelay(),
+        )
+    }
+}
+
+context(TransitionScope)
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun Wheelchair(
+    lowFloor: Boolean,
+    confirmedLowFloor: Boolean?,
+    key: String,
+    modifier: Modifier = Modifier,
+    enableCart: Boolean = false,
+) {
+    UtilFunctions.IconWithTooltip(
+        imageVector = remember(lowFloor, confirmedLowFloor) {
+            when {
+                enableCart && Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
+                confirmedLowFloor == true -> Icons.AutoMirrored.Filled.Accessible
+                confirmedLowFloor == false -> Icons.Default.NotAccessible
+                lowFloor -> Icons.AutoMirrored.Filled.Accessible
+                else -> Icons.Default.NotAccessible
+            }
+        },
+        contentDescription = when {
+            confirmedLowFloor == true -> "Potvrzený nízkopodlažní vůz"
+            confirmedLowFloor == false -> "Potvrzený vysokopodlažní vůz"
+            lowFloor -> "Plánovaný nízkopodlažní vůz"
+            else -> "Nezaručený nízkopodlažní vůz"
+        },
+        modifier.sharedElement("wheelchair-${key}"),
+        tint = when {
+            confirmedLowFloor == false && lowFloor -> MaterialTheme.colorScheme.error
+            confirmedLowFloor != null -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        }
+    )
+}
+
+context(TransitionScope)
+@Composable
+fun Name(name: String, key: String, modifier: Modifier = Modifier) {
+    Text(name, modifier.sharedElement("name-$key"), fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
 }
