@@ -24,12 +24,14 @@ import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.bus.BusDetail
 import cz.jaro.dpmcb.data.realtions.departures.Departure
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
+import cz.jaro.dpmcb.data.realtions.invoke
 import cz.jaro.dpmcb.data.realtions.now_running.NowRunning
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
@@ -253,7 +255,8 @@ class SpojeRepository(
                         name = it.name,
                         line = it.line - 325_000,
                         nextStop = noCodes.getOrNull(i + 1)?.name,
-                        connName = it.connName
+                        connName = it.connName,
+                        type = StopType(it.stopFixedCodes),
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
@@ -375,7 +378,8 @@ class SpojeRepository(
                             name = it.name,
                             line = it.line - 325_000,
                             nextStop = noCodes.getOrNull(i + 1)?.name,
-                            connName = it.connName
+                            connName = it.connName,
+                            type = StopType(it.stopFixedCodes),
                         )
                     }.distinct(),
                     timeCodes,
@@ -728,7 +732,7 @@ private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
             "8" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
             "9" -> dayOfWeek == DayOfWeek.SUNDAY // jede v neděli
             "14" -> null // bezbariérově přístupná zastávka
-            "19" -> null // ???
+            "19" -> null // Přestup na MHD?! WHAT?!!
             "21" -> null // zastávka pouze pro výstup
             "22" -> null // zastávka pouze pro nástup
             "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce

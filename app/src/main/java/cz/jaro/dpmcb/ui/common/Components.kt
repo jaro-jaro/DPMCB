@@ -30,8 +30,10 @@ import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Wysiwyg
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
@@ -81,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
@@ -88,6 +91,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.bus.BusEvent
 import cz.jaro.dpmcb.ui.bus.BusState
@@ -191,11 +195,12 @@ fun Timetable(
                 text = stop.name,
                 navigate = navigate,
                 time = stop.time,
-                stop = stop.name,
+                stopName = stop.name,
                 nextStop = stop.nextStop,
                 line = stop.line,
                 platform = onlineStop?.platform ?: "",
                 Modifier.fillMaxWidth(1F),
+                type = stop.type,
                 color = if (nextStopIndex != null && index == nextStopIndex)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
@@ -208,7 +213,7 @@ fun Timetable(
                 text = stop.time.toString(),
                 navigate = navigate,
                 time = stop.time,
-                stop = stop.name,
+                stopName = stop.name,
                 nextStop = stop.nextStop,
                 line = stop.line,
                 platform = onlineStop?.platform ?: "",
@@ -225,7 +230,7 @@ fun Timetable(
                 text = stop.time.plusMinutes(onlineStop.delay.toLong()).toString(),
                 navigate = navigate,
                 time = stop.time.plusMinutes(onlineStop.delay.toLong()),
-                stop = stop.name,
+                stopName = stop.name,
                 nextStop = stop.nextStop,
                 line = stop.line,
                 platform = onlineStop.platform,
@@ -734,17 +739,18 @@ fun CodesAndShare(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TimetableText(
     text: String,
     navigate: NavigateFunction,
     time: LocalTime,
-    stop: String,
+    stopName: String,
     nextStop: String?,
     line: Int,
     platform: String,
     modifier: Modifier = Modifier,
+    type: StopType? = null,
     color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
 ) = Box {
@@ -758,7 +764,7 @@ fun TimetableText(
     ) {
         DropdownMenuItem(
             text = {
-                Text("$stop $platform")
+                Text("$stopName $platform")
             },
             onClick = {},
             enabled = false
@@ -771,7 +777,7 @@ fun TimetableText(
                 navigate(
                     Route.Departures(
                         time = time.toSimpleTime().work(),
-                        stop = stop,
+                        stop = stopName,
                     )
                 )
                 showDropDown = false
@@ -786,7 +792,7 @@ fun TimetableText(
                     navigate(
                         Route.Timetable(
                             lineNumber = line,
-                            stop = stop,
+                            stop = stopName,
                             nextStop = nextStop,
                         )
                     )
@@ -795,28 +801,37 @@ fun TimetableText(
             )
         }
     }
-    Text(
-        text = text,
-        color = color,
-        modifier = modifier
-            .combinedClickable(
-                onClick = {
-                    navigate(
-                        Route.Departures(
-                            time = time.toSimpleTime(),
-                            stop = stop,
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = text,
+            color = color,
+            modifier = modifier
+                .combinedClickable(
+                    onClick = {
+                        navigate(
+                            Route.Departures(
+                                time = time.toSimpleTime(),
+                                stop = stopName,
+                            )
                         )
-                    )
-                },
-                onLongClick = {
-                    showDropDown = true
-                },
-            )
-            .defaultMinSize(24.dp, 24.dp),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = style,
-    )
+                    },
+                    onLongClick = {
+                        showDropDown = true
+                    },
+                )
+                .defaultMinSize(24.dp, 24.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = style,
+        )
+        if (type != null) IconWithTooltip(
+            imageVector = Icons.Default.Brightness2,
+            contentDescription = "A"
+        )
+    }
 }
 
 @Composable

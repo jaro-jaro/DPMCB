@@ -12,14 +12,14 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
-import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
+import cz.jaro.dpmcb.data.realtions.Validity
+import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
-import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.other.TimeStopOf02
-import cz.jaro.dpmcb.data.realtions.Validity
-import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
+import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
+import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import java.time.LocalDate
 
@@ -225,7 +225,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stopName name, conn.sequence, conn.name connName, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, stopName name, conn.sequence, conn.name connName, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
@@ -259,7 +259,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%24%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stopName name, conn.name connName, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
