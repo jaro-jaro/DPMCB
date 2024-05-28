@@ -30,10 +30,8 @@ import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.automirrored.filled.Wysiwyg
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsOff
@@ -95,6 +93,8 @@ import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.bus.BusEvent
 import cz.jaro.dpmcb.ui.bus.BusState
+import cz.jaro.dpmcb.ui.common.icons.LeftHalfCircle
+import cz.jaro.dpmcb.ui.common.icons.RightHalfCircle
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.sequence.BusInSequence
 import cz.jaro.dpmcb.ui.sequence.SequenceState
@@ -170,6 +170,7 @@ fun ErrorMessage(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Timetable(
     stops: List<BusStop>,
@@ -186,9 +187,7 @@ fun Timetable(
         .height(IntrinsicSize.Max)
         .padding(12.dp)
 ) {
-    Column(
-        Modifier.weight(1F)
-    ) {
+    Column(Modifier.weight(1F)) {
         stops.forEachIndexed { index, stop ->
             val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
             TimetableText(
@@ -200,10 +199,28 @@ fun Timetable(
                 line = stop.line,
                 platform = onlineStop?.platform ?: "",
                 Modifier.fillMaxWidth(1F),
-                type = stop.type,
                 color = if (nextStopIndex != null && index == nextStopIndex)
                     MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
             )
+        }
+    }
+    Column {
+        stops.forEachIndexed { index, stop ->
+            val color = if (nextStopIndex != null && index == nextStopIndex)
+                MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+            when(stop.type) {
+                StopType.Normal -> {}
+                StopType.GetOnOnly -> IconWithTooltip(
+                    imageVector = Icons.Default.RightHalfCircle,
+                    contentDescription = "Zastávka pouze pro nástup",
+                    tint = color,
+                )
+                StopType.GetOffOnly -> IconWithTooltip(
+                    imageVector = Icons.Default.LeftHalfCircle,
+                    contentDescription = "Zastávka pouze pro výstup",
+                    tint = color,
+                )
+            }
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
@@ -750,7 +767,6 @@ fun TimetableText(
     line: Int,
     platform: String,
     modifier: Modifier = Modifier,
-    type: StopType? = null,
     color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
 ) = Box {
@@ -801,37 +817,28 @@ fun TimetableText(
             )
         }
     }
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = text,
-            color = color,
-            modifier = modifier
-                .combinedClickable(
-                    onClick = {
-                        navigate(
-                            Route.Departures(
-                                time = time.toSimpleTime(),
-                                stop = stopName,
-                            )
+    Text(
+        text = text,
+        color = color,
+        modifier = modifier
+            .combinedClickable(
+                onClick = {
+                    navigate(
+                        Route.Departures(
+                            time = time.toSimpleTime(),
+                            stop = stopName,
                         )
-                    },
-                    onLongClick = {
-                        showDropDown = true
-                    },
-                )
-                .defaultMinSize(24.dp, 24.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = style,
-        )
-        if (type != null) IconWithTooltip(
-            imageVector = Icons.Default.Brightness2,
-            contentDescription = "A"
-        )
-    }
+                    )
+                },
+                onLongClick = {
+                    showDropDown = true
+                },
+            )
+            .defaultMinSize(24.dp, 24.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = style,
+    )
 }
 
 @Composable
