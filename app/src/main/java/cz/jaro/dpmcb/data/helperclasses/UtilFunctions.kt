@@ -23,6 +23,7 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -204,6 +205,7 @@ object UtilFunctions {
         "$sign$min min $s s"
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayText(delay: Float) = when {
         delay < 0 -> Color(0xFF343DFF)
@@ -212,6 +214,7 @@ object UtilFunctions {
         else -> Color.Green
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayBubbleText(delay: Float) = when {
         delay < 0 -> Color(0xFF0000EF)
@@ -220,6 +223,7 @@ object UtilFunctions {
         else -> Color(0xFFADF0D8)
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayBubbleContainer(delay: Float) = when {
         delay < 0 -> Color(0xFFE0E0FF)
@@ -339,14 +343,14 @@ object UtilFunctions {
 //    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
     inline val NavHostController.navigateFunction: NavigateFunction
-        @Composable get() {
+        get() {
             val f = navigateWithOptionsFunction
             return { route: Route ->
                 f(route, null)
             }
         }
     inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFunction
-        @Composable get() {
+        get() {
             return navigate@{ route: Route, navOptions: NavOptions? ->
                 try {
                     this.navigate(route.work(), navOptions)
@@ -362,6 +366,7 @@ object UtilFunctions {
     fun List<Boolean>.anyTrue() = any { it }
 
     @Composable
+    @ReadOnlyComposable
     fun Settings.darkMode(): Boolean {
         return if (dmAsSystem) isSystemInDarkTheme() else dm
     }

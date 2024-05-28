@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -71,12 +72,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -94,8 +99,8 @@ import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.bus.BusEvent
 import cz.jaro.dpmcb.ui.bus.BusState
 import cz.jaro.dpmcb.ui.common.icons.Empty
-import cz.jaro.dpmcb.ui.common.icons.LeftHalfCircle
-import cz.jaro.dpmcb.ui.common.icons.RightHalfCircle
+import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
+import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.sequence.BusInSequence
 import cz.jaro.dpmcb.ui.sequence.SequenceState
@@ -171,7 +176,6 @@ fun ErrorMessage(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Timetable(
     stops: List<BusStop>,
@@ -205,11 +209,11 @@ fun Timetable(
             )
         }
     }
-    Column {
+    Column(Modifier.padding(start = 8.dp)) {
         stops.forEachIndexed { index, stop ->
             val color = if (nextStopIndex != null && index == nextStopIndex)
                 MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-            TypeIcon(color, stop.type)
+            StopTypeIcon(stop.type, color = color)
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
@@ -258,22 +262,26 @@ fun Timetable(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun TypeIcon(color: Color, stopType: StopType) {
+fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
     when (stopType) {
         StopType.Normal -> IconWithTooltip(
             imageVector = Icons.Default.Empty,
             contentDescription = null,
+            modifier,
             tint = color,
         )
+
         StopType.GetOnOnly -> IconWithTooltip(
-            imageVector = Icons.Default.RightHalfCircle,
+            imageVector = Icons.Default.RightHalfDisk,
             contentDescription = "Zastávka pouze pro nástup",
+            modifier,
             tint = color,
         )
 
         StopType.GetOffOnly -> IconWithTooltip(
-            imageVector = Icons.Default.LeftHalfCircle,
+            imageVector = Icons.Default.LeftHalfDisk,
             contentDescription = "Zastávka pouze pro výstup",
+            modifier,
             tint = color,
         )
     }
@@ -413,7 +421,7 @@ fun SequenceRow(
             },
             enabled = hasPreviousBus,
         ) {
-            UtilFunctions.IconWithTooltip(
+            IconWithTooltip(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Předchozí spoj kurzu"
             )
@@ -436,7 +444,7 @@ fun SequenceRow(
             },
             enabled = hasNextBus,
         ) {
-            UtilFunctions.IconWithTooltip(
+            IconWithTooltip(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Následující spoj kurzu"
             )
@@ -455,11 +463,24 @@ fun Favouritificator(
     var show by remember { mutableStateOf(false) }
     var part by remember { mutableStateOf(PartOfConn(busName, -1, -1)) }
 
+    fun isDisabled(i: Int) = when {
+        part.start == -1 && i == stops.lastIndex -> true
+        part.start == -1 && stops[i].type == StopType.GetOffOnly -> true
+
+        part.start == -1 -> false
+        part.start == i -> false
+        part.end == i -> false
+
+        i < part.start -> true
+        stops[i].type == StopType.GetOnOnly -> true
+        else -> false
+    }
+
     FilledIconToggleButton(checked = favouritePartOfConn != null, onCheckedChange = {
         part = favouritePartOfConn ?: PartOfConn(busName, -1, -1)
         show = true
     }) {
-        UtilFunctions.IconWithTooltip(Icons.Default.Star, "Oblíbené")
+        IconWithTooltip(Icons.Default.Star, "Oblíbené")
     }
 
     if (show) AlertDialog(
@@ -521,7 +542,9 @@ fun Favouritificator(
                     val scope = rememberCoroutineScope()
                     fun click(i: Int) = scope.launch {
                         when {
+                            part.start == -1 && stops[i].type == StopType.GetOffOnly -> {}
                             part.start == -1 && i == stops.lastIndex -> {}
+
                             part.start == -1 -> {
                                 start.snapTo(i.toFloat())
                                 end.snapTo(i.toFloat())
@@ -538,29 +561,28 @@ fun Favouritificator(
                                 end.animateTo(part.start.toFloat())
                             }
 
-                            i < part.start -> {
-                                part = part.copy(start = i)
-                                if (part.end == -1) launch { end.animateTo(part.start.toFloat()) }
-                                start.animateTo(part.start.toFloat())
-                            }
+                            i < part.start -> {}
+                            stops[i].type == StopType.GetOnOnly -> {}
 
-                            else /*cast.start < i*/ -> {
+                            else -> {
                                 part = part.copy(end = i)
                                 end.animateTo(part.end.toFloat())
                             }
                         }
                     }
 
-                    val selectedColor = MaterialTheme.colorScheme.secondary
+                    val selectedColor = MaterialTheme.colorScheme.tertiary
                     val lineColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    val disabledColor1 = MaterialTheme.colorScheme.onSurface
+                    val disabledColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .38F)
                     val stopCount = stops.count()
 
                     var canvasHeight by remember { mutableFloatStateOf(0F) }
-                    Canvas(
+                    Box(
                         Modifier
                             .fillMaxHeight()
-                            .width(24.dp)
-                            .padding(horizontal = 8.dp)
+                            .width(32.dp)
+                            .padding(end = 8.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures { (_, y) ->
                                     val rowHeight = canvasHeight / stopCount
@@ -569,53 +591,95 @@ fun Favouritificator(
                                 }
                             }
                     ) {
-                        canvasHeight = size.height
-                        val rowHeight = canvasHeight / stopCount
-                        val lineWidth = 4.5.dp.toPx()
-                        val lineXOffset = 0F
-                        val smallCircleRadius = 6.5.dp.toPx()
-                        val bigCircleRadius = 9.5.dp.toPx()
+                        Canvas(
+                            Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    this.alpha = .38F
+                                }
+                        ) {
+                            canvasHeight = size.height
+                            val rowHeight = canvasHeight / stopCount
+                            val lineWidth = 4.5.dp.toPx()
+                            val smallCircleRadius = 6.5.dp.toPx()
 
-                        translate(left = lineXOffset, top = rowHeight * .5F) {
-                            drawLine(
-                                color = lineColor,
-                                start = UtilFunctions.Offset(),
-                                end = UtilFunctions.Offset(y = canvasHeight - rowHeight),
-                                strokeWidth = lineWidth,
-                            )
+                            translate(left = 8.dp.toPx(), top = rowHeight * .5F) {
 
-                            repeat(stopCount) { i ->
-                                translate(top = i * rowHeight) {
-                                    if (i.toFloat() <= start.value || end.value <= i.toFloat()) drawCircle(
-                                        color = lineColor,
-                                        radius = smallCircleRadius,
-                                        center = UtilFunctions.Offset(),
-                                        style = Fill,
-                                    )
+                                drawLine(
+                                    color = disabledColor1,
+                                    start = UtilFunctions.Offset(),
+                                    end = UtilFunctions.Offset(y = canvasHeight - rowHeight),
+                                    strokeWidth = lineWidth,
+                                )
+
+                                repeat(stopCount) { i ->
+                                    val isInFavouritePart = end.value <= i.toFloat() || i.toFloat() <= start.value
+                                    translate(top = i * rowHeight) {
+                                        if (isInFavouritePart && isDisabled(i)) drawCircle(
+                                            color = disabledColor1,
+                                            radius = smallCircleRadius,
+                                            center = UtilFunctions.Offset(),
+                                            style = Fill,
+                                        )
+                                    }
                                 }
                             }
+                        }
+                        Canvas(
+                            Modifier
+                                .fillMaxSize()
+                        ) {
+                            canvasHeight = size.height
+                            val rowHeight = canvasHeight / stopCount
+                            val lineWidth = 4.5.dp.toPx()
+                            val smallCircleRadius = 6.5.dp.toPx()
+                            val bigCircleRadius = 9.5.dp.toPx()
 
-                            drawCircle(
-                                color = selectedColor,
-                                radius = bigCircleRadius,
-                                center = UtilFunctions.Offset(y = rowHeight * end.value),
-                                style = Fill,
-                                alpha = alpha,
-                            )
-                            drawCircle(
-                                color = selectedColor,
-                                radius = bigCircleRadius,
-                                center = UtilFunctions.Offset(y = rowHeight * start.value),
-                                style = Fill,
-                                alpha = alpha,
-                            )
+                            translate(left = 8.dp.toPx(), top = rowHeight * .5F) {
 
-                            if (part.start != -1) drawLine(
-                                color = selectedColor,
-                                start = UtilFunctions.Offset(y = start.value * rowHeight),
-                                end = UtilFunctions.Offset(y = end.value * rowHeight),
-                                strokeWidth = lineWidth,
-                            )
+                                val iMin = stops.indices.first { !isDisabled(it) }
+                                val iMax = stops.indices.last { !isDisabled(it) }
+                                drawLine(
+                                    color = lineColor,
+                                    start = UtilFunctions.Offset(y = iMin * rowHeight),
+                                    end = UtilFunctions.Offset(y = iMax * rowHeight),
+                                    strokeWidth = lineWidth,
+                                )
+
+                                repeat(stopCount) { i ->
+                                    val isInFavouritePart = end.value <= i.toFloat() || i.toFloat() <= start.value
+                                    translate(top = i * rowHeight) {
+                                        if (isInFavouritePart && !isDisabled(i)) drawCircle(
+                                            color = lineColor,
+                                            radius = smallCircleRadius,
+                                            center = UtilFunctions.Offset(),
+                                            style = Fill,
+                                        )
+                                    }
+                                }
+
+                                drawCircle(
+                                    color = selectedColor,
+                                    radius = bigCircleRadius,
+                                    center = UtilFunctions.Offset(y = rowHeight * end.value),
+                                    style = Fill,
+                                    alpha = alpha,
+                                )
+                                drawCircle(
+                                    color = selectedColor,
+                                    radius = bigCircleRadius,
+                                    center = UtilFunctions.Offset(y = rowHeight * start.value),
+                                    style = Fill,
+                                    alpha = alpha,
+                                )
+
+                                if (part.start != -1) drawLine(
+                                    color = selectedColor,
+                                    start = UtilFunctions.Offset(y = start.value * rowHeight),
+                                    end = UtilFunctions.Offset(y = end.value * rowHeight),
+                                    strokeWidth = lineWidth,
+                                )
+                            }
                         }
                     }
                     Column(
@@ -623,22 +687,34 @@ fun Favouritificator(
                             .weight(1F)
                     ) {
                         stops.forEachIndexed { i, stop ->
-                            Box(
+                            Row(
                                 Modifier
                                     .weight(1F)
                                     .defaultMinSize(32.dp, 32.dp),
-                                contentAlignment = Alignment.CenterStart
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start,
                             ) {
                                 Text(
                                     text = stop.name,
                                     Modifier
-                                        .clickable {
+                                        .clickable(enabled = !isDisabled(i)) {
                                             click(i)
-                                        },
+                                        }
+                                        .weight(1F)
+                                        .defaultMinSize(24.dp, 24.dp),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    color = if (i == part.start || i == part.end) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                                    color = when {
+                                        isDisabled(i) -> disabledColor
+                                        i == part.start || i == part.end -> selectedColor
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    }
                                 )
+                                if (stop.type != StopType.Normal) StopTypeIcon(stop.type, color = when {
+                                    isDisabled(i) -> disabledColor
+                                    i == part.start || i == part.end -> selectedColor
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                })
                             }
                         }
                     }
@@ -688,7 +764,7 @@ fun CodesAndShare(
                                 showMenu = false
                             }
                         ) {
-                            UtilFunctions.IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Otevřít")
+                            IconWithTooltip(Icons.AutoMirrored.Filled.OpenInNew, "Otevřít")
                         }
                     }
                 )
@@ -709,7 +785,7 @@ fun CodesAndShare(
                                     showMenu = false
                                 }
                             ) {
-                                UtilFunctions.IconWithTooltip(Icons.Default.Share, "Sdílet")
+                                IconWithTooltip(Icons.Default.Share, "Sdílet")
                             }
                             IconButton(
                                 onClick = {
@@ -717,7 +793,7 @@ fun CodesAndShare(
                                     showMenu = false
                                 }
                             ) {
-                                UtilFunctions.IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
                             }
                         }
                     }
@@ -739,7 +815,7 @@ fun CodesAndShare(
                                     showMenu = false
                                 }
                             ) {
-                                UtilFunctions.IconWithTooltip(Icons.Default.Share, "Sdílet")
+                                IconWithTooltip(Icons.Default.Share, "Sdílet")
                             }
                             IconButton(
                                 onClick = {
@@ -747,7 +823,7 @@ fun CodesAndShare(
                                     showMenu = false
                                 }
                             ) {
-                                UtilFunctions.IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
+                                IconWithTooltip(Icons.Default.ContentCopy, "Kopírovat")
                             }
                         }
                     }
@@ -943,7 +1019,7 @@ fun Vehicle(vehicle: Int?) {
             Modifier.padding(horizontal = 8.dp),
         )
         val context = LocalContext.current
-        UtilFunctions.IconWithTooltip(
+        IconWithTooltip(
             Icons.Default.Info,
             "Zobrazit informace o voze",
             Modifier.clickable {
@@ -977,7 +1053,7 @@ fun Wheelchair(
     modifier: Modifier = Modifier,
     enableCart: Boolean = false,
 ) {
-    UtilFunctions.IconWithTooltip(
+    IconWithTooltip(
         imageVector = remember(lowFloor, confirmedLowFloor) {
             when {
                 enableCart && Random.nextFloat() < .01F -> Icons.Default.ShoppingCart
@@ -1003,6 +1079,13 @@ fun Wheelchair(
 }
 
 @Composable
-fun Name(name: String, modifier: Modifier = Modifier) {
-    Text(name, modifier, fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
+fun Name(name: String, modifier: Modifier = Modifier, subName: String? = null) {
+    Text(buildAnnotatedString {
+        withStyle(style = SpanStyle(fontSize = 24.sp)) {
+            append(name)
+        }
+        if (subName != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append(subName)
+        }
+    }, modifier, color = MaterialTheme.colorScheme.primary)
 }

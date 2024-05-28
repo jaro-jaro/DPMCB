@@ -93,7 +93,7 @@ fun BusScreen(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Name("${state.lineNumber}")
+                    Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
                     Wheelchair(
                         lowFloor = state.lowFloor,
                         confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,

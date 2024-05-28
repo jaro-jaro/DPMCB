@@ -8,12 +8,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 
-val Icons.Filled.LeftHalfCircle: ImageVector
+val Icons.Filled.LeftHalfDisk: ImageVector
     get() {
-        if (_leftHalfCircle != null) {
-            return _leftHalfCircle!!
+        if (_leftHalfDisk != null) {
+            return _leftHalfDisk!!
         }
-        _leftHalfCircle = ImageVector.Builder(
+        _leftHalfDisk = ImageVector.Builder(
             name = "Filled.LeftHalfCircle",
             defaultWidth = 24.dp,
             defaultHeight = 24.dp,
@@ -24,7 +24,7 @@ val Icons.Filled.LeftHalfCircle: ImageVector
             arcToRelative(a = 10F, b = 10F, theta = 180F, isMoreThanHalf = false, isPositiveArc = false, dx1 = 0F, dy1 = 20F)
             close()
         }.build()
-        return _leftHalfCircle!!
+        return _leftHalfDisk!!
     }
 
-private var _leftHalfCircle: ImageVector? = null
+private var _leftHalfDisk: ImageVector? = null

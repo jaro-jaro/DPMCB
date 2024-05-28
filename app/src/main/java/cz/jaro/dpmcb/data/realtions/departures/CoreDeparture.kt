@@ -8,6 +8,7 @@ data class CoreDeparture(
     val name: String,
     val time: LocalTime,
     val stopIndexOnLine: Int,
+    val connStopFixedCodes: String,
     val connNumber: Int,
     val line: Int,
     val lowFloor: Boolean,

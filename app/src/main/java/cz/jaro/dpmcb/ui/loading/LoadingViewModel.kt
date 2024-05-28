@@ -288,7 +288,7 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
-            val sequencesRef = storage.reference.child("kurzy.json")
+            val sequencesRef = storage.reference.child("kurzy2.json")
             val diagramRef = storage.reference.child("schema.pdf")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
@@ -555,7 +555,7 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "${row[0]}/${row[1]}" in spoje }
 
                                     connsOfTable += Conn(
                                         line = row[0].toInt(),
@@ -572,7 +572,7 @@ class LoadingViewModel(
                                             },
                                         tab = tab,
                                         sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf("S-${row[0]}-${row[1]}")?.takeUnless { it == -1 },
+                                        orderInSequence = seq?.second?.indexOf("${row[0]}/${row[1]}")?.takeUnless { it == -1 },
                                     ).also { conn ->
 //                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(

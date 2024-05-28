@@ -380,7 +380,7 @@ class SpojeRepository(
                             line = it.line - 325_000,
                             nextStop = noCodes.getOrNull(i + 1)?.name,
                             connName = it.connName,
-                            type = StopType(it.stopFixedCodes),
+                            type = StopType(it.connStopFixedCodes),
                         )
                     }.distinct(),
                     timeCodes,
@@ -512,7 +512,7 @@ class SpojeRepository(
 
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
         localDataSource.departures(stop, allTables(date))
-            .groupBy { "S-${it.line}-${it.connNumber}" to it.stopIndexOnLine }
+            .groupBy { "${it.line}/${it.connNumber}" to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
                 val timeCodes = list.map { RunsFromTo(it.runs, it.from..it.to) }.distinctBy { it.runs to it.`in`.toString() }
@@ -531,7 +531,8 @@ class SpojeRepository(
                     busName = connName,
                     line = info.line - 325_000,
                     lowFloor = info.lowFloor,
-                    busStops = stops
+                    busStops = stops,
+                    stopType = StopType(info.connStopFixedCodes),
                 )
             }
 

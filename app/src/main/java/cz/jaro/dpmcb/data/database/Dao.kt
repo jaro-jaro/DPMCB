@@ -187,7 +187,7 @@ interface Dao {
                 ELSE connstop.stopIndexOnLine
             END)
         )
-        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%@%') lowFloor, conn.name connName, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
+        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%{%') lowFloor, conn.name connName, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
         JOIN connstop ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
         CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
@@ -222,7 +222,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT (conn.fixedCodes LIKE '%@%') lowFloor, conn.line, conn.fixedCodes, CASE
+        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.sequence, conn.name connName, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
@@ -256,7 +256,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT (conn.fixedCodes LIKE '%@%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
+        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
@@ -279,7 +279,7 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT (conn.fixedCodes LIKE '%@%') lowFloor, CASE
+        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, conn.name connName, conn.tab FROM connstop
@@ -357,7 +357,7 @@ interface Dao {
             SELECT stop.stopName name, conn.fixedCodes, CASE
                 WHEN connstop.departure IS null THEN connstop.arrival
                 ELSE connstop.departure
-            END time, connstop.stopIndexOnLine, conn.connNumber, conn.line, conn.tab, (conn.fixedCodes LIKE '%@%') lowFloor 
+            END time, connstop.stopIndexOnLine, connstop.fixedCodes connStopFixedCodes, conn.connNumber, conn.line, conn.tab, (conn.fixedCodes LIKE '%{%') lowFloor 
             FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
             JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
