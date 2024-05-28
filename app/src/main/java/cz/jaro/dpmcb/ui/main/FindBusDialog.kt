@@ -104,13 +104,13 @@ fun FindBusDialog(
         confirmButton = {
             TextButton(onClick = {
                 if (line.isNotEmpty() && number.isNotEmpty()) confirm(
-                    "S-325${
+                    "325${
                         when (line.length) {
                             1 -> "00$line"
                             2 -> "0$line"
                             else -> line
                         }
-                    }-$number"
+                    }/$number"
                 )
                 else if (evn.isNotEmpty()) {
                     if (evn == "02") {
@@ -133,6 +133,16 @@ fun FindBusDialog(
                     }
                 } else if (sequence.isNotEmpty()) {
                     findSequence(sequence)
+                } else if (!name.startsWith("325")) {
+                    confirm(
+                        "325${
+                            when (name.split("/").getOrNull(0)?.length) {
+                                1 -> "00$name"
+                                2 -> "0$name"
+                                else -> name
+                            }
+                        }"
+                    )
                 } else confirm(name)
             }) {
                 Text("Vyhledat")
@@ -185,13 +195,13 @@ fun FindBusDialog(
                         keyboardActions = KeyboardActions {
                             if (line.isNotEmpty() && number.isNotEmpty())
                                 confirm(
-                                    "S-325${
+                                    "325${
                                         when (line.length) {
                                             1 -> "00$line"
                                             2 -> "0$line"
                                             else -> line
                                         }
-                                    }-$number"
+                                    }/$number"
                                 )
                             else
                                 focusManager.moveFocus(FocusDirection.Down)

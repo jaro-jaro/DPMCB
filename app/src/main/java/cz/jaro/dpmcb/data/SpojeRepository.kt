@@ -20,16 +20,19 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.bus.BusDetail
 import cz.jaro.dpmcb.data.realtions.departures.Departure
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
+import cz.jaro.dpmcb.data.realtions.invoke
 import cz.jaro.dpmcb.data.realtions.now_running.NowRunning
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
@@ -253,7 +256,8 @@ class SpojeRepository(
                         name = it.name,
                         line = it.line - 325_000,
                         nextStop = noCodes.getOrNull(i + 1)?.name,
-                        connName = it.connName
+                        connName = it.connName,
+                        type = StopType(it.connStopFixedCodes.work()).work(),
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
@@ -375,7 +379,8 @@ class SpojeRepository(
                             name = it.name,
                             line = it.line - 325_000,
                             nextStop = noCodes.getOrNull(i + 1)?.name,
-                            connName = it.connName
+                            connName = it.connName,
+                            type = StopType(it.connStopFixedCodes),
                         )
                     }.distinct(),
                     timeCodes,
@@ -507,7 +512,7 @@ class SpojeRepository(
 
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
         localDataSource.departures(stop, allTables(date))
-            .groupBy { "S-${it.line}-${it.connNumber}" to it.stopIndexOnLine }
+            .groupBy { "${it.line}/${it.connNumber}" to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
                 val timeCodes = list.map { RunsFromTo(it.runs, it.from..it.to) }.distinctBy { it.runs to it.`in`.toString() }
@@ -526,7 +531,8 @@ class SpojeRepository(
                     busName = connName,
                     line = info.line - 325_000,
                     lowFloor = info.lowFloor,
-                    busStops = stops
+                    busStops = stops,
+                    stopType = StopType(info.connStopFixedCodes),
                 )
             }
 
@@ -718,21 +724,15 @@ private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
     .split(" ")
     .mapNotNull {
         when (it) {
-            "1" -> dayOfWeek in DayOfWeek.MONDAY..DayOfWeek.FRIDAY && !isPublicHoliday(this) // jede v pracovních dnech
-            "2" -> dayOfWeek == DayOfWeek.SUNDAY || isPublicHoliday(this) // jede v neděli a ve státem uznané svátky
-            "3" -> dayOfWeek == DayOfWeek.MONDAY // jede v pondělí
-            "4" -> dayOfWeek == DayOfWeek.TUESDAY // jede v úterý
-            "5" -> dayOfWeek == DayOfWeek.WEDNESDAY // jede ve středu
-            "6" -> dayOfWeek == DayOfWeek.THURSDAY // jede ve čtvrtek
-            "7" -> dayOfWeek == DayOfWeek.FRIDAY // jede v pátek
-            "8" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
-            "9" -> dayOfWeek == DayOfWeek.SUNDAY // jede v neděli
-            "14" -> null // bezbariérově přístupná zastávka
-            "19" -> null // ???
-            "21" -> null // zastávka pouze pro výstup
-            "22" -> null // zastávka pouze pro nástup
-            "24" -> null // spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce
-            "28" -> null // zastávka s možností přestupu na železniční dopravu
+            "X" -> dayOfWeek in DayOfWeek.MONDAY..DayOfWeek.FRIDAY && !isPublicHoliday(this) // jede v pracovních dnech
+            "+" -> dayOfWeek == DayOfWeek.SUNDAY || isPublicHoliday(this) // jede v neděli a ve státem uznané svátky
+            "1" -> dayOfWeek == DayOfWeek.MONDAY // jede v pondělí
+            "2" -> dayOfWeek == DayOfWeek.TUESDAY // jede v úterý
+            "3" -> dayOfWeek == DayOfWeek.WEDNESDAY // jede ve středu
+            "4" -> dayOfWeek == DayOfWeek.THURSDAY // jede ve čtvrtek
+            "5" -> dayOfWeek == DayOfWeek.FRIDAY // jede v pátek
+            "6" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
+            "7" -> dayOfWeek == DayOfWeek.SUNDAY // jede v neděli
             else -> null
         }
     }
@@ -800,18 +800,16 @@ fun makeFixedCodesReadable(fixedCodes: String) = fixedCodes
     .split(" ")
     .mapNotNull {
         when (it) {
-            "1" -> "Jede v pracovních dnech"
-            "2" -> "Jede v neděli a ve státem uznané svátky"
-            "3" -> "Jede v pondělí"
-            "4" -> "Jede v úterý"
-            "5" -> "Jede ve středu"
-            "6" -> "Jede ve čtvrtek"
-            "7" -> "Jede v pátek"
-            "8" -> "Jede v sobotu"
-            "14" -> "Bezbariérově přístupná zastávka"
-            "19" -> null
+            "X" -> "Jede v pracovních dnech"
+            "+" -> "Jede v neděli a ve státem uznané svátky"
+            "1" -> "Jede v pondělí"
+            "2" -> "Jede v úterý"
+            "3" -> "Jede ve středu"
+            "4" -> "Jede ve čtvrtek"
+            "5" -> "Jede v pátek"
+            "6" -> "Jede v sobotu"
+            "7" -> "Jede v neděli"
             "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
-            "28" -> "Zastávka s možností přestupu na železniční dopravu"
             else -> null
         }
     }

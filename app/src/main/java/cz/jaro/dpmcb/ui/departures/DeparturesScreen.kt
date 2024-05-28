@@ -71,15 +71,17 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
-import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.StopTypeIcon
+import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
@@ -603,6 +605,8 @@ private fun Card(
                     text = departureState.destination,
                     fontSize = 20.sp
                 )
+
+                if (departureState.stopType != StopType.Normal) StopTypeIcon(departureState.stopType, Modifier.padding(horizontal = 8.dp))
 
                 if (compact) {
                     Text(

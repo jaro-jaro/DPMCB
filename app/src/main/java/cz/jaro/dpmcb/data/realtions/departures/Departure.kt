@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions.departures
 
-import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
+import cz.jaro.dpmcb.data.realtions.StopType
 import java.time.LocalTime
 
 data class Departure(
@@ -11,4 +11,5 @@ data class Departure(
     val line: Int,
     val lowFloor: Boolean,
     val busStops: List<StopOfDeparture>,
+    val stopType: StopType,
 )

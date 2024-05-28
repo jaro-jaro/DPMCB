@@ -151,7 +151,7 @@ fun SequenceScreen(
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Name("${bus.lineNumber}")
+                                Name("${bus.lineNumber}", subName = "/${bus.busName.split('/')[1]}")
                                 Wheelchair(
                                     lowFloor = bus.lowFloor,
                                     confirmedLowFloor = (state as? SequenceState.Online)?.confirmedLowFloor?.takeIf { bus.isRunning },

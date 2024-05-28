@@ -8,4 +8,5 @@ data class BusStop(
     val line: Int,
     val nextStop: String?,
     val connName: String,
+    val type: StopType,
 )
