@@ -93,6 +93,7 @@ import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.bus.BusEvent
 import cz.jaro.dpmcb.ui.bus.BusState
+import cz.jaro.dpmcb.ui.common.icons.Empty
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfCircle
 import cz.jaro.dpmcb.ui.common.icons.RightHalfCircle
 import cz.jaro.dpmcb.ui.main.Route
@@ -208,19 +209,7 @@ fun Timetable(
         stops.forEachIndexed { index, stop ->
             val color = if (nextStopIndex != null && index == nextStopIndex)
                 MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-            when(stop.type) {
-                StopType.Normal -> {}
-                StopType.GetOnOnly -> IconWithTooltip(
-                    imageVector = Icons.Default.RightHalfCircle,
-                    contentDescription = "Zastávka pouze pro nástup",
-                    tint = color,
-                )
-                StopType.GetOffOnly -> IconWithTooltip(
-                    imageVector = Icons.Default.LeftHalfCircle,
-                    contentDescription = "Zastávka pouze pro výstup",
-                    tint = color,
-                )
-            }
+            TypeIcon(color, stop.type)
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
@@ -265,6 +254,29 @@ fun Timetable(
         isOnline = isOnline,
         Modifier,
     )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TypeIcon(color: Color, stopType: StopType) {
+    when (stopType) {
+        StopType.Normal -> IconWithTooltip(
+            imageVector = Icons.Default.Empty,
+            contentDescription = null,
+            tint = color,
+        )
+        StopType.GetOnOnly -> IconWithTooltip(
+            imageVector = Icons.Default.RightHalfCircle,
+            contentDescription = "Zastávka pouze pro nástup",
+            tint = color,
+        )
+
+        StopType.GetOffOnly -> IconWithTooltip(
+            imageVector = Icons.Default.LeftHalfCircle,
+            contentDescription = "Zastávka pouze pro výstup",
+            tint = color,
+        )
+    }
 }
 
 @Composable
