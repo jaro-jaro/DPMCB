@@ -8,6 +8,8 @@ data class CoreBus(
     val line: Int,
     val sequence: String?,
     val fixedCodes: String,
+    val stopFixedCodes: String,
+    val connStopFixedCodes: String,
     val time: LocalTime,
     val name: String,
     val connName: String,

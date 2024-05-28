@@ -440,7 +440,7 @@ fun MainScreen(
                 .padding(paddingValues)
         ) {
             if (isDataUpdateNeeded) {
-                var showDialog by remember { mutableStateOf(true) }
+                var showDialog by rememberSaveable { mutableStateOf(true) }
 
                 if (showDialog) AlertDialog(
                     onDismissRequest = {
@@ -474,7 +474,7 @@ fun MainScreen(
                 )
             }
             if (isAppUpdateNeeded) {
-                var showDialog by remember { mutableStateOf(true) }
+                var showDialog by rememberSaveable { mutableStateOf(true) }
 
                 if (showDialog) AlertDialog(
                     onDismissRequest = {

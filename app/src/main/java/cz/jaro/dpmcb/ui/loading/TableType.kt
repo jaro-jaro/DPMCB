@@ -1,11 +1,11 @@
 package cz.jaro.dpmcb.ui.loading
 
 enum class TableType {
+    Pevnykod,
     Zaslinky,
     Zasspoje,
     Zastavky,
     VerzeJDF,
-    Pevnykod,
     Dopravci,
     Caskody,
     LinExt,

@@ -288,7 +288,7 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
-            val sequencesRef = storage.reference.child("kurzy.json")
+            val sequencesRef = storage.reference.child("kurzy2.json")
             val diagramRef = storage.reference.child("schema.pdf")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
@@ -492,6 +492,8 @@ class LoadingViewModel(
                 val stopsOfTable: MutableList<Stop> = mutableListOf()
                 val linesOfTable: MutableList<Line> = mutableListOf()
                 val connsOfTable: MutableList<Conn> = mutableListOf()
+                val fixedCodesOfTable: MutableMap<String, String> = mutableMapOf()
+
                 dataLinky
                     .toList()
                     .sortedBy { (tableType, _) ->
@@ -515,13 +517,18 @@ class LoadingViewModel(
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     tab = tab,
+                                    fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
+                                        fixedCodesOfTable[it] ?: it
+                                    },
                                 )
 
                                 TableType.Zastavky -> stopsOfTable += Stop(
                                     line = row[0].toInt(),
                                     stopNumber = row[1].toInt(),
                                     stopName = row[2],
-                                    fixedCodes = row.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                                        fixedCodesOfTable[it] ?: it
+                                    },
                                     tab = tab,
                                 )
 
@@ -548,12 +555,14 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "${row[0]}/${row[1]}" in spoje }
 
                                     connsOfTable += Conn(
                                         line = row[0].toInt(),
                                         connNumber = row[1].toInt(),
-                                        fixedCodes = row.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                        fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                                            fixedCodesOfTable[it] ?: it
+                                        },
                                         direction = connStopsOfTable
                                             .filter { it.connNumber == row[1].toInt() }
                                             .sortedBy { it.stopIndexOnLine }
@@ -563,7 +572,7 @@ class LoadingViewModel(
                                             },
                                         tab = tab,
                                         sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf("S-${row[0]}-${row[1]}")?.takeUnless { it == -1 },
+                                        orderInSequence = seq?.second?.indexOf("${row[0]}/${row[1]}")?.takeUnless { it == -1 },
                                     ).also { conn ->
 //                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(
@@ -579,7 +588,9 @@ class LoadingViewModel(
                                     }
                                 }
 
-                                TableType.Pevnykod -> Unit
+                                TableType.Pevnykod -> {
+                                    fixedCodesOfTable += row[0] to row[1]
+                                }
                                 TableType.Zaslinky -> Unit
                                 TableType.VerzeJDF -> Unit
                                 TableType.Dopravci -> Unit

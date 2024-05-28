@@ -11,10 +11,11 @@ import cz.jaro.dpmcb.data.busOnMapByName
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -127,6 +128,7 @@ class DeparturesViewModel(
                         runsVia = stop.busStops.map { it.name }.filterIndexed { i, _ -> i in (thisStopIndex + 1)..lastIndexOfThisStop },
                         runsIn = Duration.between(now, stop.time + (onlineConn?.delayMin?.toDouble() ?: 0.0).minutes),
                         nextStop = stop.busStops.map { it.name }.getOrNull(thisStopIndex + 1),
+                        stopType = stop.stopType,
                     )
                 }
         }
@@ -146,7 +148,7 @@ class DeparturesViewModel(
                     info.stopFilter?.let { filter -> it.runsVia.contains(filter) } ?: true
                 }
                 .remove {
-                    info.justDepartures && it.nextStop == null
+                    info.justDepartures && (it.nextStop == null || it.stopType == StopType.GetOffOnly)
                 }
                 .also { filteredList ->
                     if (lastState == null) return@also
