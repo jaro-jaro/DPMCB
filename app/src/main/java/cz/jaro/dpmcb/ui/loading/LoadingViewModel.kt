@@ -24,6 +24,7 @@ import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.invoke
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
@@ -537,7 +538,7 @@ class LoadingViewModel(
                                     connNumber = row[1].toInt(),
                                     code = row[3].toInt(),
                                     termIndex = row[2].toInt(),
-                                    runs = row[4] == "1",
+                                    type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun,
                                     validFrom = row[5].toDateWeirdly(),
                                     validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
                                     tab = tab,
@@ -580,7 +581,7 @@ class LoadingViewModel(
                                             connNumber = conn.connNumber,
                                             code = 0,
                                             termIndex = 0,
-                                            runs = false,
+                                            type = TimeCodeType.DoesNotRun,
                                             validFrom = noCode,
                                             validTo = noCode,
                                             tab = conn.tab,

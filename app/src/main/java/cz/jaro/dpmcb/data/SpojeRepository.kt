@@ -15,8 +15,12 @@ import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Runs
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
@@ -216,15 +220,15 @@ class SpojeRepository(
     suspend fun busDetail(busName: String, date: LocalDate) =
         localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!).run {
             val noCodes = distinctBy {
-                it.copy(fixedCodes = "", runs = false, from = LocalDate.now(), to = LocalDate.now())
+                it.copy(fixedCodes = "", type = DoesNotRun, from = LocalDate.now(), to = LocalDate.now())
             }
             val timeCodes = map {
                 RunsFromTo(
-                    runs = it.runs,
-                    `in` = it.from..it.to
+                    type = it.type,
+                    `in` = it.from..it.to,
                 )
             }.distinctBy {
-                it.runs to it.`in`.toString()
+                it.type to it.`in`.toString()
             }
 
             val before = first().sequence?.let { seq ->
@@ -271,7 +275,7 @@ class SpojeRepository(
     suspend fun codes(connName: String, date: LocalDate) =
         localDataSource.codes(connName, nowUsedTable(date, extractLineNumber(connName))!!).run {
             if (isEmpty()) return@run emptyList<RunsFromTo>() to emptyList<String>()
-            map { RunsFromTo(runs = it.runs, `in` = it.from..it.to) } to makeFixedCodesReadable(first().fixedCodes)
+            map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to makeFixedCodesReadable(first().fixedCodes)
         }
 
     private fun extractLineNumber(connName: String) = connName.split("/")[0].toInt()
@@ -354,15 +358,15 @@ class SpojeRepository(
             }
             .map { (_, stops) ->
                 val noCodes = stops.distinctBy {
-                    it.copy(fixedCodes = "", runs = false, from = LocalDate.now(), to = LocalDate.now())
+                    it.copy(fixedCodes = "", type = DoesNotRun, from = LocalDate.now(), to = LocalDate.now())
                 }
                 val timeCodes = stops.map {
                     RunsFromTo(
-                        runs = it.runs,
+                        type = it.type,
                         `in` = it.from..it.to
                     )
                 }.distinctBy {
-                    it.runs to it.`in`.toString()
+                    it.type to it.`in`.toString()
                 }
                 InterBusOfSequence(
                     stops.first().let {
@@ -515,7 +519,7 @@ class SpojeRepository(
             .groupBy { "${it.line}/${it.connNumber}" to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
-                val timeCodes = list.map { RunsFromTo(it.runs, it.from..it.to) }.distinctBy { it.runs to it.`in`.toString() }
+                val timeCodes = list.map { RunsFromTo(it.type, it.from..it.to) }.distinctBy { it.type to it.`in`.toString() }
                 runsAt(timeCodes, list.first().fixedCodes, date)
             }
             .map { Triple(it.first, it.second, it.third.first()) }
@@ -616,10 +620,10 @@ class SpojeRepository(
         return localDataSource.doesConnExist(busName) != null
     }
 
-    fun doesConnRunAt(spojId: String): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
-        val tab = nowUsedTable(datum, extractLineNumber(spojId)) ?: return@runsAt false
+    fun doesConnRunAt(connName: String): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
+        val tab = nowUsedTable(datum, extractLineNumber(connName)) ?: return@runsAt false
 
-        val list = localDataSource.codes(spojId, tab).map { RunsFromTo(it.runs, it.from..it.to) to it.fixedCodes }
+        val list = localDataSource.codes(connName, tab).map { RunsFromTo(it.type, it.from..it.to) to it.fixedCodes }
 
         if (list.isEmpty()) false
         else runsAt(
@@ -633,11 +637,15 @@ class SpojeRepository(
         timeCodes: List<RunsFromTo>,
         fixedCodes: String,
         date: LocalDate,
-    ): Boolean = listOf(
-        (timeCodes.filter { it.runs }.ifEmpty { null }?.any { date in it.`in` } ?: true),
-        timeCodes.filter { !it.runs }.none { date in it.`in` },
-        date.runsToday(fixedCodes),
-    ).allTrue()
+    ): Boolean = when {
+        timeCodes anyAre RunsOnly -> timeCodes filter RunsOnly anySatisfies date
+        timeCodes filter RunsAlso anySatisfies date -> true
+        !date.runsToday(fixedCodes) -> false
+        timeCodes filter DoesNotRun anySatisfies date -> false
+        timeCodes noneAre Runs -> true
+        timeCodes filter Runs anySatisfies date -> true
+        else -> false
+    }
 
     private val contentResolver = ctx.contentResolver
 
@@ -713,6 +721,13 @@ class SpojeRepository(
             .first { date.isThisTableNowUsed(it.first) }
             .second
 }
+
+private infix fun List<RunsFromTo>.anyAre(type: TimeCodeType) = any { it.type == type }
+private infix fun List<RunsFromTo>.noneAre(type: TimeCodeType) = none { it.type == type }
+private infix fun List<RunsFromTo>.filter(type: TimeCodeType) = filter { it.type == type }
+
+private infix fun List<RunsFromTo>.anySatisfies(date: LocalDate) = any { it satisfies date }
+private infix fun RunsFromTo.satisfies(date: LocalDate) = date in `in`
 
 private fun String.partMayBeMissing() =
     if (matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) split("-")[0]

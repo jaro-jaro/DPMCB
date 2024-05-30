@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.data.realtions
 
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -13,7 +14,7 @@ data class CoreBus(
     val time: LocalTime,
     val name: String,
     val connName: String,
-    val runs: Boolean,
+    val type: TimeCodeType,
     val from: LocalDate,
     val to: LocalDate,
 )

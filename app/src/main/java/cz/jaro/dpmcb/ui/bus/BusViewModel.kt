@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
@@ -28,6 +29,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.collections.filterNot as remove
 
 @KoinViewModel
 class BusViewModel(
@@ -49,18 +51,24 @@ class BusViewModel(
                 date = date,
                 runsNextTimeAfterToday = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
                 runsNextTimeAfterDate = List(365) { date.plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
-                timeCodes = timeCodes.filterNot {
-                    !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-                }.groupBy({ it.runs }, {
+                timeCodes = timeCodes.remove {
+                    it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
+                }.groupBy({ it.type }, {
                     if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-                }).map { (runs, dates) ->
-                    (if (runs) "Jede " else "Nejede ") + dates.joinToString()
+                }).let {
+                    if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
+                }.map { (type, dates) ->
+                    when (type) {
+                        TimeCodeType.Runs -> "Jede "
+                        TimeCodeType.RunsAlso -> "Jede také "
+                        TimeCodeType.RunsOnly -> "Jede pouze "
+                        TimeCodeType.DoesNotRun -> "Nejede "
+                    } + dates.joinToString()
                 },
-                fixedCodes = fixedCodes,
+                fixedCodes = fixedCodes.takeUnless { timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
                 lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
                 deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
-
-                )
+            )
         }
 
         val bus = repo.busDetail(busName, date)
@@ -70,14 +78,21 @@ class BusViewModel(
             stops = bus.stops,
             lineNumber = bus.info.line,
             lowFloor = bus.info.lowFloor,
-            timeCodes = bus.timeCodes.filterNot {
-                !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-            }.groupBy({ it.runs }, {
+            timeCodes = bus.timeCodes.remove {
+                it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
+            }.groupBy({ it.type }, {
                 if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-            }).map { (runs, dates) ->
-                (if (runs) "Jede " else "Nejede ") + dates.joinToString()
+            }).let {
+                if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
+            }.map { (type, dates) ->
+                when (type) {
+                    TimeCodeType.Runs -> "Jede "
+                    TimeCodeType.RunsAlso -> "Jede také "
+                    TimeCodeType.RunsOnly -> "Jede pouze "
+                    TimeCodeType.DoesNotRun -> "Nejede "
+                } + dates.joinToString()
             },
-            fixedCodes = makeFixedCodesReadable(bus.fixedCodes),
+            fixedCodes = makeFixedCodesReadable(bus.fixedCodes).takeUnless { bus.timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
             lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
             restriction = restriction,
@@ -135,6 +150,7 @@ class BusViewModel(
             }
             Unit
         }
+
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
@@ -149,6 +165,7 @@ class BusViewModel(
             }
             Unit
         }
+
         BusEvent.RemoveFavourite -> {
             viewModelScope.launch {
                 repo.removeFavourite(busName)
