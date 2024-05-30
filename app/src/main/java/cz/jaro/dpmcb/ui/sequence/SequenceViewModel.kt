@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
@@ -25,6 +26,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.collections.filterNot as remove
 
 @KoinViewModel
 class SequenceViewModel(
@@ -45,14 +47,21 @@ class SequenceViewModel(
         SequenceState.Offline(
             sequence = sequence,
             sequenceName = repo.seqName(sequence),
-            timeCodes = timeCodes.filterNot {
-                !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-            }.groupBy({ it.runs }, {
+            timeCodes = timeCodes.remove {
+                it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
+            }.groupBy({ it.type }, {
                 if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-            }).map { (runs, dates) ->
-                (if (runs) "Jede " else "Nejede ") + dates.joinToString()
+            }).let {
+                if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
+            }.map { (type, dates) ->
+                when (type) {
+                    TimeCodeType.Runs -> "Jede "
+                    TimeCodeType.RunsAlso -> "Jede také "
+                    TimeCodeType.RunsOnly -> "Jede pouze "
+                    TimeCodeType.DoesNotRun -> "Nejede "
+                } + dates.joinToString()
             },
-            fixedCodes = makeFixedCodesReadable(fixedCodes),
+            fixedCodes = makeFixedCodesReadable(fixedCodes).takeUnless { timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
             before = before.map { it to repo.seqConnection(it) },
             after = after.map { it to repo.seqConnection(it) },
             buses = buses.map { (bus, stops) ->

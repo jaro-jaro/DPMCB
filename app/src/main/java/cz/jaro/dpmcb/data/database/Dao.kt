@@ -111,11 +111,11 @@ interface Dao {
             JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
             JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.connNumber = conn.connNumber AND timecodescountofconn.tab = conn.tab
             WHERE ((
-                timecode.runs 
+                timecode.runs2 
                 AND timecode.validFrom <= :date
                 AND :date <= timecode.validTo
             ) OR (
-                NOT timecode.runs 
+                NOT timecode.runs2
                 AND NOT (
                     timecode.validFrom <= :date
                     AND :date <= timecode.validTo
@@ -124,10 +124,10 @@ interface Dao {
             AND conn.tab = :tab
             GROUP BY conn.name, conn.tab
             HAVING (
-                timecode.runs 
+                timecode.runs2
                 AND COUNT(timecode.termIndex) >= 1
             ) OR (
-                NOT timecode.runs
+                NOT timecode.runs2
                 AND COUNT(timecode.termIndex) = TimeCodesCountOfConn.count
             )
         ),
@@ -225,7 +225,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.sequence, conn.name connName, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.sequence, conn.name connName, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
@@ -245,7 +245,7 @@ interface Dao {
 
     @Query(
         """
-        SELECT conn.fixedCodes, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM timecode
+        SELECT conn.fixedCodes, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM timecode
         JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
         AND conn.name = :connName
         AND conn.tab = :tab
@@ -259,7 +259,7 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.runs, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
@@ -363,7 +363,7 @@ interface Dao {
             JOIN hereRunningConns conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
             CROSS JOIN thisStopIndexes tahleZastavka ON connstop.tab = tahleZastavka.tab AND connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
         )
-        SELECT thisStop.*, timecode.runs, timecode.validFrom `from`, timecode.validTo `to`
+        SELECT thisStop.*, timecode.type, timecode.validFrom `from`, timecode.validTo `to`
         FROM thisStop
         JOIN hereRunningConns conn ON conn.connNumber = thisStop.connNumber AND conn.tab = thisStop.tab
         JOIN timecode ON timecode.connNumber = thisStop.connNumber AND timecode.tab = thisStop.tab
@@ -416,9 +416,9 @@ interface Dao {
             FROM timecode
             JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
             JOIN counofconnsinsequence c ON c.sequence = conn.sequence
-            GROUP BY validFrom || validTo || runs, conn.sequence
+            GROUP BY validFrom || validTo || type, conn.sequence
             HAVING COUNT(DISTINCT conn.connNumber) =  c.count
-            ORDER BY conn.sequence, runs, validTo, validFrom
+            ORDER BY conn.sequence, type, validTo, validFrom
         ),
         TimeCodesCountOfSeq AS (
             SELECT DISTINCT sequence, COUNT(*) count FROM TimeCodesOfSeq timecode
@@ -428,11 +428,11 @@ interface Dao {
             SELECT DISTINCT timecode.sequence FROM TimeCodesOfSeq timecode
             JOIN TimeCodesCountOfSeq ON TimeCodesCountOfSeq.sequence = timecode.sequence
             AND ((
-                timecode.runs 
+                timecode.runs2 
                 AND timecode.validFrom <= :date
                 AND :date <= timecode.validTo
             ) OR (
-                NOT timecode.runs 
+                NOT timecode.runs2
                 AND NOT (
                     timecode.validFrom <= :date
                     AND :date <= timecode.validTo
@@ -440,10 +440,10 @@ interface Dao {
             ))
             GROUP BY timecode.sequence
             HAVING (
-                timecode.runs 
+                timecode.runs2
                 AND COUNT(*) >= 1
             ) OR (
-                NOT timecode.runs
+                NOT timecode.runs2
                 AND COUNT(*) = TimeCodesCountOfSeq.count
             )
         ),

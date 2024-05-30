@@ -16,7 +16,7 @@ import java.time.LocalTime
 
 @Database(
     entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class],
-    version = 26,
+    version = 27,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
