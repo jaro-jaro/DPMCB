@@ -45,6 +45,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
+import java.time.LocalDate
 
 @Composable
 fun Sequence(
@@ -58,11 +59,13 @@ fun Sequence(
     App.selected = DrawerAction.FindBus
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val date by viewModel.date.collectAsStateWithLifecycle()
 
     SequenceScreen(
         state = state,
         navigate = navController.navigateFunction,
         lazyListState = rememberLazyListState(),
+        date = date,
     )
 }
 
@@ -73,9 +76,10 @@ fun SequenceScreen(
     state: SequenceState,
     navigate: NavigateFunction,
     lazyListState: LazyListState,
+    date: LocalDate,
 ) = Scaffold(
     floatingActionButton = {
-        if (state is SequenceState.OK) FABs(state, lazyListState)
+        if (state is SequenceState.OK) FABs(state, lazyListState, date)
     }
 ) {
     LazyColumn(
