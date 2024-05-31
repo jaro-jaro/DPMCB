@@ -35,6 +35,8 @@ class SequenceViewModel(
     @InjectedParam private val originalSequence: String,
 ) : ViewModel() {
 
+    val date = repo.date
+
     private val info: Flow<SequenceState> = repo.date.map { date ->
         val (sequence, before, buses, after, timeCodes, fixedCodes) = (
             repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
