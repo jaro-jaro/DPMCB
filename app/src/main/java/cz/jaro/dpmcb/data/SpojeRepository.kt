@@ -176,17 +176,20 @@ class SpojeRepository(
     private val sequencesMap = mutableMapOf<LocalDate, List<TimeOfSequence>>()
 
     private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): List<TimeOfSequence> {
-        return localDataSource.fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
+        return localDataSource.codesOfTodayRunningSequencesAccordingToTimeCodes(
             date = date,
             tabs = allTables(date),
         )
-            .mapNotNull { (seq, fixedCodes) ->
+            .mapNotNull { (seq, conns) ->
 
-                if (fixedCodes.isEmpty()) return@mapNotNull null
+                val list = conns.values.map { RunsFromTo(it.type, it.from..it.to) to it.fixedCodes }
+                if (list.none { it.first satisfies date }) return@mapNotNull null
 
-                val codes = fixedCodes.first().split(" ").filter { kod ->
-                    fixedCodes.all {
-                        it.split(" ").contains(kod)
+                if (conns.isEmpty()) return@mapNotNull null
+
+                val codes = list.first().second.split(" ").filter { code ->
+                    list.all {
+                        it.second.split(" ").contains(code)
                     }
                 }
 
@@ -200,8 +203,8 @@ class SpojeRepository(
             }
     }
 
-    private suspend fun nowRunningSequencesOrNot(datum: LocalDate) = sequencesMap.getOrPut(datum) {
-        nowRunningSequencesOrNotInternal(datum)
+    private suspend fun nowRunningSequencesOrNot(date: LocalDate) = sequencesMap.getOrPut(date) {
+        nowRunningSequencesOrNotInternal(date)
     }
 
     private suspend fun LocalDate.isThisTableNowUsed(tab: String): Boolean {
@@ -397,15 +400,15 @@ class SpojeRepository(
 
         if (conns.isEmpty()) return null
 
-        val timeCodes = conns.first().timeCodes.filter { kod ->
+        val timeCodes = conns.first().timeCodes.filter { code ->
             conns.all {
-                it.timeCodes.contains(kod)
+                it.timeCodes.contains(code)
             }
         }
 
-        val fixedCodes = conns.first().fixedCodes.split(" ").filter { kod ->
+        val fixedCodes = conns.first().fixedCodes.split(" ").filter { code ->
             conns.all {
-                it.fixedCodes.split(" ").contains(kod)
+                it.fixedCodes.split(" ").contains(code)
             }
         }
 

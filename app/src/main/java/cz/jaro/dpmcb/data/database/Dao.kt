@@ -403,6 +403,7 @@ interface Dao {
     """
     )
     suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") String, List<@MapColumn("line") Int>>
+
     @Transaction
     @Query(
         """
@@ -483,22 +484,18 @@ interface Dao {
                  ELSE connstop.departure
              END)
         )
-        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
+        SELECT conn.sequence, conn.fixedCodes, conn.name connName, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
+        JOIN timecode ON timecode.tab = conn.tab AND timecode.connNumber = conn.connNumber
         JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
         WHERE conn.sequence IN TodayRunningSequences
         AND conn.tab IN (:tabs)
     """ // DISTINCT zde není schválně - chceme pevné kódy pro každý spoj zvlášť, abychom poté získali společné pevné kódy
     )
-    suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
+    suspend fun codesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
         tabs: List<String>
-    ): Map<TimeOfSequence, List<@MapColumn("fixedCodes")String>>
-
-//    SELECT group_ID
-//    FROM tableName
-//    GROUP BY group_ID
-//    HAVING COUNT(*) = (SELECT COUNT(DISTINCT uid) AS c FROM tableName);
+    ): Map<TimeOfSequence, Map<@MapColumn("connName") String, CodesOfBus>>
 
     @Transaction
     @Query(
