@@ -113,11 +113,6 @@ fun FindBusDialog(
                     }/$number"
                 )
                 else if (evn.isNotEmpty()) {
-                    if (evn == "02") {
-                        sequence = "#02"
-                        findSequence("#02")
-                        return@TextButton
-                    }
                     if (!isOnline.value) {
                         showToast("Jste offline", Toast.LENGTH_SHORT)
                         onDismiss()
@@ -225,11 +220,6 @@ fun FindBusDialog(
                     },
                     keyboardActions = KeyboardActions {
                         if (evn.isNotEmpty()) {
-                            if (evn == "02") {
-                                sequence = "#02"
-                                findSequence("#02")
-                                return@KeyboardActions
-                            }
                             if (!isOnline.value) {
                                 showToast("Jste offline", Toast.LENGTH_SHORT)
                                 onDismiss()
