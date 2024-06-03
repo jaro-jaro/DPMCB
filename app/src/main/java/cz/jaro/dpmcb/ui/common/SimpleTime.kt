@@ -7,7 +7,11 @@ import java.time.LocalTime
 data class SimpleTime(
     val h: Int,
     val min: Int,
-)
+) {
+    companion object {
+        val invalid = SimpleTime(99, 99)
+    }
+}
 
 fun SimpleTime.toLocalTime() = LocalTime.of(h, min)!!
 fun LocalTime.toSimpleTime() = SimpleTime(hour, minute)

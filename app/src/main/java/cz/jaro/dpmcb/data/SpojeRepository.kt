@@ -261,7 +261,7 @@ class SpojeRepository(
                         line = it.line - 325_000,
                         nextStop = noCodes.getOrNull(i + 1)?.name,
                         connName = it.connName,
-                        type = StopType(it.connStopFixedCodes.work()).work(),
+                        type = StopType(it.connStopFixedCodes),
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
