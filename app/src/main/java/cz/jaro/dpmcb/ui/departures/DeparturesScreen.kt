@@ -80,6 +80,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
@@ -109,7 +110,7 @@ fun Departures(
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
-                time = args.time?.toLocalTime() ?: now,
+                time = args.time.takeUnless { it == SimpleTime.invalid }?.toLocalTime() ?: now,
                 line = args.line.takeUnless { it == -1 },
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,

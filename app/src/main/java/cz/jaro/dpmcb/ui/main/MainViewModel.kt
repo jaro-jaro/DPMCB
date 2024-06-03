@@ -99,6 +99,14 @@ class MainViewModel(
     private fun String.transformBusIds() = this
         .replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")
 
+    private fun String.addInvalidDepartureTime(): String {
+        if ("departures" !in this) return this
+        if ("time=null" in this) return replace("time=null", "time=99:99")
+        if ("time=" in this) return this
+        if ("?" in this) return plus("&time=99:99")
+        return plus("?time=99:99")
+    }
+
     init {
         link?.let {
             viewModelScope.launch(Dispatchers.IO) {
@@ -108,7 +116,7 @@ class MainViewModel(
                     withContext(Dispatchers.Main) {
                         App.selected = null
                         navController.graphOrNull?.nodes
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds())
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                         closeDrawer()
                     }
                 } catch (e: IllegalArgumentException) {

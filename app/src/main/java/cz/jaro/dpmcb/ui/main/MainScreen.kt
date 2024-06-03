@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.net.Uri
+import android.os.BaseBundle
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -79,6 +80,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -110,13 +112,12 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     )
 
     Route.Departures::class -> mapOf(
-        typePair<SimpleTime?>(
+        typePair<SimpleTime>(
             parseValue = { time ->
-                if (time == "null") null
-                else time.split(":").map(String::toInt).let { SimpleTime(h = it[0], min = it[1]) }
+                time.split(":").map(String::toInt).let { SimpleTime(h = it.work()[0], min = it[1]) }.work()
             },
             serializeAsValue = {
-                it?.let { "${it.h}:${it.min}" } ?: "null"
+                "${it.h}:${it.min}"
             }
         ),
         serializationTypePair<Int?>(),

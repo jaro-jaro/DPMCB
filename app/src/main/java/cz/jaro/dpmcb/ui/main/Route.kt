@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.main
 
-import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -39,7 +39,7 @@ sealed interface Route {
     @SerialName("departures")
     data class Departures(
         val stop: String,
-        val time: SimpleTime? = null,
+        val time: SimpleTime = SimpleTime.invalid,
         val line: Int? = null,
         val via: String? = null,
         val onlyDepartures: Boolean? = null,
