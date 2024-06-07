@@ -22,9 +22,10 @@ import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -43,6 +44,7 @@ import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.InterBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.Sequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
+import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +76,7 @@ import java.time.LocalTime
 import java.time.Month
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
+import kotlin.collections.filterNot as remove
 
 @Single
 class SpojeRepository(
@@ -173,31 +176,25 @@ class SpojeRepository(
         nowUsedTabInternal(datum, lineNumber)?.tab
     }
 
-    private val sequencesMap = mutableMapOf<LocalDate, List<TimeOfSequence>>()
+    private val sequencesMap = mutableMapOf<LocalDate, Set<TimeOfSequence>>()
 
-    private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): List<TimeOfSequence> {
+    private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): Set<TimeOfSequence> {
         return localDataSource.fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
             date = date,
             tabs = allTables(date),
         )
-            .mapNotNull { (seq, fixedCodes) ->
+            .filter { (_, conns) ->
+                if (conns.isEmpty()) return@filter false
 
-                if (fixedCodes.isEmpty()) return@mapNotNull null
-
-                val codes = fixedCodes.first().split(" ").filter { kod ->
-                    fixedCodes.all {
-                        it.split(" ").contains(kod)
-                    }
+                conns.any { (_, codes) ->
+                    runsAt(
+                        timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
+                        fixedCodes = codes.first().fixedCodes,
+                        date = date,
+                    )
                 }
-
-                Pair(seq, codes)
             }
-            .filter { (_, fixedCodes) ->
-                date.runsToday(fixedCodes.joinToString(" "))
-            }
-            .map {
-                it.first
-            }
+            .keys
     }
 
     private suspend fun nowRunningSequencesOrNot(datum: LocalDate) = sequencesMap.getOrPut(datum) {
@@ -274,8 +271,8 @@ class SpojeRepository(
 
     suspend fun codes(connName: String, date: LocalDate) =
         localDataSource.codes(connName, nowUsedTable(date, extractLineNumber(connName))!!).run {
-            if (isEmpty()) return@run emptyList<RunsFromTo>() to emptyList<String>()
-            map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to makeFixedCodesReadable(first().fixedCodes)
+            if (isEmpty()) return@run emptyList<RunsFromTo>() to ""
+            map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to first().fixedCodes
         }
 
     private fun extractLineNumber(connName: String) = connName.split("/")[0].toInt()
@@ -301,9 +298,23 @@ class SpojeRepository(
             nextStop = nextStop,
             date = date,
             tab = nowUsedTable(date, line + 325_000)!!
-        ).filter {
-            date.runsToday(it.fixedCodes)
-        }
+        )
+            .groupBy {
+                BusInTimetable(
+                    departure = it.departure,
+                    lowFloor = it.lowFloor,
+                    busName = it.connName,
+                    destination = it.destination,
+                )
+            }
+            .filter { (_, timeCodes) ->
+                runsAt(
+                    timeCodes = timeCodes.map { RunsFromTo(it.type, it.from..it.to) },
+                    fixedCodes = timeCodes.first().fixedCodes,
+                    date = date,
+                )
+            }
+            .keys
 
     suspend fun findSequences(seq: String) = seq.partMayBeMissing()?.let { s ->
         localDataSource.findSequences(
@@ -397,15 +408,15 @@ class SpojeRepository(
 
         if (conns.isEmpty()) return null
 
-        val timeCodes = conns.first().timeCodes.filter { kod ->
+        val commonTimeCodes = conns.first().timeCodes.filter { code ->
             conns.all {
-                it.timeCodes.contains(kod)
+                code in it.timeCodes
             }
         }
 
-        val fixedCodes = conns.first().fixedCodes.split(" ").filter { kod ->
+        val commonFixedCodes = conns.first().fixedCodes.split(" ").filter { code ->
             conns.all {
-                it.fixedCodes.split(" ").contains(kod)
+                code in it.fixedCodes.split(" ")
             }
         }
 
@@ -423,9 +434,20 @@ class SpojeRepository(
             name = conns.first().info.sequence!!,
             before = before,
             after = after,
-            buses = conns.map { BusOfSequence(it.info, it.stops) },
-            commonTimeCodes = timeCodes,
-            commonFixedCodes = fixedCodes.joinToString(" "),
+            buses = conns.map {
+                BusOfSequence(
+                    info = it.info,
+                    stops = it.stops,
+                    uniqueTimeCodes = it.timeCodes.filter { code ->
+                        code !in commonTimeCodes
+                    },
+                    uniqueFixedCodes = it.fixedCodes.split(" ").filter { code ->
+                        code !in commonFixedCodes
+                    }.joinToString(" "),
+                )
+          },
+            commonTimeCodes = commonTimeCodes,
+            commonFixedCodes = commonFixedCodes.joinToString(" "),
         )
     }
 
@@ -811,7 +833,7 @@ fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
     return bigFriday to easterMonday
 }
 
-fun makeFixedCodesReadable(fixedCodes: String) = fixedCodes
+fun filterFixedCodesAndMakeReadable(fixedCodes: String, timeCodes: List<RunsFromTo>) = fixedCodes
     .split(" ")
     .mapNotNull {
         when (it) {
@@ -827,4 +849,27 @@ fun makeFixedCodesReadable(fixedCodes: String) = fixedCodes
             "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
             else -> null
         }
+    }
+    .takeUnless { timeCodes.any { it.type == RunsOnly } }
+    .orEmpty()
+
+fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes
+    .remove {
+        it.type == DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
+    }
+    .groupBy({
+        it.type
+    }, {
+        if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
+    })
+    .let {
+        if (it.containsKey(RunsOnly)) mapOf(RunsOnly to it[RunsOnly]!!) else it
+    }
+    .map { (type, dates) ->
+        when (type) {
+            Runs -> "Jede "
+            RunsAlso -> "Jede také "
+            RunsOnly -> "Jede pouze "
+            DoesNotRun -> "Nejede "
+        } + dates.joinToString()
     }

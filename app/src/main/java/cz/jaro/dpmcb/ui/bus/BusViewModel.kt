@@ -5,13 +5,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
+import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.makeFixedCodesReadable
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +28,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.collections.filterNot as remove
 
 @KoinViewModel
 class BusViewModel(
@@ -51,21 +49,8 @@ class BusViewModel(
                 date = date,
                 runsNextTimeAfterToday = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
                 runsNextTimeAfterDate = List(365) { date.plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
-                timeCodes = timeCodes.remove {
-                    it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-                }.groupBy({ it.type }, {
-                    if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-                }).let {
-                    if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
-                }.map { (type, dates) ->
-                    when (type) {
-                        TimeCodeType.Runs -> "Jede "
-                        TimeCodeType.RunsAlso -> "Jede také "
-                        TimeCodeType.RunsOnly -> "Jede pouze "
-                        TimeCodeType.DoesNotRun -> "Nejede "
-                    } + dates.joinToString()
-                },
-                fixedCodes = fixedCodes.takeUnless { timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
+                timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
+                fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
                 deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
             )
@@ -78,21 +63,8 @@ class BusViewModel(
             stops = bus.stops,
             lineNumber = bus.info.line,
             lowFloor = bus.info.lowFloor,
-            timeCodes = bus.timeCodes.remove {
-                it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-            }.groupBy({ it.type }, {
-                if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-            }).let {
-                if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
-            }.map { (type, dates) ->
-                when (type) {
-                    TimeCodeType.Runs -> "Jede "
-                    TimeCodeType.RunsAlso -> "Jede také "
-                    TimeCodeType.RunsOnly -> "Jede pouze "
-                    TimeCodeType.DoesNotRun -> "Nejede "
-                } + dates.joinToString()
-            },
-            fixedCodes = makeFixedCodesReadable(bus.fixedCodes).takeUnless { bus.timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
+            timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
+            fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
             lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
             restriction = restriction,

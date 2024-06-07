@@ -4,13 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
+import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.makeFixedCodesReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +24,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.collections.filterNot as remove
 
 @KoinViewModel
 class SequenceViewModel(
@@ -38,45 +35,33 @@ class SequenceViewModel(
     val date = repo.date
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
-        val (sequence, before, buses, after, timeCodes, fixedCodes) = (
-            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
-        )
+        val sequence = repo.sequence(originalSequence, date)
+            ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
 
-        val runningBus = buses.find { (_, stops) ->
+        val runningBus = sequence.buses.find { (_, stops) ->
             stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
         }
 
         SequenceState.Offline(
-            sequence = sequence,
-            sequenceName = repo.seqName(sequence),
-            timeCodes = timeCodes.remove {
-                it.type == TimeCodeType.DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-            }.groupBy({ it.type }, {
-                if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-            }).let {
-                if (it.containsKey(TimeCodeType.RunsOnly)) mapOf(TimeCodeType.RunsOnly to it[TimeCodeType.RunsOnly]!!) else it
-            }.map { (type, dates) ->
-                when (type) {
-                    TimeCodeType.Runs -> "Jede "
-                    TimeCodeType.RunsAlso -> "Jede také "
-                    TimeCodeType.RunsOnly -> "Jede pouze "
-                    TimeCodeType.DoesNotRun -> "Nejede "
-                } + dates.joinToString()
-            },
-            fixedCodes = makeFixedCodesReadable(fixedCodes).takeUnless { timeCodes.any { it.type == TimeCodeType.RunsOnly } }.orEmpty(),
-            before = before.map { it to repo.seqConnection(it) },
-            after = after.map { it to repo.seqConnection(it) },
-            buses = buses.map { (bus, stops) ->
+            sequence = sequence.name,
+            sequenceName = repo.seqName(sequence.name),
+            timeCodes = filterTimeCodesAndMakeReadable(sequence.commonTimeCodes),
+            fixedCodes = filterFixedCodesAndMakeReadable(sequence.commonFixedCodes, sequence.commonTimeCodes),
+            before = sequence.before.map { it to repo.seqConnection(it) },
+            after = sequence.after.map { it to repo.seqConnection(it) },
+            buses = sequence.buses.map { bus ->
                 BusInSequence(
-                    busName = bus.connName,
-                    stops = stops,
-                    lineNumber = bus.line,
-                    lowFloor = bus.lowFloor,
+                    busName = bus.info.connName,
+                    stops = bus.stops,
+                    lineNumber = bus.info.line,
+                    lowFloor = bus.info.lowFloor,
                     isRunning = false,
-                    shouldBeRunning = runningBus?.info?.connName == bus.connName && date == LocalDate.now(),
+                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == LocalDate.now(),
+                    timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
+                    fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
                 )
             },
-            runsToday = repo.runsAt(timeCodes = timeCodes, fixedCodes = fixedCodes, date = LocalDate.now()),
+            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = LocalDate.now()),
             height = 0F,
             traveledSegments = 0,
         )

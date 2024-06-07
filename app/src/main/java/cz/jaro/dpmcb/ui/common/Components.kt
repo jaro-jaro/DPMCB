@@ -931,7 +931,7 @@ fun TimetableText(
 
 @Composable
 fun FABs(state: SequenceState.OK, lazyListState: LazyListState, date: LocalDate) {
-    fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 3
+    fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 4
 
     val now = remember(state.buses) {
         if (date != LocalDate.now()) null
