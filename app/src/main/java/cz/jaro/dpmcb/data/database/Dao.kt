@@ -20,7 +20,7 @@ import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.other.TimeStopOf02
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
-import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
+import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import java.time.LocalDate
 
 @Dao
@@ -111,11 +111,17 @@ interface Dao {
             JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
             JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.connNumber = conn.connNumber AND timecodescountofconn.tab = conn.tab
             WHERE ((
-                timecode.runs2 
+                timecode.type = "RunsOnly"
                 AND timecode.validFrom <= :date
                 AND :date <= timecode.validTo
             ) OR (
-                NOT timecode.runs2
+                timecode.type = "RunsAlso"
+            ) OR (
+                timecode.type = "Runs"
+                AND timecode.validFrom <= :date
+                AND :date <= timecode.validTo
+            ) OR (
+                timecode.type = "DoesNotRun"
                 AND NOT (
                     timecode.validFrom <= :date
                     AND :date <= timecode.validTo
@@ -187,16 +193,16 @@ interface Dao {
                 ELSE connstop.stopIndexOnLine
             END)
         )
-        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%{%') lowFloor, conn.name connName, conn.fixedCodes, endStopIndexOnThisLine.name destination FROM TodayRunningConns conn
+        SELECT DISTINCT connstop.departure, (conn.fixedCodes LIKE '%{%') lowFloor, conn.name connName, conn.fixedCodes, endStopIndexOnThisLine.name destination, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM TodayRunningConns conn
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = connstop.connNumber
         JOIN connstop ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
         CROSS JOIN thisStopIndex tahleZastavka ON connstop.stopIndexOnLine = tahleZastavka.stopIndexOnLine
         LEFT JOIN positive ON positive.connNumber = conn.connNumber AND positive.indexOnThisLine = connstop.stopIndexOnLine
         LEFT JOIN negative ON negative.connNumber = conn.connNumber AND negative.indexOnThisLine = connstop.stopIndexOnLine
+        JOIN timecode ON timecode.connNumber = conn.connNumber AND timecode.tab = conn.tab
         WHERE (conn.direction = :positive AND positive.stopName = :nextStop)
         OR (conn.direction <> :positive AND negative.stopName = :nextStop)
         AND NOT connstop.departure IS null
-        GROUP BY conn.connNumber
     """
     )
     suspend fun connStopsOnLineWithNextStopAtDate(
@@ -205,7 +211,7 @@ interface Dao {
         date: LocalDate,
         tab: String,
         positive: Direction = Direction.POSITIVE,
-    ): List<BusInTimetable>
+    ): List<CoreBusInTimetable>
 
     @Query(
         """
@@ -428,11 +434,17 @@ interface Dao {
             SELECT DISTINCT timecode.sequence FROM TimeCodesOfSeq timecode
             JOIN TimeCodesCountOfSeq ON TimeCodesCountOfSeq.sequence = timecode.sequence
             AND ((
-                timecode.runs2 
+                timecode.type = "RunsOnly"
                 AND timecode.validFrom <= :date
                 AND :date <= timecode.validTo
             ) OR (
-                NOT timecode.runs2
+                timecode.type = "RunsAlso"
+            ) OR (
+                timecode.type = "Runs"
+                AND timecode.validFrom <= :date
+                AND :date <= timecode.validTo
+            ) OR (
+                timecode.type = "DoesNotRun"
                 AND NOT (
                     timecode.validFrom <= :date
                     AND :date <= timecode.validTo
@@ -483,9 +495,10 @@ interface Dao {
                  ELSE connstop.departure
              END)
         )
-        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end` FROM conn
+        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end`, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, conn.name connName FROM conn
         JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
         JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
+        JOIN timecode ON timecode.connNumber = conn.connNumber AND timecode.tab = conn.tab
         WHERE conn.sequence IN TodayRunningSequences
         AND conn.tab IN (:tabs)
     """ // DISTINCT zde není schválně - chceme pevné kódy pro každý spoj zvlášť, abychom poté získali společné pevné kódy
@@ -493,7 +506,7 @@ interface Dao {
     suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
         tabs: List<String>
-    ): Map<TimeOfSequence, List<@MapColumn("fixedCodes")String>>
+    ): Map<TimeOfSequence, Map<@MapColumn("connName") String, List<CodesOfBus>>>
 
 //    SELECT group_ID
 //    FROM tableName

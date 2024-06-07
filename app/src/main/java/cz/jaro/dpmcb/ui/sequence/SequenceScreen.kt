@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.sequence
 import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -196,6 +197,18 @@ fun SequenceScreen(
                                 traveledSegments = state.traveledSegments,
                                 isOnline = state is SequenceState.Online
                             )
+                        }
+                    }
+                    item {
+                        Column(
+                            Modifier.fillMaxWidth(1F).padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                        ) {
+                            bus.fixedCodes.forEach {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            bus.timeCodes.forEach {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     item {

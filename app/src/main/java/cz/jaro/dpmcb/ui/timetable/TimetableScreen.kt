@@ -203,7 +203,7 @@ fun ColumnScope.DepartureRow(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal
             )
-        result.sortedBy { it.departure }.forEach { (time, lowFloor, busName, destination) ->
+        result.forEach { (time, lowFloor, busName, destination) ->
             var showDropDown by rememberSaveable { mutableStateOf(false) }
             DropdownMenu(
                 expanded = showDropDown,

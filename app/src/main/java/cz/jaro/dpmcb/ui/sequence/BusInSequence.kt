@@ -9,4 +9,6 @@ data class BusInSequence(
     val lowFloor: Boolean,
     val isRunning: Boolean,
     val shouldBeRunning: Boolean,
+    val timeCodes: List<String>,
+    val fixedCodes: List<String>,
 )
