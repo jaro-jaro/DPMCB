@@ -50,13 +50,18 @@ class SequenceViewModel(
             before = sequence.before.map { it to repo.seqConnection(it) },
             after = sequence.after.map { it to repo.seqConnection(it) },
             buses = sequence.buses.map { bus ->
+                val runsToday = repo.runsAt(
+                    timeCodes = sequence.commonTimeCodes + bus.uniqueTimeCodes,
+                    fixedCodes = sequence.commonFixedCodes + bus.uniqueFixedCodes,
+                    date = LocalDate.now()
+                )
                 BusInSequence(
                     busName = bus.info.connName,
                     stops = bus.stops,
                     lineNumber = bus.info.line,
                     lowFloor = bus.info.lowFloor,
                     isRunning = false,
-                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == LocalDate.now(),
+                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == LocalDate.now() && runsToday,
                     timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
                     fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
                 )
