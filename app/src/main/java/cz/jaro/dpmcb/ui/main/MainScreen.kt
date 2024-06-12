@@ -5,8 +5,13 @@ import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.net.Uri
-import android.os.BaseBundle
 import android.widget.Toast
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -227,6 +232,30 @@ fun Main(
         NavHost(
             navController = navController,
             startDestination = Route.Favourites,
+            popEnterTransition = {
+                scaleIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                    initialScale = 1.1F,
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                )
+            },
+            popExitTransition = {
+                scaleOut(
+                    targetScale = 0.9F,
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 35,
+                        easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+                    ),
+                )
+            },
         ) {
             route<Route.Favourites> { Favourites(args = it, navController = navController) }
             route<Route.Chooser> { Chooser(args = it, navController = navController) }

@@ -63,5 +63,6 @@ private val NavBackStackEntry.route
 internal fun NavDestination.typeMap() = arguments.mapValues { it.value.type }
 
 inline fun <reified T : Route> T.generateRouteWithArgs(thisDestination: NavDestination) = generateRouteWithArgs(
+    this,
     thisDestination.typeMap()
 )
