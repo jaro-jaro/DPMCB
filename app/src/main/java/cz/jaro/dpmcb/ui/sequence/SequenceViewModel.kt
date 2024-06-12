@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
+import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.makeFixedCodesReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,39 +32,41 @@ class SequenceViewModel(
     @InjectedParam private val originalSequence: String,
 ) : ViewModel() {
 
-    private val info: Flow<SequenceState> = repo.date.map { date ->
-        val (sequence, before, buses, after, timeCodes, fixedCodes) = (
-            repo.sequence(originalSequence, date) ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
-        )
+    val date = repo.date
 
-        val runningBus = buses.find { (_, stops) ->
+    private val info: Flow<SequenceState> = repo.date.map { date ->
+        val sequence = repo.sequence(originalSequence, date)
+            ?: return@map SequenceState.DoesNotExist(originalSequence, repo.seqName(originalSequence), date.toCzechLocative())
+
+        val runningBus = sequence.buses.find { (_, stops) ->
             stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
         }
 
         SequenceState.Offline(
-            sequence = sequence,
-            sequenceName = repo.seqName(sequence),
-            timeCodes = timeCodes.filterNot {
-                !it.runs && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-            }.groupBy({ it.runs }, {
-                if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-            }).map { (runs, dates) ->
-                (if (runs) "Jede " else "Nejede ") + dates.joinToString()
-            },
-            fixedCodes = makeFixedCodesReadable(fixedCodes),
-            before = before.map { it to repo.seqConnection(it) },
-            after = after.map { it to repo.seqConnection(it) },
-            buses = buses.map { (bus, stops) ->
+            sequence = sequence.name,
+            sequenceName = repo.seqName(sequence.name),
+            timeCodes = filterTimeCodesAndMakeReadable(sequence.commonTimeCodes),
+            fixedCodes = filterFixedCodesAndMakeReadable(sequence.commonFixedCodes, sequence.commonTimeCodes),
+            before = sequence.before.map { it to repo.seqConnection(it) },
+            after = sequence.after.map { it to repo.seqConnection(it) },
+            buses = sequence.buses.map { bus ->
+                val runsToday = repo.runsAt(
+                    timeCodes = sequence.commonTimeCodes + bus.uniqueTimeCodes,
+                    fixedCodes = sequence.commonFixedCodes + bus.uniqueFixedCodes,
+                    date = LocalDate.now()
+                )
                 BusInSequence(
-                    busId = bus.connId,
-                    stops = stops,
-                    lineNumber = bus.line,
-                    lowFloor = bus.lowFloor,
+                    busName = bus.info.connName,
+                    stops = bus.stops,
+                    lineNumber = bus.info.line,
+                    lowFloor = bus.info.lowFloor,
                     isRunning = false,
-                    shouldBeRunning = runningBus?.info?.connId == bus.connId && date == LocalDate.now(),
+                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == LocalDate.now() && runsToday,
+                    timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
+                    fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
                 )
             },
-            runsToday = repo.runsAt(timeCodes = timeCodes, fixedCodes = fixedCodes, date = LocalDate.now()),
+            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = LocalDate.now()),
             height = 0F,
             traveledSegments = 0,
         )
@@ -74,7 +75,7 @@ class SequenceViewModel(
     private val nowRunningOnlineConn = combine(info, onlineRepo.nowRunningBuses(), repo.date) { info, onlineConns, date ->
         if (date != LocalDate.now()) return@combine null
         if (info !is SequenceState.OK) return@combine null
-        val onlineConn = onlineConns.find { onlineConn -> onlineConn.id in info.buses.map { it.busId } }
+        val onlineConn = onlineConns.find { onlineConn -> onlineConn.name in info.buses.map { it.busName } }
         if (onlineConn?.delayMin == null) return@combine null
         return@combine onlineConn
     }
@@ -85,7 +86,7 @@ class SequenceViewModel(
 
         if (info !is SequenceState.OK) return@combine null
 
-        val runningBus = onlineConn?.let { info.buses.find { it.busId == onlineConn.id } }
+        val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
                 stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
             }
@@ -106,7 +107,7 @@ class SequenceViewModel(
 
         if (traveledSegments == null) return@combine 0F
 
-        val runningBus = onlineConn?.let { info.buses.find { it.busId == onlineConn.id } }
+        val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
                 stops.first().time <= LocalTime.now() && LocalTime.now() <= stops.last().time
             }
@@ -142,7 +143,7 @@ class SequenceViewModel(
         ).copy(
             buses = newInfo.buses.map {
                 it.copy(
-                    isRunning = it.busId == onlineConn.id
+                    isRunning = it.busName == onlineConn.name
                 )
             },
         )

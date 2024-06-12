@@ -21,18 +21,22 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 var callback = { _: Uri? -> }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
-@Destination
-fun Card() {
+fun Card(
+    args: Route.Card,
+    navController: NavHostController,
+) {
     App.title = R.string.empty
     App.selected = DrawerAction.TransportCard
 

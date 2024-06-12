@@ -5,8 +5,8 @@ import android.util.Log
 import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.gitlab.mvysny.konsumexml.textRecursively
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
@@ -108,7 +108,7 @@ class OnlineRepository(
         "referer" to "https://jih.mpvnet.cz/jikord/map",
     )
 
-    private fun busDetail(busId: String) = connDeatilFlowMap.getOrPut(busId) {
+    private fun busDetail(busName: String) = connDeatilFlowMap.getOrPut(busName) {
         flow {
             while (currentCoroutineContext().isActive) {
                 emit(
@@ -120,7 +120,7 @@ class OnlineRepository(
                                 headers = headers,
                                 body = RequestBody.create(
                                     MediaType.parse("application/json; charset=utf-8"),
-                                    """{"num1":"${busId.split("-")[1]}","num2":"${busId.split("-")[2]}","cat":"2"}"""
+                                    """{"num1":"${busName.split("/")[0]}","num2":"${busName.split("/")[1]}","cat":"2"}"""
                                 ),
                             )
                         } catch (e: Exception) {
@@ -184,12 +184,12 @@ class OnlineRepository(
             )
     }
 
-    fun busById(id: String) =
-        busOnMapById(id).combine(busDetail(id)) { onlineConn, connDetail ->
+    fun busByName(name: String) =
+        busOnMapByName(name).combine(busDetail(name)) { onlineConn, connDetail ->
             onlineConn to connDetail
         }
 
-    fun busOnMapById(id: String) = nowRunningBuses().map { it.busOnMapById(id) }
+    fun busOnMapByName(name: String) = nowRunningBuses().map { it.busOnMapByName(name) }
 }
 
-fun List<OnlineConn>.busOnMapById(id: String) = find { it.id == id }
+fun List<OnlineConn>.busOnMapByName(name: String) = find { it.name == name }

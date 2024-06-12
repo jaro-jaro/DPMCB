@@ -7,7 +7,7 @@ sealed interface SequenceState {
     data class DoesNotExist(
         val sequence: String,
         val sequenceName: String,
-        val date: String
+        val date: String,
     ) : SequenceState
 
     sealed interface OK : SequenceState {
@@ -60,7 +60,8 @@ sealed interface SequenceState {
             confirmedLowFloor: Boolean?,
         ) = with(state) {
             Online(
-                sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, delayMin, vehicle, confirmedLowFloor
+                sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments,
+                delayMin, vehicle, confirmedLowFloor
             )
         }
     }

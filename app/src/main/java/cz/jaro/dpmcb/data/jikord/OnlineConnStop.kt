@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.jikord
 
 import com.gitlab.mvysny.konsumexml.Konsumer
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.crashlytics
+import com.google.firebase.Firebase
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTime
 import java.time.LocalTime
 

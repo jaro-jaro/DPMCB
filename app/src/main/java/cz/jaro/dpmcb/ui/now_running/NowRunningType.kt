@@ -1,11 +1,16 @@
 package cz.jaro.dpmcb.ui.now_running
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class NowRunningType {
     Line {
         override val label get() = "linky"
-    }, Delay {
+    },
+    Delay {
         override val label get() = "zpoždění"
-    }, RegN {
+    },
+    RegN {
         override val label get() = "čísla vozu"
     };
 

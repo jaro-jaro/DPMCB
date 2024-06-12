@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.bus
 
-import cz.jaro.dpmcb.data.helperclasses.PartOfConn
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import java.time.LocalDate
 
 sealed interface BusEvent {

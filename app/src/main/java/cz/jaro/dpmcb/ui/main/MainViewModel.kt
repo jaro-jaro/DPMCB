@@ -7,18 +7,21 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
@@ -72,18 +75,18 @@ class MainViewModel(
     private fun String.translateOldCzechLinks() = this
         .replace("prave_jedouci", "now_running")
         .replace("filtry", "filters")
-        .replace("typ", "type")
+        .replace("typ[^e]".toRegex(), "type")
         .replace("odjezdy", "departures")
         .replace("zastavka", "stop")
         .replace("cas", "time")
         .replace("linka", "line")
         .replace("pres", "via")
         .replace("spoj", "bus")
-        .replace("spojId", "busId")
+        .replace("spojId", "busName")
         .replace("spojeni", "connection")
         .replace("kurz", "sequence")
         .replace("vybirator", "chooser")
-        .replace("typ", "type")
+        .replace("typ[^e]".toRegex(), "type")
         .replace("cisloLinky", "lineNumber")
         .replace("zastavka", "stop")
         .replace("jizdni_rady", "timetable")
@@ -93,6 +96,17 @@ class MainViewModel(
         .replace("prukazka", "card")
         .replace("oblibene", "favourites")
 
+    private fun String.transformBusIds() = this
+        .replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")
+
+    private fun String.addInvalidDepartureTime(): String {
+        if ("departures" !in this) return this
+        if ("time=null" in this) return replace("time=null", "time=99:99")
+        if ("time=" in this) return this
+        if ("?" in this) return plus("&time=99:99")
+        return plus("?time=99:99")
+    }
+
     init {
         link?.let {
             viewModelScope.launch(Dispatchers.IO) {
@@ -101,10 +115,12 @@ class MainViewModel(
                 try {
                     withContext(Dispatchers.Main) {
                         App.selected = null
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks())
+                        navController.graphOrNull?.nodes
+                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                         closeDrawer()
                     }
-                } catch (_: IllegalArgumentException) {
+                } catch (e: IllegalArgumentException) {
+                    e.printStackTrace()
                     withContext(Dispatchers.Main) {
                         logError("Vadná zkratka $url")
                     }
@@ -157,15 +173,21 @@ class MainViewModel(
         viewModelScope.launch {
             callback(onlineRepository.nowRunningBuses().first().find {
                 it.vehicle == evc.toIntOrNull()
-            }?.id)
+            }?.name)
         }
         Unit
     }
 
-    val findSequences = { kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
+    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
         viewModelScope.launch {
             callback(repo.findSequences(kurz))
         }
         Unit
     }
+}
+
+suspend inline fun <T, R> Iterable<T>.asyncMap(crossinline transform: suspend (T) -> R): List<R> = supervisorScope {
+    map {
+        async { transform(it) }
+    }.awaitAll()
 }

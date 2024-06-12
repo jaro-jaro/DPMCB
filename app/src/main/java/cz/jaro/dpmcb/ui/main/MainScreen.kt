@@ -2,18 +2,21 @@ package cz.jaro.dpmcb.ui.main
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
@@ -31,20 +34,18 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -61,25 +62,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.ktx.logEvent
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.analytics
+import com.google.firebase.analytics.logEvent
+import com.google.firebase.database.database
 import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
-import com.ramcosta.composedestinations.DestinationsNavHost
-import com.ramcosta.composedestinations.spec.DestinationSpec
-import com.ramcosta.composedestinations.utils.destination
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
@@ -89,11 +84,25 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.ui.NavGraphs
-import cz.jaro.dpmcb.ui.appCurrentDestinationFlow
-import cz.jaro.dpmcb.ui.chooser.autoFocus
-import cz.jaro.dpmcb.ui.destinations.BusDestination
-import cz.jaro.dpmcb.ui.destinations.SequenceDestination
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
+import cz.jaro.dpmcb.ui.bus.Bus
+import cz.jaro.dpmcb.ui.card.Card
+import cz.jaro.dpmcb.ui.chooser.Chooser
+import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.common.SimpleTime
+import cz.jaro.dpmcb.ui.common.enumTypePair
+import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.route
+import cz.jaro.dpmcb.ui.common.serializationTypePair
+import cz.jaro.dpmcb.ui.common.typePair
+import cz.jaro.dpmcb.ui.departures.Departures
+import cz.jaro.dpmcb.ui.favourites.Favourites
+import cz.jaro.dpmcb.ui.map.Map
+import cz.jaro.dpmcb.ui.now_running.NowRunning
+import cz.jaro.dpmcb.ui.now_running.NowRunningType
+import cz.jaro.dpmcb.ui.sequence.Sequence
+import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,6 +110,32 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 import kotlin.reflect.KClass
+
+inline fun <reified T : Route> typeMap() = when (T::class) {
+    Route.Chooser::class -> mapOf(
+        enumTypePair<ChooserType>(),
+    )
+
+    Route.Departures::class -> mapOf(
+        typePair<SimpleTime>(
+            parseValue = { time ->
+                time.split(":").map(String::toInt).let { SimpleTime(h = it.work()[0], min = it[1]) }.work()
+            },
+            serializeAsValue = {
+                "${it.h}:${it.min}"
+            }
+        ),
+        serializationTypePair<Int?>(),
+        serializationTypePair<Boolean?>(),
+    )
+
+    Route.NowRunning::class -> mapOf(
+        enumTypePair<NowRunningType>(),
+        serializationTypePair<List<Int>>(),
+    )
+
+    else -> emptyMap()
+}
 
 @Composable
 fun Main(
@@ -113,11 +148,13 @@ fun Main(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
-        val destinationFlow = navController.appCurrentDestinationFlow
+        navController.enableOnBackPressed(true)
+        val destinationFlow = navController.currentBackStackEntryFlow
 
-        destinationFlow.collect { destination ->
+        destinationFlow.collect { entry ->
             Firebase.analytics.logEvent("navigation") {
-                param("route", destination.route)
+                param("route", entry.generateRouteWithArgs() ?: "")
+                param("destination", entry.destination.route?.split("/", "?", limit = 2)?.first() ?: "")
             }
         }
     }
@@ -157,10 +194,8 @@ fun Main(
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
-                @Suppress("UNCHECKED_CAST")
-                val dest = entry.destination() as DestinationSpec<Any>
-
-                App.route = dest(dest.argsFrom(entry)).route
+                if (entry.destination.route == null) return@collect
+                App.route = entry.generateRouteWithArgs() ?: ""
             }
         }
     }
@@ -185,20 +220,6 @@ fun Main(
         editOnlineMode = viewModel.editOnlineMode,
         date = date,
         changeDate = viewModel.changeDate,
-//        tuDuDum = {
-//            MediaPlayer.create(ctx, R.raw.koncime).apply {
-//                setOnCompletionListener {
-//                    ExitActivity.exitApplication(ctx)
-//                    closeDrawer()
-//                }
-//                start()
-//            }
-//            ctx.getSystemService(AudioManager::class.java).apply {
-//                repeat(20) {
-//                    adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
-//                }
-//            }
-//        },
         isAppUpdateNeeded = isAppUpdateNeeded,
         updateApp = viewModel.updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
@@ -208,10 +229,44 @@ fun Main(
         findBusByEvn = viewModel.findBusByEvn,
         findSequences = viewModel.findSequences,
     ) {
-        DestinationsNavHost(
+        NavHost(
             navController = navController,
-            navGraph = NavGraphs.root
-        )
+            startDestination = Route.Favourites,
+            popEnterTransition = {
+                scaleIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                    initialScale = 1.1F,
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                )
+            },
+            popExitTransition = {
+                scaleOut(
+                    targetScale = 0.9F,
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 35,
+                        easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+                    ),
+                )
+            },
+        ) {
+            route<Route.Favourites> { Favourites(args = it, navController = navController) }
+            route<Route.Chooser> { Chooser(args = it, navController = navController) }
+            route<Route.Departures> { Departures(args = it, navController = navController) }
+            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
+            route<Route.Timetable> { Timetable(args = it, navController = navController) }
+            route<Route.Bus> { Bus(args = it, navController = navController) }
+            route<Route.Sequence> { Sequence(args = it, navController = navController) }
+            route<Route.Card> { Card(args = it, navController = navController) }
+            route<Route.Map> { Map(args = it, navController = navController) }
+        }
     }
 }
 
@@ -282,7 +337,6 @@ fun MainScreen(
 
                     var open by remember { mutableStateOf(false) }
                     var show by remember { mutableStateOf(false) }
-                    var route by remember { mutableStateOf("") }
                     var label by remember { mutableStateOf("") }
 
                     val ctx = LocalContext.current
@@ -314,9 +368,9 @@ fun MainScreen(
                             },
                         )
 
-                        if (App.selected == DrawerAction.FindBus) DropdownMenuItem(
+                        DropdownMenuItem(
                             text = {
-                                Text("Sdílet spoj")
+                                Text("Sdílet")
                             },
                             onClick = {
                                 val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
@@ -324,7 +378,7 @@ fun MainScreen(
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, deeplink)
                                     type = "text/uri-list"
-                                }, "Sdílet spoj"))
+                                }, "Sdílet"))
                                 open = false
                             },
                             leadingIcon = {
@@ -337,7 +391,6 @@ fun MainScreen(
                                 Text("Připnout zkratku na domovskou obrazovku")
                             },
                             onClick = {
-                                route = App.route
                                 label = res.getString(App.title)
                                 open = false
                                 show = true
@@ -362,18 +415,16 @@ fun MainScreen(
                             TextButton(onClick = {
                                 if (shortcutManager.isRequestPinShortcutSupported) {
 
-                                    val baseRoute = route.split("/")[0]
-
-                                    val pinShortcutInfo = android.content.pm.ShortcutInfo
-                                        .Builder(ctx, "shortcut-$baseRoute-$label")
+                                    val pinShortcutInfo = ShortcutInfo
+                                        .Builder(ctx, "${App.route}-$label")
                                         .setShortLabel(label)
                                         .setLongLabel(label)
                                         .setIcon(
                                             android.graphics.drawable.Icon.createWithResource(
-                                                ctx, if (BuildConfig.DEBUG) R.mipmap.logo_chytra_cesta else R.mipmap.logo_chytra_cesta
+                                                ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/$route")))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/${App.route}")))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
@@ -391,36 +442,18 @@ fun MainScreen(
                             }
                         },
                         text = {
-                            val focusManager = LocalFocusManager.current
-                            Column {
-                                TextField(
-                                    value = route,
-                                    onValueChange = {
-                                        route = it
-                                    },
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                    label = {
-                                        Text("Route")
-                                    },
-                                    keyboardActions = KeyboardActions {
-                                        focusManager.moveFocus(FocusDirection.Down)
-                                    },
-                                )
-                                TextField(
-                                    value = label,
-                                    onValueChange = {
-                                        label = it
-                                    },
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                    label = {
-                                        Text("Label")
-                                    },
-                                )
-                            }
+                            OutlinedTextField(
+                                value = label,
+                                onValueChange = {
+                                    label = it
+                                },
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                label = {
+                                    Text("Titulek")
+                                },
+                            )
                         }
                     )
                 },
@@ -437,7 +470,7 @@ fun MainScreen(
                 .padding(paddingValues)
         ) {
             if (isDataUpdateNeeded) {
-                var showDialog by remember { mutableStateOf(true) }
+                var showDialog by rememberSaveable { mutableStateOf(true) }
 
                 if (showDialog) AlertDialog(
                     onDismissRequest = {
@@ -471,7 +504,7 @@ fun MainScreen(
                 )
             }
             if (isAppUpdateNeeded) {
-                var showDialog by remember { mutableStateOf(true) }
+                var showDialog by rememberSaveable { mutableStateOf(true) }
 
                 if (showDialog) AlertDialog(
                     onDismissRequest = {
@@ -508,7 +541,7 @@ fun MainScreen(
                 drawerContent = {
                     ModalDrawerSheet {
                         DrawerAction.entries.forEach { action ->
-                            VecZeSupliku(
+                            DrawerItem(
                                 action = action,
                                 navigate = navigate,
                                 startIntent = startIntent,
@@ -532,11 +565,9 @@ fun MainScreen(
     }
 }
 
-private fun Int.two() = plus(100).toString().takeLast(2)
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VecZeSupliku(
+fun DrawerItem(
     action: DrawerAction,
     navigate: NavigateFunction,
     startIntent: (Intent) -> Unit,
@@ -544,432 +575,44 @@ fun VecZeSupliku(
     showToast: (String, Int) -> Unit,
     date: State<LocalDate>,
     changeDate: (LocalDate) -> Unit,
-//    tuDuDum: () -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
     findBusByEvn: (String, (String?) -> Unit) -> Unit,
     findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
 ) = when (action) {
-    DrawerAction.Feedback -> {
-        var rating by rememberSaveable { mutableIntStateOf(-1) }
-        var showDialog by rememberSaveable { mutableStateOf(false) }
+    DrawerAction.Feedback -> Feedback(startIntent, action, isOnline, showToast)
 
-        if (showDialog) AlertDialog(
-            onDismissRequest = {
-                showDialog = false
-            },
-            title = {
-                Text("Ohodnotit aplikaci")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-                    val ref = database.getReference("hodnoceni")
-                    ref.push().setValue("${rating + 1}/5")
-                    rating = -1
-                    showDialog = false
-                }) {
-                    Text("Odeslat")
-                }
-            },
-            text = {
-                Column {
-                    Row {
-                        repeat(5) { i ->
-                            IconButton(onClick = {
-                                rating = if (rating == i) -1 else i
-                            }, Modifier.weight(1F)) {
-                                if (rating >= i)
-                                    Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
-                                else
-                                    Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
-                            }
-                        }
-                    }
-                    Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
-                    TextButton(onClick = {
-                        startIntent(Intent().apply {
-                            this.action = Intent.ACTION_VIEW
-                            data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
-                        })
-                    }) {
-                        Text(text = "Přejít na GitHub")
-                    }
-                }
-            }
-        )
-        NavigationDrawerItem(
-            label = {
-                Text(stringResource(action.label))
-            },
-            icon = {
-                IconWithTooltip(action.icon, stringResource(action.label))
-            },
-            selected = false,
-            onClick = {
-                if (isOnline.value)
-                    showDialog = true
-                else
-                    showToast("Jste offline!", Toast.LENGTH_SHORT)
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-    }
+    DrawerAction.FindBus -> FindBus(navigate, closeDrawer, findSequences, isOnline, showToast, findBusByEvn, action)
 
-    DrawerAction.FindBus -> {
-        var showDialog by rememberSaveable { mutableStateOf(false) }
-        var isNotFound by rememberSaveable { mutableStateOf(false) }
-        var options by rememberSaveable { mutableStateOf(null as List<Pair<String, String>>?) }
-        var id by rememberSaveable { mutableStateOf("") }
-        var sequence by rememberSaveable { mutableStateOf("") }
-        var name by rememberSaveable { mutableStateOf("") }
-        var evn by rememberSaveable { mutableStateOf("") }
-        var line by rememberSaveable { mutableStateOf("") }
-        var number by rememberSaveable { mutableStateOf("") }
+    DrawerAction.Date -> ChangeDate(date, changeDate)
 
-        fun confirm(busId: String) {
-            navigate(
-                BusDestination(
-                    busId = busId
-                )
+    else -> if (action == DrawerAction.NowRunning && date.value != LocalDate.now()) Unit
+    else NavigationDrawerItem(
+        label = {
+            Text(stringResource(action.label))
+        },
+        icon = {
+            IconWithTooltip(action.icon, stringResource(action.label))
+        },
+        selected = App.selected == action,
+        onClick = {
+            if (action.multiselect)
+                App.selected = action
+
+            action.onClick(
+                navigate,
+                { closeDrawer() },
+                { startActivity(it) },
             )
-            showDialog = false
-            closeDrawer()
-            id = ""
-            sequence = ""
-            name = ""
-            evn = ""
-            line = ""
-            number = ""
-        }
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
+}
 
-        fun confirmSeq(seqId: String) {
-            navigate(
-                SequenceDestination(
-                    sequence = seqId
-                )
-            )
-            showDialog = false
-            closeDrawer()
-            id = ""
-            sequence = ""
-            options = null
-            name = ""
-            evn = ""
-            line = ""
-            number = ""
-        }
-
-        fun findSequence(searched: String) = findSequences(searched) {
-            if (it.isEmpty()) isNotFound = true
-            else if (it.size == 1) confirmSeq(it[0].first)
-            else options = it
-        }
-
-        if (showDialog) AlertDialog(
-            onDismissRequest = {
-                showDialog = false
-                id = ""
-                sequence = ""
-                name = ""
-                evn = ""
-                line = ""
-                number = ""
-            },
-            title = {
-                Text(stringResource(id = R.string.find_bus_by_id))
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (line.isNotEmpty() && number.isNotEmpty()) confirm(
-                        "S-325${
-                            when (line.length) {
-                                1 -> "00$line"
-                                2 -> "0$line"
-                                else -> line
-                            }
-                        }-$number"
-                    )
-                    else if (evn.isNotEmpty()) {
-                        if (!isOnline.value) {
-                            showToast("Jste offline", Toast.LENGTH_SHORT)
-                            showDialog = false
-                            return@TextButton
-                        }
-                        findBusByEvn(evn) {
-                            if (it == null) {
-                                showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
-                                showDialog = false
-                                return@findBusByEvn
-                            }
-                            confirm(it)
-                        }
-                    } else if (name.isNotEmpty()) confirm("S-${name.replace("/", "-")}")
-                    else if (sequence.isNotEmpty()) {
-                        findSequence(sequence)
-                    } else confirm(id)
-                }) {
-                    Text("Vyhledat")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showDialog = false
-                    id = ""
-                    sequence = ""
-                    name = ""
-                    line = ""
-                    number = ""
-                }) {
-                    Text("Zrušit")
-                }
-            },
-            text = {
-                val focusManager = LocalFocusManager.current
-                Column {
-                    Row {
-                        TextField(
-                            value = line,
-                            onValueChange = {
-                                line = it
-                            },
-                            Modifier
-                                .weight(1F)
-                                .padding(end = 8.dp)
-                                .autoFocus(),
-                            label = {
-                                Text("Linka")
-                            },
-                            keyboardActions = KeyboardActions {
-                                focusManager.moveFocus(FocusDirection.Right)
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next,
-                                keyboardType = KeyboardType.Number,
-                            ),
-                        )
-                        TextField(
-                            value = number,
-                            onValueChange = {
-                                number = it
-                            },
-                            Modifier.weight(1F),
-                            label = {
-                                Text("Č. spoje")
-                            },
-                            keyboardActions = KeyboardActions {
-                                if (line.isNotEmpty() && number.isNotEmpty())
-                                    confirm(
-                                        "S-325${
-                                            when (line.length) {
-                                                1 -> "00$line"
-                                                2 -> "0$line"
-                                                else -> line
-                                            }
-                                        }-$number"
-                                    )
-                                else
-                                    focusManager.moveFocus(FocusDirection.Down)
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = if (line.isNotEmpty() && number.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-                                keyboardType = KeyboardType.Number,
-                            ),
-                        )
-                    }
-                    TextField(
-                        value = evn,
-                        onValueChange = {
-                            evn = it
-                        },
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        label = {
-                            Text("Ev. č. vozu")
-                        },
-                        keyboardActions = KeyboardActions {
-                            if (evn.isNotEmpty()) {
-                                if (!isOnline.value) {
-                                    showToast("Jste offline", Toast.LENGTH_SHORT)
-                                    showDialog = false
-                                    return@KeyboardActions
-                                }
-                                findBusByEvn(evn) {
-                                    if (it == null) {
-                                        showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
-                                        showDialog = false
-                                        return@findBusByEvn
-                                    }
-                                    confirm(it)
-                                }
-                            } else
-                                focusManager.moveFocus(FocusDirection.Down)
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = if (evn.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-                            keyboardType = KeyboardType.Number,
-                        ),
-                    )
-                    TextField(
-                        value = name,
-                        onValueChange = {
-                            name = it
-                        },
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        label = {
-                            Text("Jméno spoje")
-                        },
-                        keyboardActions = KeyboardActions {
-                            if (name.isNotEmpty())
-                                confirm("S-${name.replace("/", "-")}")
-                            else
-                                focusManager.moveFocus(FocusDirection.Down)
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = if (name.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-                        ),
-                    )
-                    TextField(
-                        value = id,
-                        onValueChange = {
-                            id = it
-                        },
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        label = {
-                            Text("ID spoje")
-                        },
-                        keyboardActions = KeyboardActions {
-                            confirm(id)
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Search,
-                        ),
-                    )
-                    Text(
-                        text = "Najít kurz",
-                        Modifier.padding(bottom = 16.dp, top = 16.dp),
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    TextField(
-                        value = sequence,
-                        onValueChange = {
-                            sequence = it
-                        },
-                        Modifier
-                            .fillMaxWidth(),
-                        label = {
-                            Text("Linka nebo název kurzu")
-                        },
-                        keyboardActions = KeyboardActions {
-                            findSequence(sequence)
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Search,
-                        ),
-                    )
-                }
-            }
-        )
-
-        if (isNotFound) AlertDialog(
-            onDismissRequest = {
-                isNotFound = false
-            },
-            title = {
-                Text("Kurz nenalezen")
-            },
-            text = {
-                Text("Tento kurz ($sequence) bohužel neexistuje :(\nZkontrolujte, zda jste zadali správně ID.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        isNotFound = false
-                    }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-
-        if (options != null) AlertDialog(
-            onDismissRequest = {
-                options = null
-            },
-            title = {
-                Text("Nalezeno více kurzů")
-            },
-            text = {
-                Column(
-                    Modifier
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text("\"${sequence}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
-                    options!!.forEach {
-                        HorizontalDivider(Modifier.fillMaxWidth())
-                        ListItem(
-                            headlineContent = {
-                                TextButton(
-                                    onClick = {
-                                        confirmSeq(it.first)
-                                    }
-                                ) {
-                                    Text(it.second)
-                                }
-                            }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        options = null
-                    }
-                ) {
-                    Text("Zrušit")
-                }
-            }
-        )
-
-        NavigationDrawerItem(
-            label = {
-                Text(stringResource(action.label))
-            },
-            icon = {
-                IconWithTooltip(action.icon, stringResource(action.label))
-            },
-            selected = App.selected == action,
-            onClick = {
-                showDialog = true
-//                focusRequester.requestFocus()
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-    }
-
-//    DrawerAction.Exit -> {
-//        NavigationDrawerItem(
-//            label = {
-//                Text(stringResource(action.label))
-//            },
-//            icon = {
-//                IconWithTooltip(action.icon, stringResource(action.label))
-//            },
-//            selected = false,
-//            onClick = {
-//                tuDuDum()
-//            },
-//            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-//        )
-//    }
-
-    DrawerAction.Date -> Row(
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) {
+    Row(
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1016,9 +659,32 @@ fun VecZeSupliku(
             IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
         }
     }
+}
 
-    else -> if (action == DrawerAction.NowRunning && date.value != LocalDate.now()) Unit
-    else NavigationDrawerItem(
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun FindBus(
+    navigate: NavigateFunction,
+    closeDrawer: () -> Unit,
+    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
+    isOnline: State<Boolean>,
+    showToast: (String, Int) -> Unit,
+    findBusByEvn: (String, (String?) -> Unit) -> Unit,
+    action: DrawerAction,
+) {
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    FindBusDialog(
+        showDialog = showDialog,
+        onDismiss = { showDialog = false },
+        navigate = navigate,
+        closeDrawer = closeDrawer,
+        findSequences = findSequences,
+        isOnline = isOnline,
+        showToast = showToast,
+        findBusByEvn = findBusByEvn
+    )
+
+    NavigationDrawerItem(
         label = {
             Text(stringResource(action.label))
         },
@@ -1027,14 +693,80 @@ fun VecZeSupliku(
         },
         selected = App.selected == action,
         onClick = {
-            if (action.multiselect)
-                App.selected = action
+            showDialog = true
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
+}
 
-            action.onClick(
-                navigate,
-                { closeDrawer() },
-                { startActivity(it) },
-            )
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun Feedback(
+    startIntent: (Intent) -> Unit,
+    action: DrawerAction,
+    isOnline: State<Boolean>,
+    showToast: (String, Int) -> Unit,
+) {
+    var rating by rememberSaveable { mutableIntStateOf(-1) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showDialog) AlertDialog(
+        onDismissRequest = {
+            showDialog = false
+        },
+        title = {
+            Text("Ohodnotit aplikaci")
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                val ref = database.getReference("hodnoceni")
+                ref.push().setValue("${rating + 1}/5")
+                rating = -1
+                showDialog = false
+            }) {
+                Text("Odeslat")
+            }
+        },
+        text = {
+            Column {
+                Row {
+                    repeat(5) { i ->
+                        IconButton(onClick = {
+                            rating = if (rating == i) -1 else i
+                        }, Modifier.weight(1F)) {
+                            if (rating >= i)
+                                Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow)
+                            else
+                                Icon(imageVector = Icons.Outlined.StarOutline, contentDescription = null, tint = Color.Yellow)
+                        }
+                    }
+                }
+                Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
+                TextButton(onClick = {
+                    startIntent(Intent().apply {
+                        this.action = Intent.ACTION_VIEW
+                        data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
+                    })
+                }) {
+                    Text(text = "Přejít na GitHub")
+                }
+            }
+        }
+    )
+    NavigationDrawerItem(
+        label = {
+            Text(stringResource(action.label))
+        },
+        icon = {
+            IconWithTooltip(action.icon, stringResource(action.label))
+        },
+        selected = false,
+        onClick = {
+            if (isOnline.value)
+                showDialog = true
+            else
+                showToast("Jste offline!", Toast.LENGTH_SHORT)
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )

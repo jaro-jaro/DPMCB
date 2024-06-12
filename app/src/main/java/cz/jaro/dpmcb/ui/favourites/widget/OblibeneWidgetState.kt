@@ -5,16 +5,16 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface OblibeneWidgetState {
     @Serializable
-    object Error : OblibeneWidgetState
+    data object Error : OblibeneWidgetState
 
     @Serializable
-    object NacitaSe : OblibeneWidgetState
+    data object NacitaSe : OblibeneWidgetState
 
     @Serializable
-    object ZadneOblibene : OblibeneWidgetState
+    data object ZadneOblibene : OblibeneWidgetState
 
     @Serializable
-    object PraveNicNejede : OblibeneWidgetState
+    data object PraveNicNejede : OblibeneWidgetState
 
     @Serializable
     data class TedJede(

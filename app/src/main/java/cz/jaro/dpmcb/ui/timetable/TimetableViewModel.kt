@@ -29,13 +29,13 @@ class TimetableViewModel(
 
     val state = repo.date.map { datum ->
         TimetableState.Success(
-            repo.timetable(params.lineNumber, params.stop, params.nextStop, datum)
+            repo.timetable(params.lineNumber, params.stop, params.nextStop, datum).sortedBy { it.departure }
         )
     }.combine(onlineRepo.nowRunningBuses()) { tt, onlineConns ->
         tt.copy(
             data = tt.data.map { bus ->
                 bus.copy(
-                    delay = onlineConns.find { it.id == bus.connId }?.delayMin
+                    delay = onlineConns.find { it.name == bus.busName }?.delayMin
                 )
             }
         )
