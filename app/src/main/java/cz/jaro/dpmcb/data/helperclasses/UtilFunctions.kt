@@ -481,3 +481,5 @@ typealias MutateListLambda<T> = MutableList<T>.() -> Unit
 
 typealias MutateFunction<T> = (MutateLambda<T>) -> Unit
 typealias MutateLambda<T> = (T) -> T
+
+operator fun NavigateWithOptionsFunction.invoke(route: Route) = invoke(route, null)

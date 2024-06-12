@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -148,7 +149,7 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence!!), null)
+                navigate(Route.Sequence(state.sequence!!))
             }
             Unit
         }

@@ -48,10 +48,14 @@ class NowRunningViewModel(
 
     @SuppressLint("RestrictedApi")
     private fun changeCurrentRoute() {
-        App.route = Route.NowRunning(
-            filters = filters.value,
-            type = type.value,
-        ).generateRouteWithArgs(params.getNavDestination() ?: return)
+        try {
+            App.route = Route.NowRunning(
+                filters = filters.value,
+                type = type.value,
+            ).generateRouteWithArgs(params.getNavDestination() ?: return)
+        } catch (e: IllegalStateException) {
+            return
+        }
     }
 
     fun onEvent(e: NowRunningEvent) = when (e) {
