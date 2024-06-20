@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.common
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.Animatable
@@ -69,10 +70,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -84,6 +87,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
@@ -105,6 +109,7 @@ import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.sequence.BusInSequence
 import cz.jaro.dpmcb.ui.sequence.SequenceState
 import kotlinx.coroutines.launch
+import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.random.Random
@@ -729,6 +734,7 @@ context(ColumnScope)
 @OptIn(ExperimentalMaterial3Api::class)
 fun CodesAndShare(
     state: BusState.Exists,
+    graphicsLayer: GraphicsLayer?,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -805,14 +811,35 @@ fun CodesAndShare(
                     onClick = {},
                     trailingIcon = {
                         Row {
+                            val scope = rememberCoroutineScope()
                             IconButton(
                                 onClick = {
-                                    context.startActivity(Intent.createChooser(Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, state.deeplink)
-                                        type = "text/uri-list"
-                                    }, "Sdílet deeplink"))
-                                    showMenu = false
+                                    scope.launch {
+
+                                        context.startActivity(Intent.createChooser(Intent().apply {
+                                            action = Intent.ACTION_SEND
+
+                                            graphicsLayer?.toImageBitmap()?.let { bitmap ->
+                                                val d = context.filesDir
+                                                val f = File(d, "spoj_${state.busName.replace('/', '_')}.png")
+                                                f.createNewFile()
+
+                                                f.outputStream().use { os ->
+                                                    bitmap.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, os)
+                                                    os.flush()
+                                                }
+
+                                                val uri = FileProvider.getUriForFile(context, context.applicationContext.packageName + ".provider", f)
+
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                            }
+
+                                            putExtra(Intent.EXTRA_TEXT, state.deeplink)
+                                            type = "*/*"
+                                        }, "Sdílet spoj"))
+                                        showMenu = false
+                                    }
+
                                 }
                             ) {
                                 IconWithTooltip(Icons.Default.Share, "Sdílet")
@@ -844,7 +871,7 @@ fun CodesAndShare(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimetableText(
     text: String,

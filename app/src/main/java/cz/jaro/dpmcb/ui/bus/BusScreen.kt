@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.bus
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -70,6 +73,7 @@ fun BusScreen(
     navigate: NavigateFunction,
     onEvent: (BusEvent) -> Unit,
 ) {
+    val graphicsLayer = rememberGraphicsLayer()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,63 +87,111 @@ fun BusScreen(
             is BusState.DoesNotRun -> {
                 BusDoesNotRun(state.runsNextTimeAfterToday, onEvent, state.runsNextTimeAfterDate, state.busName, state.date)
 
-                CodesAndShare(state)
+                CodesAndShare(state, null)
             }
 
             is BusState.OK -> {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
-                    Wheelchair(
-                        lowFloor = state.lowFloor,
-                        confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
-                        Modifier.padding(start = 8.dp),
-                        enableCart = true,
-                    )
-
-                    if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
-                    if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
-
-                    Spacer(Modifier.weight(1F))
-
-                    Favouritificator(
-                        onEvent = onEvent,
-                        busName = state.busName,
-                        favouritePartOfConn = state.favourite,
-                        stops = state.stops
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
-                    if (state.restriction) Restriction()
-                    if (state !is BusState.OnlineRunning && state.error) Error()
-                    OutlinedCard(
+                Box {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .drawWithContent {
+                                graphicsLayer.record {
+                                    this@drawWithContent.drawContent()
+                                }
+                            }
                     ) {
-                        Timetable(
-                            navigate = navigate,
-                            onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
-                            nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
-                            stops = state.stops,
-                            traveledSegments = state.traveledSegments,
-                            height = state.lineHeight,
-                            isOnline = state is BusState.OnlineRunning
-                        )
-                    }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
+                            Wheelchair(
+                                lowFloor = state.lowFloor,
+                                confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
+                                Modifier.padding(start = 8.dp),
+                                enableCart = true,
+                            )
 
-                    CodesAndShare(state)
+                            if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+                            if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
+                        }
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Timetable(
+                                navigate = navigate,
+                                onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
+                                nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
+                                stops = state.stops,
+                                traveledSegments = state.traveledSegments,
+                                height = state.lineHeight,
+                                isOnline = state is BusState.OnlineRunning
+                            )
+                        }
+                    }
+                    Column {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
+                            Wheelchair(
+                                lowFloor = state.lowFloor,
+                                confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
+                                Modifier.padding(start = 8.dp),
+                                enableCart = true,
+                            )
+
+                            if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+                            if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
+
+                            Spacer(Modifier.weight(1F))
+
+                            Favouritificator(
+                                onEvent = onEvent,
+                                busName = state.busName,
+                                favouritePartOfConn = state.favourite,
+                                stops = state.stops
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
+                            if (state.restriction) Restriction()
+                            if (state !is BusState.OnlineRunning && state.error) Error()
+                            OutlinedCard(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Timetable(
+                                    navigate = navigate,
+                                    onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
+                                    nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
+                                    stops = state.stops,
+                                    traveledSegments = state.traveledSegments,
+                                    height = state.lineHeight,
+                                    isOnline = state is BusState.OnlineRunning
+                                )
+                            }
+
+                            CodesAndShare(state, graphicsLayer)
+                        }
+                    }
                 }
+
+
             }
         }
     }
