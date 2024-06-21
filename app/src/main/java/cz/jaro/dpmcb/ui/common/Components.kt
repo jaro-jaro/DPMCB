@@ -815,7 +815,7 @@ fun CodesAndShare(
                             IconButton(
                                 onClick = {
                                     scope.launch {
-
+                                        // todo sdílet (-> sdílet část spoje) -> _/sdílet s obrázkem
                                         context.startActivity(Intent.createChooser(Intent().apply {
                                             action = Intent.ACTION_SEND
 
@@ -835,7 +835,7 @@ fun CodesAndShare(
                                             }
 
                                             putExtra(Intent.EXTRA_TEXT, state.deeplink)
-                                            type = "*/*"
+                                            type = "image/png"
                                         }, "Sdílet spoj"))
                                         showMenu = false
                                     }
