@@ -12,22 +12,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -44,10 +36,9 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.theme.DPMCBTheme
-import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -234,45 +225,6 @@ object UtilFunctions {
 
     fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
 
-    @ExperimentalMaterial3Api
-    @Composable
-    fun IconWithTooltip(
-        imageVector: ImageVector,
-        contentDescription: String?,
-        modifier: Modifier = Modifier,
-        tooltipText: String? = contentDescription,
-        tint: Color = LocalContentColor.current,
-    ) = if (tooltipText != null) TooltipBox(
-        tooltip = {
-            DPMCBTheme(
-                useDarkTheme = isSystemInDarkTheme(),
-                useDynamicColor = true,
-                theme = Theme.Yellow,
-                doTheThing = false,
-            ) {
-                PlainTooltip {
-                    Text(text = tooltipText)
-                }
-            }
-        },
-        state = rememberTooltipState(),
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
-    ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            tint = tint
-        )
-    }
-    else
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            tint = tint
-        )
-
     inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
         combine(this) { transform(it.toList()) }
 
@@ -369,6 +321,13 @@ object UtilFunctions {
     @ReadOnlyComposable
     fun Settings.darkMode(): Boolean {
         return if (dmAsSystem) isSystemInDarkTheme() else dm
+    }
+
+    /**
+     * Performs the given [action] on each element.
+     */
+    suspend inline fun <T> ReceiveChannel<T>.forEach(action: (T) -> Unit) {
+        for (element in this) action(element)
     }
 
     context(LazyListScope)

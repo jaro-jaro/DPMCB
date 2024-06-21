@@ -50,9 +50,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
+import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -107,7 +107,7 @@ fun SettingsScreen(
                                 onEvent(SettingsEvent.NavigateBack)
                             }
                         ) {
-                            UtilFunctions.IconWithTooltip(Icons.AutoMirrored.Filled.ArrowBack, "Zpět")
+                            IconWithTooltip(Icons.AutoMirrored.Filled.ArrowBack, "Zpět")
                         }
                     }
                 )

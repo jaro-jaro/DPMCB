@@ -59,6 +59,8 @@
             android:name=".MainActivity"
             android:exported="true" />
 
+        <receiver android:name=".ui.bus.BroadcastReceiver" android:exported="false" />
+
         <receiver
             android:name=".ui.favourites.widget.OblibeneWidget$Companion$Reciever"
             android:exported="true">
