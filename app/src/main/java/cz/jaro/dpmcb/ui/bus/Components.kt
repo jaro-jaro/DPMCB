@@ -50,11 +50,9 @@ import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -387,7 +385,7 @@ private fun PartOfBusChooser(
 
                     else -> {
                         editPart { it.copy(end = i) }
-                        end.animateTo(part.end.toFloat())
+                        end.animateTo(i.toFloat())
                     }
                 }
             }
@@ -641,35 +639,27 @@ fun CodesAndShare(
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
-    val bottomSheetState = rememberModalBottomSheetState()
+    var show by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         for (e in BroadcastReceiver.clicked) when (e) {
             BroadcastReceiver.TYPE_COPY -> copy(clipboardManager, state)
             BroadcastReceiver.TYPE_ADD_IMAGE -> shareImage(context, state, graphicsLayerWhole.toImageBitmap())
-            BroadcastReceiver.TYPE_SHARE_PART -> bottomSheetState.show()
+            BroadcastReceiver.TYPE_SHARE_PART -> show = true
         }
     }
 
     val scope = rememberCoroutineScope()
-    if (state is BusState.OK && bottomSheetState.isVisible) ModalBottomSheet(
+
+    if (show && state is BusState.OK) AlertDialog(
         onDismissRequest = {
-            scope.launch {
-                bottomSheetState.hide()
-            }
+            show = false
         },
-        sheetState = bottomSheetState,
-    ) {
-        Text("Vyberte úsek spoje, který chcete sdílet:")
-        PartOfBusChooser(part, editPart, state.stops, Modifier.weight(1F))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
+        confirmButton = {
             TextButton(
                 onClick = {
                     scope.launch {
-                        bottomSheetState.hide()
+                        show = false
                         shareImage(context, state, graphicsLayerPart.toImageBitmap())
                         editPart { PartOfConn.Empty(state.busName) }
                     }
@@ -678,13 +668,36 @@ fun CodesAndShare(
             ) {
                 Text("Potvrdit")
             }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    show = false
+                }
+            ) {
+                Text("Zrušit")
+            }
+        },
+        title = {
+            Text("Sdílet část spoje")
+        },
+        icon = {
+            Icon(Icons.Default.Star, null)
+        },
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+            ) {
+                Text("Vyberte úsek spoje, který chcete sdílet:")
+                PartOfBusChooser(part, editPart, state.stops, Modifier.verticalScroll(rememberScrollState()))
+            }
         }
-    }
+    )
 
     Row(
         modifier = Modifier.fillMaxWidth(),
     ) {
-
         TextButton(onClick = {
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
