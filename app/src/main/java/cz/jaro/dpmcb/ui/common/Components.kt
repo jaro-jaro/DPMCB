@@ -60,7 +60,6 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -153,13 +152,19 @@ fun Timetable(
         }
     }
 
-    if (showLine) Line(
+    if (showLine) if (part != null) PartialLine(
         stops = stops,
         traveledSegments = traveledSegments,
         height = height,
         isOnline = isOnline,
-        Modifier,
-        part = part
+        part = part,
+        Modifier
+    ) else Line(
+        stops = stops,
+        traveledSegments = traveledSegments,
+        height = height,
+        isOnline = isOnline,
+        Modifier
     )
 }
 
@@ -197,16 +202,14 @@ fun Line(
     height: Float,
     isOnline: Boolean,
     modifier: Modifier = Modifier,
-    part: PartOfConn? = null,
 ) {
-    val filteredStops = if (part != null) stops.filterIndexed { i, _ -> i in part } else stops
     val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
     val bgColor = MaterialTheme.colorScheme.surface
     val lineColor = MaterialTheme.colorScheme.surfaceVariant
-    val stopCount = filteredStops.count()
+    val stopCount = stops.count()
 
-    val animatedHeight by animateFloatAsState(if (part != null) height - part.start else height, label = "HeightAnimation")
+    val animatedHeight by animateFloatAsState(height, label = "HeightAnimation")
 
     Canvas(
         modifier = modifier
@@ -223,8 +226,85 @@ fun Line(
         val circleStrokeWidth = 3.dp.toPx()
 
         translate(left = lineXOffset, top = rowHeight * .5F) {
-            val drawPrevious = part != null && part.start != 0
-            val drawNext = part != null && part.end != stops.lastIndex
+            drawLine(
+                color = lineColor,
+                start = UtilFunctions.Offset(),
+                end = UtilFunctions.Offset(y = canvasHeight - rowHeight),
+                strokeWidth = lineWidth,
+            )
+
+            repeat(stopCount) { i ->
+                translate(top = i * rowHeight) {
+                    val passed = traveledSegments >= i
+
+                    drawCircle(
+                        color = if (passed) passedColor else bgColor,
+                        radius = circleRadius,
+                        center = UtilFunctions.Offset(),
+                        style = Fill
+                    )
+                    drawCircle(
+                        color = if (passed) passedColor else lineColor,
+                        radius = circleRadius,
+                        center = UtilFunctions.Offset(),
+                        style = Stroke(
+                            width = circleStrokeWidth
+                        )
+                    )
+                }
+            }
+
+            drawLine(
+                color = passedColor,
+                start = UtilFunctions.Offset(),
+                end = UtilFunctions.Offset(y = rowHeight * animatedHeight),
+                strokeWidth = lineWidth,
+            )
+
+            if (height > 0F) drawCircle(
+                color = busColor,
+                radius = circleRadius - circleStrokeWidth * .5F,
+                center = UtilFunctions.Offset(y = rowHeight * animatedHeight)
+            )
+        }
+    }
+}
+
+@Composable
+fun PartialLine(
+    stops: List<BusStop?>,
+    traveledSegments: Int,
+    height: Float,
+    isOnline: Boolean,
+    part: PartOfConn,
+    modifier: Modifier = Modifier,
+) {
+    val filteredStops = stops.filterIndexed { i, _ -> i in part }
+    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+    val bgColor = MaterialTheme.colorScheme.surface
+    val lineColor = MaterialTheme.colorScheme.surfaceVariant
+    val stopCount = filteredStops.count()
+
+    val animatedHeight by animateFloatAsState(height - part.start, label = "HeightAnimation")
+
+    Canvas(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(20.dp)
+            .padding(horizontal = 8.dp),
+        contentDescription = "Poloha spoje"
+    ) {
+        val canvasHeight = size.height
+        val lineWidth = 3.dp.toPx()
+        val lineXOffset = 7.dp.toPx()
+        val rowHeight = canvasHeight / stopCount
+        val circleRadius = 5.5.dp.toPx()
+        val circleStrokeWidth = 3.dp.toPx()
+
+        translate(left = lineXOffset, top = rowHeight * .5F) {
+            val drawPrevious = part.start != 0
+            val drawNext = part.end != stops.lastIndex
             drawLine(
                 color = lineColor,
                 start = UtilFunctions.Offset(y = if (drawPrevious) -rowHeight else 0F),
@@ -234,7 +314,7 @@ fun Line(
 
             repeat(stopCount) { i ->
                 translate(top = i * rowHeight) {
-                    val passed = (if (part != null) traveledSegments - part.start else traveledSegments) >= i
+                    val passed = (traveledSegments - part.start) >= i
 
                     drawCircle(
                         color = if (passed) passedColor else bgColor,
@@ -305,7 +385,7 @@ fun TimetableText(
             onClick = {
                 navigate(
                     Route.Departures(
-                        time = time.toSimpleTime().work(),
+                        time = time.toSimpleTime(),
                         stop = stopName,
                     )
                 )
