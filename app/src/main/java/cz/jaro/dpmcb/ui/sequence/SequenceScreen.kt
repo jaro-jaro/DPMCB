@@ -34,10 +34,7 @@ import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.ui.common.BusButton
-import cz.jaro.dpmcb.ui.common.Connection
 import cz.jaro.dpmcb.ui.common.DelayBubble
-import cz.jaro.dpmcb.ui.common.FABs
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
@@ -193,9 +190,9 @@ fun SequenceScreen(
                                 onlineConnStops = null,
                                 nextStopIndex = null,
                                 showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
-                                height = state.height,
                                 traveledSegments = state.traveledSegments,
-                                isOnline = state is SequenceState.Online
+                                height = state.height,
+                                isOnline = state is SequenceState.Online,
                             )
                         }
                     }

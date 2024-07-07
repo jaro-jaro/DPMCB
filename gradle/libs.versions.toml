@@ -1,25 +1,24 @@
 [versions]
-aalto-xml = "1.1.0"
-android-gradle-plugin = "8.6.0-alpha05"
+android-gradle-plugin = "8.6.0-alpha08"
 androidx-activity-compose = "1.9.0"
 androidx-core = "1.13.1"
 androidx-datastore = "1.1.1"
 androidx-espresso = "3.5.1"
-androidx-jetpack-compose = "1.6.7"
+androidx-jetpack-compose = "1.6.8"
 androidx-jetpack-compose-material3 = "1.2.1"
-androidx-jetpack-compose-material-icons-extended = "1.6.7"
-androidx-jetpack-glance = "1.0.0"
-androidx-jetpack-navigation-compose = "2.8.0-beta02"
+androidx-jetpack-compose-material-icons-extended = "1.6.8"
+androidx-jetpack-glance = "1.1.0"
+androidx-jetpack-navigation-compose = "2.8.0-beta03"
 androidx-jetpack-room = "2.6.1"
 androidx-junit = "1.1.5"
-androidx-lifecycle-compose = "2.8.1"
+androidx-lifecycle-compose = "2.8.2"
 browser = "1.8.0"
 compose-material3-datetime-pickers = "0.7.2"
 google-services = "4.4.2"
 firebase-analytics = "22.0.1"
 firebase-common = "21.0.0"
 firebase-crashlytics = "19.0.1"
-firebase-crashlytics-plugin = "2.9.9"
+firebase-crashlytics-plugin = "3.0.1"
 firebase-database = "21.0.0"
 firebase-storage = "21.0.0"
 jsoup = "1.16.2"
@@ -28,7 +27,9 @@ koin-compose = "3.5.3"
 koin-navigation = "3.3.0"
 koin-annotations = "1.3.1"
 koin-android = "3.5.3"
+aalto-xml = "1.1.0"
 konsume-xml = "1.0"
+stax-api = "1.0-2"
 kotlin = "2.0.0-RC3"
 kotlin-symbol-processing = "2.0.0-RC3-1.0.20"
 kotlinx-coroutines = "1.8.0"
@@ -36,11 +37,11 @@ kotlinx-serialization = "1.6.3"
 pdf-viewer = "2.8.2"
 retrofit = "2.9.0"
 semver = "2.0.0"
-stax-api = "1.0-2"
 firebase-config = "22.0.0"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
+stax-api = { module = "javax.xml.stream:stax-api", version.ref = "stax-api" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
@@ -80,7 +81,6 @@ kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-
 pdf-viewer = { module = "com.github.barteksc:android-pdf-viewer", version.ref = "pdf-viewer" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
-stax-api = { module = "javax.xml.stream:stax-api", version.ref = "stax-api" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebase-config" }
 
 [plugins]

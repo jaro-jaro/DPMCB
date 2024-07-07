@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.card
 
 import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.graphics.asImageBitmap
@@ -26,21 +25,21 @@ class CardViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val getPickMultipleMedia: (callback: (Uri?) -> Unit) -> ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?>
+        val pickMediaLauncher: GenericActivityResultLauncher<PickVisualMediaRequest, Uri?>
     )
 
     val hasCard = repo.hasCard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
     fun addCard() {
-        params.getPickMultipleMedia {
+        params.pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) {
             it?.let {
                 viewModelScope.launch {
                     repo.copyFile(it, repo.cardFile)
                     repo.changeCard(true)
                 }
             }
-        }.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
     }
 
     val card = hasCard.filterNotNull().map {

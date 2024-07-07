@@ -16,6 +16,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
         tools:targetApi="33">
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+
         <activity
             android:name=".ExitActivity"
             android:exported="false"
@@ -47,6 +58,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true" />
+
+        <receiver android:name=".ui.bus.BroadcastReceiver" android:exported="false" />
 
         <receiver
             android:name=".ui.favourites.widget.OblibeneWidget$Companion$Reciever"

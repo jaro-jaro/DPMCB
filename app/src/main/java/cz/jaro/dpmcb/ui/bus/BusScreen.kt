@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.bus
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,8 +14,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -24,15 +29,9 @@ import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
-import cz.jaro.dpmcb.ui.common.BusDoesNotExist
-import cz.jaro.dpmcb.ui.common.BusDoesNotRun
-import cz.jaro.dpmcb.ui.common.CodesAndShare
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.DelayBubble
-import cz.jaro.dpmcb.ui.common.Error
-import cz.jaro.dpmcb.ui.common.Favouritificator
 import cz.jaro.dpmcb.ui.common.Name
-import cz.jaro.dpmcb.ui.common.Restriction
-import cz.jaro.dpmcb.ui.common.SequenceRow
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
@@ -86,59 +85,74 @@ fun BusScreen(
                 CodesAndShare(state)
             }
 
-            is BusState.OK -> {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
-                    Wheelchair(
-                        lowFloor = state.lowFloor,
-                        confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
-                        Modifier.padding(start = 8.dp),
-                        enableCart = true,
-                    )
+            is BusState.OK -> Box {
+                val graphicsLayerWhole = rememberGraphicsLayer()
+                val graphicsLayerPart = rememberGraphicsLayer()
+                var part by remember { mutableStateOf(PartOfConn.Empty(state.busName)) }
 
-                    if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
-                    if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
+                ShareLayout(graphicsLayerWhole, state, null)
+                ShareLayout(graphicsLayerPart, state, part)
 
-                    Spacer(Modifier.weight(1F))
-
-                    Favouritificator(
-                        onEvent = onEvent,
-                        busName = state.busName,
-                        favouritePartOfConn = state.favourite,
-                        stops = state.stops
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
-                    if (state.restriction) Restriction()
-                    if (state !is BusState.OnlineRunning && state.error) Error()
-                    OutlinedCard(
-                        modifier = Modifier
+                Column {
+                    Row(
+                        Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Timetable(
-                            navigate = navigate,
-                            onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
-                            nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
-                            stops = state.stops,
-                            traveledSegments = state.traveledSegments,
-                            height = state.lineHeight,
-                            isOnline = state is BusState.OnlineRunning
+                        Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
+                        Wheelchair(
+                            lowFloor = state.lowFloor,
+                            confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
+                            Modifier.padding(start = 8.dp),
+                            enableCart = true,
+                        )
+
+                        if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+                        if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
+
+                        Spacer(Modifier.weight(1F))
+
+                        Favouritificator(
+                            onEvent = onEvent,
+                            busName = state.busName,
+                            favouritePartOfConn = state.favourite,
+                            stops = state.stops
                         )
                     }
 
-                    CodesAndShare(state)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
+                        if (state.restriction) Restriction()
+                        if (state !is BusState.OnlineRunning && state.error) Error()
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Timetable(
+                                stops = state.stops,
+                                navigate = navigate,
+                                onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
+                                nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
+                                traveledSegments = state.traveledSegments,
+                                height = state.lineHeight,
+                                isOnline = state is BusState.OnlineRunning,
+                            )
+                        }
+
+                        CodesAndShare(
+                            state = state,
+                            graphicsLayerWhole = graphicsLayerWhole,
+                            graphicsLayerPart = graphicsLayerPart,
+                            part = part,
+                            editPart = { part = it(part) }
+                        )
+                    }
                 }
             }
         }
