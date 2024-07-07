@@ -13,6 +13,7 @@ data class ConnStop(
     val line: Int,
     val stopNumber: Int,
     val kmFromStart: Int,
+    val fixedCodes: String,
     val arrival: LocalTime?,
     val departure: LocalTime?,
 ) {

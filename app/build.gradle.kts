@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.firebase.crashlytics)
 }
 
@@ -15,8 +16,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 21
-        versionName = "1.6.2"
+        versionCode = 33
+        versionName = "1.6.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -38,8 +39,8 @@ android {
         debug {
             applicationIdSuffix = ".debug"
 
-            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
+            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
         }
     }
     compileOptions {
@@ -54,9 +55,6 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.androidx.jetpack.compose.kotlin.compiler.get()
-    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -64,11 +62,6 @@ android {
     }
     applicationVariants.all {
         kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
-        sourceSets {
             getByName(name) {
                 kotlin.srcDir("build/generated/ksp/$name/kotlin")
             }
@@ -83,8 +76,7 @@ ksp {
 dependencies {
 
     // Core Android
-    //noinspection UseTomlInstead
-    implementation("androidx.core:core-ktx:${libs.versions.androidx.core}")
+    implementation(libs.androidx.core)
 
     // Tests
     testImplementation(libs.junit)
@@ -145,10 +137,6 @@ dependencies {
     implementation(libs.koin.compose)
     ksp(libs.koin.annotations.ksp)
 
-    // Compose Destinations
-    implementation(libs.compose.destinations.core)
-    ksp(libs.compose.destinations.ksp)
-
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
 
@@ -164,4 +152,5 @@ dependencies {
     implementation(libs.aalto.xml)
 
     implementation(libs.androidx.browser)
+    implementation(kotlin("reflect"))
 }

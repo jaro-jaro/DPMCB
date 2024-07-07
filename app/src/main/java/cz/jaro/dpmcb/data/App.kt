@@ -23,7 +23,7 @@ import retrofit2.Retrofit
 class App : Application() {
 
     companion object {
-        var route by mutableStateOf("oblibene")
+        var route by mutableStateOf("favourites")
         var title by mutableIntStateOf(R.string.app_name)
         var selected by mutableStateOf(null as DrawerAction?)
     }
@@ -32,15 +32,15 @@ class App : Application() {
         System.setProperty(
             "org.apache.poi.javax.xml.stream.XMLInputFactory",
             "com.fasterxml.aalto.stax.InputFactoryImpl"
-        );
+        )
         System.setProperty(
             "org.apache.poi.javax.xml.stream.XMLOutputFactory",
             "com.fasterxml.aalto.stax.OutputFactoryImpl"
-        );
+        )
         System.setProperty(
             "org.apache.poi.javax.xml.stream.XMLEventFactory",
             "com.fasterxml.aalto.stax.EventFactoryImpl"
-        );
+        )
     }
 
     override fun onCreate() {
@@ -55,7 +55,8 @@ class App : Application() {
                         migrations = listOf(
                             SharedPreferencesMigration({
                                 get<Context>().getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-                            })
+                            }),
+                            DataStoreMigrationConnName(),
                         )
                     ) {
                         get<Context>().dataStoreFile("DPMCB_DataStore.preferences_pb")
@@ -68,7 +69,9 @@ class App : Application() {
                         .create(OnlineApi::class.java)
                 }
                 single {
-                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze").fallbackToDestructiveMigration().build()
+                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
+                        .fallbackToDestructiveMigration()
+                        .build()
                 }
                 factory {
                     get<AppDatabase>().dao()

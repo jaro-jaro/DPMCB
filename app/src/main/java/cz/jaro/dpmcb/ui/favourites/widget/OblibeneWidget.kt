@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -17,13 +16,12 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.action.ActionParameters.Key
-import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
@@ -40,8 +38,8 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.crashlytics.crashlytics
+import com.google.firebase.Firebase
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -87,7 +85,7 @@ class OblibeneWidget : GlanceAppWidget() {
                         val ids =
                             repo.favourites.first().map { cast ->
                                 try {
-                                    val a = repo.favouriteBus(cast.busId, LocalDate.now())
+                                    val a = repo.favouriteBus(cast.busName, LocalDate.now())
                                     Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
                                     Firebase.crashlytics.recordException(e)
@@ -98,9 +96,9 @@ class OblibeneWidget : GlanceAppWidget() {
                         if (ids.isEmpty()) return@state OblibeneWidgetState.ZadneOblibene
 
                         val tedJede = ids.map { (info, zastavky, cast) ->
-                            val jedeV = repo.doesConnRunAt(info.connId)
+                            val jedeV = repo.doesConnRunAt(info.connName)
                             KartickaWidgetState(
-                                spojId = info.connId,
+                                spojId = info.connName,
                                 linka = info.line,
                                 vychoziZastavka = zastavky[cast.start].name,
                                 vychoziZastavkaCas = zastavky[cast.start].time,
@@ -190,7 +188,7 @@ class OblibeneWidget : GlanceAppWidget() {
                                 Refresh("Oblíbené spoje")
                             }
                             items(state.spoje) {
-                                Spoj(state = it, style = style)
+                                Spoj(state = it, style = style, context = context)
                             }
                         }
                     }
@@ -204,12 +202,14 @@ class OblibeneWidget : GlanceAppWidget() {
     private fun Spoj(
         state: KartickaWidgetState,
         style: TextStyle,
+        context: Context
     ) = Column(
         GlanceModifier.fillMaxWidth(),
     ) {
-        val action = actionStartActivity<LoadingActivity>(parameters = actionParametersOf(
-            Key<Uri>("data") to "https://jaro-jaro.github.io/DPMCB/spoj/${state.spojId}".toUri(),
-        ))
+        val action = actionStartActivity(Intent(context, LoadingActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            data = "https://jaro-jaro.github.io/DPMCB/bus/${state.spojId}".toUri()
+        })
 
         Row(
             modifier = GlanceModifier

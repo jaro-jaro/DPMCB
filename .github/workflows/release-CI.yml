@@ -7,6 +7,7 @@ on:
 
 jobs:
   build:
+    name: Release APK
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -43,6 +44,14 @@ jobs:
       - name: Rename APK
         run: mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/Lepší-DPMCB-v$(cat ./app/version.txt).apk"
         shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: app/build/reports/*.html
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
@@ -52,4 +61,3 @@ jobs:
           tag: ${{ env.VERSION_NAME }}
           makeLatest: false
           prerelease: true
-          

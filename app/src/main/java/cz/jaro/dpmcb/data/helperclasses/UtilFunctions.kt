@@ -23,11 +23,11 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -37,13 +37,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.navigate
-import com.ramcosta.composedestinations.spec.Direction
+import androidx.navigation.NavOptions
+import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
+import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
@@ -205,6 +205,7 @@ object UtilFunctions {
         "$sign$min min $s s"
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayText(delay: Float) = when {
         delay < 0 -> Color(0xFF343DFF)
@@ -213,6 +214,7 @@ object UtilFunctions {
         else -> Color.Green
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayBubbleText(delay: Float) = when {
         delay < 0 -> Color(0xFF0000EF)
@@ -221,6 +223,7 @@ object UtilFunctions {
         else -> Color(0xFFADF0D8)
     }
 
+    @ReadOnlyComposable
     @Composable
     fun colorOfDelayBubbleContainer(delay: Float) = when {
         delay < 0 -> Color(0xFFE0E0FF)
@@ -323,7 +326,7 @@ object UtilFunctions {
     fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
 
     val now get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
-    val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
+    private val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
 
     val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
@@ -337,14 +340,25 @@ object UtilFunctions {
     operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
     operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
 
-    inline val NavHostController.navigateFunction get() = { it: Direction -> this.navigate(it.work { route }) }
+//    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
-    inline val DestinationsNavigator.navigateFunction: (Direction) -> Unit
-        @Composable get() {
-            val lifecycleOwner = LocalLifecycleOwner.current
-            return navigate@{ it: Direction ->
-                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.INITIALIZED)) return@navigate
-                this.navigate(it.work { route })
+    inline val NavHostController.navigateFunction: NavigateFunction
+        get() {
+            val f = navigateWithOptionsFunction
+            return { route: Route ->
+                f(route, null)
+            }
+        }
+    inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFunction
+        get() {
+            return navigate@{ route: Route, navOptions: NavOptions? ->
+                try {
+                    this.navigate(route.work(), navOptions)
+                } catch (e: IllegalStateException) {
+                    e.printStackTrace()
+                    Firebase.crashlytics.log("Pokus o navigaci na $route")
+                    Firebase.crashlytics.recordException(e)
+                }
             }
         }
 
@@ -352,6 +366,7 @@ object UtilFunctions {
     fun List<Boolean>.anyTrue() = any { it }
 
     @Composable
+    @ReadOnlyComposable
     fun Settings.darkMode(): Boolean {
         return if (dmAsSystem) isSystemInDarkTheme() else dm
     }
@@ -453,9 +468,12 @@ object UtilFunctions {
     fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
 
     val noCode = LocalDate.of(1970, 1, 1)!!
+
+    fun Int.two() = plus(100).toString().takeLast(2)
 }
 
-typealias NavigateFunction = (Direction) -> Unit
+typealias NavigateFunction = (Route) -> Unit
+typealias NavigateWithOptionsFunction = (Route, NavOptions?) -> Unit
 typealias NavigateBackFunction<R> = (R) -> Unit
 
 typealias MutateListFunction<T> = (MutateListLambda<T>) -> Unit
@@ -463,3 +481,5 @@ typealias MutateListLambda<T> = MutableList<T>.() -> Unit
 
 typealias MutateFunction<T> = (MutateLambda<T>) -> Unit
 typealias MutateLambda<T> = (T) -> T
+
+operator fun NavigateWithOptionsFunction.invoke(route: Route) = invoke(route, null)

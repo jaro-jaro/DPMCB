@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name" translatable="false">Lepší DPMCB</string>
-    <string name="otevrit">Otevřít</string>
     <string name="zavrit">Zavřít</string>
     <string name="exit_app">Vypnout aplikaci</string>
     <string name="feedback">Zpětná vazba</string>

@@ -6,15 +6,15 @@ import android.provider.Settings
 import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
-import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.database.GenericTypeIndicator
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.database.database
+import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.ktx.storage
+import com.google.firebase.storage.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
@@ -23,13 +23,14 @@ import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
-import cz.jaro.dpmcb.data.helperclasses.Direction
-import cz.jaro.dpmcb.data.helperclasses.Quadruple
-import cz.jaro.dpmcb.data.helperclasses.Quintuple
-import cz.jaro.dpmcb.data.helperclasses.TableType
+import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.invoke
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.tuples.Quadruple
+import cz.jaro.dpmcb.data.tuples.Quintuple
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -158,12 +159,13 @@ class LoadingViewModel(
     }
 
     private fun resolveLink(baseIntent: Intent): Intent {
-        if (params.uri?.removePrefix("/DPMCB").equals("/app-details")) {
-            openAppDetails()
-        }
-
         params.uri?.let {
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, it.removePrefix("/DPMCB"))
+
+            val link = it.removePrefix("/DPMCB")
+
+            if (link == "/app-details") openAppDetails()
+
+            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link)
         }
 
         return baseIntent
@@ -287,7 +289,7 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
-            val sequencesRef = storage.reference.child("kurzy.json")
+            val sequencesRef = storage.reference.child("kurzy2.json")
             val diagramRef = storage.reference.child("schema.pdf")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
@@ -371,13 +373,13 @@ class LoadingViewModel(
             lines.addAll(repo.lines())
             conns.addAll(repo.conns())
 
-            val N = when {
+            val n = when {
                 changeDiagram -> 6
                 else -> 5
             }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$n)" to 0F
             }
 
             connStops.removeAll { it.tab in minusTables || it.tab in changedTables }
@@ -392,7 +394,7 @@ class LoadingViewModel(
             _state.update { it.first to 5 / 5F }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)" to 0F
             }
 
             val sequencesFile = params.sequencesFile
@@ -412,7 +414,7 @@ class LoadingViewModel(
             Firebase.remoteConfig.fetchAndActivate().await()
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)" to 0F
             }
 
             plus.exctractData(sequences)
@@ -425,7 +427,7 @@ class LoadingViewModel(
                 }
 
             _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$N)" to 0F
+                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)" to 0F
             }
 
             changes.exctractData(sequences)
@@ -491,6 +493,8 @@ class LoadingViewModel(
                 val stopsOfTable: MutableList<Stop> = mutableListOf()
                 val linesOfTable: MutableList<Line> = mutableListOf()
                 val connsOfTable: MutableList<Conn> = mutableListOf()
+                val fixedCodesOfTable: MutableMap<String, String> = mutableMapOf()
+
                 dataLinky
                     .toList()
                     .sortedBy { (tableType, _) ->
@@ -514,13 +518,18 @@ class LoadingViewModel(
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     tab = tab,
+                                    fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
+                                        fixedCodesOfTable[it] ?: it
+                                    },
                                 )
 
                                 TableType.Zastavky -> stopsOfTable += Stop(
                                     line = row[0].toInt(),
                                     stopNumber = row[1].toInt(),
                                     stopName = row[2],
-                                    fixedCodes = row.slice(7..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                    fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                                        fixedCodesOfTable[it] ?: it
+                                    },
                                     tab = tab,
                                 )
 
@@ -529,7 +538,7 @@ class LoadingViewModel(
                                     connNumber = row[1].toInt(),
                                     code = row[3].toInt(),
                                     termIndex = row[2].toInt(),
-                                    runs = row[4] == "1",
+                                    type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun,
                                     validFrom = row[5].toDateWeirdly(),
                                     validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
                                     tab = tab,
@@ -547,12 +556,14 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "S-${row[0]}-${row[1]}" in spoje }
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "${row[0]}/${row[1]}" in spoje }
 
                                     connsOfTable += Conn(
                                         line = row[0].toInt(),
                                         connNumber = row[1].toInt(),
-                                        fixedCodes = row.slice(2..12).filter { it.isNotEmpty() }.joinToString(" "),
+                                        fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                                            fixedCodesOfTable[it] ?: it
+                                        },
                                         direction = connStopsOfTable
                                             .filter { it.connNumber == row[1].toInt() }
                                             .sortedBy { it.stopIndexOnLine }
@@ -562,7 +573,7 @@ class LoadingViewModel(
                                             },
                                         tab = tab,
                                         sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf("S-${row[0]}-${row[1]}")?.takeUnless { it == -1 },
+                                        orderInSequence = seq?.second?.indexOf("${row[0]}/${row[1]}")?.takeUnless { it == -1 },
                                     ).also { conn ->
 //                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(
@@ -570,7 +581,7 @@ class LoadingViewModel(
                                             connNumber = conn.connNumber,
                                             code = 0,
                                             termIndex = 0,
-                                            runs = false,
+                                            type = TimeCodeType.DoesNotRun,
                                             validFrom = noCode,
                                             validTo = noCode,
                                             tab = conn.tab,
@@ -578,7 +589,9 @@ class LoadingViewModel(
                                     }
                                 }
 
-                                TableType.Pevnykod -> Unit
+                                TableType.Pevnykod -> {
+                                    fixedCodesOfTable += row[0] to row[1]
+                                }
                                 TableType.Zaslinky -> Unit
                                 TableType.VerzeJDF -> Unit
                                 TableType.Dopravci -> Unit

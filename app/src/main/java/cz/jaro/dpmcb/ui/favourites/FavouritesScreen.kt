@@ -22,9 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootNavGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
@@ -33,21 +31,22 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.ui.common.DelayBubble
+import cz.jaro.dpmcb.ui.common.Name
+import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.main.DrawerAction
-import cz.jaro.dpmcb.ui.sequence.DelayBubble
-import cz.jaro.dpmcb.ui.sequence.Name
-import cz.jaro.dpmcb.ui.sequence.Vehicle
+import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
-@Destination
-@RootNavGraph(start = true)
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun Favourites(
-    navigator: DestinationsNavigator,
+    args: Route.Favourites,
+    navController: NavHostController,
     viewModel: FavouritesViewModel = run {
-        val navigate = navigator.navigateFunction
+        val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(
                 FavouritesViewModel.Parameters(
@@ -180,7 +179,7 @@ fun FavouritesScreen(
 
             if (it is FavouriteState.Online) ElevatedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusToday(it.busId))
+                    onEvent(FavouritesEvent.NavToBusToday(it.busName))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -189,7 +188,7 @@ fun FavouritesScreen(
             )
             else OutlinedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusToday(it.busId))
+                    onEvent(FavouritesEvent.NavToBusToday(it.busName))
                 },
                 Modifier
                     .fillMaxWidth()
@@ -209,11 +208,11 @@ fun FavouritesScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsOtherDay, key = { it.busId }) {
+        items(state.runsOtherDay, key = { it.busName }) {
 
             OutlinedCard(
                 onClick = {
-                    onEvent(FavouritesEvent.NavToBusOtherDay(it.busId, it.nextWillRun))
+                    onEvent(FavouritesEvent.NavToBusOtherDay(it.busName, it.nextWillRun))
                 },
                 Modifier
                     .fillMaxWidth()
