@@ -35,16 +35,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsOff
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
@@ -587,10 +592,17 @@ fun share(context: Context, state: BusState.Exists) {
     context.startActivity(Intent.createChooser(Intent().apply {
         action = Intent.ACTION_SEND
 
-        putExtra(Intent.EXTRA_TEXT, state.deeplink)
+        putExtra(
+            Intent.EXTRA_TEXT,
+            if (state is BusState.OK) buildString {
+                +"Linka ${state.lineNumber}: ${state.stops.first().name} (${state.stops.first().time}) -> ${state.stops.last().name} (${state.stops.last().time})\n"
+                +state.deeplink
+            }
+            else state.deeplink
+        )
         putExtra(Intent.EXTRA_TITLE, "Sdílet spoj")
 
-        type = "text/uri-list"
+        type = "text/plain"
         flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
     }, "Sdílet spoj").apply {
         if (isAtLeast34)
@@ -640,6 +652,7 @@ fun CodesAndShare(
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     var show by remember { mutableStateOf(false) }
+    var dropdown by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         for (e in BroadcastReceiver.clicked) when (e) {
@@ -711,10 +724,38 @@ fun CodesAndShare(
         Spacer(Modifier.weight(1F))
         TextButton(
             onClick = {
-                share(context, state)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                    share(context, state)
+                else
+                    dropdown = true
             },
             contentPadding = ButtonDefaults.TextButtonWithIconContentPadding
         ) {
+            DropdownMenu(
+                expanded = dropdown,
+                onDismissRequest = { dropdown = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Sdílet odkaz") },
+                    onClick = { share(context, state) },
+                    trailingIcon = { IconWithTooltip(Icons.Default.Share, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Kopírovat odkaz") },
+                    onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_COPY) } },
+                    trailingIcon = { IconWithTooltip(Icons.Default.ContentCopy, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Sdílet s obrázkem") },
+                    onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_ADD_IMAGE) } },
+                    trailingIcon = { IconWithTooltip(Icons.Default.Image, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Sdílet obrázek části spoje") },
+                    onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_SHARE_PART) } },
+                    trailingIcon = { IconWithTooltip(Icons.Default.Timeline, null) }
+                )
+            }
             Text("Sdílet")
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             IconWithTooltip(Icons.Filled.Share, null, Modifier.size(ButtonDefaults.IconSize))
@@ -777,3 +818,5 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         )
     }
 }
+
+context(StringBuilder) operator fun String.unaryPlus(): StringBuilder = append(this)
