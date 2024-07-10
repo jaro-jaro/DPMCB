@@ -56,9 +56,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
@@ -70,7 +73,7 @@ import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 
@@ -138,9 +141,9 @@ fun Timetable(
         filteredStops.forEach { stop ->
             val onlineStop = onlineConnStops.find { it.scheduledTime == stop.time }
             if (onlineStop != null) TimetableText(
-                text = stop.time.plusMinutes(onlineStop.delay.toLong()).toString(),
+                text = (stop.time + onlineStop.delay.minutes).toString(),
                 navigate = navigate,
-                time = stop.time.plusMinutes(onlineStop.delay.toLong()),
+                time = stop.time + onlineStop.delay.minutes,
                 stopName = stop.name,
                 nextStop = stop.nextStop,
                 line = stop.line,
@@ -357,7 +360,7 @@ fun TimetableText(
     time: LocalTime,
     stopName: String,
     nextStop: String?,
-    line: Int,
+    line: ShortLine,
     platform: String,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
@@ -436,10 +439,10 @@ fun TimetableText(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun Vehicle(vehicle: Int?) {
+fun Vehicle(vehicle: RegistrationNumber?) {
     if (vehicle != null) {
         Text(
-            text = "ev. č. ${vehicle.regN()}",
+            text = "ev. č. ${vehicle.asString()}",
             Modifier.padding(horizontal = 8.dp),
         )
         val context = LocalContext.current
@@ -450,7 +453,7 @@ fun Vehicle(vehicle: Int?) {
                 CustomTabsIntent.Builder()
                     .setShowTitle(true)
                     .build()
-                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${vehicle.regN()}"))
+                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${vehicle.asString()}"))
             },
         )
     }

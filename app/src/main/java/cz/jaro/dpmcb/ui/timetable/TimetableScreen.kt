@@ -43,6 +43,7 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
@@ -85,7 +86,7 @@ fun Timetable(
 
 @Composable
 fun TimetableScreen(
-    lineNumber: Int,
+    lineNumber: ShortLine,
     stop: String,
     nextStop: String,
     state: TimetableState,

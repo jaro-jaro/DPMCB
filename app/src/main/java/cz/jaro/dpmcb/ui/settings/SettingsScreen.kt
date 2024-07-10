@@ -50,13 +50,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
 
 @Composable
 fun Settings(
@@ -344,8 +345,8 @@ fun SettingsScreen(
 
                 textItem("")
 
-                textItem("2021-${LocalDate.now().year} RO studios, člen skupiny JARO")
-                textItem("2019-${LocalDate.now().year} JARO")
+                textItem("2021-${SystemClock.today().year} RO studios, člen skupiny JARO")
+                textItem("2019-${SystemClock.today().year} JARO")
 
                 item {
                     Text("Simulate crash...", Modifier.clickable {

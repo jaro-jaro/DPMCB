@@ -18,17 +18,28 @@ import com.google.firebase.storage.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.AppDatabase
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.number
+import cz.jaro.dpmcb.data.entities.slash
+import cz.jaro.dpmcb.data.entities.toBusNumber
+import cz.jaro.dpmcb.data.entities.toLongLine
+import cz.jaro.dpmcb.data.entities.toStopNumber
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.invoke
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import io.github.z4kn4fein.semver.toVersion
@@ -53,7 +64,6 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.io.File
 import java.io.IOException
-import java.time.LocalDate
 
 @KoinViewModel
 class LoadingViewModel(
@@ -133,7 +143,7 @@ class LoadingViewModel(
     }
 
     private suspend fun doesEverythingWork(): Nothing? {
-        repo.lineNumbers(LocalDate.now()).ifEmpty {
+        repo.lineNumbers(SystemClock.today()).ifEmpty {
             throw Exception()
         }
         if (!params.diagramFile.exists()) {
@@ -311,7 +321,7 @@ class LoadingViewModel(
                 file = sequencesFile,
             ).readText()
 
-            val sequences = json2.fromJson<Map<String, List<String>>>()
+            val sequences = json2.fromJson<Map<SequenceCode, List<BusName>>>()
 
             Firebase.remoteConfig.reset().await()
             val configSettings = remoteConfigSettings {
@@ -324,7 +334,7 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
             }
 
-            val data: Map<String, Map<String, List<List<String>>>> = Json.decodeFromString(json)
+            val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
             data.exctractData(sequences)
                 .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
@@ -357,15 +367,15 @@ class LoadingViewModel(
 
             val manyChanges = Json.parseToJsonElement(json).jsonObject
 
-            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
-            val minus = manyChanges["-"]!!.jsonArray.toString().fromJson<List<String>>()
-            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<String, Map<String, List<List<String>>>>>()
+            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<Table, Map<String, List<List<String>>>>>()
+            val minus = manyChanges["-"]!!.jsonArray.toString().fromJson<List<Table>>()
+            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<Table, Map<String, List<List<String>>>>>()
             val changeDiagram = manyChanges["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
 
             val minusTables = minus
-                .map { it.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
+                .map { Table(LongLine(it.value.substringBefore('-').toInt() + 325_000), it.number()) } // TODO: Nezávislost dat na předčíslí linky
             val changedTables = changes
-                .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } }
+                .map { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
 
             connStops.addAll(repo.connStops())
             stops.addAll(repo.stops())
@@ -404,7 +414,7 @@ class LoadingViewModel(
                 file = sequencesFile,
             ).readText()
 
-            val sequences = json2.fromJson<Map<String, List<String>>>()
+            val sequences = json2.fromJson<Map<SequenceCode, List<BusName>>>()
 
             Firebase.remoteConfig.reset().await()
             val configSettings = remoteConfigSettings {
@@ -470,8 +480,8 @@ class LoadingViewModel(
 
     private suspend fun downloadDiagram(schemaRef: StorageReference) = downloadFile(schemaRef, params.diagramFile)
 
-    private fun Map<String, Map<String, List<List<String>>>>.exctractData(
-        sequences: Map<String, List<String>>,
+    private fun Map<Table, Map<String, List<List<String>>>>.exctractData(
+        sequences: Map<SequenceCode, List<BusName>>,
     ): List<Quintuple<MutableList<ConnStop>, MutableList<TimeCode>, MutableList<Stop>, MutableList<Line>, MutableList<Conn>>> {
 
         val rowsCount = this
@@ -486,7 +496,7 @@ class LoadingViewModel(
         var rowindex = 0F
 
         return this
-            .map { it.key.split("-").let { arr -> "${arr[0].toInt().plus(325_000)}-${arr[1]}" } to it.value }
+            .mapKeys { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
             .map { (tab, dataLinky) ->
                 val connStopsOfTable: MutableList<ConnStop> = mutableListOf()
                 val timeCodesOfTable: MutableList<TimeCode> = mutableListOf()
@@ -510,10 +520,10 @@ class LoadingViewModel(
 
                             when (TableType.valueOf(typTabulky)) {
                                 TableType.Zasspoje -> connStopsOfTable += ConnStop(
-                                    line = row[0].toInt(),
-                                    connNumber = row[1].toInt(),
+                                    line = row[0].toLongLine(),
+                                    connNumber = row[1].toBusNumber(),
                                     stopIndexOnLine = row[2].toInt(),
-                                    stopNumber = row[3].toInt(),
+                                    stopNumber = row[3].toStopNumber(),
                                     kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
@@ -524,8 +534,8 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Zastavky -> stopsOfTable += Stop(
-                                    line = row[0].toInt(),
-                                    stopNumber = row[1].toInt(),
+                                    line = row[0].toLongLine(),
+                                    stopNumber = row[1].toStopNumber(),
                                     stopName = row[2],
                                     fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                         fixedCodesOfTable[it] ?: it
@@ -534,8 +544,8 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Caskody -> timeCodesOfTable += TimeCode(
-                                    line = row[0].toInt(),
-                                    connNumber = row[1].toInt(),
+                                    line = row[0].toLongLine(),
+                                    connNumber = row[1].toBusNumber(),
                                     code = row[3].toInt(),
                                     termIndex = row[2].toInt(),
                                     type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun,
@@ -545,7 +555,7 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Linky -> linesOfTable += Line(
-                                    number = row[0].toInt(),
+                                    number = row[0].toLongLine(),
                                     route = row[1],
                                     vehicleType = Json.decodeFromString("\"${row[4]}\""),
                                     lineType = Json.decodeFromString("\"${row[3]}\""),
@@ -556,24 +566,24 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> "${row[0]}/${row[1]}" in spoje }
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> row[0] slash row[1] in spoje }
 
                                     connsOfTable += Conn(
-                                        line = row[0].toInt(),
-                                        connNumber = row[1].toInt(),
+                                        line = row[0].toLongLine(),
+                                        connNumber = row[1].toBusNumber(),
                                         fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                             fixedCodesOfTable[it] ?: it
                                         },
                                         direction = connStopsOfTable
-                                            .filter { it.connNumber == row[1].toInt() }
+                                            .filter { it.connNumber == row[1].toBusNumber() }
                                             .sortedBy { it.stopIndexOnLine }
                                             .filter { it.time != null }
                                             .let { stops ->
-                                                Direction(stops.first().time!! <= stops.last().time && stops.first().kmFromStart <= stops.last().kmFromStart)
+                                                Direction(stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart)
                                             },
                                         tab = tab,
                                         sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf("${row[0]}/${row[1]}")?.takeUnless { it == -1 },
+                                        orderInSequence = seq?.second?.indexOf(row[0] slash row[1])?.takeUnless { it == -1 },
                                     ).also { conn ->
 //                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(

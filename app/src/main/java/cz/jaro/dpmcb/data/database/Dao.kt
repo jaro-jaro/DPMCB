@@ -5,10 +5,15 @@ import androidx.room.Insert
 import androidx.room.MapColumn
 import androidx.room.Query
 import androidx.room.Transaction
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
@@ -17,14 +22,23 @@ import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
-import cz.jaro.dpmcb.data.realtions.other.TimeStopOf02
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @Dao
 interface Dao {
+
+    @Query(
+        """
+        SELECT number FROM line
+        WHERE shortNumber = :line
+        LIMIT 1
+    """
+    )
+    suspend fun findLongLine(line: ShortLine): LongLine
+
     @Query(
         """
         SELECT DISTINCT stopName FROM stop
@@ -32,7 +46,7 @@ interface Dao {
         ORDER BY stopName
     """
     )
-    suspend fun stopNames(tabs: List<String>): List<String>
+    suspend fun stopNames(tabs: List<Table>): List<String>
 
     @Query(
         """
@@ -41,7 +55,7 @@ interface Dao {
         ORDER BY shortNumber
     """
     )
-    suspend fun lineNumbers(tabs: List<String>): List<Int>
+    suspend fun lineNumbers(tabs: List<Table>): List<ShortLine>
 
     @Query(
         """
@@ -97,7 +111,7 @@ interface Dao {
         FROM negative
     """
     )
-    suspend fun nextStops(line: Int, thisStop: String, tab: String, positive: Direction = Direction.POSITIVE): List<String>
+    suspend fun nextStops(line: LongLine, thisStop: String, tab: Table, positive: Direction = Direction.POSITIVE): List<String>
 
     @Query(
         """
@@ -209,7 +223,7 @@ interface Dao {
         stop: String,
         nextStop: String,
         date: LocalDate,
-        tab: String,
+        tab: Table,
         positive: Direction = Direction.POSITIVE,
     ): List<CoreBusInTimetable>
 
@@ -223,7 +237,7 @@ interface Dao {
         ORDER BY connstop.stopIndexOnLine
     """
     )
-    suspend fun stopNamesOfLine(line: Int, tab: String): List<String>
+    suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String>
 
     @Transaction
     @Query(
@@ -247,7 +261,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsConnStopsAndCodes(connName: String, tab: String, positive: Direction = Direction.POSITIVE): List<CoreBus>
+    suspend fun connWithItsConnStopsAndCodes(connName: BusName, tab: Table, positive: Direction = Direction.POSITIVE): List<CoreBus>
 
     @Query(
         """
@@ -257,7 +271,7 @@ interface Dao {
         AND conn.tab = :tab
     """
     )
-    suspend fun codes(connName: String, tab: String): List<CodesOfBus>
+    suspend fun codes(connName: BusName, tab: Table): List<CodesOfBus>
 
     @Transaction
     @Query(
@@ -280,28 +294,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connsOfSeqWithTheirConnStops(seq: String, positive: Direction = Direction.POSITIVE): List<CoreBusOfSequence>
-
-    @Transaction
-    @Query(
-        """
-        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, CASE
-            WHEN connstop.departure IS null THEN connstop.arrival
-            ELSE connstop.departure
-        END time, conn.name connName, conn.tab FROM connstop
-        JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber 
-        WHERE (
-            NOT connstop.departure IS null
-            OR NOT connstop.arrival IS null
-        )
-        AND conn.sequence LIKE :seq
-        ORDER BY CASE
-           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
-           ELSE -connstop.stopIndexOnLine
-        END
-    """
-    )
-    suspend fun connsOfSeqWithTheirConnStopTimes(seq: String, positive: Direction = Direction.POSITIVE): List<TimeStopOf02>
+    suspend fun connsOfSeqWithTheirConnStops(seq: SequenceCode, positive: Direction = Direction.POSITIVE): List<CoreBusOfSequence>
 
     @Transaction
     @Query(
@@ -312,7 +305,7 @@ interface Dao {
         ORDER BY conn.orderInSequence
     """
     )
-    suspend fun connsOfSeq(seq: String, tabs: List<String>): List<String>
+    suspend fun connsOfSeq(seq: SequenceCode, tabs: List<Table>): List<BusName>
 
     @Transaction
     @Query(
@@ -324,7 +317,7 @@ interface Dao {
         LIMIT 1
     """
     )
-    suspend fun firstConnOfSeq(seq: String, tabs: List<String>): String
+    suspend fun firstConnOfSeq(seq: SequenceCode, tabs: List<Table>): BusName
 
     @Transaction
     @Query(
@@ -336,7 +329,7 @@ interface Dao {
         LIMIT 1
     """
     )
-    suspend fun lastConnOfSeq(seq: String, tabs: List<String>): String
+    suspend fun lastConnOfSeq(seq: SequenceCode, tabs: List<Table>): BusName
 
     @Query(
         """
@@ -377,7 +370,7 @@ interface Dao {
     )
     suspend fun departures(
         stop: String,
-        tabs: List<String>,
+        tabs: List<Table>,
     ): List<CoreDeparture>
 
     @Query(
@@ -399,16 +392,16 @@ interface Dao {
         sequence4: String,
         sequence5: String,
         sequence6: String,
-    ): List<String>
+    ): List<SequenceCode>
 
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.sequence, conn.line - 325000 line FROM conn
+        SELECT DISTINCT conn.sequence, conn.line line FROM conn
         WHERE conn.sequence IN (:todayRunningSequences)
     """
     )
-    suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") String, List<@MapColumn("line") Int>>
+    suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") SequenceCode, List<@MapColumn("line") LongLine>>
     @Transaction
     @Query(
         """
@@ -505,8 +498,8 @@ interface Dao {
     )
     suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
-        tabs: List<String>
-    ): Map<TimeOfSequence, Map<@MapColumn("connName") String, List<CodesOfBus>>>
+        tabs: List<Table>
+    ): Map<TimeOfSequence, Map<@MapColumn("connName") BusName, List<CodesOfBus>>>
 
 //    SELECT group_ID
 //    FROM tableName
@@ -534,7 +527,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsStops(connName: String, tab: String, positive: Direction = Direction.POSITIVE): Map<Conn, List<StopOfNowRunning>>
+    suspend fun connWithItsStops(connName: BusName, tab: Table, positive: Direction = Direction.POSITIVE): Map<Conn, List<StopOfNowRunning>>
 
     @Transaction
     @Query(
@@ -544,21 +537,21 @@ interface Dao {
         AND conn.tab = :tab
     """
     )
-    suspend fun seqOfConn(connName: String, tab: String): Map<@MapColumn("tab") String, @MapColumn("sequence") String?>
+    suspend fun seqOfConn(connName: BusName, tab: Table): Map<@MapColumn("tab") Table, @MapColumn("sequence") SequenceCode?>
 
     @Query(
         """
-        SELECT DISTINCT conn.line - 325000 FROM conn
+        SELECT DISTINCT conn.line FROM conn
         GROUP BY conn.line
         HAVING COUNT(DISTINCT conn.direction) = 1
     """
     )
-    suspend fun oneDirectionLines(): List<Int>
+    suspend fun oneDirectionLines(): List<LongLine>
 
     @Transaction
     @Query(
         """
-        SELECT conn.name, CASE
+        SELECT conn.name connName, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, stop.stopName name, connstop.stopIndexOnLine FROM conn
@@ -572,7 +565,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connStops(connNames: List<String>, tabs: List<String>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("name") String, List<StopOfDeparture>>
+    suspend fun connStops(connNames: List<BusName>, tabs: List<Table>, positive: Direction = Direction.POSITIVE): Map<@MapColumn("connName") BusName, List<StopOfDeparture>>
 
     @Query(
         """
@@ -581,7 +574,7 @@ interface Dao {
         LIMIT 1
     """
     )
-    suspend fun hasRestriction(tab: String): Boolean
+    suspend fun hasRestriction(tab: Table): Boolean
 
     @Query(
         """
@@ -590,7 +583,7 @@ interface Dao {
         LIMIT 1
     """
     )
-    suspend fun validity(tab: String): Validity
+    suspend fun validity(tab: Table): Validity
 
     @Query(
         """
@@ -599,7 +592,7 @@ interface Dao {
         LIMIT 1
     """
     )
-    suspend fun doesConnExist(connName: String): String?
+    suspend fun doesConnExist(connName: BusName): String?
 
     @Query(
         """
@@ -607,14 +600,14 @@ interface Dao {
         WHERE number = :line
     """
     )
-    suspend fun lineTables(line: Int): List<Line>
+    suspend fun lineTables(line: LongLine): List<Line>
 
     @Query(
         """
         SELECT DISTINCT number FROM line
     """
     )
-    suspend fun allLineNumbers(): List<Int>
+    suspend fun allLineNumbers(): List<LongLine>
 
     @Insert
     suspend fun insertConnStops(vararg connStops: ConnStop)

@@ -1,14 +1,18 @@
 package cz.jaro.dpmcb.ui.bus
 
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
-import java.time.LocalDate
+import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import kotlinx.datetime.LocalDate
 
 sealed interface BusState {
 
     sealed interface Exists : BusState {
-        val busName: String
+        val busName: BusName
         val timeCodes: List<String>
         val fixedCodes: List<String>
         val lineCode: String
@@ -18,12 +22,12 @@ sealed interface BusState {
     sealed interface OK : Exists {
 
         val stops: List<BusStop>
-        val lineNumber: Int
+        val lineNumber: ShortLine
         val lowFloor: Boolean
-        val sequence: String?
+        val sequence: SequenceCode?
         val sequenceName: String?
-        val nextBus: Pair<String, Boolean>?
-        val previousBus: Pair<String, Boolean>?
+        val nextBus: Pair<BusName, Boolean>?
+        val previousBus: Pair<BusName, Boolean>?
         val restriction: Boolean
         val traveledSegments: Int
         val lineHeight: Float
@@ -33,17 +37,17 @@ sealed interface BusState {
     }
 
     data class Offline(
-        override val busName: String,
+        override val busName: BusName,
         override val stops: List<BusStop>,
-        override val lineNumber: Int,
+        override val lineNumber: ShortLine,
         override val lowFloor: Boolean,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
         override val lineCode: String,
-        override val sequence: String?,
+        override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<String, Boolean>?,
-        override val previousBus: Pair<String, Boolean>?,
+        override val nextBus: Pair<BusName, Boolean>?,
+        override val previousBus: Pair<BusName, Boolean>?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
@@ -57,17 +61,17 @@ sealed interface BusState {
     }
 
     data class OnlineNotRunning(
-        override val busName: String,
+        override val busName: BusName,
         override val stops: List<BusStop>,
-        override val lineNumber: Int,
+        override val lineNumber: ShortLine,
         override val lowFloor: Boolean,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
         override val lineCode: String,
-        override val sequence: String?,
+        override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<String, Boolean>?,
-        override val previousBus: Pair<String, Boolean>?,
+        override val nextBus: Pair<BusName, Boolean>?,
+        override val previousBus: Pair<BusName, Boolean>?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
@@ -78,17 +82,17 @@ sealed interface BusState {
     ) : Online
 
     data class OnlineRunning(
-        override val busName: String,
+        override val busName: BusName,
         override val stops: List<BusStop>,
-        override val lineNumber: Int,
+        override val lineNumber: ShortLine,
         override val lowFloor: Boolean,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
         override val lineCode: String,
-        override val sequence: String?,
+        override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<String, Boolean>?,
-        override val previousBus: Pair<String, Boolean>?,
+        override val nextBus: Pair<BusName, Boolean>?,
+        override val previousBus: Pair<BusName, Boolean>?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
@@ -97,7 +101,7 @@ sealed interface BusState {
         override val error: Boolean,
         override val onlineConnStops: List<OnlineConnStop>,
         val delayMin: Float,
-        val vehicle: Int?,
+        val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int,
     ) : Online
@@ -107,7 +111,7 @@ sealed interface BusState {
             state: Offline,
             onlineConnStops: List<OnlineConnStop>,
             delayMin: Float,
-            vehicle: Int?,
+            vehicle: RegistrationNumber?,
             confirmedLowFloor: Boolean?,
             nextStopIndex: Int,
         ) = with(state) {
@@ -131,11 +135,11 @@ sealed interface BusState {
     data object Loading : BusState
 
     data class DoesNotExist(
-        val busName: String,
+        val busName: BusName,
     ) : BusState
 
     data class DoesNotRun(
-        override val busName: String,
+        override val busName: BusName,
         val date: LocalDate,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,

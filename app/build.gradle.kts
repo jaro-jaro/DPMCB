@@ -71,6 +71,7 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
 }
 
 dependencies {
@@ -153,4 +154,5 @@ dependencies {
 
     implementation(libs.androidx.browser)
     implementation(kotlin("reflect"))
+    implementation(libs.kotlinx.datetime)
 }

@@ -1,13 +1,14 @@
 package cz.jaro.dpmcb.data.realtions.timetable
 
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 data class CoreBusInTimetable(
     val departure: LocalTime,
     val lowFloor: Boolean,
-    val connName: String,
+    val connName: BusName,
     val destination: String,
     val fixedCodes: String,
     val type: TimeCodeType,

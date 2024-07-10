@@ -35,6 +35,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -48,53 +49,61 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DateTimePeriod
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atDate
+import kotlinx.datetime.atTime
+import kotlinx.datetime.periodUntil
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import java.io.File
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.math.absoluteValue
-import kotlin.time.toJavaDuration
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 object UtilFunctions {
 
-    fun LocalDate.toCzechLocative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
-        when (za) {
-            0L -> "dnes"
-            1L -> "zítra"
-            2L -> "pozítří"
-            in 3L..6L -> when (dayOfWeek!!) {
-                DayOfWeek.MONDAY -> "v pondělí"
-                DayOfWeek.TUESDAY -> "v úterý"
-                DayOfWeek.WEDNESDAY -> "ve středu"
-                DayOfWeek.THURSDAY -> "ve čtvrtek"
-                DayOfWeek.FRIDAY -> "v pátek"
-                DayOfWeek.SATURDAY -> "v sobotu"
-                DayOfWeek.SUNDAY -> "v neděli"
-            }
-
-            else -> asString()
+    fun LocalDate.toCzechLocative() = when (minus(SystemClock.today()).days) {
+        0 -> "dnes"
+        1 -> "zítra"
+        2 -> "pozítří"
+        in 3..6 -> when (dayOfWeek) {
+            DayOfWeek.MONDAY -> "v pondělí"
+            DayOfWeek.TUESDAY -> "v úterý"
+            DayOfWeek.WEDNESDAY -> "ve středu"
+            DayOfWeek.THURSDAY -> "ve čtvrtek"
+            DayOfWeek.FRIDAY -> "v pátek"
+            DayOfWeek.SATURDAY -> "v sobotu"
+            DayOfWeek.SUNDAY -> "v neděli"
         }
+
+        else -> asString()
     }
 
-    fun LocalDate.toCzechAccusative() = LocalDate.now().until(this, ChronoUnit.DAYS).let { za ->
-        when (za) {
-            0L -> "dnešek"
-            1L -> "zítřek"
-            2L -> "pozítří"
-            in 3L..6L -> when (dayOfWeek!!) {
-                DayOfWeek.MONDAY -> "pondělí"
-                DayOfWeek.TUESDAY -> "úterý"
-                DayOfWeek.WEDNESDAY -> "středu"
-                DayOfWeek.THURSDAY -> "čtvrtek"
-                DayOfWeek.FRIDAY -> "pátek"
-                DayOfWeek.SATURDAY -> "sobotu"
-                DayOfWeek.SUNDAY -> "neděli"
-            }
-
-            else -> asString()
+    fun LocalDate.toCzechAccusative() = when (minus(SystemClock.today()).days) {
+        0 -> "dnešek"
+        1 -> "zítřek"
+        2 -> "pozítří"
+        in 3..6 -> when (dayOfWeek) {
+            DayOfWeek.MONDAY -> "pondělí"
+            DayOfWeek.TUESDAY -> "úterý"
+            DayOfWeek.WEDNESDAY -> "středu"
+            DayOfWeek.THURSDAY -> "čtvrtek"
+            DayOfWeek.FRIDAY -> "pátek"
+            DayOfWeek.SATURDAY -> "sobotu"
+            DayOfWeek.SUNDAY -> "neděli"
         }
+
+        else -> asString()
     }
 
     inline fun <T> List<T>.reversedIf(predicate: (List<T>) -> Boolean): List<T> = if (predicate(this)) this.reversed() else this
@@ -229,20 +238,20 @@ object UtilFunctions {
         combine(this) { transform(it.toList()) }
 
     fun String?.toTimeWeirdly() = (this?.run {
-        LocalTime.of(slice(0..1).toInt(), slice(2..3).toInt())!!
+        LocalTime(slice(0..1).toInt(), slice(2..3).toInt())
     } ?: now)
 
     fun String?.toTime() = (this?.run {
         val list = split(":").map(String::toInt)
-        LocalTime.of(list[0], list[1])!!
+        LocalTime(list[0], list[1])
     } ?: now)
 
     fun String.toTimeOrNull() = this.run {
         val list = split(":").map(String::toIntOrNull)
-        LocalTime.of(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
+        LocalTime(list.getOrNull(0) ?: return@run null, list.getOrNull(1) ?: return@run null)
     }
 
-    fun String.toDateWeirdly() = LocalDate.of(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())!!
+    fun String.toDateWeirdly() = LocalDate(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())
 
     val Context.diagramFile get() = File(filesDir, "schema.pdf")
 
@@ -275,10 +284,10 @@ object UtilFunctions {
 
     fun <T> T.nullable(): T? = this
 
-    fun LocalDate.asString() = "$dayOfMonth. $monthValue. $year"
+    fun LocalDate.asString() = "$dayOfMonth. $monthNumber. $year"
 
-    val now get() = LocalTime.now().truncatedTo(ChronoUnit.MINUTES)!!
-    private val exactlyNow get() = LocalTime.now().truncatedTo(ChronoUnit.SECONDS)!!
+    val now get() = SystemClock.time().let { LocalTime(it.hour, it.minute) }
+    private val exactlyNow get() = SystemClock.time().let { LocalTime(it.hour, it.minute, it.second) }
 
     val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
@@ -289,8 +298,29 @@ object UtilFunctions {
         .flowOn(Dispatchers.IO)
         .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), now)
 
-    operator fun LocalTime.plus(duration: kotlin.time.Duration) = plus(duration.toJavaDuration())!!
-    operator fun LocalDate.plus(duration: kotlin.time.Duration) = plusDays(duration.inWholeDays)!!
+    fun LocalDateTime.plus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = toInstant(timeZone).plus(duration).toLocalDateTime(timeZone)
+    fun LocalDateTime.plus(period: DateTimePeriod, timeZone: TimeZone = DefaultTimeZone) = toInstant(timeZone).plus(period, timeZone).toLocalDateTime(timeZone)
+    operator fun LocalDateTime.plus(duration: Duration) = plus(duration, DefaultTimeZone)
+    operator fun LocalDateTime.plus(period: DateTimePeriod) = plus(period, DefaultTimeZone)
+    fun LocalTime.plus(duration: Duration, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(duration, timeZone).time
+    operator fun LocalTime.plus(duration: Duration) = atDate(SystemClock.today()).plus(duration).time
+    fun LocalTime.plus(period: DateTimePeriod, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(period, timeZone).time
+    operator fun LocalTime.plus(period: DateTimePeriod) = atDate(SystemClock.today()).plus(period).time
+    //    fun LocalTime.plusMinutes(minutes: Int) = LocalTime(hour, minute + minutes, second, nanosecond)
+    //    fun LocalTime.plusSeconds(seconds: Int) = LocalTime(hour, minute, second + seconds, nanosecond)
+    fun LocalDate.plus(period: DatePeriod, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).plus(period, timeZone).date
+    operator fun LocalDate.plus(period: DatePeriod) = plus(period, DefaultTimeZone)
+    fun LocalDate.plus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = plus(duration.toDatePeriod(), timeZone)
+    operator fun LocalDate.plus(duration: Duration) = plus(duration.toDatePeriod())
+
+    fun LocalDateTime.until(other: LocalDateTime, timeZone: TimeZone = DefaultTimeZone) = other.toInstant(timeZone).minus(toInstant(timeZone))
+    operator fun LocalDateTime.minus(other: LocalDateTime) = other.until(this, DefaultTimeZone)
+    fun LocalTime.until(other: LocalTime, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).until(other.atDate(date), timeZone)
+    operator fun LocalTime.minus(other: LocalTime) = other.until(this, SystemClock.today())
+    fun LocalDate.durationUntil(other: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).until(other.atTime(LocalTime.Noon), timeZone)
+    operator fun LocalDate.minus(other: LocalDate) = other.periodUntil(this)
+
+    private val LocalTime.Companion.Noon get() = LocalTime(0, 0)
 
 //    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
@@ -424,11 +454,38 @@ object UtilFunctions {
         }
     }
 
-    fun Int.regN() = if ("$this".length == 1) "0$this" else "$this"
+    fun RegistrationNumber.asString() = value.toLastDigits(2)
 
-    val noCode = LocalDate.of(1970, 1, 1)!!
+    val noCode = LocalDate(1970, 1, 1)
 
-    fun Int.two() = plus(100).toString().takeLast(2)
+    fun Int.two() = toLastDigits(2)
+
+    fun Int.toLastDigits(amount: Int) = toString().toLastDigits(amount)
+    fun String.toLastDigits(amount: Int) = ("0" * (amount - length) + this).takeLast(amount)
+    operator fun String.times(times: Int) = buildString {
+        if (times <= 0) return@buildString
+        repeat(times) {
+            append(this@times)
+        }
+    }
+
+    fun <T, U: Comparable<T>> List<U>.sorted() = sortedWith(compareBy { it })
+
+//    private fun LocalTime.copy(
+//        hour: Int = this.hour,
+//        minute: Int = this.minute,
+//        second: Int = this.second,
+//        nanosecond: Int = this.nanosecond,
+//    ) = LocalTime(hour, minute, second, nanosecond)
+    private fun Duration.truncatedToDays() = inWholeDays.days
+    private fun Duration.toDatePeriod() = DatePeriod(days = truncatedToDays().inWholeDays.toInt())
+
+    inline fun <T> Iterable<T>.indexOfFirstOrNull(predicate: (T) -> Boolean): Int? {
+        for ((index, item) in this.withIndex()) {
+            if (predicate(item)) return index
+        }
+        return null
+    }
 }
 
 typealias NavigateFunction = (Route) -> Unit
@@ -442,3 +499,9 @@ typealias MutateFunction<T> = (MutateLambda<T>) -> Unit
 typealias MutateLambda<T> = (T) -> T
 
 operator fun NavigateWithOptionsFunction.invoke(route: Route) = invoke(route, null)
+
+fun Clock.timeIn(timeZone: TimeZone) = now().toLocalDateTime(timeZone).time
+val SystemClock get() = Clock.System
+fun Clock.today() = todayIn(DefaultTimeZone)
+fun Clock.time() = timeIn(DefaultTimeZone)
+val DefaultTimeZone get() = TimeZone.currentSystemDefault()

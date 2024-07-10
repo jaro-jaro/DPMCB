@@ -2,14 +2,17 @@ package cz.jaro.dpmcb.ui.favourites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.tuples.Quintuple
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +23,7 @@ import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.days
 
 @KoinViewModel
 class FavouritesViewModel(
@@ -72,7 +75,7 @@ class FavouritesViewModel(
         }
         .combine(repo.date) { buses, date ->
             (buses ?: emptyList()).filterNotNull().map { (onlineConn, info, stops, runsAt, favourite) ->
-                if (onlineConn?.delayMin != null && date == LocalDate.now()) FavouriteState.Online(
+                if (onlineConn?.delayMin != null && date == SystemClock.today()) FavouriteState.Online(
                     busName = info.connName,
                     line = info.line,
                     delay = onlineConn.delayMin,
@@ -96,7 +99,7 @@ class FavouritesViewModel(
                     originStopTime = stops[favourite.start].time,
                     destinationStopName = stops[favourite.end].name,
                     destinationStopTime = stops[favourite.end].time,
-                    nextWillRun = List(365) { date.plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
+                    nextWillRun = List(365) { date + it.days }.firstOrNull { runsAt(it) },
                 )
             } to date
         }

@@ -4,7 +4,7 @@ import com.gitlab.mvysny.konsumexml.Konsumer
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTime
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 
 data class OnlineConnStop(
     val name: String,

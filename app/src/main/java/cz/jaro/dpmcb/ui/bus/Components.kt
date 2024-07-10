@@ -85,6 +85,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
@@ -102,12 +104,12 @@ import cz.jaro.dpmcb.ui.common.Wheelchair
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import java.io.File
-import java.time.LocalDate
 
 @Composable
 fun BusDoesNotExist(
-    busName: String,
+    busName: BusName,
 ) = ErrorMessage("Tento spoj ($busName) bohužel neexistuje :(\n Asi jste zadali špatně název.")
 
 context(ColumnScope)
@@ -116,7 +118,7 @@ fun BusDoesNotRun(
     runsNextTimeAfterToday: LocalDate?,
     onEvent: (BusEvent) -> Unit,
     runsNextTimeAfterDate: LocalDate?,
-    busName: String,
+    busName: BusName,
     date: LocalDate,
 ) {
     ErrorMessage(
@@ -264,7 +266,7 @@ fun SequenceRow(
 @OptIn(ExperimentalMaterial3Api::class)
 fun Favouritificator(
     onEvent: (BusEvent) -> Unit,
-    busName: String,
+    busName: BusName,
     favouritePartOfConn: PartOfConn?,
     stops: List<BusStop>,
 ) {
@@ -612,7 +614,7 @@ fun share(context: Context, state: BusState.Exists) {
 
 suspend fun shareImage(context: Context, state: BusState.Exists, bitmap: ImageBitmap) = withContext(Dispatchers.IO) {
     val d = context.filesDir
-    val f = File(d, "spoj_${state.busName.replace('/', '_')}.png")
+    val f = File(d, "spoj_${state.busName.value.replace('/', '_')}.png")
     f.createNewFile()
 
     f.outputStream().use { os ->
@@ -715,7 +717,7 @@ fun CodesAndShare(
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
-                .launchUrl(context, Uri.parse("https://jih.mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.replace('/', ',')},0"))
+                .launchUrl(context, Uri.parse("https://jih.mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
         }) {
             IconWithTooltip(Icons.Filled.Language, null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
@@ -790,7 +792,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
+        Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
         Wheelchair(
             lowFloor = state.lowFloor,
             confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,

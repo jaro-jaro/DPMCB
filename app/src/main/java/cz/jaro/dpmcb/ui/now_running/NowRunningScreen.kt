@@ -28,10 +28,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
@@ -177,7 +178,7 @@ fun NowRunningScreen(
                                             )
                                         }
                                     }
-                                    items(line.buses, key = { it.busName }) { bus ->
+                                    items(line.buses, key = { it.busName.value }) { bus ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -185,10 +186,10 @@ fun NowRunningScreen(
                                                     onEvent(NowRunningEvent.NavToBus(bus.busName))
                                                 }
                                         ) {
-                                            Text(text = "${bus.vehicle.regN()}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
+                                            Text(text = "${bus.vehicle.asString()}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
                                             Text(text = bus.nextStopTime.toString())
                                             Text(
-                                                text = bus.nextStopTime.plus(bus.delay.toInt().minutes).toString(),
+                                                text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
                                                 color = UtilFunctions.colorOfDelayText(bus.delay),
                                                 modifier = Modifier.padding(start = 8.dp)
                                             )
@@ -196,7 +197,7 @@ fun NowRunningScreen(
                                     }
                                 }
 
-                                is NowRunningResults.RegN -> items(state.result.list, key = { it.busName }) { bus ->
+                                is NowRunningResults.RegN -> items(state.result.list, key = { it.busName.value }) { bus ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -205,7 +206,7 @@ fun NowRunningScreen(
                                             }
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
-                                        Text(text = bus.vehicle.regN())
+                                        Text(text = bus.vehicle.asString())
                                     }
                                 }
 
@@ -233,7 +234,7 @@ fun NowRunningScreen(
                                     Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
                                 }
                             }
-                            items(state.nowNotRunning) {
+                            items(state.nowNotRunning, key = { it.first.value }) {
                                 Text(it.second, Modifier.clickable {
                                     onEvent(NowRunningEvent.NavToSeq(it.first))
                                 })
@@ -248,8 +249,8 @@ fun NowRunningScreen(
 
 @Composable
 fun Chip(
-    list: List<Int>,
-    lineNumber: Int,
+    list: List<ShortLine>,
+    lineNumber: ShortLine,
     onClick: (Boolean) -> Unit,
 ) = FilterChip(
     modifier = Modifier

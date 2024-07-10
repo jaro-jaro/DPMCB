@@ -70,17 +70,18 @@ import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePick
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.Result
-import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
@@ -95,12 +96,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toKotlinLocalTime
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.Duration
-import java.time.LocalDate
 import kotlin.math.abs
-import kotlin.math.roundToLong
+import kotlin.math.roundToInt
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 fun Departures(
@@ -110,8 +115,8 @@ fun Departures(
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
-                time = args.time.takeUnless { it == SimpleTime.invalid }?.toLocalTime() ?: now,
-                line = args.line.takeUnless { it == -1 },
+                time = args.time.takeUnless { it.isInvalid() }?.toLocalTime() ?: now,
+                line = args.line.takeUnless { it.isInvalid() },
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
@@ -250,7 +255,7 @@ fun DeparturesScreen(
                     showDialog = false
                 },
                 onTimeChange = {
-                    onEvent(ChangeTime(it))
+                    onEvent(ChangeTime(it.toKotlinLocalTime()))
                     showDialog = false
                 },
                 title = {
@@ -270,7 +275,7 @@ fun DeparturesScreen(
                         }
                     }
                 },
-                initialTime = info.time,
+                initialTime = info.time.toJavaLocalTime(),
             )
 
             TextButton(
@@ -611,7 +616,7 @@ private fun Card(
 
                 if (compact) {
                     Text(
-                        text = if (runsIn < Duration.ZERO || (runsIn > Duration.ofHours(1L) && delay == null)) "${departureState.time}" else runsIn.asString(),
+                        text = if (runsIn < Duration.ZERO || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
                         color = if (delay == null || runsIn < Duration.ZERO) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
                     )
                 } else {
@@ -619,7 +624,7 @@ private fun Card(
                         text = "${departureState.time}"
                     )
                     if (delay != null && runsIn > Duration.ZERO) Text(
-                        text = "${departureState.time.plusMinutes(delay.toLong())}",
+                        text = "${departureState.time + delay.toInt().minutes}",
                         color = colorOfDelayText(delay),
                         modifier = Modifier.padding(start = 8.dp)
                     )
@@ -638,7 +643,7 @@ private fun Card(
                         fontSize = 20.sp
                     )
                     Text(
-                        text = nextStop.second.plusMinutes(delay.roundToLong()).toString(),
+                        text = (nextStop.second + delay.roundToInt().minutes).toString(),
                         color = colorOfDelayText(delay)
                     )
                 }
@@ -648,8 +653,8 @@ private fun Card(
 }
 
 fun Duration.asString(): String {
-    val hours = toHours()
-    val minutes = (toMinutes() % 60).toInt()
+    val hours = inWholeHours
+    val minutes = (inWholeMinutes % 60).toInt()
 
     return when {
         hours == 0L && minutes == 0 -> "<1 min"

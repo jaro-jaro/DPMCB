@@ -79,12 +79,19 @@ import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.BusNumber
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -95,7 +102,6 @@ import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
-import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.map.Map
@@ -106,32 +112,41 @@ import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toKotlinLocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
 import kotlin.reflect.KClass
 
 inline fun <reified T : Route> typeMap() = when (T::class) {
+    Route.Bus::class -> mapOf(
+        serializationTypePair<LongLine>(),
+        serializationTypePair<BusNumber>(),
+    )
+
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
+        serializationTypePair<ShortLine>(),
     )
 
     Route.Departures::class -> mapOf(
-        typePair<SimpleTime>(
-            parseValue = { time ->
-                time.split(":").map(String::toInt).let { SimpleTime(h = it.work()[0], min = it[1]) }.work()
-            },
-            serializeAsValue = {
-                "${it.h}:${it.min}"
-            }
-        ),
-        serializationTypePair<Int?>(),
+        serializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
+        serializationTypePair<ShortLine?>(),
     )
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
-        serializationTypePair<List<Int>>(),
+        serializationTypePair<List<ShortLine>>(),
+    )
+
+    Route.Sequence::class -> mapOf(
+        serializationTypePair<SequenceCode>(),
+    )
+
+    Route.Timetable::class -> mapOf(
+        serializationTypePair<ShortLine>(),
     )
 
     else -> emptyMap()
@@ -226,47 +241,48 @@ fun Main(
         updateData = viewModel.updateData,
         removeCard = viewModel.removeCard,
         hasCard = hasCard,
-        findBusByEvn = viewModel.findBusByEvn,
+        findBusByRegN = viewModel.findBusByEvn,
         findSequences = viewModel.findSequences,
+        findLine = viewModel.findLine,
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = Route.Favourites,
-            popEnterTransition = {
-                scaleIn(
-                    animationSpec = tween(
-                        durationMillis = 100,
-                        delayMillis = 35,
-                    ),
-                    initialScale = 1.1F,
-                ) + fadeIn(
-                    animationSpec = tween(
-                        durationMillis = 100,
-                        delayMillis = 35,
-                    ),
-                )
-            },
-            popExitTransition = {
-                scaleOut(
-                    targetScale = 0.9F,
-                ) + fadeOut(
-                    animationSpec = tween(
-                        durationMillis = 35,
-                        easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
-                    ),
-                )
-            },
-        ) {
-            route<Route.Favourites> { Favourites(args = it, navController = navController) }
-            route<Route.Chooser> { Chooser(args = it, navController = navController) }
-            route<Route.Departures> { Departures(args = it, navController = navController) }
-            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
-            route<Route.Timetable> { Timetable(args = it, navController = navController) }
-            route<Route.Bus> { Bus(args = it, navController = navController) }
-            route<Route.Sequence> { Sequence(args = it, navController = navController) }
-            route<Route.Card> { Card(args = it, navController = navController) }
-            route<Route.Map> { Map(args = it, navController = navController) }
-        }
+            NavHost(
+                navController = navController,
+                startDestination = Route.Favourites,
+                popEnterTransition = {
+                    scaleIn(
+                        animationSpec = tween(
+                            durationMillis = 100,
+                            delayMillis = 35,
+                        ),
+                        initialScale = 1.1F,
+                    ) + fadeIn(
+                        animationSpec = tween(
+                            durationMillis = 100,
+                            delayMillis = 35,
+                        ),
+                    )
+                },
+                popExitTransition = {
+                    scaleOut(
+                        targetScale = 0.9F,
+                    ) + fadeOut(
+                        animationSpec = tween(
+                            durationMillis = 35,
+                            easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+                        ),
+                    )
+                },
+            ) {
+                route<Route.Favourites> { Favourites(args = it, navController = navController) }
+                route<Route.Chooser> { Chooser(args = it, navController = navController) }
+                route<Route.Departures> { Departures(args = it, navController = navController) }
+                route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
+                route<Route.Timetable> { Timetable(args = it, navController = navController) }
+                route<Route.Bus> { Bus(args = it, navController = navController) }
+                route<Route.Sequence> { Sequence(args = it, navController = navController) }
+                route<Route.Card> { Card(args = it, navController = navController) }
+                route<Route.Map> { Map(args = it, navController = navController) }
+            }
     }
 }
 
@@ -292,8 +308,9 @@ fun MainScreen(
     isAppUpdateNeeded: Boolean,
     updateData: () -> Unit,
     updateApp: () -> Unit,
-    findBusByEvn: (String, (String?) -> Unit) -> Unit,
-    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
+    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
+    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -552,8 +569,9 @@ fun MainScreen(
 //                                tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
                                 startActivity = startActivity,
-                                findBusByEvn = findBusByEvn,
-                                findSequences = findSequences
+                                findBusByRegN = findBusByRegN,
+                                findSequences = findSequences,
+                                findLine = findLine,
                             )
                         }
                     }
@@ -577,16 +595,17 @@ fun DrawerItem(
     changeDate: (LocalDate) -> Unit,
     closeDrawer: () -> Unit,
     startActivity: (KClass<out Activity>) -> Unit,
-    findBusByEvn: (String, (String?) -> Unit) -> Unit,
-    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
+    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
+    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
 ) = when (action) {
     DrawerAction.Feedback -> Feedback(startIntent, action, isOnline, showToast)
 
-    DrawerAction.FindBus -> FindBus(navigate, closeDrawer, findSequences, isOnline, showToast, findBusByEvn, action)
+    DrawerAction.FindBus -> FindBus(navigate, closeDrawer, findSequences, isOnline, showToast, findBusByRegN, findLine, action)
 
     DrawerAction.Date -> ChangeDate(date, changeDate)
 
-    else -> if (action == DrawerAction.NowRunning && date.value != LocalDate.now()) Unit
+    else -> if (action == DrawerAction.NowRunning && date.value != SystemClock.today()) Unit
     else NavigationDrawerItem(
         label = {
             Text(stringResource(action.label))
@@ -628,7 +647,7 @@ private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) 
                 showDialog = false
             },
             onDateChange = {
-                changeDate(it)
+                changeDate(it.toKotlinLocalDate())
                 showDialog = false
             },
             title = {
@@ -640,7 +659,7 @@ private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) 
                     Text("Změnit datum")
                     TextButton(
                         onClick = {
-                            changeDate(LocalDate.now())
+                            changeDate(SystemClock.today())
                             showDialog = false
                         }
                     ) {
@@ -648,7 +667,7 @@ private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) 
                     }
                 }
             },
-            initialDate = date.value,
+            initialDate = date.value.toJavaLocalDate(),
         )
 
         IconButton(
@@ -666,10 +685,11 @@ private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) 
 private fun FindBus(
     navigate: NavigateFunction,
     closeDrawer: () -> Unit,
-    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
     isOnline: State<Boolean>,
     showToast: (String, Int) -> Unit,
-    findBusByEvn: (String, (String?) -> Unit) -> Unit,
+    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
+    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
     action: DrawerAction,
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
@@ -681,7 +701,8 @@ private fun FindBus(
         findSequences = findSequences,
         isOnline = isOnline,
         showToast = showToast,
-        findBusByEvn = findBusByEvn
+        findBusByRegN = findBusByRegN,
+        findLine = findLine,
     )
 
     NavigationDrawerItem(

@@ -7,9 +7,16 @@ import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.asyncMap
@@ -21,10 +28,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.datetime.LocalTime
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.time.LocalDate
-import java.time.LocalTime
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -35,7 +41,7 @@ class NowRunningViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val filters: List<Int>,
+        val filters: List<ShortLine>,
         val type: NowRunningType,
         val navigate: NavigateFunction,
         val getNavDestination: () -> NavDestination?,
@@ -74,7 +80,7 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(Route.Sequence(sequence = e.seq))
+            params.navigate(Route.Sequence(sequence = e.seq.value))
         }
     }
 
@@ -82,7 +88,7 @@ class NowRunningViewModel(
         loading.value = true
         onlineConns
             .asyncMap { onlineConn ->
-                val bus = repo.nowRunningBus(onlineConn.name, LocalDate.now())
+                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.today())
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
@@ -152,7 +158,7 @@ class NowRunningViewModel(
     }
 
     private val lineNumbers = flow {
-        emit(repo.lineNumbers(LocalDate.now()))
+        emit(repo.lineNumbers(SystemClock.today()))
     }
 
     private val nowNotRunning = combine(repo.nowRunningOrNot, nowRunning, filters) { nowRunning, result, filters ->
@@ -163,13 +169,13 @@ class NowRunningViewModel(
         }
 
         nowRunning.filter { (seq, lines) ->
-            seq !in reallyRunning && (lines.any { it in  filters} || filters.isEmpty())
-        }.map { it.first to repo.seqName(it.first) }
+            seq !in reallyRunning && (lines.any { it.toShortLine() in filters} || filters.isEmpty())
+        }.map { it.first to with(repo) { it.first.seqName() } }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state =
         combine(repo.date, lineNumbers, filteredResult, loading, repo.hasAccessToMap, filters, type, nowNotRunning) { date, lineNumbers, result, listIsLoading, isOnline, filters, type, nowNotRunning ->
-            if (date != LocalDate.now()) return@combine NowRunningState.IsNotToday
+            if (date != SystemClock.today()) return@combine NowRunningState.IsNotToday
 
             if (!isOnline) return@combine NowRunningState.Offline
 
@@ -183,16 +189,16 @@ class NowRunningViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
 
     data class RunningConnPlus(
-        val busName: String,
+        val busName: BusName,
         val nextStopName: String,
         val nextStopTime: LocalTime,
         val delay: Float,
         val indexOnLine: Int,
         val direction: Direction,
-        val lineNumber: Int,
+        val lineNumber: ShortLine,
         val destination: String,
-        val vehicle: Int,
-        val sequence: String?,
+        val vehicle: RegistrationNumber,
+        val sequence: SequenceCode?,
     ) {
         fun toRunningDelayedBus() = RunningDelayedBus(
             busName = busName,

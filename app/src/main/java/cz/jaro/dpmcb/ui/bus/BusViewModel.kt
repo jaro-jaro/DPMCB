@@ -5,13 +5,18 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.invoke
+import cz.jaro.dpmcb.data.helperclasses.time
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,9 +29,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -34,7 +38,7 @@ import kotlin.time.Duration.Companion.seconds
 class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val busName: String,
+    @InjectedParam private val busName: BusName,
     @InjectedParam private val navigate: NavigateWithOptionsFunction,
 ) : ViewModel() {
 
@@ -48,8 +52,8 @@ class BusViewModel(
             return@combine BusState.DoesNotRun(
                 busName = busName,
                 date = date,
-                runsNextTimeAfterToday = List(365) { LocalDate.now().plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
-                runsNextTimeAfterDate = List(365) { date.plusDays(it.toLong()) }.firstOrNull { runsAt(it) },
+                runsNextTimeAfterToday = List(365) { SystemClock.today() + it.days }.firstOrNull { runsAt(it) },
+                runsNextTimeAfterDate = List(365) { date + it.days }.firstOrNull { runsAt(it) },
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
@@ -72,9 +76,9 @@ class BusViewModel(
             favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,
             traveledSegments = 0,
-            error = online && date == LocalDate.now() && bus.stops.first().time <= LocalTime.now() && LocalTime.now() <= bus.stops.last().time,
+            error = online && date == SystemClock.today() && bus.stops.first().time <= SystemClock.time() && SystemClock.time() <= bus.stops.last().time,
             sequence = bus.info.sequence,
-            sequenceName = bus.info.sequence?.let { repo.seqName(bus.info.sequence) },
+            sequenceName = with(repo) { bus.info.sequence?.seqName() },
             previousBus = bus.sequence?.let { seq ->
                 val i = seq.indexOf(busName)
                 seq.getOrNull(i - 1)?.to(false)
@@ -149,7 +153,7 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence!!))
+                navigate(Route.Sequence(state.sequence!!.value))
             }
             Unit
         }
@@ -171,8 +175,8 @@ class BusViewModel(
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
-            date > LocalDate.now() -> null
-            date < LocalDate.now() -> info.stops.lastIndex
+            date > SystemClock.today() -> null
+            date < SystemClock.today() -> info.stops.lastIndex
             state.onlineConnDetail?.nextStopIndex != null -> state.onlineConnDetail.nextStopIndex - 1
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex
@@ -180,23 +184,23 @@ class BusViewModel(
         }
     }
 
-    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments) { info, state, now, traveledSegments ->
+    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments, repo.date) { info, state, now, traveledSegments, date ->
 
         if (info !is BusState.OK) return@combine 0F
 
         if (traveledSegments == null) return@combine 0F
 
-        val departureFromLastStop = info.stops[traveledSegments].time + (state.delay ?: 0.minutes)
+        val departureFromLastStop = info.stops[traveledSegments].time.plus(state.delay ?: 0.minutes)
 
         val arrivalToNextStop = state.onlineConnDetail?.stops?.getOrNull(traveledSegments + 1)?.let {
-            it.scheduledTime + it.delay.minutes + (state.delay?.inWholeSeconds?.rem(60)?.seconds ?: 0.seconds)
+            it.scheduledTime.plus(it.delay.minutes).plus(state.delay ?: 0.seconds)
         } ?: (info.stops.getOrNull(traveledSegments + 1)?.time?.plus(state.delay ?: 0.minutes))
 
-        val length = arrivalToNextStop?.let { Duration.between(departureFromLastStop, it) } ?: Duration.ofSeconds(Long.MAX_VALUE)
+        val length = arrivalToNextStop?.minus(departureFromLastStop) ?: Duration.INFINITE
 
-        val passed = Duration.between(departureFromLastStop, now).coerceAtLeast(Duration.ZERO)
+        val passed = (now - departureFromLastStop).coerceAtLeast(Duration.ZERO)
 
-        traveledSegments + (passed.seconds / length.seconds.toFloat()).coerceIn(0F, 1F)
+        traveledSegments + (passed.inWholeSeconds / length.inWholeSeconds.toFloat()).coerceIn(0F, 1F)
     }
 
     val state = combine(info, traveledSegments, lineHeight, onlineState) { info, traveledSegments, lineHeight, onlineState ->

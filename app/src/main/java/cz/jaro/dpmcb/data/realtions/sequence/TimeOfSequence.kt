@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions.sequence
 
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 
 data class TimeOfSequence(
     val sequence: String,

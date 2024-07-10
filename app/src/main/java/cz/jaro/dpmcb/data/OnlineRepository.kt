@@ -7,7 +7,12 @@ import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.gitlab.mvysny.konsumexml.textRecursively
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnDetail
@@ -27,12 +32,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType
 import okhttp3.RequestBody
 import org.koin.core.annotation.Single
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @Single
 class OnlineRepository(
@@ -45,7 +51,7 @@ class OnlineRepository(
     private val connsFlow: SharedFlow<List<OnlineConn>> = flow {
         while (currentCoroutineContext().isActive) {
             emit((
-                if (repo.isOnlineModeEnabled.value && repo.date.value == LocalDate.now()) withContext(Dispatchers.IO) {
+                if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.today()) withContext(Dispatchers.IO) {
                     if (!ctx.isOnline) return@withContext null
                     val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
                     val response = try {
@@ -94,7 +100,7 @@ class OnlineRepository(
     fun nowRunningBuses() =
         connsFlow
 
-    private val connDeatilFlowMap = mutableMapOf<String, SharedFlow<OnlineConnDetail?>>()
+    private val connDeatilFlowMap = mutableMapOf<BusName, SharedFlow<OnlineConnDetail?>>()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -108,11 +114,11 @@ class OnlineRepository(
         "referer" to "https://jih.mpvnet.cz/jikord/map",
     )
 
-    private fun busDetail(busName: String) = connDeatilFlowMap.getOrPut(busName) {
+    private fun busDetail(busName: BusName) = connDeatilFlowMap.getOrPut(busName) {
         flow {
             while (currentCoroutineContext().isActive) {
                 emit(
-                    if (repo.isOnlineModeEnabled.value && repo.date.value == LocalDate.now()) withContext(Dispatchers.IO) {
+                    if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.today()) withContext(Dispatchers.IO) {
 
                         if (!ctx.isOnline) return@withContext null
                         val response = try {
@@ -120,7 +126,7 @@ class OnlineRepository(
                                 headers = headers,
                                 body = RequestBody.create(
                                     MediaType.parse("application/json; charset=utf-8"),
-                                    """{"num1":"${busName.split("/")[0]}","num2":"${busName.split("/")[1]}","cat":"2"}"""
+                                    """{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}"""
                                 ),
                             )
                         } catch (e: Exception) {
@@ -184,12 +190,12 @@ class OnlineRepository(
             )
     }
 
-    fun busByName(name: String) =
+    fun busByName(name: BusName) =
         busOnMapByName(name).combine(busDetail(name)) { onlineConn, connDetail ->
             onlineConn to connDetail
         }
 
-    fun busOnMapByName(name: String) = nowRunningBuses().map { it.busOnMapByName(name) }
+    fun busOnMapByName(name: BusName) = nowRunningBuses().map { it.busOnMapByName(name) }
 }
 
-fun List<OnlineConn>.busOnMapByName(name: String) = find { it.name == name }
+fun List<OnlineConn>.busOnMapByName(name: BusName) = find { it.name == name }

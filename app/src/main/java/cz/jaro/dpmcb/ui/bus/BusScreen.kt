@@ -26,6 +26,8 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.slash
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
@@ -47,7 +49,7 @@ fun Bus(
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf("${args.lineNumber}/${args.busNumber}", navigate))
+            ParametersHolder(mutableListOf(args.lineNumber slash args.busNumber, navigate))
         }
     },
 ) {
@@ -100,7 +102,7 @@ fun BusScreen(
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Name("${state.lineNumber}", subName = "/${state.busName.split('/')[1]}")
+                        Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
                         Wheelchair(
                             lowFloor = state.lowFloor,
                             confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,

@@ -1,12 +1,13 @@
 package cz.jaro.dpmcb.data.realtions.favourites
 
+import cz.jaro.dpmcb.data.entities.BusName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("PartOfConn")
 data class PartOfConn(
-    val busName: String,
+    val busName: BusName,
     val start: Int,
     val end: Int,
 ) {
@@ -16,6 +17,6 @@ data class PartOfConn(
 
     companion object {
         @Suppress("FunctionName")
-        fun Empty(busName: String) = PartOfConn(busName, -1, -1)
+        fun Empty(busName: BusName) = PartOfConn(busName, -1, -1)
     }
 }

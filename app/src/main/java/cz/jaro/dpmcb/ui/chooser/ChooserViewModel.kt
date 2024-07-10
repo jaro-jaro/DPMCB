@@ -3,8 +3,11 @@ package cz.jaro.dpmcb.ui.chooser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.sorted
 import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
@@ -16,10 +19,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.text.Normalizer
-import java.time.LocalDate
 
 @KoinViewModel
 class ChooserViewModel(
@@ -29,7 +32,7 @@ class ChooserViewModel(
 
     data class Parameters(
         val type: ChooserType,
-        val lineNumber: Int = -1,
+        val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String?,
         val navigate: NavigateFunction,
         val navigateBack: NavigateBackFunction<Result>,
@@ -121,7 +124,7 @@ class ChooserViewModel(
 
             ChooserType.Lines -> params.navigate(
                 Route.Chooser(
-                    lineNumber = result.toInt(),
+                    lineNumber = result.toShortLine(),
                     stop = null,
                     type = ChooserType.LineStops
                 )

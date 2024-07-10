@@ -13,26 +13,29 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.time
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun FABs(state: SequenceState.OK, lazyListState: LazyListState, date: LocalDate) {
     fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 4
 
     val now = remember(state.buses) {
-        if (date != LocalDate.now()) null
+        if (date != SystemClock.today()) null
         else state.buses.indexOfFirst {
             it.isRunning
         }.takeUnless {
             it == -1
         } ?: state.buses.indexOfFirst {
-            LocalTime.now() < it.stops.last().time
+            SystemClock.time() < it.stops.last().time
         }.takeIf {
-            state.runsToday && state.buses.first().stops.first().time < LocalTime.now() && LocalTime.now() < state.buses.last().stops.last().time
+            state.runsToday && state.buses.first().stops.first().time < SystemClock.time() && SystemClock.time() < state.buses.last().stops.last().time
         }
     }
 
@@ -92,10 +95,10 @@ fun BusButton(
 @Composable
 fun Connection(
     navigate: NavigateFunction,
-    sequence: Pair<String, String>,
+    sequence: Pair<SequenceCode, String>,
 ) = TextButton(
     onClick = {
-        navigate(Route.Sequence(sequence.first))
+        navigate(Route.Sequence(sequence.first.value))
     }
 ) {
     Text(sequence.second)

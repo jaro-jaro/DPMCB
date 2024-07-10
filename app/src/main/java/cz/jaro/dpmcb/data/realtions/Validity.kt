@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 data class Validity(
     val validFrom: LocalDate,

@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.bus
 
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 sealed interface BusEvent {
     data class ChangeFavourite(val newFavourite: PartOfConn) : BusEvent

@@ -26,11 +26,14 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
@@ -38,7 +41,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
@@ -113,7 +116,7 @@ fun FavouritesScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsToday) {
+        items(state.runsToday, key = { it.busName.value }) {
             val content: @Composable ColumnScope.() -> Unit = {
                 Row(
                     modifier = Modifier
@@ -136,7 +139,7 @@ fun FavouritesScreen(
                             Text(text = it.currentStopName, color = MaterialTheme.colorScheme.secondary)
                             Spacer(modifier = Modifier.weight(1F))
                             Text(
-                                text = "${it.currentStopTime.plusMinutes(it.delay.toLong())}",
+                                text = "${it.currentStopTime + it.delay.toInt().minutes}",
                                 color = colorOfDelayText(it.delay),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
@@ -153,7 +156,7 @@ fun FavouritesScreen(
                     Text(text = it.originStopName)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it is FavouriteState.Online && it.positionOfCurrentStop == -1) Text(
-                        text = "${it.originStopTime.plusMinutes(it.delay.toLong())}",
+                        text = "${it.originStopTime + it.delay.toInt().minutes}",
                         color = colorOfDelayText(it.delay),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.originStopTime}")
@@ -167,7 +170,7 @@ fun FavouritesScreen(
                     Text(text = it.destinationStopName)
                     Spacer(modifier = Modifier.weight(1F))
                     if (it is FavouriteState.Online && it.positionOfCurrentStop < 1) Text(
-                        text = "${it.destinationStopTime.plusMinutes(it.delay.toLong())}",
+                        text = "${it.destinationStopTime + it.delay.toInt().minutes}",
                         color = colorOfDelayText(it.delay),
                         modifier = Modifier.padding(start = 8.dp)
                     ) else Text(text = "${it.destinationStopTime}")
@@ -208,7 +211,7 @@ fun FavouritesScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsOtherDay, key = { it.busName }) {
+        items(state.runsOtherDay, key = { it.busName.value }) {
 
             OutlinedCard(
                 onClick = {
@@ -245,7 +248,7 @@ fun FavouritesScreen(
                 }
                 if (it.nextWillRun != null) {
                     Text(
-                        text = "Další pojede ${if (state.today != LocalDate.now()) it.nextWillRun.asString() else it.nextWillRun.toCzechLocative()}", Modifier
+                        text = "Další pojede ${if (state.today != SystemClock.today()) it.nextWillRun.asString() else it.nextWillRun.toCzechLocative()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )
