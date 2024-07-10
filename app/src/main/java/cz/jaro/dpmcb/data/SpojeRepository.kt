@@ -45,7 +45,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.helperclasses.time
 import cz.jaro.dpmcb.data.helperclasses.today
 import cz.jaro.dpmcb.data.realtions.BusInfo
@@ -613,9 +612,9 @@ class SpojeRepository(
     }
 
     suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning =
-        localDataSource.connWithItsStops(busName, nowUsedTable(date, busName.line().work(date, busName)).work()!!)
-            .toList().work()
-            .first { date.isThisTableNowUsed(it.first.tab).work(it.first.tab) }
+        localDataSource.connWithItsStops(busName, nowUsedTable(date, busName.line())!!)
+            .toList()
+            .first { date.isThisTableNowUsed(it.first.tab) }
             .let { (conn, stops) ->
                 NowRunning(
                     busName = conn.name,
