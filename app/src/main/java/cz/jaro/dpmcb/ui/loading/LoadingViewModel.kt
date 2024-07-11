@@ -585,13 +585,12 @@ class LoadingViewModel(
                                         sequence = seq?.first,
                                         orderInSequence = seq?.second?.indexOf(row[0] slash row[1])?.takeUnless { it == -1 },
                                     ).also { conn ->
-//                                    if (timeCodesOfTable.none { it.connNumber == conn.connNumber })
                                         timeCodesOfTable += TimeCode(
                                             line = conn.line,
                                             connNumber = conn.connNumber,
-                                            code = 0,
+                                            code = -1,
                                             termIndex = 0,
-                                            type = TimeCodeType.DoesNotRun,
+                                            type = if (timeCodesOfTable.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun,
                                             validFrom = noCode,
                                             validTo = noCode,
                                             tab = conn.tab,
