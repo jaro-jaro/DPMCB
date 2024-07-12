@@ -32,13 +32,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType
-import okhttp3.RequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.core.annotation.Single
-import kotlinx.datetime.LocalDate
 
 @Single
 class OnlineRepository(
@@ -57,10 +55,7 @@ class OnlineRepository(
                     val response = try {
                         onlineApi.mapData(
                             headers = headers,
-                            body = RequestBody.create(
-                                MediaType.parse("application/json; charset=utf-8"),
-                                data
-                            ),
+                            body = data.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
                         )
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -124,10 +119,8 @@ class OnlineRepository(
                         val response = try {
                             onlineApi.timetable(
                                 headers = headers,
-                                body = RequestBody.create(
-                                    MediaType.parse("application/json; charset=utf-8"),
-                                    """{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}"""
-                                ),
+                                body = """{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}"""
+                                    .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
                             )
                         } catch (e: Exception) {
                             e.printStackTrace()

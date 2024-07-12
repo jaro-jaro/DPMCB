@@ -300,7 +300,7 @@ class LoadingViewModel(
             }
 
             val sequencesRef = storage.reference.child("kurzy2.json")
-            val diagramRef = storage.reference.child("schema.pdf")
+            val diagramRef = storage.reference.child("schema.svg")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
             val dataFile = params.dataFile
@@ -356,7 +356,7 @@ class LoadingViewModel(
             }
 
             val sequencesRef = storage.reference.child("kurzy.json")
-            val diagramRef = storage.reference.child("schema.pdf")
+            val diagramRef = storage.reference.child("schema.svg")
 
             val dataFile = params.dataFile
 

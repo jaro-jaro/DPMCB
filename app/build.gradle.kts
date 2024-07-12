@@ -84,8 +84,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // PDF Viewer
-    implementation(libs.pdf.viewer)
+    // Kotlin reflection
+    implementation(kotlin("reflect"))
+
+    // SVG Viewer
+    implementation(libs.coil.svg)
+    implementation(libs.zoomable.image.coil)
 
     // Kotlinx Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -141,6 +145,9 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
 
+    // Kotlinx DateTime
+    implementation(libs.kotlinx.datetime)
+
     // Semantic versioning
     implementation(libs.semver)
 
@@ -152,7 +159,6 @@ dependencies {
     implementation(libs.stax.api)
     implementation(libs.aalto.xml)
 
+    // ChNT
     implementation(libs.androidx.browser)
-    implementation(kotlin("reflect"))
-    implementation(libs.kotlinx.datetime)
 }
