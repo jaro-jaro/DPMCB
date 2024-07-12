@@ -454,14 +454,16 @@ object UtilFunctions {
         }
     }
 
-    fun RegistrationNumber.asString() = value.toLastDigits(2)
+    fun RegistrationNumber.asString() = value.atLeastDigits(2)
 
     val noCode = LocalDate(1970, 1, 1)
 
     fun Int.two() = toLastDigits(2)
 
+    fun Int.atLeastDigits(amount: Int) = toString().toLastDigits(amount)
+    fun String.atLeastDigits(amount: Int) = "0" * (amount - length) + this
     fun Int.toLastDigits(amount: Int) = toString().toLastDigits(amount)
-    fun String.toLastDigits(amount: Int) = ("0" * (amount - length) + this).takeLast(amount)
+    fun String.toLastDigits(amount: Int) = atLeastDigits(amount).takeLast(amount)
     operator fun String.times(times: Int) = buildString {
         if (times <= 0) return@buildString
         repeat(times) {
