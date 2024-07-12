@@ -732,6 +732,11 @@ class SpojeRepository(
             .toList()
             .first { date.isThisTableNowUsed(it.first) }
             .second
+
+    fun reset() {
+        sequencesMap.clear()
+        tablesMap.clear()
+    }
 }
 
 private infix fun List<RunsFromTo>.anyAre(type: TimeCodeType) = any { it.type == type }

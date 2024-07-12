@@ -294,6 +294,7 @@ class LoadingViewModel(
             }
 
             db.clearAllTables()
+            repo.reset()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
@@ -354,6 +355,8 @@ class LoadingViewModel(
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)" to 0F
             }
+
+            repo.reset()
 
             val sequencesRef = storage.reference.child("kurzy.json")
             val diagramRef = storage.reference.child("schema.pdf")
