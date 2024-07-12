@@ -460,7 +460,7 @@ object UtilFunctions {
 
     fun Int.two() = toLastDigits(2)
 
-    fun Int.atLeastDigits(amount: Int) = toString().toLastDigits(amount)
+    fun Int.atLeastDigits(amount: Int) = toString().atLeastDigits(amount)
     fun String.atLeastDigits(amount: Int) = "0" * (amount - length) + this
     fun Int.toLastDigits(amount: Int) = toString().toLastDigits(amount)
     fun String.toLastDigits(amount: Int) = atLeastDigits(amount).takeLast(amount)
