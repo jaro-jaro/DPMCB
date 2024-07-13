@@ -36,9 +36,9 @@ import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.isUnknown
 import cz.jaro.dpmcb.data.entities.shortLine
-import cz.jaro.dpmcb.data.entities.slash
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
@@ -118,9 +118,9 @@ fun FindBusDialog(
         confirmButton = {
             TextButton(onClick = {
                 if (line.isNotEmpty() && number.isNotEmpty()) {
-                    if (line.length == 6) confirm(line slash number)
+                    if (line.length == 6) confirm(line / number)
                     else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
-                        if (it != null) confirm(it slash number)
+                        if (it != null) confirm(it / number)
                         else {
                             showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
                             onDismiss()
@@ -149,7 +149,7 @@ fun FindBusDialog(
                     findSequence(sequence)
                 } else if (name.isUnknown()) {
                     findLine(name.shortLine()) {
-                        if (it != null) confirm(it slash number)
+                        if (it != null) confirm(it / number)
                         else {
                             showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
                             onDismiss()
@@ -206,9 +206,9 @@ fun FindBusDialog(
                         },
                         keyboardActions = KeyboardActions {
                             if (line.isNotEmpty() && number.isNotEmpty())
-                                if (line.length == 6) confirm(line slash number)
+                                if (line.length == 6) confirm(line / number)
                                 else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
-                                    if (it != null) confirm(it slash number)
+                                    if (it != null) confirm(it / number)
                                     else {
                                         showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
                                         onDismiss()

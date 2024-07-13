@@ -68,6 +68,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -643,13 +644,25 @@ fun copy(clipboardManager: ClipboardManager, state: BusState.Exists) {
 
 context(ColumnScope)
 @Composable
+fun CodesAndShare(
+    state: BusState.Exists,
+) = CodesAndShare(
+    state = state,
+    graphicsLayerWhole = rememberGraphicsLayer(),
+    graphicsLayerPart = rememberGraphicsLayer(),
+    part = PartOfConn.Empty(state.busName),
+    editPart = { },
+)
+
+context(ColumnScope)
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun CodesAndShare(
     state: BusState.Exists,
-    graphicsLayerWhole: GraphicsLayer = rememberGraphicsLayer(),
-    graphicsLayerPart: GraphicsLayer = rememberGraphicsLayer(),
-    part: PartOfConn = PartOfConn.Empty(state.busName),
-    editPart: MutateFunction<PartOfConn> = { },
+    graphicsLayerWhole: GraphicsLayer,
+    graphicsLayerPart: GraphicsLayer,
+    part: PartOfConn,
+    editPart: MutateFunction<PartOfConn>,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -747,12 +760,12 @@ fun CodesAndShare(
                     onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_COPY) } },
                     trailingIcon = { IconWithTooltip(Icons.Default.ContentCopy, null) }
                 )
-                DropdownMenuItem(
+                if (state is BusState.OK) DropdownMenuItem(
                     text = { Text("Sdílet s obrázkem") },
                     onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_ADD_IMAGE) } },
                     trailingIcon = { IconWithTooltip(Icons.Default.Image, null) }
                 )
-                DropdownMenuItem(
+                if (state is BusState.OK) DropdownMenuItem(
                     text = { Text("Sdílet obrázek části spoje") },
                     onClick = { scope.launch { BroadcastReceiver.clicked.send(BroadcastReceiver.TYPE_SHARE_PART) } },
                     trailingIcon = { IconWithTooltip(Icons.Default.Timeline, null) }
@@ -779,17 +792,18 @@ fun CodesAndShare(
 fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfConn?) = Column(
     modifier = Modifier
         .fillMaxWidth()
-        .background(MaterialTheme.colorScheme.background)
         .drawWithContent {
             graphicsLayer.record {
                 this@drawWithContent.drawContent()
             }
         }
+        .clip(MaterialTheme.shapes.medium)
+        .background(MaterialTheme.colorScheme.background)
+        .padding(bottom = 8.dp, start = 8.dp, end = 8.dp, top = 8.dp)
 ) {
     Row(
         Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
@@ -801,7 +815,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         )
 
         if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
-        if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
+        if (state is BusState.OnlineRunning) Vehicle(state.vehicle, showInfoButton = false)
     }
     OutlinedCard(
         modifier = Modifier

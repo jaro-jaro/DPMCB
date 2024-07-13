@@ -46,5 +46,8 @@ enum class Theme(
         lightColorScheme = LightColorsPink,
         darkColorScheme = DarkColorsPink,
         jmeno = "Růžové",
-    ),
+    );
+    companion object {
+        val Default = Yellow
+    }
 }

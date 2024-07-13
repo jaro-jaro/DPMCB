@@ -27,7 +27,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.bus
-import cz.jaro.dpmcb.data.entities.slash
+import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
@@ -49,7 +49,7 @@ fun Bus(
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf(args.lineNumber slash args.busNumber, navigate))
+            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate))
         }
     },
 ) {
@@ -99,7 +99,7 @@ fun BusScreen(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
