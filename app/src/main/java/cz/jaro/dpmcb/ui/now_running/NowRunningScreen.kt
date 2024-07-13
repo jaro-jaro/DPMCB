@@ -30,7 +30,6 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
@@ -186,7 +185,7 @@ fun NowRunningScreen(
                                                     onEvent(NowRunningEvent.NavToBus(bus.busName))
                                                 }
                                         ) {
-                                            Text(text = "${bus.vehicle.asString()}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
+                                            Text(text = "${bus.vehicle}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
                                             Text(text = bus.nextStopTime.toString())
                                             Text(
                                                 text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
@@ -206,7 +205,7 @@ fun NowRunningScreen(
                                             }
                                     ) {
                                         Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
-                                        Text(text = bus.vehicle.asString())
+                                        Text(text = "${bus.vehicle}")
                                     }
                                 }
 

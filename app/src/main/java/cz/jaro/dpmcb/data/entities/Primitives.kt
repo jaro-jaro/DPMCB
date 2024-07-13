@@ -40,6 +40,7 @@ value class BusName(val value: String) { override fun toString() = value }
 @JvmInline
 value class RegistrationNumber(val value: Int): Comparable<RegistrationNumber> {
     override fun compareTo(other: RegistrationNumber) = value.compareTo(other.value)
+    override fun toString() = value.atLeastDigits(2)
 }
 @Serializable
 @JvmInline
