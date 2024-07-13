@@ -35,7 +35,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
-import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -453,8 +452,6 @@ object UtilFunctions {
             )
         }
     }
-
-    fun RegistrationNumber.asString() = value.atLeastDigits(2)
 
     val noCode = LocalDate(1970, 1, 1)
 

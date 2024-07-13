@@ -60,7 +60,6 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -442,7 +441,7 @@ fun TimetableText(
 fun Vehicle(vehicle: RegistrationNumber?) {
     if (vehicle != null) {
         Text(
-            text = "ev. č. ${vehicle.asString()}",
+            text = "ev. č. $vehicle",
             Modifier.padding(horizontal = 8.dp),
         )
         val context = LocalContext.current
@@ -453,7 +452,7 @@ fun Vehicle(vehicle: RegistrationNumber?) {
                 CustomTabsIntent.Builder()
                     .setShowTitle(true)
                     .build()
-                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=${vehicle.asString()}"))
+                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle"))
             },
         )
     }

@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.data.entities
 
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
 import kotlinx.serialization.Serializable
 import kotlin.contracts.ExperimentalContracts
@@ -10,7 +11,7 @@ import kotlin.contracts.contract
 value class StopNumber(val value: Int) { override fun toString() = value.toString() }
 @Serializable
 @JvmInline
-value class Table(val value: String)
+value class Table(val value: String)  { override fun toString() = value }
 @Serializable
 @JvmInline
 value class LongLine(val value: Int) { override fun toString() = value.toString() }
@@ -34,15 +35,16 @@ fun ShortLine?.isInvalid() = this == null || isInvalid()
 value class BusNumber(val value: Int) { override fun toString() = value.toString() }
 @Serializable
 @JvmInline
-value class BusName(val value: String)
+value class BusName(val value: String) { override fun toString() = value }
 @Serializable
 @JvmInline
 value class RegistrationNumber(val value: Int): Comparable<RegistrationNumber> {
     override fun compareTo(other: RegistrationNumber) = value.compareTo(other.value)
+    override fun toString() = value.atLeastDigits(2)
 }
 @Serializable
 @JvmInline
-value class SequenceCode(val value: String)
+value class SequenceCode(val value: String) { override fun toString() = value }
 
 typealias UnknownBusName = BusName
 
