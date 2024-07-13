@@ -6,7 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -20,9 +22,10 @@ fun DPMCBTheme(
     doTheThing: Boolean = true,
     content: @Composable () -> Unit,
 ) {
+    val dynamicColor = useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     val colorScheme = when {
-        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> when {
+        dynamicColor -> when {
             useDarkTheme -> dynamicDarkColorScheme(LocalContext.current)
             else -> dynamicLightColorScheme(LocalContext.current)
         }
@@ -42,8 +45,18 @@ fun DPMCBTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalIsDynamicThemeUsed provides dynamicColor,
+        LocalIsDarkThemeUsed provides useDarkTheme,
+        LocalTheme provides theme.takeUnless { dynamicColor }
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content,
+        )
+    }
 }
+
+val LocalTheme = staticCompositionLocalOf<Theme?> { error("CompositionLocal LocalTheme not present") }
+val LocalIsDynamicThemeUsed = staticCompositionLocalOf<Boolean> { error("CompositionLocal LocalTheme not present") }
+val LocalIsDarkThemeUsed = staticCompositionLocalOf<Boolean> { error("CompositionLocal LocalIsDarkThemeUsed not present") }

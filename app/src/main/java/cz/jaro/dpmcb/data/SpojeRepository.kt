@@ -22,6 +22,7 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.changePart
+import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.generic
 import cz.jaro.dpmcb.data.entities.hasPart
 import cz.jaro.dpmcb.data.entities.hasType
@@ -29,7 +30,6 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
-import cz.jaro.dpmcb.data.entities.slash
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.typeChar
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
@@ -542,7 +542,7 @@ class SpojeRepository(
 
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
         localDataSource.departures(stop, allTables(date))
-            .groupBy { it.line slash it.connNumber to it.stopIndexOnLine }
+            .groupBy { it.line / it.connNumber to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
                 val timeCodes = list.map { RunsFromTo(it.type, it.from..it.to) }.distinctBy { it.type to it.`in`.toString() }

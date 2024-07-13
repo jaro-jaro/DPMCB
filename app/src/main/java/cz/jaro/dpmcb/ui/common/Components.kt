@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +38,8 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
@@ -108,14 +112,14 @@ fun Timetable(
                 platform = onlineStop?.platform ?: "",
                 Modifier.fillMaxWidth(1F),
                 color = if (movedNextStopIndex != null && index == movedNextStopIndex)
-                    MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                    MaterialTheme.colorScheme.secondary else LocalContentColor.current
             )
         }
     }
     Column(Modifier.padding(start = 8.dp)) {
         filteredStops.forEachIndexed { index, stop ->
             val color = if (movedNextStopIndex != null && index == movedNextStopIndex)
-                MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                MaterialTheme.colorScheme.secondary else LocalContentColor.current
             StopTypeIcon(stop.type, color = color)
         }
     }
@@ -132,7 +136,7 @@ fun Timetable(
                 platform = onlineStop?.platform ?: "",
                 Modifier,
                 color = if (movedNextStopIndex != null && index == movedNextStopIndex)
-                    MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                    MaterialTheme.colorScheme.secondary else LocalContentColor.current,
             )
         }
     }
@@ -172,7 +176,7 @@ fun Timetable(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
+fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color = LocalContentColor.current) {
     when (stopType) {
         StopType.Normal -> IconWithTooltip(
             imageVector = Icons.Default.Empty,
@@ -196,6 +200,24 @@ fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color
         )
     }
 }
+@Composable
+@ReadOnlyComposable
+fun variantColorFor(color: Color) =
+    MaterialTheme.colorScheme.variantColorFor(color).takeOrElse { color }
+
+@Stable
+fun ColorScheme.variantColorFor(color: Color): Color =
+    when (color) {
+        background -> surfaceVariant
+        surface -> surfaceVariant
+        surfaceVariant -> surface
+        onBackground -> onSurfaceVariant
+        onSurface -> onSurfaceVariant
+        onSurfaceVariant -> onSurface
+        outline -> outlineVariant
+        outlineVariant -> outline
+        else -> Color.Unspecified
+    }
 
 @Composable
 fun Line(
@@ -205,10 +227,10 @@ fun Line(
     isOnline: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-    val bgColor = MaterialTheme.colorScheme.surface
-    val lineColor = MaterialTheme.colorScheme.surfaceVariant
+    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else LocalContentColor.current
+    val bgColor = backgroundColorFor(LocalContentColor.current)
+    val lineColor = variantColorFor(backgroundColorFor(LocalContentColor.current))
     val stopCount = stops.count()
 
     val animatedHeight by animateFloatAsState(height, label = "HeightAnimation")
@@ -272,6 +294,29 @@ fun Line(
     }
 }
 
+@Stable
+fun ColorScheme.backgroundColorFor(contentColor: Color): Color =
+    when (contentColor) {
+         onPrimary -> primary
+         onSecondary -> secondary
+         onTertiary -> tertiary
+         onBackground -> background
+         onError -> error
+         onPrimaryContainer -> primaryContainer
+         onSecondaryContainer -> secondaryContainer
+         onTertiaryContainer -> tertiaryContainer
+         onErrorContainer -> errorContainer
+         inverseOnSurface -> inverseSurface
+         onSurface -> surface
+         onSurfaceVariant -> surfaceVariant
+        else -> Color.Unspecified
+    }
+
+@Composable
+@ReadOnlyComposable
+fun backgroundColorFor(contentColor: Color) =
+    MaterialTheme.colorScheme.backgroundColorFor(contentColor).takeOrElse { MaterialTheme.colorScheme.surface }
+
 @Composable
 fun PartialLine(
     stops: List<BusStop?>,
@@ -282,10 +327,10 @@ fun PartialLine(
     modifier: Modifier = Modifier,
 ) {
     val filteredStops = stops.filterIndexed { i, _ -> i in part }
-    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-    val bgColor = MaterialTheme.colorScheme.surface
-    val lineColor = MaterialTheme.colorScheme.surfaceVariant
+    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else LocalContentColor.current
+    val bgColor = backgroundColorFor(LocalContentColor.current)
+    val lineColor = variantColorFor(LocalContentColor.current)
     val stopCount = filteredStops.count()
 
     val animatedHeight by animateFloatAsState(height - part.start, label = "HeightAnimation")
@@ -438,14 +483,14 @@ fun TimetableText(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun Vehicle(vehicle: RegistrationNumber?) {
+fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
     if (vehicle != null) {
         Text(
             text = "ev. č. $vehicle",
             Modifier.padding(horizontal = 8.dp),
         )
         val context = LocalContext.current
-        IconWithTooltip(
+        if (showInfoButton) IconWithTooltip(
             Icons.Default.Info,
             "Zobrazit informace o voze",
             Modifier.clickable {

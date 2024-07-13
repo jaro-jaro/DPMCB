@@ -27,8 +27,8 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.number
-import cz.jaro.dpmcb.data.entities.slash
 import cz.jaro.dpmcb.data.entities.toBusNumber
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.toStopNumber
@@ -569,7 +569,7 @@ class LoadingViewModel(
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> row[0] slash row[1] in spoje }
+                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> row[0] / row[1] in spoje }
 
                                     connsOfTable += Conn(
                                         line = row[0].toLongLine(),
@@ -586,7 +586,7 @@ class LoadingViewModel(
                                             },
                                         tab = tab,
                                         sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf(row[0] slash row[1])?.takeUnless { it == -1 },
+                                        orderInSequence = seq?.second?.indexOf(row[0] / row[1])?.takeUnless { it == -1 },
                                     ).also { conn ->
                                         timeCodesOfTable += TimeCode(
                                             line = conn.line,
