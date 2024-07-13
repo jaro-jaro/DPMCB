@@ -663,14 +663,16 @@ class SpojeRepository(
         timeCodes: List<RunsFromTo>,
         fixedCodes: String,
         date: LocalDate,
-    ): Boolean = when {
-        timeCodes anyAre RunsOnly -> timeCodes filter RunsOnly anySatisfies date
-        timeCodes filter RunsAlso anySatisfies date -> true
-        !date.runsToday(fixedCodes) -> false
-        timeCodes filter DoesNotRun anySatisfies date -> false
-        timeCodes noneAre Runs -> true
-        timeCodes filter Runs anySatisfies date -> true
-        else -> false
+    ): Boolean = timeCodes.removeNoCodes().let { filteredCodes ->
+        when {
+            filteredCodes anyAre RunsOnly -> filteredCodes filter RunsOnly anySatisfies date
+            filteredCodes filter RunsAlso anySatisfies date -> true
+            !date.runsToday(fixedCodes) -> false
+            filteredCodes filter DoesNotRun anySatisfies date -> false
+            filteredCodes noneAre Runs -> true
+            filteredCodes filter Runs anySatisfies date -> true
+            else -> false
+        }
     }
 
     private val contentResolver = ctx.contentResolver
@@ -852,10 +854,7 @@ fun filterFixedCodesAndMakeReadable(fixedCodes: String, timeCodes: List<RunsFrom
     .takeUnless { timeCodes.any { it.type == RunsOnly } }
     .orEmpty()
 
-fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes
-    .remove {
-        it.type == DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-    }
+fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes.removeNoCodes()
     .groupBy({
         it.type
     }, {
@@ -872,3 +871,7 @@ fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes
             DoesNotRun -> "Nejede "
         } + dates.joinToString()
     }
+
+private fun List<RunsFromTo>.removeNoCodes() = remove(::isNoCode)
+
+private fun isNoCode(it: RunsFromTo) = it.`in`.start == noCode && it.`in`.endInclusive == noCode
