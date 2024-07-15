@@ -91,7 +91,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -605,7 +605,7 @@ fun DrawerItem(
 
     DrawerAction.Date -> ChangeDate(date, changeDate)
 
-    else -> if (action == DrawerAction.NowRunning && date.value != SystemClock.today()) Unit
+    else -> if (action == DrawerAction.NowRunning && date.value != SystemClock.todayHere()) Unit
     else NavigationDrawerItem(
         label = {
             Text(stringResource(action.label))
@@ -659,7 +659,7 @@ private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) 
                     Text("Změnit datum")
                     TextButton(
                         onClick = {
-                            changeDate(SystemClock.today())
+                            changeDate(SystemClock.todayHere())
                             showDialog = false
                         }
                     ) {

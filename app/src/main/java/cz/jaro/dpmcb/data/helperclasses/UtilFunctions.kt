@@ -71,7 +71,7 @@ import kotlin.time.Duration.Companion.days
 
 object UtilFunctions {
 
-    fun LocalDate.toCzechLocative() = when (minus(SystemClock.today()).days) {
+    fun LocalDate.toCzechLocative() = when (minus(SystemClock.todayHere()).days) {
         0 -> "dnes"
         1 -> "zítra"
         2 -> "pozítří"
@@ -88,7 +88,7 @@ object UtilFunctions {
         else -> asString()
     }
 
-    fun LocalDate.toCzechAccusative() = when (minus(SystemClock.today()).days) {
+    fun LocalDate.toCzechAccusative() = when (minus(SystemClock.todayHere()).days) {
         0 -> "dnešek"
         1 -> "zítřek"
         2 -> "pozítří"
@@ -285,8 +285,8 @@ object UtilFunctions {
 
     fun LocalDate.asString() = "$dayOfMonth. $monthNumber. $year"
 
-    val now get() = SystemClock.time().let { LocalTime(it.hour, it.minute) }
-    private val exactlyNow get() = SystemClock.time().let { LocalTime(it.hour, it.minute, it.second) }
+    val now get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute) }
+    private val exactlyNow get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
 
     val nowFlow = flow {
         while (currentCoroutineContext().isActive) {
@@ -302,9 +302,9 @@ object UtilFunctions {
     operator fun LocalDateTime.plus(duration: Duration) = plus(duration, DefaultTimeZone)
     operator fun LocalDateTime.plus(period: DateTimePeriod) = plus(period, DefaultTimeZone)
     fun LocalTime.plus(duration: Duration, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(duration, timeZone).time
-    operator fun LocalTime.plus(duration: Duration) = atDate(SystemClock.today()).plus(duration).time
+    operator fun LocalTime.plus(duration: Duration) = atDate(SystemClock.todayHere()).plus(duration).time
     fun LocalTime.plus(period: DateTimePeriod, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(period, timeZone).time
-    operator fun LocalTime.plus(period: DateTimePeriod) = atDate(SystemClock.today()).plus(period).time
+    operator fun LocalTime.plus(period: DateTimePeriod) = atDate(SystemClock.todayHere()).plus(period).time
     //    fun LocalTime.plusMinutes(minutes: Int) = LocalTime(hour, minute + minutes, second, nanosecond)
     //    fun LocalTime.plusSeconds(seconds: Int) = LocalTime(hour, minute, second + seconds, nanosecond)
     fun LocalDate.plus(period: DatePeriod, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).plus(period, timeZone).date
@@ -315,7 +315,7 @@ object UtilFunctions {
     fun LocalDateTime.until(other: LocalDateTime, timeZone: TimeZone = DefaultTimeZone) = other.toInstant(timeZone).minus(toInstant(timeZone))
     operator fun LocalDateTime.minus(other: LocalDateTime) = other.until(this, DefaultTimeZone)
     fun LocalTime.until(other: LocalTime, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).until(other.atDate(date), timeZone)
-    operator fun LocalTime.minus(other: LocalTime) = other.until(this, SystemClock.today())
+    operator fun LocalTime.minus(other: LocalTime) = other.until(this, SystemClock.todayHere())
     fun LocalDate.durationUntil(other: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).until(other.atTime(LocalTime.Noon), timeZone)
     operator fun LocalDate.minus(other: LocalDate) = other.periodUntil(this)
 
@@ -499,8 +499,10 @@ typealias MutateLambda<T> = (T) -> T
 
 operator fun NavigateWithOptionsFunction.invoke(route: Route) = invoke(route, null)
 
-fun Clock.timeIn(timeZone: TimeZone) = now().toLocalDateTime(timeZone).time
+fun Clock.timeIn(timeZone: TimeZone) = nowIn(timeZone).time
+fun Clock.nowIn(timeZone: TimeZone) = now().toLocalDateTime(timeZone)
+fun Clock.nowHere() = nowIn(DefaultTimeZone)
 val SystemClock get() = Clock.System
-fun Clock.today() = todayIn(DefaultTimeZone)
-fun Clock.time() = timeIn(DefaultTimeZone)
+fun Clock.todayHere() = todayIn(DefaultTimeZone)
+fun Clock.timeHere() = timeIn(DefaultTimeZone)
 val DefaultTimeZone get() = TimeZone.currentSystemDefault()

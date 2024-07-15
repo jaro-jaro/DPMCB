@@ -45,8 +45,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -141,7 +141,7 @@ class SpojeRepository(
         Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val _date = MutableStateFlow(SystemClock.today())
+    private val _date = MutableStateFlow(SystemClock.todayHere())
     val date = _date.asStateFlow()
 
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)
@@ -241,7 +241,7 @@ class SpojeRepository(
     suspend fun busDetail(busName: BusName, date: LocalDate) =
         localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, busName.line())!!).run {
             val noCodes = distinctBy {
-                it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.today(), to = SystemClock.today())
+                it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
             }
             val timeCodes = map {
                 RunsFromTo(
@@ -360,9 +360,9 @@ class SpojeRepository(
                 launch {
                     send(
                         localDataSource.sequenceLines(
-                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.today())
+                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
                                 .filter {
-                                    it.start < SystemClock.time() && SystemClock.time() < it.end
+                                    it.start < SystemClock.timeHere() && SystemClock.timeHere() < it.end
                                 }
                                 .map { it.sequence }
                         )
@@ -393,7 +393,7 @@ class SpojeRepository(
             }
             .map { (_, stops) ->
                 val noCodes = stops.distinctBy {
-                    it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.today(), to = SystemClock.today())
+                    it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
                 }
                 val timeCodes = stops.map {
                     RunsFromTo(

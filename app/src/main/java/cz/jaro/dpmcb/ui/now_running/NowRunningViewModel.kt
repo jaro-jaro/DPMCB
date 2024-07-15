@@ -16,7 +16,7 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.asyncMap
@@ -88,7 +88,7 @@ class NowRunningViewModel(
         loading.value = true
         onlineConns
             .asyncMap { onlineConn ->
-                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.today())
+                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.todayHere())
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
@@ -158,7 +158,7 @@ class NowRunningViewModel(
     }
 
     private val lineNumbers = flow {
-        emit(repo.lineNumbers(SystemClock.today()))
+        emit(repo.lineNumbers(SystemClock.todayHere()))
     }
 
     private val nowNotRunning = combine(repo.nowRunningOrNot, nowRunning, filters) { nowRunning, result, filters ->
@@ -175,7 +175,7 @@ class NowRunningViewModel(
 
     val state =
         combine(repo.date, lineNumbers, filteredResult, loading, repo.hasAccessToMap, filters, type, nowNotRunning) { date, lineNumbers, result, listIsLoading, isOnline, filters, type, nowNotRunning ->
-            if (date != SystemClock.today()) return@combine NowRunningState.IsNotToday
+            if (date != SystemClock.todayHere()) return@combine NowRunningState.IsNotToday
 
             if (!isOnline) return@combine NowRunningState.Offline
 

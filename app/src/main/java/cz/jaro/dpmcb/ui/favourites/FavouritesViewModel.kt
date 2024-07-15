@@ -11,7 +11,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -75,7 +75,7 @@ class FavouritesViewModel(
         }
         .combine(repo.date) { buses, date ->
             (buses ?: emptyList()).filterNotNull().map { (onlineConn, info, stops, runsAt, favourite) ->
-                if (onlineConn?.delayMin != null && date == SystemClock.today()) FavouriteState.Online(
+                if (onlineConn?.delayMin != null && date == SystemClock.todayHere()) FavouriteState.Online(
                     busName = info.connName,
                     line = info.line,
                     delay = onlineConn.delayMin,

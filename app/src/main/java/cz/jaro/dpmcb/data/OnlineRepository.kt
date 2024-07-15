@@ -12,7 +12,7 @@ import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnDetail
@@ -49,7 +49,7 @@ class OnlineRepository(
     private val connsFlow: SharedFlow<List<OnlineConn>> = flow {
         while (currentCoroutineContext().isActive) {
             emit((
-                if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.today()) withContext(Dispatchers.IO) {
+                if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.todayHere()) withContext(Dispatchers.IO) {
                     if (!ctx.isOnline) return@withContext null
                     val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
                     val response = try {
@@ -113,7 +113,7 @@ class OnlineRepository(
         flow {
             while (currentCoroutineContext().isActive) {
                 emit(
-                    if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.today()) withContext(Dispatchers.IO) {
+                    if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.todayHere()) withContext(Dispatchers.IO) {
 
                         if (!ctx.isOnline) return@withContext null
                         val response = try {

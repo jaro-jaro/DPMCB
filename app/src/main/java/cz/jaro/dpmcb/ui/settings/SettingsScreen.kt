@@ -53,7 +53,7 @@ import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
@@ -345,8 +345,8 @@ fun SettingsScreen(
 
                 textItem("")
 
-                textItem("2021-${SystemClock.today().year} RO studios, člen skupiny JARO")
-                textItem("2019-${SystemClock.today().year} JARO")
+                textItem("2021-${SystemClock.todayHere().year} RO studios, člen skupiny JARO")
+                textItem("2019-${SystemClock.todayHere().year} JARO")
 
                 item {
                     Text("Simulate crash...", Modifier.clickable {

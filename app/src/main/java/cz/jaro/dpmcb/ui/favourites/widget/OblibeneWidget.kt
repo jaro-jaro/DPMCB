@@ -46,8 +46,8 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -86,7 +86,7 @@ class OblibeneWidget : GlanceAppWidget() {
                         val ids =
                             repo.favourites.first().map { cast ->
                                 try {
-                                    val a = repo.favouriteBus(cast.busName, SystemClock.today())
+                                    val a = repo.favouriteBus(cast.busName, SystemClock.todayHere())
                                     Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
                                     Firebase.crashlytics.recordException(e)
@@ -107,9 +107,9 @@ class OblibeneWidget : GlanceAppWidget() {
                                 cilovaZastavka = zastavky[cast.end].name,
                                 cilovaZastavkaCas = zastavky[cast.end].time,
                             ) to listOf(
-                                jedeV(SystemClock.today()),
-                                zastavky[cast.start].time <= SystemClock.time().plus(30.minutes, date),
-                                SystemClock.time() <= zastavky[cast.end].time.plus(30.minutes, date),
+                                jedeV(SystemClock.todayHere()),
+                                zastavky[cast.start].time <= SystemClock.timeHere().plus(30.minutes, date),
+                                SystemClock.timeHere() <= zastavky[cast.end].time.plus(30.minutes, date),
                             ).allTrue()
                         }
                             .filter { it.second }.map { it.first }
