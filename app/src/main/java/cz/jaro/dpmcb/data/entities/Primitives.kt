@@ -6,9 +6,8 @@ import kotlinx.serialization.Serializable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
-@Serializable
-@JvmInline
-value class StopNumber(val value: Int) { override fun toString() = value.toString() }
+typealias SequenceID = Int
+typealias StopNumber = Int
 @Serializable
 @JvmInline
 value class Table(val value: String)  { override fun toString() = value }
@@ -30,9 +29,7 @@ value class ShortLine(val value: Int): Comparable<ShortLine> {
 
 fun ShortLine?.isInvalid() = this == null || isInvalid()
 
-@Serializable
-@JvmInline
-value class BusNumber(val value: Int) { override fun toString() = value.toString() }
+typealias BusNumber = Int
 @Serializable
 @JvmInline
 value class BusName(val value: String) { override fun toString() = value }
@@ -79,15 +76,12 @@ fun Table.line() = value.substringBefore('-').toLongLine()
 fun Table.number() = value.substringAfter('-').toInt()
 fun BusName.line() = value.substringBefore('/').toLongLine()
 fun BusName.shortLine() = value.substringBefore('/').toLastDigits(3).toShortLine()
-fun BusName.bus() = BusNumber(value.substringAfter('/').toInt())
+fun BusName.bus(): BusNumber = value.substringAfter('/').toInt()
 fun BusName(line: LongLine, bus: BusNumber) = BusName("${line.value.toLastDigits(6)}/$bus")
 fun Table(line: LongLine, number: Int) = Table("${line.value.toLastDigits(6)}-$number")
 operator fun LongLine.div(number: BusNumber) = BusName(this, number)
-operator fun LongLine.div(number: String) = this / number.toBusNumber()
-operator fun String.div(number: String) = toLongLine() / number.toBusNumber()
-//inline fun UnknownBusName(line: ShortLine, bus: BusNumber) = UnknownBusName("${line.value.toLastDigits(3)}/$bus")
-fun String.toStopNumber() = StopNumber(toInt())
-fun String.toBusNumber() = BusNumber(toInt())
+operator fun LongLine.div(number: String) = this / number.toInt()
+operator fun String.div(number: String) = toLongLine() / number
 fun String.toLongLine() = LongLine(toInt())
 fun String.toShortLine() = ShortLine(toInt())
 fun LongLine.toShortLine() = value.toLastDigits(3).toShortLine()
