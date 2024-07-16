@@ -42,11 +42,12 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -76,6 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
@@ -97,6 +99,7 @@ import org.koin.core.annotation.Single
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
 
@@ -110,26 +113,26 @@ class SpojeRepository(
 
     private val remoteConfig = Firebase.remoteConfig
 
-    private val configActive = flow {
+    private suspend fun getConfigActive() = try {
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        if (!isOnline.value)
+            remoteConfig.activate().await()
+        else
+            remoteConfig.fetchAndActivate().await()
+    } catch (e: FirebaseRemoteConfigException) {
+        e.printStackTrace()
+        Firebase.crashlytics.recordException(e)
         try {
-            val configSettings = remoteConfigSettings {
-                minimumFetchIntervalInSeconds = 3600
-            }
-            remoteConfig.setConfigSettingsAsync(configSettings)
-            if (!ctx.isOnline)
-                emit(remoteConfig.activate().await())
-            else
-                emit(remoteConfig.fetchAndActivate().await())
+            remoteConfig.activate().await()
         } catch (e: FirebaseRemoteConfigException) {
-            e.printStackTrace()
-            Firebase.crashlytics.recordException(e)
-            try {
-                emit(remoteConfig.activate().await())
-            } catch (e: FirebaseRemoteConfigException) {
-                emit(false)
-            }
+            false
         }
     }
+
+    private val configActive = ::getConfigActive.asFlow()
 
     private val sequenceTypes = configActive.map {
         Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"].asString())
@@ -141,7 +144,7 @@ class SpojeRepository(
         Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val _date = MutableStateFlow(SystemClock.today())
+    private val _date = MutableStateFlow(SystemClock.todayHere())
     val date = _date.asStateFlow()
 
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)
@@ -237,11 +240,12 @@ class SpojeRepository(
 
     suspend fun stopNames(datum: LocalDate) = localDataSource.stopNames(allTables(datum))
     suspend fun lineNumbers(datum: LocalDate) = localDataSource.lineNumbers(allTables(datum))
+    suspend fun lineNumbersToday() = lineNumbers(SystemClock.todayHere())
 
     suspend fun busDetail(busName: BusName, date: LocalDate) =
         localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, busName.line())!!).run {
             val noCodes = distinctBy {
-                it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.today(), to = SystemClock.today())
+                it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
             }
             val timeCodes = map {
                 RunsFromTo(
@@ -359,13 +363,19 @@ class SpojeRepository(
             while (currentCoroutineContext().isActive) {
                 launch {
                     send(
-                        localDataSource.sequenceLines(
-                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.today())
+                        localDataSource.lastStopTimesOfConnsInSequences(
+                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
                                 .filter {
-                                    it.start < SystemClock.time() && SystemClock.time() < it.end
+                                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
                                 }
-                                .map { it.sequence }
+                                .map { it.sequence },
+                            tabs = allTables(SystemClock.todayHere()),
                         )
+                            .mapValues { (_, a) ->
+                                a.toList().sortedBy { it.second }.find {
+                                    SystemClock.timeHere() <= it.second
+                                }?.first ?: error("This should never happen")
+                            }
                             .toList()
                             .sortedWith(Comparator.comparing({ it.first }, getSequenceComparator()))
                     )
@@ -393,7 +403,7 @@ class SpojeRepository(
             }
             .map { (_, stops) ->
                 val noCodes = stops.distinctBy {
-                    it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.today(), to = SystemClock.today())
+                    it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
                 }
                 val timeCodes = stops.map {
                     RunsFromTo(

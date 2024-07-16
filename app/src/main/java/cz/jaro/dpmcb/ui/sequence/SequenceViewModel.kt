@@ -12,8 +12,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +41,7 @@ class SequenceViewModel(
             ?: return@map SequenceState.DoesNotExist(originalSequence, with(repo) { originalSequence.seqName() }, date.toCzechLocative())
 
         val runningBus = sequence.buses.find { (_, stops) ->
-            stops.first().time <= SystemClock.time() && SystemClock.time() <= stops.last().time
+            stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
         }
 
         SequenceState.Offline(
@@ -55,7 +55,7 @@ class SequenceViewModel(
                 val runsToday = repo.runsAt(
                     timeCodes = sequence.commonTimeCodes + bus.uniqueTimeCodes,
                     fixedCodes = sequence.commonFixedCodes + bus.uniqueFixedCodes,
-                    date = SystemClock.today()
+                    date = SystemClock.todayHere()
                 )
                 BusInSequence(
                     busName = bus.info.connName,
@@ -63,19 +63,19 @@ class SequenceViewModel(
                     lineNumber = bus.info.line,
                     lowFloor = bus.info.lowFloor,
                     isRunning = false,
-                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == SystemClock.today() && runsToday,
+                    shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == SystemClock.todayHere() && runsToday,
                     timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
                     fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
                 )
             },
-            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.today()),
+            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.todayHere()),
             height = 0F,
             traveledSegments = 0,
         )
     }
 
     private val nowRunningOnlineConn = combine(info, onlineRepo.nowRunningBuses(), repo.date) { info, onlineConns, date ->
-        if (date != SystemClock.today()) return@combine null
+        if (date != SystemClock.todayHere()) return@combine null
         if (info !is SequenceState.OK) return@combine null
         val onlineConn = onlineConns.find { onlineConn -> onlineConn.name in info.buses.map { it.busName } }
         if (onlineConn?.delayMin == null) return@combine null
@@ -90,12 +90,12 @@ class SequenceViewModel(
 
         val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
-                stops.first().time <= SystemClock.time() && SystemClock.time() <= stops.last().time
+                stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
             }
 
         when {
             runningBus == null -> null
-            date != SystemClock.today() -> null
+            date != SystemClock.todayHere() -> null
             // Je na mapě
             onlineConn?.nextStop != null -> runningBus.stops.indexOfLast { it.time == onlineConn.nextStop }.coerceAtLeast(1) - 1
             runningBus.stops.last().time < now -> runningBus.stops.lastIndex
@@ -111,7 +111,7 @@ class SequenceViewModel(
 
         val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
-                stops.first().time <= SystemClock.time() && SystemClock.time() <= stops.last().time
+                stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
             }
 
         if (runningBus == null) return@combine 0F
@@ -130,7 +130,7 @@ class SequenceViewModel(
     }
 
     val state = combine(info, traveledSegments, lineHeight, nowRunningOnlineConn, repo.date) { info, traveledSegments, lineHeight, onlineConn, date ->
-        if (date != SystemClock.today()) return@combine info
+        if (date != SystemClock.todayHere()) return@combine info
         if (info !is SequenceState.OK) return@combine info
         val newInfo = (info as SequenceState.Offline).copy(
             height = lineHeight,

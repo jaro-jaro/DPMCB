@@ -39,7 +39,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import io.github.z4kn4fein.semver.toVersion
@@ -143,7 +143,7 @@ class LoadingViewModel(
     }
 
     private suspend fun doesEverythingWork(): Nothing? {
-        repo.lineNumbers(SystemClock.today()).ifEmpty {
+        repo.lineNumbers(SystemClock.todayHere()).ifEmpty {
             throw Exception()
         }
         if (!params.diagramFile.exists()) {

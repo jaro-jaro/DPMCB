@@ -16,8 +16,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -27,15 +27,15 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState, date: LocalDate)
     fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 4
 
     val now = remember(state.buses) {
-        if (date != SystemClock.today()) null
+        if (date != SystemClock.todayHere()) null
         else state.buses.indexOfFirst {
             it.isRunning
         }.takeUnless {
             it == -1
         } ?: state.buses.indexOfFirst {
-            SystemClock.time() < it.stops.last().time
+            SystemClock.timeHere() < it.stops.last().time
         }.takeIf {
-            state.runsToday && state.buses.first().stops.first().time < SystemClock.time() && SystemClock.time() < state.buses.last().stops.last().time
+            state.runsToday && state.buses.first().stops.first().time < SystemClock.timeHere() && SystemClock.timeHere() < state.buses.last().stops.last().time
         }
     }
 

@@ -33,7 +33,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
@@ -248,7 +248,7 @@ fun FavouritesScreen(
                 }
                 if (it.nextWillRun != null) {
                     Text(
-                        text = "Další pojede ${if (state.today != SystemClock.today()) it.nextWillRun.asString() else it.nextWillRun.toCzechLocative()}", Modifier
+                        text = "Další pojede ${if (state.today != SystemClock.todayHere()) it.nextWillRun.asString() else it.nextWillRun.toCzechLocative()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )

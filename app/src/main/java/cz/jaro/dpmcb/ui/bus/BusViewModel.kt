@@ -15,8 +15,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.invoke
-import cz.jaro.dpmcb.data.helperclasses.time
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -52,7 +52,7 @@ class BusViewModel(
             return@combine BusState.DoesNotRun(
                 busName = busName,
                 date = date,
-                runsNextTimeAfterToday = List(365) { SystemClock.today() + it.days }.firstOrNull { runsAt(it) },
+                runsNextTimeAfterToday = List(365) { SystemClock.todayHere() + it.days }.firstOrNull { runsAt(it) },
                 runsNextTimeAfterDate = List(365) { date + it.days }.firstOrNull { runsAt(it) },
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
@@ -76,7 +76,7 @@ class BusViewModel(
             favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,
             traveledSegments = 0,
-            error = online && date == SystemClock.today() && bus.stops.first().time <= SystemClock.time() && SystemClock.time() <= bus.stops.last().time,
+            error = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
             sequence = bus.info.sequence,
             sequenceName = with(repo) { bus.info.sequence?.seqName() },
             previousBus = bus.sequence?.let { seq ->
@@ -175,8 +175,8 @@ class BusViewModel(
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
-            date > SystemClock.today() -> null
-            date < SystemClock.today() -> info.stops.lastIndex
+            date > SystemClock.todayHere() -> null
+            date < SystemClock.todayHere() -> info.stops.lastIndex
             state.onlineConnDetail?.nextStopIndex != null -> state.onlineConnDetail.nextStopIndex - 1
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex

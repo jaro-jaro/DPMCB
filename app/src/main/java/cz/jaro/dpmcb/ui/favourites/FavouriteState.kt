@@ -4,7 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.today
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -40,6 +40,6 @@ sealed interface FavouriteState {
         override val destinationStopTime: LocalTime,
         val positionOfCurrentStop: Int,
     ) : FavouriteState {
-        override val nextWillRun: LocalDate get() = SystemClock.today()
+        override val nextWillRun: LocalDate get() = SystemClock.todayHere()
     }
 }

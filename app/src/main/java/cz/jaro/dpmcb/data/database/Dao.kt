@@ -26,6 +26,7 @@ import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 @Dao
 interface Dao {
@@ -397,11 +398,32 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT DISTINCT conn.sequence, conn.line line FROM conn
+        WITH lastStopTimeOfConn(connName, time) AS (
+            SELECT DISTINCT conn.name, CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END FROM connstop
+            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            WHERE (
+                NOT connstop.departure IS null
+                OR NOT connstop.arrival IS null
+            )
+            AND connstop.tab IN (:tabs)
+            GROUP BY conn.name
+            HAVING MAX(CASE
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END)
+        )
+        SELECT DISTINCT conn.sequence, lastStopTimeOfConn.* FROM conn
+        JOIN lastStopTimeOfConn ON lastStopTimeOfConn.connName = conn.name
         WHERE conn.sequence IN (:todayRunningSequences)
+        AND conn.tab in (:tabs)
+        ORDER BY conn.sequence, lastStopTimeOfConn.time
     """
     )
-    suspend fun sequenceLines(todayRunningSequences: List<String>): Map<@MapColumn("sequence") SequenceCode, List<@MapColumn("line") LongLine>>
+    suspend fun lastStopTimesOfConnsInSequences(todayRunningSequences: List<SequenceCode>, tabs: List<Table>): Map<@MapColumn("sequence") SequenceCode, Map<@MapColumn("connName") BusName, @MapColumn("time") LocalTime>>
+
     @Transaction
     @Query(
         """
@@ -466,9 +488,9 @@ interface Dao {
             AND connstop.tab IN (:tabs)
             GROUP BY conn.sequence
             HAVING MAX(CASE
-                 WHEN connstop.departure IS null THEN connstop.arrival
-                 ELSE connstop.departure
-             END)
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END)
         ),
         startStopIndexOnThisLine(sequence, time, name) AS (
             SELECT DISTINCT conn.sequence, CASE
@@ -484,9 +506,9 @@ interface Dao {
             AND connstop.tab IN (:tabs)
             GROUP BY conn.sequence
             HAVING MIN(CASE
-                 WHEN connstop.departure IS null THEN connstop.arrival
-                 ELSE connstop.departure
-             END)
+                WHEN connstop.departure IS null THEN connstop.arrival
+                ELSE connstop.departure
+            END)
         )
         SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end`, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, conn.name connName FROM conn
         JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
@@ -500,11 +522,6 @@ interface Dao {
         date: LocalDate,
         tabs: List<Table>
     ): Map<TimeOfSequence, Map<@MapColumn("connName") BusName, List<CodesOfBus>>>
-
-//    SELECT group_ID
-//    FROM tableName
-//    GROUP BY group_ID
-//    HAVING COUNT(*) = (SELECT COUNT(DISTINCT uid) AS c FROM tableName);
 
     @Transaction
     @Query(
