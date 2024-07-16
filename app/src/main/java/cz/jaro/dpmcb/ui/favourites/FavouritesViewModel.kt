@@ -80,12 +80,12 @@ class FavouritesViewModel(
                     line = info.line,
                     delay = onlineConn.delayMin,
                     vehicle = onlineConn.vehicle,
-                    originStopName = stops[favourite.start].name,
-                    originStopTime = stops[favourite.start].time,
+                    originStopName = (stops.getOrNull(favourite.start) ?: stops.last()).name,
+                    originStopTime = (stops.getOrNull(favourite.start) ?: stops.last()).time,
                     currentStopName = stops.last { it.time == onlineConn.nextStop }.name,
                     currentStopTime = stops.last { it.time == onlineConn.nextStop }.time,
-                    destinationStopName = stops[favourite.end].name,
-                    destinationStopTime = stops[favourite.end].time,
+                    destinationStopName = (stops.getOrNull(favourite.end) ?: stops.last()).name,
+                    destinationStopTime = (stops.getOrNull(favourite.end) ?: stops.last()).time,
                     positionOfCurrentStop = when {
                         stops.indexOfLast { it.time == onlineConn.nextStop } < favourite.start -> -1
                         stops.indexOfLast { it.time == onlineConn.nextStop } > favourite.end -> 1
@@ -95,10 +95,10 @@ class FavouritesViewModel(
                 else FavouriteState.Offline(
                     busName = info.connName,
                     line = info.line,
-                    originStopName = stops[favourite.start].name,
-                    originStopTime = stops[favourite.start].time,
-                    destinationStopName = stops[favourite.end].name,
-                    destinationStopTime = stops[favourite.end].time,
+                    originStopName = (stops.getOrNull(favourite.start) ?: stops.last()).name,
+                    originStopTime = (stops.getOrNull(favourite.start) ?: stops.last()).time,
+                    destinationStopName = (stops.getOrNull(favourite.end) ?: stops.last()).name,
+                    destinationStopTime = (stops.getOrNull(favourite.end) ?: stops.last()).time,
                     nextWillRun = List(365) { date + it.days }.firstOrNull { runsAt(it) },
                 )
             } to date
