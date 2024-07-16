@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data
 
 import androidx.datastore.core.DataMigration
 import androidx.datastore.preferences.core.Preferences
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,7 +26,7 @@ class DataStoreMigrationConnName : DataMigration<Preferences> {
         val favs = Json.decodeFromString<List<OldPartofConn>>(favsString)
         val newFavs = favs.map {
             PartOfConn(
-                busName = it.busId.split("-").drop(1).joinToString("/"),
+                busName = BusName(it.busId.split("-").drop(1).joinToString("/")),
                 start = it.start,
                 end = it.end,
             )

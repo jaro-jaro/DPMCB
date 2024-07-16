@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SettingsActivity
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import kotlin.reflect.KClass
@@ -63,7 +64,7 @@ enum class DrawerAction(
             navigate(
                 Route.Chooser(
                     type = ChooserType.Stops,
-                    lineNumber = -1,
+                    lineNumber = ShortLine.invalid,
                     stop = null
                 )
             )
@@ -91,7 +92,7 @@ enum class DrawerAction(
             navigate(
                 Route.Chooser(
                     type = ChooserType.Lines,
-                    lineNumber = -1,
+                    lineNumber = ShortLine.invalid,
                     stop = null,
                 )
             )

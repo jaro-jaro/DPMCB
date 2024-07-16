@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.ui.departures
 
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.indexOfFirstOrNull
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import java.time.Duration
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 sealed interface DeparturesState {
@@ -20,6 +20,6 @@ sealed interface DeparturesState {
     ) : DeparturesState
 }
 
-fun List<DepartureState>.home(info: DeparturesInfo) = (withIndex().firstOrNull { (_, bus) ->
-    bus.time + (if (bus.runsIn > Duration.ZERO && bus.delay != null) bus.delay.toDouble().minutes else 0.seconds) >= info.time
-}?.index ?: lastIndex) + 1
+fun List<DepartureState>.home(info: DeparturesInfo) = (indexOfFirstOrNull { bus ->
+    bus.time.plus(if (bus.runsIn > Duration.ZERO && bus.delay != null) bus.delay.toDouble().seconds else 0.seconds) >= info.time
+} ?: lastIndex) + 1

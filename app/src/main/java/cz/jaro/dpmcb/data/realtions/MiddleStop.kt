@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions
 
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 
 data class MiddleStop(
     val name: String,

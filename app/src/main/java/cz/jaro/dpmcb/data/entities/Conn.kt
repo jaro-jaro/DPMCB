@@ -6,15 +6,16 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 @Entity(primaryKeys = ["tab", "connNumber"])
 data class Conn(
 // Primary keys
-    val tab: String,
-    val connNumber: Int,
+    val tab: Table,
+    val connNumber: BusNumber,
 // Other
-    val line: Int,
+    val line: LongLine,
     val fixedCodes: String,
     val direction: Direction,
-    val sequence: String?,
+    val sequence: SequenceCode?,
     val orderInSequence: Int?,
 ) {
-    var name = "$line/$connNumber"
+    @get:JvmName("getName")
+    var name = BusName(line, connNumber)
         internal set
 }

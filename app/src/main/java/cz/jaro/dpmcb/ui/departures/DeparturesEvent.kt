@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.ui.departures
 
 import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import java.time.LocalTime
+import kotlinx.datetime.LocalTime
 
 sealed interface DeparturesEvent {
     data class GoToBus(val bus: DepartureState) : DeparturesEvent

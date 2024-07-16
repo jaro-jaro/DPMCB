@@ -5,10 +5,10 @@ import androidx.room.Entity
 @Entity(primaryKeys = ["tab", "stopNumber"])
 data class Stop(
 // Primary keys
-    val tab: String,
-    val stopNumber: Int,
+    val tab: Table,
+    val stopNumber: StopNumber,
 // Other
-    val line: Int,
+    val line: LongLine,
     val stopName: String,
     val fixedCodes: String,
 )

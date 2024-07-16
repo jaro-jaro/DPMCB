@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.ShortLine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
@@ -22,7 +23,7 @@ class TimetableViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val lineNumber: Int,
+        val lineNumber: ShortLine,
         val stop: String,
         val nextStop: String,
     )

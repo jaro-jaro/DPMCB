@@ -12,6 +12,11 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -23,13 +28,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -169,16 +174,25 @@ class MainViewModel(
         Unit
     }
 
-    val findBusByEvn = { evc: String, callback: (String?) -> Unit ->
+    val findBusByEvn = { rn: RegistrationNumber, callback: (BusName?) -> Unit ->
         viewModelScope.launch {
             callback(onlineRepository.nowRunningBuses().first().find {
-                it.vehicle == evc.toIntOrNull()
+                it.vehicle == rn
             }?.name)
         }
         Unit
     }
 
-    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
+    val findLine = { sl: ShortLine, callback: (LongLine?) -> Unit ->
+        viewModelScope.launch {
+            with(repo) {
+                callback(sl.findLongLine())
+            }
+        }
+        Unit
+    }
+
+    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<SequenceCode, String>>) -> Unit ->
         viewModelScope.launch {
             callback(repo.findSequences(kurz))
         }

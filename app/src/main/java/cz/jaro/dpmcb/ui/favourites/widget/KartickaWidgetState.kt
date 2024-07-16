@@ -1,15 +1,16 @@
 package cz.jaro.dpmcb.ui.favourites.widget
 
-import cz.jaro.dpmcb.data.serializers.LocalTimeSerializer
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.ShortLine
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
-import java.time.LocalTime
 
 @Serializable
 data class KartickaWidgetState(
-    val spojId: String,
-    val linka: Int,
+    val spojId: BusName,
+    val linka: ShortLine,
     val vychoziZastavka: String,
-    @Serializable(with = LocalTimeSerializer::class) val vychoziZastavkaCas: LocalTime,
+    val vychoziZastavkaCas: LocalTime,
     val cilovaZastavka: String,
-    @Serializable(with = LocalTimeSerializer::class) val cilovaZastavkaCas: LocalTime,
+    val cilovaZastavkaCas: LocalTime,
 )

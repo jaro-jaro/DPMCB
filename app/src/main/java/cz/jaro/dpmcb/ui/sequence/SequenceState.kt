@@ -1,20 +1,23 @@
 package cz.jaro.dpmcb.ui.sequence
 
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+
 sealed interface SequenceState {
 
     data object Loading : SequenceState
 
     data class DoesNotExist(
-        val sequence: String,
+        val sequence: SequenceCode,
         val sequenceName: String,
         val date: String,
     ) : SequenceState
 
     sealed interface OK : SequenceState {
-        val sequence: String
+        val sequence: SequenceCode
         val sequenceName: String
-        val before: List<Pair<String, String>>
-        val after: List<Pair<String, String>>
+        val before: List<Pair<SequenceCode, String>>
+        val after: List<Pair<SequenceCode, String>>
         val buses: List<BusInSequence>
         val timeCodes: List<String>
         val fixedCodes: List<String>
@@ -24,10 +27,10 @@ sealed interface SequenceState {
     }
 
     data class Offline(
-        override val sequence: String,
+        override val sequence: SequenceCode,
         override val sequenceName: String,
-        override val before: List<Pair<String, String>>,
-        override val after: List<Pair<String, String>>,
+        override val before: List<Pair<SequenceCode, String>>,
+        override val after: List<Pair<SequenceCode, String>>,
         override val buses: List<BusInSequence>,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
@@ -37,10 +40,10 @@ sealed interface SequenceState {
     ) : OK
 
     data class Online(
-        override val sequence: String,
+        override val sequence: SequenceCode,
         override val sequenceName: String,
-        override val before: List<Pair<String, String>>,
-        override val after: List<Pair<String, String>>,
+        override val before: List<Pair<SequenceCode, String>>,
+        override val after: List<Pair<SequenceCode, String>>,
         override val buses: List<BusInSequence>,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
@@ -48,7 +51,7 @@ sealed interface SequenceState {
         override val height: Float,
         override val traveledSegments: Int,
         val delayMin: Float,
-        val vehicle: Int?,
+        val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
     ) : OK
 
@@ -56,7 +59,7 @@ sealed interface SequenceState {
         fun Online(
             state: OK,
             delayMin: Float,
-            vehicle: Int?,
+            vehicle: RegistrationNumber?,
             confirmedLowFloor: Boolean?,
         ) = with(state) {
             Online(

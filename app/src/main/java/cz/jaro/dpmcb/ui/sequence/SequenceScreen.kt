@@ -31,29 +31,28 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.ui.common.BusButton
-import cz.jaro.dpmcb.ui.common.Connection
 import cz.jaro.dpmcb.ui.common.DelayBubble
-import cz.jaro.dpmcb.ui.common.FABs
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.ParametersHolder
-import java.time.LocalDate
 
 @Composable
 fun Sequence(
     args: Route.Sequence,
     navController: NavHostController,
     viewModel: SequenceViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(args.sequence))
+        ParametersHolder(mutableListOf(SequenceCode(args.sequence)))
     },
 ) {
     title = R.string.detail_kurzu
@@ -156,7 +155,7 @@ fun SequenceScreen(
                                     .padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Name("${bus.lineNumber}", subName = "/${bus.busName.split('/')[1]}")
+                                Name("${bus.lineNumber}", subName = "/${bus.busName.bus()}")
                                 Wheelchair(
                                     lowFloor = bus.lowFloor,
                                     confirmedLowFloor = (state as? SequenceState.Online)?.confirmedLowFloor?.takeIf { bus.isRunning },
@@ -193,9 +192,9 @@ fun SequenceScreen(
                                 onlineConnStops = null,
                                 nextStopIndex = null,
                                 showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
-                                height = state.height,
                                 traveledSegments = state.traveledSegments,
-                                isOnline = state is SequenceState.Online
+                                height = state.height,
+                                isOnline = state is SequenceState.Online,
                             )
                         }
                     }

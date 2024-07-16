@@ -16,8 +16,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 33
-        versionName = "1.6.3"
+        versionCode = 41
+        versionName = "1.6.4-alpha.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,6 +71,7 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
 }
 
 dependencies {
@@ -83,8 +84,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // PDF Viewer
-    implementation(libs.pdf.viewer)
+    // Kotlin reflection
+    implementation(kotlin("reflect"))
+
+    // SVG Viewer
+    implementation(libs.coil.svg)
+    implementation(libs.zoomable.image.coil)
 
     // Kotlinx Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -140,6 +145,9 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
 
+    // Kotlinx DateTime
+    implementation(libs.kotlinx.datetime)
+
     // Semantic versioning
     implementation(libs.semver)
 
@@ -151,6 +159,6 @@ dependencies {
     implementation(libs.stax.api)
     implementation(libs.aalto.xml)
 
+    // ChNT
     implementation(libs.androidx.browser)
-    implementation(kotlin("reflect"))
 }

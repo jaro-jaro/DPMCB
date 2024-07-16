@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.realtions.bus
 
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 data class CodesOfBus(
     val fixedCodes: String,
