@@ -4,5 +4,5 @@ import kotlinx.datetime.LocalTime
 
 data class StopOfNowRunning(
     val name: String,
-    val time: LocalTime?,
+    val time: LocalTime,
 )

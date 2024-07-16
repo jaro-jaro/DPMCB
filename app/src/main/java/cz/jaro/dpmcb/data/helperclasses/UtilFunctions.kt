@@ -1,3 +1,5 @@
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+
 package cz.jaro.dpmcb.data.helperclasses
 
 import android.content.Context
@@ -68,6 +70,7 @@ import kotlin.experimental.ExperimentalTypeInference
 import kotlin.math.absoluteValue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 
 object UtilFunctions {
 
@@ -193,7 +196,7 @@ object UtilFunctions {
 
     inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
 
-    fun kotlin.time.Duration.toDelay() = run {
+    fun Duration.toDelay() = run {
         val sign = when {
             inWholeSeconds < 0 -> "-"
             inWholeSeconds > 0 -> "+"
@@ -286,40 +289,68 @@ object UtilFunctions {
     fun LocalDate.asString() = "$dayOfMonth. $monthNumber. $year"
 
     val now get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute) }
-    private val exactlyNow get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
+    val exactlyNow get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
 
-    val nowFlow = flow {
+    val nowFlow = ::exactlyNow.getter
+        .asRepeatingFlow()
+        .flowOn(Dispatchers.IO)
+        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), exactlyNow)
+
+    fun <T> (() -> T).asRepeatingFlow(duration: Duration = 500.milliseconds): Flow<T> = flow {
         while (currentCoroutineContext().isActive) {
-            delay(500)
-            emit(exactlyNow)
+            emit(invoke())
+            delay(duration)
         }
     }
-        .flowOn(Dispatchers.IO)
-        .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), now)
+    fun <T> (suspend () -> T).asRepeatingFlow(duration: Duration = 500.milliseconds): Flow<T> = flow {
+        while (currentCoroutineContext().isActive) {
+            emit(invoke())
+            delay(duration)
+        }
+    }
 
     fun LocalDateTime.plus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = toInstant(timeZone).plus(duration).toLocalDateTime(timeZone)
     fun LocalDateTime.plus(period: DateTimePeriod, timeZone: TimeZone = DefaultTimeZone) = toInstant(timeZone).plus(period, timeZone).toLocalDateTime(timeZone)
     operator fun LocalDateTime.plus(duration: Duration) = plus(duration, DefaultTimeZone)
     operator fun LocalDateTime.plus(period: DateTimePeriod) = plus(period, DefaultTimeZone)
+
     fun LocalTime.plus(duration: Duration, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(duration, timeZone).time
     operator fun LocalTime.plus(duration: Duration) = atDate(SystemClock.todayHere()).plus(duration).time
     fun LocalTime.plus(period: DateTimePeriod, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).plus(period, timeZone).time
     operator fun LocalTime.plus(period: DateTimePeriod) = atDate(SystemClock.todayHere()).plus(period).time
-    //    fun LocalTime.plusMinutes(minutes: Int) = LocalTime(hour, minute + minutes, second, nanosecond)
-    //    fun LocalTime.plusSeconds(seconds: Int) = LocalTime(hour, minute, second + seconds, nanosecond)
+
     fun LocalDate.plus(period: DatePeriod, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).plus(period, timeZone).date
     operator fun LocalDate.plus(period: DatePeriod) = plus(period, DefaultTimeZone)
     fun LocalDate.plus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = plus(duration.toDatePeriod(), timeZone)
     operator fun LocalDate.plus(duration: Duration) = plus(duration.toDatePeriod())
 
+    fun LocalDateTime.minus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = toInstant(timeZone).minus(duration).toLocalDateTime(timeZone)
+    operator fun LocalDateTime.minus(duration: Duration) = minus(duration, DefaultTimeZone)
+
+    fun LocalTime.minus(duration: Duration, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).minus(duration, timeZone).time
+    operator fun LocalTime.minus(duration: Duration) = atDate(SystemClock.todayHere()).minus(duration).time
+
+    fun LocalDate.minus(duration: Duration, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).minus(duration, timeZone).date
+    operator fun LocalDate.minus(duration: Duration) = minus(duration, DefaultTimeZone)
+
     fun LocalDateTime.until(other: LocalDateTime, timeZone: TimeZone = DefaultTimeZone) = other.toInstant(timeZone).minus(toInstant(timeZone))
     operator fun LocalDateTime.minus(other: LocalDateTime) = other.until(this, DefaultTimeZone)
+
     fun LocalTime.until(other: LocalTime, date: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atDate(date).until(other.atDate(date), timeZone)
     operator fun LocalTime.minus(other: LocalTime) = other.until(this, SystemClock.todayHere())
+
     fun LocalDate.durationUntil(other: LocalDate, timeZone: TimeZone = DefaultTimeZone) = atTime(LocalTime.Noon).until(other.atTime(LocalTime.Noon), timeZone)
     operator fun LocalDate.minus(other: LocalDate) = other.periodUntil(this)
 
     private val LocalTime.Companion.Noon get() = LocalTime(0, 0)
+
+    inline fun <T, K1, K2> Iterable<T>.groupByPair(keySelector: (T) -> Pair<K1, K2>): List<Triple<K1, K2, List<T>>> =
+        groupBy(keySelector)
+            .map { Triple(it.key.first, it.key.second, it.value) }
+
+    inline fun <T, K1, K2, V> Iterable<T>.groupByPair(keySelector: (T) -> Pair<K1, K2>, valueTransform: (T) -> V) =
+        groupBy(keySelector, valueTransform)
+            .map { Triple(it.key.first, it.key.second, it.value) }
 
 //    inline val NavHostController.navigateFunction get() = { it: Route -> this.navigate(it.work()) }
     inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }

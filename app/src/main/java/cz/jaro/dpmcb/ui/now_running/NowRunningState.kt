@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.now_running
 
-import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 
 sealed interface NowRunningState {
@@ -25,16 +24,16 @@ sealed interface NowRunningState {
     }
 
     sealed interface HasNotRunning : NowRunningState {
-        val nowNotRunning: List<Pair<SequenceCode, String>>
+        val nowNotRunning: NowRunningResults<*>
     }
 
-//    data class NeniNicVybrano(
-//        override val cislaLinek: List<Int>,
-//    ) : LinkyNacteny {
-//        override val filtry: List<Int> = emptyList()
-//    }
-
     data class Loading(
+        override val lineNumbers: List<ShortLine>,
+        override val filters: List<ShortLine>,
+        override val type: NowRunningType,
+    ) : HasFilters, HasType
+
+    data class NothingRunsToday(
         override val lineNumbers: List<ShortLine>,
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
@@ -44,14 +43,14 @@ sealed interface NowRunningState {
         override val lineNumbers: List<ShortLine>,
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<Pair<SequenceCode, String>>,
+        override val nowNotRunning: NowRunningResults<*>,
     ) : HasFilters, HasType, HasNotRunning
 
     data class OK(
         override val lineNumbers: List<ShortLine>,
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<Pair<SequenceCode, String>>,
+        override val nowNotRunning: NowRunningResults<*>,
         val result: NowRunningResults<*>,
     ) : HasFilters, HasType, HasNotRunning
 }

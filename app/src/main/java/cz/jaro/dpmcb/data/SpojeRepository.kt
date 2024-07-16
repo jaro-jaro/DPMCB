@@ -42,6 +42,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
@@ -76,6 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
@@ -97,6 +99,7 @@ import org.koin.core.annotation.Single
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
 
@@ -110,26 +113,26 @@ class SpojeRepository(
 
     private val remoteConfig = Firebase.remoteConfig
 
-    private val configActive = flow {
+    private suspend fun getConfigActive() = try {
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        if (!isOnline.value)
+            remoteConfig.activate().await()
+        else
+            remoteConfig.fetchAndActivate().await()
+    } catch (e: FirebaseRemoteConfigException) {
+        e.printStackTrace()
+        Firebase.crashlytics.recordException(e)
         try {
-            val configSettings = remoteConfigSettings {
-                minimumFetchIntervalInSeconds = 3600
-            }
-            remoteConfig.setConfigSettingsAsync(configSettings)
-            if (!ctx.isOnline)
-                emit(remoteConfig.activate().await())
-            else
-                emit(remoteConfig.fetchAndActivate().await())
+            remoteConfig.activate().await()
         } catch (e: FirebaseRemoteConfigException) {
-            e.printStackTrace()
-            Firebase.crashlytics.recordException(e)
-            try {
-                emit(remoteConfig.activate().await())
-            } catch (e: FirebaseRemoteConfigException) {
-                emit(false)
-            }
+            false
         }
     }
+
+    private val configActive = ::getConfigActive.asFlow()
 
     private val sequenceTypes = configActive.map {
         Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"].asString())
@@ -237,6 +240,7 @@ class SpojeRepository(
 
     suspend fun stopNames(datum: LocalDate) = localDataSource.stopNames(allTables(datum))
     suspend fun lineNumbers(datum: LocalDate) = localDataSource.lineNumbers(allTables(datum))
+    suspend fun lineNumbersToday() = lineNumbers(SystemClock.todayHere())
 
     suspend fun busDetail(busName: BusName, date: LocalDate) =
         localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, busName.line())!!).run {
@@ -359,13 +363,19 @@ class SpojeRepository(
             while (currentCoroutineContext().isActive) {
                 launch {
                     send(
-                        localDataSource.sequenceLines(
+                        localDataSource.lastStopTimesOfConnsInSequences(
                             todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
                                 .filter {
-                                    it.start < SystemClock.timeHere() && SystemClock.timeHere() < it.end
+                                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
                                 }
-                                .map { it.sequence }
+                                .map { it.sequence },
+                            tabs = allTables(SystemClock.todayHere()),
                         )
+                            .mapValues { (_, a) ->
+                                a.toList().sortedBy { it.second }.find {
+                                    SystemClock.timeHere() <= it.second
+                                }?.first ?: error("This should never happen")
+                            }
                             .toList()
                             .sortedWith(Comparator.comparing({ it.first }, getSequenceComparator()))
                     )
