@@ -29,9 +29,7 @@ import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.number
-import cz.jaro.dpmcb.data.entities.toBusNumber
 import cz.jaro.dpmcb.data.entities.toLongLine
-import cz.jaro.dpmcb.data.entities.toStopNumber
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.invoke
@@ -524,9 +522,9 @@ class LoadingViewModel(
                             when (TableType.valueOf(typTabulky)) {
                                 TableType.Zasspoje -> connStopsOfTable += ConnStop(
                                     line = row[0].toLongLine(),
-                                    connNumber = row[1].toBusNumber(),
+                                    connNumber = row[1].toInt(),
                                     stopIndexOnLine = row[2].toInt(),
-                                    stopNumber = row[3].toStopNumber(),
+                                    stopNumber = row[3].toInt(),
                                     kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
@@ -538,7 +536,7 @@ class LoadingViewModel(
 
                                 TableType.Zastavky -> stopsOfTable += Stop(
                                     line = row[0].toLongLine(),
-                                    stopNumber = row[1].toStopNumber(),
+                                    stopNumber = row[1].toInt(),
                                     stopName = row[2],
                                     fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                         fixedCodesOfTable[it] ?: it
@@ -548,7 +546,7 @@ class LoadingViewModel(
 
                                 TableType.Caskody -> timeCodesOfTable += TimeCode(
                                     line = row[0].toLongLine(),
-                                    connNumber = row[1].toBusNumber(),
+                                    connNumber = row[1].toInt(),
                                     code = row[3].toInt(),
                                     termIndex = row[2].toInt(),
                                     type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun,
@@ -573,12 +571,12 @@ class LoadingViewModel(
 
                                     connsOfTable += Conn(
                                         line = row[0].toLongLine(),
-                                        connNumber = row[1].toBusNumber(),
+                                        connNumber = row[1].toInt(),
                                         fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                             fixedCodesOfTable[it] ?: it
                                         },
                                         direction = connStopsOfTable
-                                            .filter { it.connNumber == row[1].toBusNumber() }
+                                            .filter { it.connNumber == row[1].toInt() }
                                             .sortedBy { it.stopIndexOnLine }
                                             .filter { it.time != null }
                                             .let { stops ->
