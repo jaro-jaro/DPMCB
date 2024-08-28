@@ -291,7 +291,7 @@ object UtilFunctions {
     val now get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute) }
     val exactlyNow get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
 
-    val nowFlow = ::exactlyNow.getter
+    val nowFlow = ::exactlyNow
         .asRepeatingFlow()
         .flowOn(Dispatchers.IO)
         .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), exactlyNow)

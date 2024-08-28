@@ -2,3 +2,8 @@
 /shelf/
 /workspace.xml
 /deploymentTargetDropDown.xml
+/runConfigurations.xml
+/misc.xml
+/compiler.xml
+/kotlinc.xml
+/gradle.xml

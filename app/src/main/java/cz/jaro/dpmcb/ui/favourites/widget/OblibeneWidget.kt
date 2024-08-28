@@ -102,10 +102,10 @@ class OblibeneWidget : GlanceAppWidget() {
                             KartickaWidgetState(
                                 spojId = info.connName,
                                 linka = info.line,
-                                vychoziZastavka = zastavky[cast.start].name,
-                                vychoziZastavkaCas = zastavky[cast.start].time,
-                                cilovaZastavka = zastavky[cast.end].name,
-                                cilovaZastavkaCas = zastavky[cast.end].time,
+                                vychoziZastavka = (zastavky.getOrNull(cast.start) ?: zastavky.last()).name,
+                                vychoziZastavkaCas = (zastavky.getOrNull(cast.start) ?: zastavky.last()).time,
+                                cilovaZastavka = (zastavky.getOrNull(cast.end) ?: zastavky.last()).name,
+                                cilovaZastavkaCas = (zastavky.getOrNull(cast.end) ?: zastavky.last()).time,
                             ) to listOf(
                                 jedeV(SystemClock.todayHere()),
                                 zastavky[cast.start].time <= SystemClock.timeHere().plus(30.minutes, date),
