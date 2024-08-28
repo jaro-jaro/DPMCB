@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import kotlinx.datetime.LocalDate
 
 @Entity(primaryKeys = ["tab", "connNumber", "code", "termIndex"])
 data class TimeCode(
@@ -14,8 +14,8 @@ data class TimeCode(
 // Other
     val line: LongLine,
     val type: TimeCodeType,
-    val validFrom: LocalDate,
-    val validTo: LocalDate,
+    @Embedded
+    val validity: Validity,
 
     val runs2: Boolean = type != TimeCodeType.DoesNotRun,
 )

@@ -23,18 +23,23 @@ import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
+import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
-import cz.jaro.dpmcb.data.entities.toBusNumber
 import cz.jaro.dpmcb.data.entities.toLongLine
-import cz.jaro.dpmcb.data.entities.toStopNumber
 import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import cz.jaro.dpmcb.data.entities.types.invoke
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
@@ -54,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
@@ -99,6 +105,12 @@ class LoadingViewModel(
     val state = _state.asStateFlow()
 
     val settings = repo.settings
+
+    @Serializable
+    data class Group(
+        val validity: Validity,
+        val sequences: Map<SequenceCode, List<BusName>>,
+    )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -286,6 +298,8 @@ class LoadingViewModel(
         val timeCodes: MutableList<TimeCode> = mutableListOf()
         val lines: MutableList<Line> = mutableListOf()
         val conns: MutableList<Conn> = mutableListOf()
+        val seqOfConns: MutableList<SeqOfConn> = mutableListOf()
+        val seqGroups: MutableList<SeqGroup> = mutableListOf()
 
         if (doFullUpdate) {
 
@@ -300,7 +314,7 @@ class LoadingViewModel(
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
             }
 
-            val sequencesRef = storage.reference.child("kurzy2.json")
+            val sequencesRef = storage.reference.child("kurzy3.json")
             val diagramRef = storage.reference.child("schema.svg")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
@@ -322,14 +336,20 @@ class LoadingViewModel(
                 file = sequencesFile,
             ).readText()
 
-            val sequences = json2.fromJson<Map<SequenceCode, List<BusName>>>()
+            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
-            Firebase.remoteConfig.reset().await()
-            val configSettings = remoteConfigSettings {
-                minimumFetchIntervalInSeconds = 3600
-            }
-            Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
-            Firebase.remoteConfig.fetchAndActivate().await()
+            sequences.exctractSequences()
+                .let { (groups, sequences) ->
+                    seqGroups += groups
+                    seqOfConns += sequences
+                }
+
+            seqGroups += SeqGroup(
+                group = SequenceGroup.invalid,
+                validity = Validity(noCode, noCode),
+            )
+
+            resetRemoteConfig()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
@@ -337,14 +357,21 @@ class LoadingViewModel(
 
             val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
-            data.exctractData(sequences)
-                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                    connStops += connStopsOfTable
-                    timeCodes += timeCodesOfTable
-                    stops += stopsOfTable
-                    lines += linesOfTable
-                    conns += connsOfTable
-                }
+            data.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+                seqOfConns += SeqOfConn(
+                    line = it.line,
+                    connNumber = it.connNumber,
+                    sequence = SequenceCode.invalid,
+                    orderInSequence = 0,
+                    group = SequenceGroup.invalid,
+                )
+            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                connStops += connStopsOfTable
+                timeCodes += timeCodesOfTable
+                stops += stopsOfTable
+                lines += linesOfTable
+                conns += connsOfTable
+            }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
@@ -358,7 +385,7 @@ class LoadingViewModel(
 
             repo.reset()
 
-            val sequencesRef = storage.reference.child("kurzy.json")
+            val sequencesRef = storage.reference.child("kurzy3.json")
             val diagramRef = storage.reference.child("schema.svg")
 
             val dataFile = params.dataFile
@@ -385,6 +412,8 @@ class LoadingViewModel(
             timeCodes.addAll(repo.timeCodes())
             lines.addAll(repo.lines())
             conns.addAll(repo.conns())
+            seqGroups.addAll(repo.seqGroups())
+            seqOfConns.addAll(repo.seqOfConns())
 
             val n = when {
                 changeDiagram -> 6
@@ -417,40 +446,55 @@ class LoadingViewModel(
                 file = sequencesFile,
             ).readText()
 
-            val sequences = json2.fromJson<Map<SequenceCode, List<BusName>>>()
+            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
-            Firebase.remoteConfig.reset().await()
-            val configSettings = remoteConfigSettings {
-                minimumFetchIntervalInSeconds = 3600
-            }
-            Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
-            Firebase.remoteConfig.fetchAndActivate().await()
+            sequences.exctractSequences()
+                .let { (groups, sequences) ->
+                    seqGroups += groups
+                    seqOfConns += sequences
+                }
+
+            resetRemoteConfig()
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)" to 0F
             }
 
-            plus.exctractData(sequences)
-                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                    connStops += connStopsOfTable
-                    timeCodes += timeCodesOfTable
-                    stops += stopsOfTable
-                    lines += linesOfTable
-                    conns += connsOfTable
-                }
+            plus.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+                seqOfConns += SeqOfConn(
+                    line = it.line,
+                    connNumber = it.connNumber,
+                    sequence = SequenceCode.invalid,
+                    orderInSequence = 0,
+                    group = SequenceGroup.invalid,
+                )
+            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                connStops += connStopsOfTable
+                timeCodes += timeCodesOfTable
+                stops += stopsOfTable
+                lines += linesOfTable
+                conns += connsOfTable
+            }
 
             _state.update {
                 "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)" to 0F
             }
 
-            changes.exctractData(sequences)
-                .forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                    connStops += connStopsOfTable
-                    timeCodes += timeCodesOfTable
-                    stops += stopsOfTable
-                    lines += linesOfTable
-                    conns += connsOfTable
-                }
+            changes.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+                seqOfConns += SeqOfConn(
+                    line = it.line,
+                    connNumber = it.connNumber,
+                    sequence = SequenceCode.invalid,
+                    orderInSequence = 0,
+                    group = SequenceGroup.invalid,
+                )
+            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+                connStops += connStopsOfTable
+                timeCodes += timeCodesOfTable
+                stops += stopsOfTable
+                lines += linesOfTable
+                conns += connsOfTable
+            }
 
             if (changeDiagram) {
                 _state.update {
@@ -470,6 +514,8 @@ class LoadingViewModel(
         println(stops)
         println(connStops)
         println(timeCodes)
+        println(seqOfConns)
+        println(seqGroups)
 
         repo.write(
             connStops = connStops.distinctBy { Triple(it.tab, it.connNumber, it.stopIndexOnLine) }.toTypedArray(),
@@ -477,14 +523,26 @@ class LoadingViewModel(
             timeCodes = timeCodes.distinctBy { Quadruple(it.tab, it.code, it.connNumber, it.termIndex) }.toTypedArray(),
             lines = lines.distinctBy { it.tab }.toTypedArray(),
             conns = conns.distinctBy { it.tab to it.connNumber }.toTypedArray(),
+            seqOfConns = seqOfConns.distinctBy { Quadruple(it.line, it.connNumber, it.sequence, it.group) }.toTypedArray(),
+            seqGroups = seqGroups.distinctBy { it.group }.toTypedArray(),
             version = newVersion,
         )
     }
 
+    private suspend fun resetRemoteConfig() {
+        Firebase.remoteConfig.reset().await()
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
+        Firebase.remoteConfig.fetchAndActivate().await()
+    }
+
     private suspend fun downloadDiagram(schemaRef: StorageReference) = downloadFile(schemaRef, params.diagramFile)
 
-    private fun Map<Table, Map<String, List<List<String>>>>.exctractData(
-        sequences: Map<SequenceCode, List<BusName>>,
+    private inline fun Map<Table, Map<String, List<List<String>>>>.exctractData(
+        connsWithSequence: List<BusName>,
+        addConnToSequence: (conn: Conn) -> Unit,
     ): List<Quintuple<MutableList<ConnStop>, MutableList<TimeCode>, MutableList<Stop>, MutableList<Line>, MutableList<Conn>>> {
 
         val rowsCount = this
@@ -524,9 +582,9 @@ class LoadingViewModel(
                             when (TableType.valueOf(typTabulky)) {
                                 TableType.Zasspoje -> connStopsOfTable += ConnStop(
                                     line = row[0].toLongLine(),
-                                    connNumber = row[1].toBusNumber(),
+                                    connNumber = row[1].toInt(),
                                     stopIndexOnLine = row[2].toInt(),
-                                    stopNumber = row[3].toStopNumber(),
+                                    stopNumber = row[3].toInt(),
                                     kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
@@ -538,7 +596,7 @@ class LoadingViewModel(
 
                                 TableType.Zastavky -> stopsOfTable += Stop(
                                     line = row[0].toLongLine(),
-                                    stopNumber = row[1].toStopNumber(),
+                                    stopNumber = row[1].toInt(),
                                     stopName = row[2],
                                     fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                         fixedCodesOfTable[it] ?: it
@@ -548,12 +606,14 @@ class LoadingViewModel(
 
                                 TableType.Caskody -> timeCodesOfTable += TimeCode(
                                     line = row[0].toLongLine(),
-                                    connNumber = row[1].toBusNumber(),
+                                    connNumber = row[1].toInt(),
                                     code = row[3].toInt(),
                                     termIndex = row[2].toInt(),
                                     type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun,
-                                    validFrom = row[5].toDateWeirdly(),
-                                    validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
+                                    validity = Validity(
+                                        validFrom = row[5].toDateWeirdly(),
+                                        validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
+                                    ),
                                     tab = tab,
                                 )
 
@@ -563,30 +623,28 @@ class LoadingViewModel(
                                     vehicleType = Json.decodeFromString("\"${row[4]}\""),
                                     lineType = Json.decodeFromString("\"${row[3]}\""),
                                     hasRestriction = row[5] != "0",
-                                    validFrom = row[13].toDateWeirdly(),
-                                    validTo = row[14].toDateWeirdly(),
+                                    validity = Validity(
+                                        validFrom = row[13].toDateWeirdly(),
+                                        validTo = row[14].toDateWeirdly(),
+                                    ),
                                     tab = tab,
                                 )
 
                                 TableType.Spoje -> {
-                                    val seq = sequences.toList().firstOrNull { (_, spoje) -> row[0] / row[1] in spoje }
-
                                     connsOfTable += Conn(
                                         line = row[0].toLongLine(),
-                                        connNumber = row[1].toBusNumber(),
+                                        connNumber = row[1].toInt(),
                                         fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
                                             fixedCodesOfTable[it] ?: it
                                         },
                                         direction = connStopsOfTable
-                                            .filter { it.connNumber == row[1].toBusNumber() }
+                                            .filter { it.connNumber == row[1].toInt() }
                                             .sortedBy { it.stopIndexOnLine }
                                             .filter { it.time != null }
                                             .let { stops ->
                                                 Direction(stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart)
                                             },
                                         tab = tab,
-                                        sequence = seq?.first,
-                                        orderInSequence = seq?.second?.indexOf(row[0] / row[1])?.takeUnless { it == -1 },
                                     ).also { conn ->
                                         timeCodesOfTable += TimeCode(
                                             line = conn.line,
@@ -594,16 +652,17 @@ class LoadingViewModel(
                                             code = -1,
                                             termIndex = 0,
                                             type = if (timeCodesOfTable.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun,
-                                            validFrom = noCode,
-                                            validTo = noCode,
+                                            validity = Validity(noCode, noCode),
                                             tab = conn.tab,
                                         )
+                                        if (conn.name !in connsWithSequence) addConnToSequence(conn)
                                     }
                                 }
 
                                 TableType.Pevnykod -> {
                                     fixedCodesOfTable += row[0] to row[1]
                                 }
+
                                 TableType.Zaslinky -> Unit
                                 TableType.VerzeJDF -> Unit
                                 TableType.Dopravci -> Unit
@@ -618,3 +677,23 @@ class LoadingViewModel(
 
     private inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
 }
+
+private fun Map<SequenceGroup, LoadingViewModel.Group>.exctractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
+    map { (group, groupData) ->
+        SeqGroup(
+            group = group,
+            validity = groupData.validity,
+        ) to groupData.sequences.flatMap { (sequenceCode, buses) ->
+            buses.mapIndexed { i, bus ->
+                SeqOfConn(
+                    line = bus.line(),
+                    connNumber = bus.bus(),
+                    sequence = sequenceCode,
+                    orderInSequence = i,
+                    group = group,
+                )
+            }
+        }
+    }.let { list ->
+        list.map { it.first } to list.flatMap { it.second }
+    }

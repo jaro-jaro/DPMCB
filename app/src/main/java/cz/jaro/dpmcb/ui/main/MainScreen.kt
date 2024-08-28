@@ -15,8 +15,11 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
@@ -245,44 +248,44 @@ fun Main(
         findSequences = viewModel.findSequences,
         findLine = viewModel.findLine,
     ) {
-            NavHost(
-                navController = navController,
-                startDestination = Route.Favourites,
-                popEnterTransition = {
-                    scaleIn(
-                        animationSpec = tween(
-                            durationMillis = 100,
-                            delayMillis = 35,
-                        ),
-                        initialScale = 1.1F,
-                    ) + fadeIn(
-                        animationSpec = tween(
-                            durationMillis = 100,
-                            delayMillis = 35,
-                        ),
-                    )
-                },
-                popExitTransition = {
-                    scaleOut(
-                        targetScale = 0.9F,
-                    ) + fadeOut(
-                        animationSpec = tween(
-                            durationMillis = 35,
-                            easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
-                        ),
-                    )
-                },
-            ) {
-                route<Route.Favourites> { Favourites(args = it, navController = navController) }
-                route<Route.Chooser> { Chooser(args = it, navController = navController) }
-                route<Route.Departures> { Departures(args = it, navController = navController) }
-                route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
-                route<Route.Timetable> { Timetable(args = it, navController = navController) }
-                route<Route.Bus> { Bus(args = it, navController = navController) }
-                route<Route.Sequence> { Sequence(args = it, navController = navController) }
-                route<Route.Card> { Card(args = it, navController = navController) }
-                route<Route.Map> { Map(args = it, navController = navController) }
-            }
+        NavHost(
+            navController = navController,
+            startDestination = Route.Favourites,
+            popEnterTransition = {
+                scaleIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                    initialScale = 1.1F,
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 100,
+                        delayMillis = 35,
+                    ),
+                )
+            },
+            popExitTransition = {
+                scaleOut(
+                    targetScale = 0.9F,
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 35,
+                        easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+                    ),
+                )
+            },
+        ) {
+            route<Route.Favourites> { Favourites(args = it, navController = navController) }
+            route<Route.Chooser> { Chooser(args = it, navController = navController) }
+            route<Route.Departures> { Departures(args = it, navController = navController) }
+            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
+            route<Route.Timetable> { Timetable(args = it, navController = navController) }
+            route<Route.Bus> { Bus(args = it, navController = navController) }
+            route<Route.Sequence> { Sequence(args = it, navController = navController) }
+            route<Route.Card> { Card(args = it, navController = navController) }
+            route<Route.Map> { Map(args = it, navController = navController) }
+        }
     }
 }
 
@@ -556,7 +559,9 @@ fun MainScreen(
             }
             ModalNavigationDrawer(
                 drawerContent = {
-                    ModalDrawerSheet {
+                    ModalDrawerSheet(
+                        Modifier.fillMaxHeight().verticalScroll(rememberScrollState())
+                    ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
                                 action = action,

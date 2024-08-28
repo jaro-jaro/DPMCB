@@ -190,7 +190,7 @@ class BusViewModel(
 
         if (traveledSegments == null) return@combine 0F
 
-        val departureFromLastStop = info.stops[traveledSegments].time.plus(state.delay ?: 0.minutes)
+        val departureFromLastStop = info.stops.getOrElse(traveledSegments) { info.stops.last() }.time.plus(state.delay ?: 0.minutes)
 
         val arrivalToNextStop = state.onlineConnDetail?.stops?.getOrNull(traveledSegments + 1)?.let {
             it.scheduledTime.plus(it.delay.minutes).plus(state.delay ?: 0.seconds)

@@ -1,9 +1,9 @@
 package cz.jaro.dpmcb.data.entities
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import cz.jaro.dpmcb.data.entities.types.LineType
 import cz.jaro.dpmcb.data.entities.types.VehicleType
-import kotlinx.datetime.LocalDate
 
 @Entity(primaryKeys = ["tab"])
 data class Line(
@@ -15,8 +15,8 @@ data class Line(
     val vehicleType: VehicleType,
     val lineType: LineType,
     val hasRestriction: Boolean,
-    val validFrom: LocalDate,
-    val validTo: LocalDate,
+    @Embedded
+    val validity: Validity,
 ) {
     @get:JvmName("getShortNumber")
     var shortNumber = number.toShortLine()

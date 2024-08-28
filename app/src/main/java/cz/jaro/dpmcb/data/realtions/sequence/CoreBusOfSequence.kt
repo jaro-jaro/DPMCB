@@ -11,7 +11,7 @@ import kotlinx.datetime.LocalTime
 data class CoreBusOfSequence(
     val lowFloor: Boolean,
     val line: LongLine,
-    val sequence: SequenceCode?,
+    val sequence: SequenceCode,
     val fixedCodes: String,
     val stopFixedCodes: String,
     val connStopFixedCodes: String,

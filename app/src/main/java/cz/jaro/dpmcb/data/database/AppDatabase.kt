@@ -8,6 +8,8 @@ import cz.jaro.dpmcb.data.database.AppDatabase.Companion.Converters
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.types.Direction
@@ -15,8 +17,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 @Database(
-    entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class],
-    version = 28,
+    entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class, SeqOfConn::class, SeqGroup::class],
+    version = 29,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

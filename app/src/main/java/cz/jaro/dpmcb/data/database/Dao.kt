@@ -10,17 +10,21 @@ import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
-import cz.jaro.dpmcb.data.realtions.Validity
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
+import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
@@ -246,23 +250,25 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.sequence, conn.name connName, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, seqofconn.sequence, conn.name connName, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, seqofconn.`group` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
-        JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
+        JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber
+        JOIN seqofconn ON seqofconn.line = conn.line AND seqofconn.connNumber = conn.connNumber
         WHERE (
             NOT connstop.departure IS null
             OR NOT connstop.arrival IS null
         )
         AND conn.name = :connName
         AND conn.tab = :tab
+        AND seqofconn.`group` IN (:groups)
         ORDER BY CASE
            WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
            ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun connWithItsConnStopsAndCodes(connName: BusName, tab: Table, positive: Direction = Direction.POSITIVE): List<CoreBus>
+    suspend fun coreBus(connName: BusName, groups: List<SequenceGroup>, tab: Table, positive: Direction = Direction.POSITIVE): List<CoreBus>
 
     @Query(
         """
@@ -277,60 +283,68 @@ interface Dao {
     @Transaction
     @Query(
         """
-        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, conn.sequence, conn.fixedCodes, CASE
+        SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, seqofconn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
         END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
         JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
+        JOIN seqofconn ON seqofconn.line = conn.line AND seqofconn.connNumber = conn.connNumber
         WHERE (
             NOT connstop.departure IS null
             OR NOT connstop.arrival IS null
         )
-        AND conn.sequence LIKE :seq
+        AND seqofconn.`group` = :group
+        AND seqofconn.sequence LIKE :seq
         ORDER BY CASE
            WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
            ELSE -connstop.stopIndexOnLine
         END
     """
     )
-    suspend fun connsOfSeqWithTheirConnStops(seq: SequenceCode, positive: Direction = Direction.POSITIVE): List<CoreBusOfSequence>
+    suspend fun coreBusOfSequence(seq: SequenceCode, group: SequenceGroup?, positive: Direction = Direction.POSITIVE): List<CoreBusOfSequence>
 
     @Transaction
     @Query(
         """
         SELECT DISTINCT conn.name connName FROM conn
-        WHERE conn.sequence = :seq
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+        WHERE seqofconn.sequence = :seq
+        AND seqofconn.`group` = :group
         AND conn.tab IN (:tabs)
-        ORDER BY conn.orderInSequence
+        ORDER BY seqofconn.orderInSequence
     """
     )
-    suspend fun connsOfSeq(seq: SequenceCode, tabs: List<Table>): List<BusName>
+    suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName>
 
     @Transaction
     @Query(
         """
         SELECT DISTINCT conn.name connName FROM conn
-        WHERE conn.sequence = :seq
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+        WHERE seqofconn.sequence = :seq
+        AND seqofconn.`group` = :group
         AND conn.tab IN (:tabs)
-        ORDER BY conn.orderInSequence
+        ORDER BY seqofconn.orderInSequence
         LIMIT 1
     """
     )
-    suspend fun firstConnOfSeq(seq: SequenceCode, tabs: List<Table>): BusName
+    suspend fun firstConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName
 
     @Transaction
     @Query(
         """
         SELECT DISTINCT conn.name connName FROM conn
-        WHERE conn.sequence = :seq
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+        WHERE seqofconn.sequence = :seq
+        AND seqofconn.`group` = :group
         AND conn.tab IN (:tabs)
-        ORDER BY -conn.orderInSequence
+        ORDER BY -seqofconn.orderInSequence
         LIMIT 1
     """
     )
-    suspend fun lastConnOfSeq(seq: SequenceCode, tabs: List<Table>): BusName
+    suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName
 
     @Query(
         """
@@ -376,14 +390,14 @@ interface Dao {
 
     @Query(
         """
-        SELECT DISTINCT conn.sequence FROM conn
+        SELECT DISTINCT seqofconn.sequence FROM seqofconn
         WHERE 0
-        OR conn.sequence LIKE :sequence1
-        OR conn.sequence LIKE :sequence2
-        OR conn.sequence LIKE :sequence3
-        OR conn.sequence LIKE :sequence4
-        OR conn.sequence LIKE :sequence5
-        OR conn.sequence LIKE :sequence6
+        OR seqofconn.sequence LIKE :sequence1
+        OR seqofconn.sequence LIKE :sequence2
+        OR seqofconn.sequence LIKE :sequence3
+        OR seqofconn.sequence LIKE :sequence4
+        OR seqofconn.sequence LIKE :sequence5
+        OR seqofconn.sequence LIKE :sequence6
     """
     )
     suspend fun findSequences(
@@ -415,31 +429,73 @@ interface Dao {
                 ELSE connstop.departure
             END)
         )
-        SELECT DISTINCT conn.sequence, lastStopTimeOfConn.* FROM conn
+        SELECT DISTINCT seqofconn.sequence, lastStopTimeOfConn.* FROM conn
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
         JOIN lastStopTimeOfConn ON lastStopTimeOfConn.connName = conn.name
-        WHERE conn.sequence IN (:todayRunningSequences)
+        WHERE seqofconn.sequence IN (:todayRunningSequences)
+        AND seqofconn.`group` in (:groups)
         AND conn.tab in (:tabs)
-        ORDER BY conn.sequence, lastStopTimeOfConn.time
+        ORDER BY seqofconn.sequence, lastStopTimeOfConn.time
     """
     )
-    suspend fun lastStopTimesOfConnsInSequences(todayRunningSequences: List<SequenceCode>, tabs: List<Table>): Map<@MapColumn("sequence") SequenceCode, Map<@MapColumn("connName") BusName, @MapColumn("time") LocalTime>>
+    suspend fun lastStopTimesOfConnsInSequences(todayRunningSequences: List<SequenceCode>, groups: List<SequenceGroup>, tabs: List<Table>): Map<@MapColumn("sequence") SequenceCode, Map<@MapColumn("connName") BusName, @MapColumn("time") LocalTime>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT conn.name connName, conn.line, conn.direction, conn.tab, CASE
+            WHEN connstop.departure IS null THEN connstop.arrival
+            ELSE connstop.departure
+        END time, stop.stopName name, seqofconn.sequence FROM conn
+        JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
+        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+        WHERE conn.name = :connName
+        AND seqofconn.`group` IN (:groups)
+        AND conn.tab = :tab
+        AND (
+            NOT connstop.departure IS null
+            OR NOT connstop.arrival IS null
+        )
+        ORDER BY CASE
+           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
+           ELSE -connstop.stopIndexOnLine
+        END
+    """
+    )
+    suspend fun connWithItsStops(connName: BusName, groups: List<SequenceGroup>, tab: Table, positive: Direction = Direction.POSITIVE): Map<BusOfNowRunning, List<StopOfNowRunning>>
+
+//    @Transaction
+//    @Query(
+//        """
+//        SELECT seqofconn.sequence FROM conn
+//        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+//        WHERE conn.name = :connName
+//        AND conn.tab = :tab
+//        AND seqofconn.`group` IN (:groups)
+//        LIMIT 1
+//    """
+//    )
+//    suspend fun seqOfConn(connName: BusName, tab: Table): SequenceCode
 
     @Transaction
     @Query(
         """
         WITH CounOfConnsInSequence AS (
             SELECT COUNT(DISTINCT connNumber) count, sequence
-            FROM conn
+            FROM seqofconn
+            WHERE seqofconn.`group` IN (:groups)
             GROUP BY sequence
         ),
         TimeCodesOfSeq AS (
-            SELECT conn.sequence, timecode.*
+            SELECT seqofconn.sequence, timecode.*
             FROM timecode
-            JOIN conn ON conn.tab = timecode.tab AND conn.connNumber = timecode.connNumber
-            JOIN counofconnsinsequence c ON c.sequence = conn.sequence
-            GROUP BY validFrom || validTo || type, conn.sequence
-            HAVING COUNT(DISTINCT conn.connNumber) =  c.count
-            ORDER BY conn.sequence, type, validTo, validFrom
+            JOIN seqofconn ON seqofconn.line = timecode.line AND seqofconn.connNumber = timecode.connNumber
+            JOIN counofconnsinsequence c ON c.sequence = seqofconn.sequence
+            WHERE seqofconn.`group` IN (:groups)
+            GROUP BY validFrom || validTo || type, seqofconn.sequence
+            HAVING COUNT(DISTINCT seqofconn.connNumber) = c.count
+            ORDER BY seqofconn.sequence, type, validTo, validFrom
         ),
         TimeCodesCountOfSeq AS (
             SELECT DISTINCT sequence, COUNT(*) count FROM TimeCodesOfSeq timecode
@@ -475,86 +531,56 @@ interface Dao {
             )
         ),
         endStopIndexOnThisLine(sequence, time, name) AS (
-            SELECT DISTINCT conn.sequence, CASE
+            SELECT DISTINCT seqofconn.sequence, CASE
                 WHEN connstop.departure IS null THEN connstop.arrival
                 ELSE connstop.departure
             END, stop.stopName FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN seqofconn ON seqofconn.connNumber = connstop.connNumber AND seqofconn.line = connstop.line
             WHERE (
                 NOT connstop.departure IS null
                 OR NOT connstop.arrival IS null
             )
             AND connstop.tab IN (:tabs)
-            GROUP BY conn.sequence
+            GROUP BY seqofconn.sequence
             HAVING MAX(CASE
                 WHEN connstop.departure IS null THEN connstop.arrival
                 ELSE connstop.departure
             END)
         ),
         startStopIndexOnThisLine(sequence, time, name) AS (
-            SELECT DISTINCT conn.sequence, CASE
+            SELECT DISTINCT seqofconn.sequence, CASE
                 WHEN connstop.departure IS null THEN connstop.arrival
                 ELSE connstop.departure
             END, stop.stopName FROM connstop
             JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-            JOIN conn ON conn.connNumber = connstop.connNumber AND conn.tab = connstop.tab
+            JOIN seqofconn ON seqofconn.connNumber = connstop.connNumber AND seqofconn.line = connstop.line
             WHERE (
                 NOT connstop.departure IS null
                 OR NOT connstop.arrival IS null
             )
             AND connstop.tab IN (:tabs)
-            GROUP BY conn.sequence
+            GROUP BY seqofconn.sequence
             HAVING MIN(CASE
                 WHEN connstop.departure IS null THEN connstop.arrival
                 ELSE connstop.departure
             END)
         )
-        SELECT conn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end`, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, conn.name connName FROM conn
-        JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = conn.sequence
-        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = conn.sequence
+        SELECT seqofconn.sequence, conn.fixedCodes, startStopIndexOnThisLine.time start, endStopIndexOnThisLine.time `end`, timecode.type, timecode.validFrom `from`, timecode.validTo `to`, conn.name connName FROM conn
+        JOIN startStopIndexOnThisLine ON startStopIndexOnThisLine.sequence = seqofconn.sequence
+        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.sequence = seqofconn.sequence
         JOIN timecode ON timecode.connNumber = conn.connNumber AND timecode.tab = conn.tab
-        WHERE conn.sequence IN TodayRunningSequences
+        JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
+        WHERE seqofconn.sequence IN TodayRunningSequences
         AND conn.tab IN (:tabs)
+        AND seqofconn.`group` IN (:groups)
     """ // DISTINCT zde není schválně - chceme pevné kódy pro každý spoj zvlášť, abychom poté získali společné pevné kódy
     )
     suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
-        tabs: List<Table>
+        tabs: List<Table>,
+        groups: List<SequenceGroup>
     ): Map<TimeOfSequence, Map<@MapColumn("connName") BusName, List<CodesOfBus>>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT conn.*, CASE
-            WHEN connstop.departure IS null THEN connstop.arrival
-            ELSE connstop.departure
-        END time, stop.stopName name FROM conn
-        JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
-        JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
-        WHERE conn.name = :connName
-        AND conn.tab = :tab
-        AND (
-            NOT connstop.departure IS null
-            OR NOT connstop.arrival IS null
-        )
-        ORDER BY CASE
-           WHEN conn.direction = :positive THEN connstop.stopIndexOnLine
-           ELSE -connstop.stopIndexOnLine
-        END
-    """
-    )
-    suspend fun connWithItsStops(connName: BusName, tab: Table, positive: Direction = Direction.POSITIVE): Map<Conn, List<StopOfNowRunning>>
-
-    @Transaction
-    @Query(
-        """
-        SELECT conn.sequence, conn.tab FROM conn
-        WHERE conn.name = :connName
-        AND conn.tab = :tab
-    """
-    )
-    suspend fun seqOfConn(connName: BusName, tab: Table): Map<@MapColumn("tab") Table, @MapColumn("sequence") SequenceCode?>
 
     @Query(
         """
@@ -621,10 +647,26 @@ interface Dao {
 
     @Query(
         """
+        SELECT DISTINCT seqgroup.* FROM seqgroup
+        JOIN seqofconn ON seqofconn.`group` = seqgroup.`group`
+        WHERE seqofconn.sequence = :seq
+    """
+    )
+    suspend fun seqGroups(seq: SequenceCode): List<SeqGroup>
+
+    @Query(
+        """
         SELECT DISTINCT number FROM line
     """
     )
     suspend fun allLineNumbers(): List<LongLine>
+
+    @Query(
+        """
+        SELECT DISTINCT sequence FROM seqofconn
+    """
+    )
+    suspend fun allSequences(): List<SequenceCode>
 
     @Insert
     suspend fun insertConnStops(vararg connStops: ConnStop)
@@ -641,6 +683,12 @@ interface Dao {
     @Insert
     suspend fun insertConns(vararg conns: Conn)
 
+    @Insert
+    suspend fun insertSeqOfConns(vararg seqsOfBuses: SeqOfConn)
+
+    @Insert
+    suspend fun insertSeqGroups(vararg seqGroups: SeqGroup)
+
     @Query("SELECT * FROM connstop")
     suspend fun connStops(): List<ConnStop>
 
@@ -655,4 +703,10 @@ interface Dao {
 
     @Query("SELECT * FROM conn")
     suspend fun conns(): List<Conn>
+
+    @Query("SELECT * FROM seqofconn")
+    suspend fun seqOfConns(): List<SeqOfConn>
+
+    @Query("SELECT * FROM seqgroup")
+    suspend fun seqGroups(): List<SeqGroup>
 }

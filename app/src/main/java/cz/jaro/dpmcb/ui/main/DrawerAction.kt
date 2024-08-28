@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SettingsActivity
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import kotlin.reflect.KClass

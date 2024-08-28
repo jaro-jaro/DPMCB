@@ -76,6 +76,12 @@ class App : Application() {
                 factory {
                     get<AppDatabase>().dao()
                 }
+                single {
+                    SpojeRepository(get(), get(), get())
+                }
+                single {
+                    PreferenceDataSource(get())
+                }
             })
             defaultModule()
         }
