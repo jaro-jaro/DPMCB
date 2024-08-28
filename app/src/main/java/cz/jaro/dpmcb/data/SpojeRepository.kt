@@ -148,6 +148,10 @@ class SpojeRepository(
         Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
+    private val dividedSequencesWithMultipleBuses = configActive.map {
+        Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"].asString())
+    }//.stateIn(scope, SharingStarted.Eagerly, null)
+
     private val _date = MutableStateFlow(SystemClock.todayHere())
     val date = _date.asStateFlow()
 
@@ -285,14 +289,14 @@ class SpojeRepository(
 
             val before = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 2) add(seq.changePart(1))
+                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
                     addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
                 }
             }
 
             val after = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 1) add(seq.changePart(2))
+                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
                     addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
                 }
             }
@@ -486,12 +490,12 @@ class SpojeRepository(
         }
 
         val before = buildList {
-            if (seq.modifiers().part() == 2) add(seq.changePart(1))
+            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
             addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
         }
 
         val after = buildList {
-            if (seq.modifiers().part() == 1) add(seq.changePart(2))
+            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
             addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
         }
 
