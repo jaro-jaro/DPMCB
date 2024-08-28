@@ -12,8 +12,6 @@ data class Conn(
     val line: LongLine,
     val fixedCodes: String,
     val direction: Direction,
-    val sequence: SequenceCode?,
-    val orderInSequence: Int?,
 ) {
     @get:JvmName("getName")
     var name = BusName(line, connNumber)

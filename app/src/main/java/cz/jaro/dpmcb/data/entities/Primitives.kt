@@ -8,40 +8,48 @@ import kotlin.contracts.contract
 
 typealias SequenceID = Int
 typealias StopNumber = Int
-@Serializable
-@JvmInline
-value class Table(val value: String)  { override fun toString() = value }
-@Serializable
-@JvmInline
-value class LongLine(val value: Int) { override fun toString() = value.toString() }
+typealias SequenceGroup = Int
+typealias SequenceGroupCompanion = Int.Companion
 
 @Serializable
 @JvmInline
-value class ShortLine(val value: Int): Comparable<ShortLine> {
-    companion object {
-        val invalid get() = ShortLine(-1)
-    }
+value class Table(val value: String) {
+    override fun toString() = value
+}
 
-    fun isInvalid() = this == invalid
+@Serializable
+@JvmInline
+value class LongLine(val value: Int) {
+    override fun toString() = value.toString()
+}
+
+@Serializable
+@JvmInline
+value class ShortLine(val value: Int) : Comparable<ShortLine> {
     override fun toString() = value.toString()
     override fun compareTo(other: ShortLine) = value.compareTo(other.value)
 }
 
-fun ShortLine?.isInvalid() = this == null || isInvalid()
-
 typealias BusNumber = Int
+
 @Serializable
 @JvmInline
-value class BusName(val value: String) { override fun toString() = value }
+value class BusName(val value: String) {
+    override fun toString() = value
+}
+
 @Serializable
 @JvmInline
-value class RegistrationNumber(val value: Int): Comparable<RegistrationNumber> {
+value class RegistrationNumber(val value: Int) : Comparable<RegistrationNumber> {
     override fun compareTo(other: RegistrationNumber) = value.compareTo(other.value)
     override fun toString() = value.atLeastDigits(2)
 }
+
 @Serializable
 @JvmInline
-value class SequenceCode(val value: String) { override fun toString() = value }
+value class SequenceCode(val value: String) {
+    override fun toString() = value
+}
 
 typealias UnknownBusName = BusName
 
@@ -63,6 +71,15 @@ fun SequenceCode.changePart(part: Int) = SequenceCode(
         else -> value.dropLast(1) + part
     }
 )
+
+val ShortLine.Companion.invalid get() = ShortLine(-1)
+fun ShortLine.isInvalid() = this == ShortLine.invalid
+fun ShortLine?.isInvalid() = this == null || isInvalid()
+val SequenceGroupCompanion.invalid get() = -1
+fun SequenceGroup.isInvalid() = this == SequenceGroup.invalid
+val SequenceCode.Companion.invalid get() = SequenceCode("0/0")
+fun SequenceCode.isInvalid() = this == SequenceCode.invalid
+
 fun SequenceCode.modifiers(): SequenceModifiers = value.substringAfter('-', "")
 fun SequenceCode.hasModifiers() = '-' in value
 fun SequenceModifiers.hasPart() = isNotEmpty() && last().isDigit()
