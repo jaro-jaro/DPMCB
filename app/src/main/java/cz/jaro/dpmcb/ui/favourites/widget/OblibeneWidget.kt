@@ -99,17 +99,20 @@ class OblibeneWidget : GlanceAppWidget() {
 
                         val tedJede = ids.map { (info, zastavky, cast) ->
                             val jedeV = repo.doesConnRunAt(info.connName)
+                            val start = zastavky.getOrNull(cast.start) ?: zastavky.last()
+                            val end = zastavky.getOrNull(cast.end) ?: zastavky.last()
+
                             KartickaWidgetState(
                                 spojId = info.connName,
                                 linka = info.line,
-                                vychoziZastavka = (zastavky.getOrNull(cast.start) ?: zastavky.last()).name,
-                                vychoziZastavkaCas = (zastavky.getOrNull(cast.start) ?: zastavky.last()).time,
-                                cilovaZastavka = (zastavky.getOrNull(cast.end) ?: zastavky.last()).name,
-                                cilovaZastavkaCas = (zastavky.getOrNull(cast.end) ?: zastavky.last()).time,
+                                vychoziZastavka = start.name,
+                                vychoziZastavkaCas = start.time,
+                                cilovaZastavka = end.name,
+                                cilovaZastavkaCas = end.time,
                             ) to listOf(
                                 jedeV(SystemClock.todayHere()),
-                                zastavky[cast.start].time <= SystemClock.timeHere().plus(30.minutes, date),
-                                SystemClock.timeHere() <= zastavky[cast.end].time.plus(30.minutes, date),
+                                start.time <= SystemClock.timeHere().plus(30.minutes, date),
+                                SystemClock.timeHere() <= end.time.plus(30.minutes, date),
                             ).allTrue()
                         }
                             .filter { it.second }.map { it.first }
