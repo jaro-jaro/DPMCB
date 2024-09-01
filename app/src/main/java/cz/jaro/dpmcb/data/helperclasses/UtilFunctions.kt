@@ -74,11 +74,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 object UtilFunctions {
 
-    fun LocalDate.toCzechLocative() = when (minus(SystemClock.todayHere()).days) {
-        0 -> "dnes"
-        1 -> "zítra"
-        2 -> "pozítří"
-        in 3..6 -> when (dayOfWeek) {
+    fun LocalDate.toCzechLocative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+        0L -> "dnes"
+        1L -> "zítra"
+        2L -> "pozítří"
+        in 3L..6L -> when (dayOfWeek) {
             DayOfWeek.MONDAY -> "v pondělí"
             DayOfWeek.TUESDAY -> "v úterý"
             DayOfWeek.WEDNESDAY -> "ve středu"
@@ -91,11 +91,11 @@ object UtilFunctions {
         else -> asString()
     }
 
-    fun LocalDate.toCzechAccusative() = when (minus(SystemClock.todayHere()).days) {
-        0 -> "dnešek"
-        1 -> "zítřek"
-        2 -> "pozítří"
-        in 3..6 -> when (dayOfWeek) {
+    fun LocalDate.toCzechAccusative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+        0L -> "dnešek"
+        1L -> "zítřek"
+        2L -> "pozítří"
+        in 3L..6L -> when (dayOfWeek) {
             DayOfWeek.MONDAY -> "pondělí"
             DayOfWeek.TUESDAY -> "úterý"
             DayOfWeek.WEDNESDAY -> "středu"
