@@ -662,10 +662,14 @@ class SpojeRepository(
         )
     }
 
-    suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning =
+    suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning? =
         localDataSource.connWithItsStops(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
-            .entries.single()
-            .let { (conn, stops) ->
+            .entries.singleOrNull()
+            .also {
+                if (it == null)
+                    Firebase.crashlytics.recordException(IllegalStateException("No running bus found for $busName"))
+            }
+            ?.let { (conn, stops) ->
                 NowRunning(
                     busName = conn.connName,
                     lineNumber = conn.line.toShortLine(),

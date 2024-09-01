@@ -87,7 +87,7 @@ class NowRunningViewModel(
         loading.value = true
         onlineConns
             .asyncMap { onlineConn ->
-                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.todayHere())
+                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.todayHere()) ?: return@asyncMap null
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
@@ -167,7 +167,7 @@ class NowRunningViewModel(
     private val notRunningList = nowNotRunningBuses.map { buses ->
         buses
             .asyncMap { busName ->
-                val bus = repo.nowRunningBus(busName, SystemClock.todayHere())
+                val bus = repo.nowRunningBus(busName, SystemClock.todayHere()) ?: return@asyncMap null
                 val (indexOnLine, nextStop) = bus.stops.withIndex().first { it.value.time > SystemClock.timeHere() }
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 RunningConnPlus(
@@ -183,6 +183,7 @@ class NowRunningViewModel(
                     sequence = bus.sequence,
                 )
             }
+            .filterNotNull()
     }
 
     private val nowNotRunning = notRunningList.combine(type) { it, type ->
