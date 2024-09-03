@@ -35,3 +35,5 @@
 -keep,allowobfuscation,allowshrinking class retrofit2.Response
 
 -keep class androidx.navigation.NavType$EnumType
+
+-dontwarn org.slf4j.impl.StaticLoggerBinder
