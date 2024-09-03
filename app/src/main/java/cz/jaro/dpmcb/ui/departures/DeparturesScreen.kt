@@ -81,7 +81,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
@@ -126,13 +126,13 @@ fun Departures(
     },
 ) {
     LifecycleResumeEffect(Unit) {
-        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
+        val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
 
         if (result != null) viewModel.onEvent(WentBack(result))
 
         onPauseOrDispose {
             if (navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) == true)
-                navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
+                navController.currentBackStackEntry?.savedStateHandle?.remove<ChooserResult>("result")
         }
     }
 

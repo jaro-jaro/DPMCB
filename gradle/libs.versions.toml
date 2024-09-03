@@ -22,7 +22,6 @@ firebase-crashlytics = "19.0.3"
 firebase-crashlytics-plugin = "3.0.2"
 firebase-database = "21.0.0"
 firebase-storage = "21.0.0"
-jsoup = "1.16.2"
 junit = "4.13.2"
 koin-compose = "3.5.3"
 koin-navigation = "3.3.0"
@@ -40,6 +39,7 @@ retrofit = "2.9.0"
 semver = "2.0.0"
 firebase-config = "22.0.0"
 zoomable = "0.11.2"
+ksoup = "0.1.2"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -71,7 +71,6 @@ firebase-common = { module = "com.google.firebase:firebase-common", version.ref 
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebase-crashlytics" }
 firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebase-database" }
 firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebase-storage" }
-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit = { module = "junit:junit", version.ref = "junit" }
 koin-annotations-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
 koin-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-compose" }
@@ -86,6 +85,8 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "firebase-config" }
 zoomable-image-coil = { module = "me.saket.telephoto:zoomable-image-coil", version.ref = "zoomable" }
+ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
+ksoup-network = { module = "com.fleeksoft.ksoup:ksoup-network", version.ref = "ksoup" }
 
 [plugins]
 android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }

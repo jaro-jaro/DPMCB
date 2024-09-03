@@ -9,7 +9,7 @@ import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.sorted
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +36,7 @@ class ChooserViewModel(
         val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String?,
         val navigate: NavigateFunction,
-        val navigateBack: NavigateBackFunction<Result>,
+        val navigateBack: NavigateBackFunction<ChooserResult>,
     )
 
     private val originalList = repo.date.map { datum ->
@@ -161,19 +161,19 @@ class ChooserViewModel(
             )
 
             ChooserType.ReturnStop1 -> {
-                params.navigateBack(Result(result, params.type))
+                params.navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop2 -> {
-                params.navigateBack(Result(result, params.type))
+                params.navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnLine -> {
-                params.navigateBack(Result(result, params.type))
+                params.navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop -> {
-                params.navigateBack(Result(result, params.type))
+                params.navigateBack(ChooserResult(result, params.type))
             }
         }
     }

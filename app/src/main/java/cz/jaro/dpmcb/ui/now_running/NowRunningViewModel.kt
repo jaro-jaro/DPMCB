@@ -79,7 +79,7 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(Route.Sequence(sequence = e.seq.value))
+            params.navigate(Route.Sequence(sequence = e.seq))
         }
     }
 

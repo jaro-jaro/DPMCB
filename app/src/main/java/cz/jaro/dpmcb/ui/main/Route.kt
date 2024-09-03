@@ -3,10 +3,14 @@ package cz.jaro.dpmcb.ui.main
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.hasModifiers
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.entities.modifiers
+import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -71,8 +75,11 @@ sealed interface Route {
     @Serializable
     @SerialName("sequence")
     data class Sequence(
-        val sequence: String,
-    ) : Route
+        val sequenceNumber: String,
+        val lineAndModifiers: String,
+    ) : Route {
+        constructor(sequence: SequenceCode) : this("${sequence.sequenceNumber()}", "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}")
+    }
 
     @Serializable
     @SerialName("timetable")

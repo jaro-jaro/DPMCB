@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.departures
 
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import kotlinx.datetime.LocalTime
 
@@ -9,7 +9,7 @@ sealed interface DeparturesEvent {
     data class GoToTimetable(val bus: DepartureState) : DeparturesEvent
     data class ChangeTime(val time: LocalTime) : DeparturesEvent
     data class Scroll(val i: Int) : DeparturesEvent
-    data class WentBack(val result: Result) : DeparturesEvent
+    data class WentBack(val result: ChooserResult) : DeparturesEvent
     data class Canceled(val chooserType: ChooserType) : DeparturesEvent
     data object ChangeCompactMode : DeparturesEvent
     data object ChangeJustDepartures : DeparturesEvent

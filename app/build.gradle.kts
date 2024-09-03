@@ -16,8 +16,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 43
-        versionName = "1.6.4-alpha.10"
+        versionCode = 44
+        versionName = "1.6.4-pre.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -152,7 +152,8 @@ dependencies {
     implementation(libs.semver)
 
     // Web scaping
-    implementation(libs.jsoup)
+    implementation(libs.ksoup)
+    implementation(libs.ksoup.network)
     implementation(libs.konsume.xml)
     implementation(libs.retrofit)
 

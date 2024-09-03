@@ -5,7 +5,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,7 +32,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.bus
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -43,29 +42,30 @@ import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun Sequence(
     args: Route.Sequence,
     navController: NavHostController,
     viewModel: SequenceViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(SequenceCode(args.sequence)))
+        parametersOf(
+            SequenceViewModel.Parameters(
+                sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
+                navigate = navController.navigateFunction
+            )
+        )
     },
 ) {
     title = R.string.detail_kurzu
     App.selected = DrawerAction.FindBus
 
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val date by viewModel.date.collectAsStateWithLifecycle()
 
     SequenceScreen(
         state = state,
-        navigate = navController.navigateFunction,
-        lazyListState = rememberLazyListState(),
-        date = date,
+        onEvent = viewModel::onEvent,
     )
 }
 
@@ -74,12 +74,11 @@ fun Sequence(
 @Composable
 fun SequenceScreen(
     state: SequenceState,
-    navigate: NavigateFunction,
-    lazyListState: LazyListState,
-    date: LocalDate,
+    onEvent: (SequenceEvent) -> Unit,
+    lazyListState: LazyListState = rememberLazyListState(),
 ) = Scaffold(
     floatingActionButton = {
-        if (state is SequenceState.OK) FABs(state, lazyListState, date)
+        if (state is SequenceState.OK) FABs(state, lazyListState)
     }
 ) {
     LazyColumn(
@@ -100,16 +99,16 @@ fun SequenceScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento kurz (${state.sequenceName}) bohužel ${state.date} neexistuje :(\nBuď jste zadali špatně jeho název, nebo tento kurz existuje v jiném jízdním řádu, který dnes neplatí.")
+                Text("Tento kurz (${state.sequenceName}) bohužel ${state.date.asString()} neexistuje :(\nBuď jste zadali špatně jeho název, nebo tento kurz existuje v jiném jízdním řádu, který dnes neplatí.")
             }
 
             is SequenceState.OK -> {
                 item {
-                    FlowRow(
+                    Row(
                         Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
-                        verticalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name(state.sequenceName)
 
@@ -118,9 +117,18 @@ fun SequenceScreen(
                             confirmedLowFloor = state.confirmedLowFloor,
                             modifier = Modifier.padding(start = 8.dp),
                         )
-
+                    }
+                }
+                item {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         if (state is SequenceState.Online) DelayBubble(state.delayMin)
-                        if (state is SequenceState.Online) Vehicle(state.vehicle)
+                        if (state.vehicle != null) Vehicle(state.vehicle)
+                        else VehicleSearcher(onEvent)
                     }
                 }
 
@@ -139,7 +147,7 @@ fun SequenceScreen(
 
                 state.before.forEach {
                     item {
-                        Connection(navigate, it)
+                        Connection(onEvent, it)
                     }
                     item {
                         HorizontalDivider(Modifier.fillMaxWidth())
@@ -164,7 +172,7 @@ fun SequenceScreen(
 
                                 Spacer(Modifier.weight(1F))
 
-                                BusButton(navigate, bus)
+                                BusButton(onEvent, bus)
                             }
                         }
                         Surface {
@@ -188,7 +196,7 @@ fun SequenceScreen(
                         ) {
                             Timetable(
                                 stops = bus.stops,
-                                navigate = navigate,
+                                onEvent = onEvent.fromTimetable,
                                 onlineConnStops = null,
                                 nextStopIndex = null,
                                 showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
@@ -200,7 +208,9 @@ fun SequenceScreen(
                     }
                     item {
                         Column(
-                            Modifier.fillMaxWidth(1F).padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                            Modifier
+                                .fillMaxWidth(1F)
+                                .padding(top = 8.dp, start = 8.dp, end = 8.dp)
                         ) {
                             bus.fixedCodes.forEach {
                                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -223,7 +233,7 @@ fun SequenceScreen(
 
                 state.after.forEach {
                     item {
-                        Connection(navigate, it)
+                        Connection(onEvent, it)
                     }
                     item {
                         HorizontalDivider(Modifier.fillMaxWidth())

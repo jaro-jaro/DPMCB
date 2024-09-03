@@ -2,43 +2,61 @@ package cz.jaro.dpmcb.ui.sequence
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.entities.modifiers
+import cz.jaro.dpmcb.data.entities.part
+import cz.jaro.dpmcb.data.entities.sequenceNumber
+import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.TimetableEvent
+import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
 class SequenceViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val originalSequence: SequenceCode,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    val date = repo.date
+    data class Parameters(
+        val sequence: SequenceCode,
+        val navigate: (Route) -> Unit,
+    )
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
-        val sequence = repo.sequence(originalSequence, date)
-            ?: return@map SequenceState.DoesNotExist(originalSequence, with(repo) { originalSequence.seqName() }, date.toCzechLocative())
+        println("\"${params.sequence}\"")
+        val sequence = repo.sequence(params.sequence, date)
+            ?: return@map SequenceState.DoesNotExist(params.sequence, with(repo) { params.sequence.seqName() }, date)
 
         val runningBus = sequence.buses.find { (_, stops) ->
             stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
@@ -71,6 +89,8 @@ class SequenceViewModel(
             runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.todayHere()),
             height = 0F,
             traveledSegments = 0,
+            date = date,
+            vehicle = null,
         )
     }
 
@@ -129,25 +149,84 @@ class SequenceViewModel(
         traveledSegments + (passed.inWholeSeconds / length.inWholeSeconds.toFloat()).coerceAtMost(1F)
     }
 
-    val state = combine(info, traveledSegments, lineHeight, nowRunningOnlineConn, repo.date) { info, traveledSegments, lineHeight, onlineConn, date ->
-        if (date != SystemClock.todayHere()) return@combine info
+    private val downloadedVehicle = MutableStateFlow(null as RegistrationNumber?)
+
+    val state = combine(
+        info,
+        traveledSegments,
+        lineHeight,
+        nowRunningOnlineConn,
+        repo.date,
+        downloadedVehicle
+    ) { info, traveledSegments, lineHeight, onlineConn, date, downloadedVehicle ->
         if (info !is SequenceState.OK) return@combine info
         val newInfo = (info as SequenceState.Offline).copy(
+            vehicle = downloadedVehicle,
+        )
+        if (date != SystemClock.todayHere()) return@combine newInfo
+        val newerInfo = newInfo.copy(
             height = lineHeight,
             traveledSegments = traveledSegments ?: 0,
         )
-        if (onlineConn?.delayMin == null) return@combine newInfo
+        if (onlineConn?.delayMin == null) return@combine newerInfo
         SequenceState.Online(
-            state = newInfo,
+            state = newerInfo,
             delayMin = onlineConn.delayMin,
             vehicle = onlineConn.vehicle,
             confirmedLowFloor = onlineConn.lowFloor,
         ).copy(
-            buses = newInfo.buses.map {
+            buses = newerInfo.buses.map {
                 it.copy(
                     isRunning = it.busName == onlineConn.name
                 )
             },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
+
+    fun onEvent(e: SequenceEvent) = when (e) {
+        is SequenceEvent.BusClick -> params.navigate(Route.Bus(e.busName))
+        is SequenceEvent.SequenceClick -> params.navigate(Route.Sequence(e.sequence))
+        is SequenceEvent.TimetableClick -> when (e.e) {
+            is TimetableEvent.StopClick -> params.navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> params.navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop))
+        }
+
+        is SequenceEvent.FindBus -> {
+            val state = state.value
+            require(state is SequenceState.OK)
+            viewModelScope.launch {
+                val doc = Ksoup.parseGetRequest(
+                    if (params.sequence.line().startsWith('5') && params.sequence.line().length == 2 && params.sequence.modifiers().part() == 2)
+                        "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date.minus(1.days)}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
+                    else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}".also(::println)
+                )
+                val data = doc
+                    .body()
+                    .select("#snippet--table > div > table > tbody")
+                    .single()
+                    .children().also(::println)
+                    .filter { !it.hasClass("table-header") }
+                    .map {
+                        Pair(
+                            it.getElementsByClass("car").single().text().toRegNum(),
+                            it.getElementsByClass("note").single().text(),
+                        )
+                    }.also(::println)
+
+                downloadedVehicle.value =
+                    if (data.isEmpty()) null.also { e.onLost() }
+                    else if (data.size == 1) data.single().first.also(e.onFound)
+                    else {
+                        val cast = when (params.sequence.modifiers().part()) {
+                            1 -> "ran"
+                            2 -> "odpo"
+                            else -> null
+                        }.also(::println)
+                        if (cast == null) null.also { e.onLost() }
+                        else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
+                    }
+            }
+            Unit
+        }
+    }
 }
