@@ -83,7 +83,7 @@ fun SequenceCode.isInvalid() = this == SequenceCode.invalid
 fun SequenceCode.modifiers(): SequenceModifiers = value.substringAfter('-', "")
 fun SequenceCode.hasModifiers() = '-' in value
 fun SequenceModifiers.hasPart() = isNotEmpty() && last().isDigit()
-fun SequenceModifiers.part() = if (hasPart()) last().digitToInt() else null
+fun SequenceModifiers.part(): Int? = if (hasPart()) last().digitToInt() else null
 fun SequenceModifiers.hasType() = isNotEmpty() && first().isLetter()
 fun SequenceModifiers.typeChar() = if (hasType()) first() else null
 fun SequenceCode.generic() = SequenceCode(value.substringBefore('-'))
@@ -99,6 +99,7 @@ fun Table(line: LongLine, number: Int) = Table("${line.value.toLastDigits(6)}-$n
 operator fun LongLine.div(number: BusNumber) = BusName(this, number)
 operator fun LongLine.div(number: String) = this / number.toInt()
 operator fun String.div(number: String) = toLongLine() / number
+fun String.toRegNum() = RegistrationNumber(toInt())
 fun String.toLongLine() = LongLine(toInt())
 fun String.toShortLine() = ShortLine(toInt())
 fun LongLine.toShortLine() = value.toLastDigits(3).toShortLine()

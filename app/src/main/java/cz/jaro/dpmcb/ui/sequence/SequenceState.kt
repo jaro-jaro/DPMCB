@@ -26,6 +26,7 @@ sealed interface SequenceState {
         val height: Float
         val traveledSegments: Int
         val date: LocalDate
+        val vehicle: RegistrationNumber?
     }
 
     data class Offline(
@@ -40,6 +41,7 @@ sealed interface SequenceState {
         override val height: Float,
         override val traveledSegments: Int,
         override val date: LocalDate,
+        override val vehicle: RegistrationNumber?,
     ) : OK
 
     data class Online(
@@ -54,8 +56,8 @@ sealed interface SequenceState {
         override val height: Float,
         override val traveledSegments: Int,
         override val date: LocalDate,
+        override val vehicle: RegistrationNumber?,
         val delayMin: Float,
-        val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
     ) : OK
 
@@ -68,7 +70,7 @@ sealed interface SequenceState {
         ) = with(state) {
             Online(
                 sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, date,
-                delayMin, vehicle, confirmedLowFloor
+                vehicle ?: this.vehicle, delayMin, confirmedLowFloor
             )
         }
     }

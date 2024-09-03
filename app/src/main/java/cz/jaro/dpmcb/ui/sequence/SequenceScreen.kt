@@ -5,7 +5,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +30,9 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -51,7 +52,7 @@ fun Sequence(
     viewModel: SequenceViewModel = koinViewModel {
         parametersOf(
             SequenceViewModel.Parameters(
-                sequence = args.sequence,
+                sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
                 navigate = navController.navigateFunction
             )
         )
@@ -98,16 +99,16 @@ fun SequenceScreen(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Tento kurz (${state.sequenceName}) bohužel ${state.date} neexistuje :(\nBuď jste zadali špatně jeho název, nebo tento kurz existuje v jiném jízdním řádu, který dnes neplatí.")
+                Text("Tento kurz (${state.sequenceName}) bohužel ${state.date.asString()} neexistuje :(\nBuď jste zadali špatně jeho název, nebo tento kurz existuje v jiném jízdním řádu, který dnes neplatí.")
             }
 
             is SequenceState.OK -> {
                 item {
-                    FlowRow(
+                    Row(
                         Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
-                        verticalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name(state.sequenceName)
 
@@ -116,9 +117,18 @@ fun SequenceScreen(
                             confirmedLowFloor = state.confirmedLowFloor,
                             modifier = Modifier.padding(start = 8.dp),
                         )
-
+                    }
+                }
+                item {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         if (state is SequenceState.Online) DelayBubble(state.delayMin)
-                        if (state is SequenceState.Online) Vehicle(state.vehicle)
+                        if (state.vehicle != null) Vehicle(state.vehicle)
+                        else VehicleSearcher(onEvent)
                     }
                 }
 
