@@ -82,11 +82,7 @@ fun FindBusDialog(
     }
 
     fun confirmSeq(seqId: SequenceCode) {
-        navigate(
-            Route.Sequence(
-                sequence = seqId.value
-            )
-        )
+        navigate(Route.Sequence(sequence = seqId))
         onDismiss()
         closeDrawer()
         sequence = ""

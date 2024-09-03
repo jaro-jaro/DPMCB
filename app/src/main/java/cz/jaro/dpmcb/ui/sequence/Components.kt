@@ -14,20 +14,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 
 @Composable
-fun FABs(state: SequenceState.OK, lazyListState: LazyListState, date: LocalDate) {
+fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
     fun Int.busIndexToListIndex() = 3 + state.before.count() * 2 + this * 4
 
-    val now = remember(state.buses) {
-        if (date != SystemClock.todayHere()) null
+    val now = remember(state.buses, state.date) {
+        if (state.date != SystemClock.todayHere()) null
         else state.buses.indexOfFirst {
             it.isRunning
         }.takeUnless {
@@ -82,11 +79,11 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState, date: LocalDate)
 
 @Composable
 fun BusButton(
-    navigate: NavigateFunction,
+    onEvent: (SequenceEvent) -> Unit,
     bus: BusInSequence,
 ) = TextButton(
     onClick = {
-        navigate(Route.Bus(busName = bus.busName))
+        onEvent(SequenceEvent.BusClick(bus.busName))
     }
 ) {
     Text("Detail spoje")
@@ -94,11 +91,11 @@ fun BusButton(
 
 @Composable
 fun Connection(
-    navigate: NavigateFunction,
+    onEvent: (SequenceEvent) -> Unit,
     sequence: Pair<SequenceCode, String>,
 ) = TextButton(
     onClick = {
-        navigate(Route.Sequence(sequence.first.value))
+        onEvent(SequenceEvent.SequenceClick(sequence.first))
     }
 ) {
     Text(sequence.second)

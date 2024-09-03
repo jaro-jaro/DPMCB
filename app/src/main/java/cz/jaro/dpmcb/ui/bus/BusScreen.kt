@@ -28,8 +28,6 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -60,7 +58,6 @@ fun Bus(
 
     BusScreen(
         state = state,
-        navigate = navController.navigateFunction,
         onEvent = viewModel::onEvent,
     )
 }
@@ -68,7 +65,6 @@ fun Bus(
 @Composable
 fun BusScreen(
     state: BusState,
-    navigate: NavigateFunction,
     onEvent: (BusEvent) -> Unit,
 ) {
     Column(
@@ -138,7 +134,7 @@ fun BusScreen(
                         ) {
                             Timetable(
                                 stops = state.stops,
-                                navigate = navigate,
+                                onEvent = onEvent.fromTimetable,
                                 onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
                                 nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
                                 traveledSegments = state.traveledSegments,

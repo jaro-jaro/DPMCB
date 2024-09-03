@@ -823,7 +823,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             .padding(top = 8.dp)
     ) {
         Timetable(
-            navigate = {},
+            onEvent = {},
             onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
             nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
             stops = state.stops,

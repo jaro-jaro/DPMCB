@@ -17,6 +17,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.TimetableEvent
+import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -153,9 +155,14 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence!!.value))
+                navigate(Route.Sequence(state.sequence!!))
             }
             Unit
+        }
+
+        is BusEvent.TimetableClick -> when (e.e) {
+            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop))
         }
     }
 

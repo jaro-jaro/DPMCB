@@ -11,9 +11,11 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.TimetableEvent
+import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,14 +33,17 @@ import kotlin.time.Duration.Companion.seconds
 class SequenceViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val originalSequence: SequenceCode,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    val date = repo.date
+    data class Parameters(
+        val sequence: SequenceCode,
+        val navigate: (Route) -> Unit,
+    )
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
-        val sequence = repo.sequence(originalSequence, date)
-            ?: return@map SequenceState.DoesNotExist(originalSequence, with(repo) { originalSequence.seqName() }, date.toCzechLocative())
+        val sequence = repo.sequence(params.sequence, date)
+            ?: return@map SequenceState.DoesNotExist(params.sequence, with(repo) { params.sequence.seqName() }, date)
 
         val runningBus = sequence.buses.find { (_, stops) ->
             stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
@@ -71,6 +76,7 @@ class SequenceViewModel(
             runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.todayHere()),
             height = 0F,
             traveledSegments = 0,
+            date = date,
         )
     }
 
@@ -150,4 +156,13 @@ class SequenceViewModel(
             },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
+
+    fun onEvent(event: SequenceEvent) = when (event) {
+        is SequenceEvent.BusClick -> params.navigate(Route.Bus(event.busName))
+        is SequenceEvent.SequenceClick -> params.navigate(Route.Sequence(event.sequence))
+        is SequenceEvent.TimetableClick -> when(event.e) {
+            is TimetableEvent.StopClick -> params.navigate(Route.Departures(event.e.stopName, event.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> params.navigate(Route.Timetable(event.e.line, event.e.stop, event.e.nextStop))
+        }
+    }
 }

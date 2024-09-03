@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.sequence
 
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import kotlinx.datetime.LocalDate
 
 sealed interface SequenceState {
 
@@ -10,7 +11,7 @@ sealed interface SequenceState {
     data class DoesNotExist(
         val sequence: SequenceCode,
         val sequenceName: String,
-        val date: String,
+        val date: LocalDate,
     ) : SequenceState
 
     sealed interface OK : SequenceState {
@@ -24,6 +25,7 @@ sealed interface SequenceState {
         val runsToday: Boolean
         val height: Float
         val traveledSegments: Int
+        val date: LocalDate
     }
 
     data class Offline(
@@ -37,6 +39,7 @@ sealed interface SequenceState {
         override val runsToday: Boolean,
         override val height: Float,
         override val traveledSegments: Int,
+        override val date: LocalDate,
     ) : OK
 
     data class Online(
@@ -50,6 +53,7 @@ sealed interface SequenceState {
         override val runsToday: Boolean,
         override val height: Float,
         override val traveledSegments: Int,
+        override val date: LocalDate,
         val delayMin: Float,
         val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
@@ -63,7 +67,7 @@ sealed interface SequenceState {
             confirmedLowFloor: Boolean?,
         ) = with(state) {
             Online(
-                sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments,
+                sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, runsToday, height, traveledSegments, date,
                 delayMin, vehicle, confirmedLowFloor
             )
         }

@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.main
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.invalid
@@ -71,7 +72,7 @@ sealed interface Route {
     @Serializable
     @SerialName("sequence")
     data class Sequence(
-        val sequence: String,
+        val sequence: SequenceCode,
     ) : Route
 
     @Serializable
