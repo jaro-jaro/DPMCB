@@ -6,6 +6,8 @@ import android.provider.Settings
 import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.crashlytics.crashlytics
@@ -65,7 +67,6 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jsoup.Jsoup
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.io.File
@@ -226,23 +227,19 @@ class LoadingViewModel(
 
         if (isDebug) return false
 
-        val response = try {
+        val doc = try {
             withContext(Dispatchers.IO) {
-                Jsoup
-                    .connect("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
-                    .ignoreContentType(true)
-                    .maxBodySize(0)
-                    .execute()
+                Ksoup.parseGetRequest(
+                    url = "https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt",
+                )
             }
         } catch (e: IOException) {
             Firebase.crashlytics.recordException(e)
             return false
         }
 
-        if (response.statusCode() != 200) return false
-
         val localVersion = BuildConfig.VERSION_NAME.toVersion(false)
-        val newestVersion = response.body().toVersion(false)
+        val newestVersion = doc.text().toVersion(false)
 
         return localVersion < newestVersion
     }

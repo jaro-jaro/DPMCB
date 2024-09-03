@@ -152,7 +152,8 @@ dependencies {
     implementation(libs.semver)
 
     // Web scaping
-    implementation(libs.jsoup)
+    implementation(libs.ksoup)
+    implementation(libs.ksoup.network)
     implementation(libs.konsume.xml)
     implementation(libs.retrofit)
 
