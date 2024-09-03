@@ -40,7 +40,7 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
@@ -61,7 +61,7 @@ fun Chooser(
                 lineNumber = args.lineNumber,
                 stop = args.stop,
                 navigate = navigate,
-                navigateBack = { it: Result ->
+                navigateBack = { it: ChooserResult ->
                     navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
                     navController.popBackStack()
                 }
