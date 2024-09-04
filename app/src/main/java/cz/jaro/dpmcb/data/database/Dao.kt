@@ -286,9 +286,10 @@ interface Dao {
         SELECT (conn.fixedCodes LIKE '%{%') lowFloor, conn.line, seqofconn.sequence, conn.fixedCodes, CASE
             WHEN connstop.departure IS null THEN connstop.arrival
             ELSE connstop.departure
-        END time, stop.fixedCodes stopFixedCodes, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
+        END time, stop.fixedCodes stopFixedCodes, line.validFrom, line.validTo, connstop.fixedCodes connStopFixedCodes, stopName name, conn.name connName, conn.tab, timecode.type, timecode.validFrom `from`, timecode.validTo `to` FROM connstop
         JOIN conn ON conn.tab = connstop.tab AND conn.connNumber = connstop.connNumber
-        JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber 
+        JOIN stop ON stop.tab = connstop.tab AND stop.stopNumber = connstop.stopNumber
+        JOIN line ON line.tab = conn.tab AND line.number = conn.line
         JOIN timecode ON timecode.tab = connstop.tab AND timecode.connNumber = connstop.connNumber 
         JOIN seqofconn ON seqofconn.line = conn.line AND seqofconn.connNumber = conn.connNumber
         WHERE (
