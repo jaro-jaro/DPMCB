@@ -431,12 +431,14 @@ fun DeparturesScreen(
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 item {
+                    HorizontalDivider()
                     DaySwitcher(onEvent, DeparturesEvent.PreviousDay, "Předchozí den…")
                 }
                 if (state is DeparturesState.NothingRuns) item {
+                    HorizontalDivider()
                     Row(
                         Modifier
-                            .padding(top = 8.dp)
+                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -467,6 +469,7 @@ fun DeparturesScreen(
                 item {
                     HorizontalDivider()
                     DaySwitcher(onEvent, DeparturesEvent.NextDay, "Následující den…")
+                    HorizontalDivider()
                 }
             }
         }
