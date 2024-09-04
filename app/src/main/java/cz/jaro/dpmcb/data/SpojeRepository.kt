@@ -24,6 +24,7 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.entities.changePart
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.generic
@@ -469,6 +470,7 @@ class SpojeRepository(
                     }.distinct(),
                     timeCodes,
                     stops.first().fixedCodes,
+                    Validity(stops.first().validFrom, stops.first().validTo),
                 )
             }
             .sortedBy {
@@ -487,6 +489,10 @@ class SpojeRepository(
             conns.all {
                 code in it.fixedCodes.split(" ")
             }
+        }
+
+        val commonValidity = conns.first().validity.takeIf {
+            conns.distinctBy { it.validity }.size == 1
         }
 
         val before = buildList {
@@ -513,10 +519,12 @@ class SpojeRepository(
                     uniqueFixedCodes = it.fixedCodes.split(" ").filter { code ->
                         code !in commonFixedCodes
                     }.joinToString(" "),
+                    uniqueValidity = it.validity.takeIf { commonValidity == null },
                 )
             },
             commonTimeCodes = commonTimeCodes,
             commonFixedCodes = commonFixedCodes.joinToString(" "),
+            commonValidity = commonValidity,
         )
     }
 
@@ -922,6 +930,8 @@ fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes.remo
             DoesNotRun -> "Nejede "
         } + dates.joinToString()
     }
+
+fun validityString(validity: Validity) = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}"
 
 private fun List<RunsFromTo>.removeNoCodes() = remove(::isNoCode)
 

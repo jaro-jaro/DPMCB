@@ -22,4 +22,6 @@ data class CoreBusOfSequence(
     val from: LocalDate,
     val to: LocalDate,
     val tab: Table,
+    val validFrom: LocalDate,
+    val validTo: LocalDate,
 )

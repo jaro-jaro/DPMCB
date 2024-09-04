@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data.realtions.sequence
 
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 
 data class Sequence(
@@ -10,4 +11,5 @@ data class Sequence(
     val after: List<SequenceCode>,
     val commonTimeCodes: List<RunsFromTo>,
     val commonFixedCodes: String,
+    val commonValidity: Validity?,
 )

@@ -139,6 +139,7 @@ fun SequenceScreen(
                     state.timeCodes.forEach {
                         Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(state.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 item {
@@ -218,6 +219,7 @@ fun SequenceScreen(
                             bus.timeCodes.forEach {
                                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            Text(bus.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     item {
