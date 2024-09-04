@@ -80,8 +80,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
@@ -507,6 +507,7 @@ fun DeparturesScreen(
                             else -> Card(
                                 state.line[i - 1], onEvent, info.compactMode, modifier = Modifier
                                     .animateContentSize()
+                                    .animateItem()
 //                                    .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
                             )
                         }
