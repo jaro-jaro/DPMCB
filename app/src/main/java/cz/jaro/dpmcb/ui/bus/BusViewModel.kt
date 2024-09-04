@@ -10,13 +10,13 @@ import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Route
@@ -58,7 +58,7 @@ class BusViewModel(
                 runsNextTimeAfterDate = List(365) { date + it.days }.firstOrNull { runsAt(it) },
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
-                lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
+                lineCode = validityString(validity),
                 deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
             )
         }
@@ -72,7 +72,7 @@ class BusViewModel(
             lowFloor = bus.info.lowFloor,
             timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
-            lineCode = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}",
+            lineCode = validityString(validity),
             deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
             restriction = restriction,
             favourite = favourites.find { it.busName == busName },

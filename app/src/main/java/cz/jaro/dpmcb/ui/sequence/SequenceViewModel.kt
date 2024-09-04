@@ -22,6 +22,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Route
@@ -54,7 +55,6 @@ class SequenceViewModel(
     )
 
     private val info: Flow<SequenceState> = repo.date.map { date ->
-        println("\"${params.sequence}\"")
         val sequence = repo.sequence(params.sequence, date)
             ?: return@map SequenceState.DoesNotExist(params.sequence, with(repo) { params.sequence.seqName() }, date)
 
@@ -67,6 +67,7 @@ class SequenceViewModel(
             sequenceName = with(repo) { sequence.name.seqName() },
             timeCodes = filterTimeCodesAndMakeReadable(sequence.commonTimeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(sequence.commonFixedCodes, sequence.commonTimeCodes),
+            lineCode = sequence.commonValidity?.let { validityString(it) } ?: "",
             before = sequence.before.map { it to with(repo) { it.seqConnection() } },
             after = sequence.after.map { it to with(repo) { it.seqConnection() } },
             buses = sequence.buses.map { bus ->
@@ -84,6 +85,7 @@ class SequenceViewModel(
                     shouldBeRunning = runningBus?.info?.connName == bus.info.connName && date == SystemClock.todayHere() && runsToday,
                     timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
                     fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
+                    lineCode = bus.uniqueValidity?.let { validityString(it) } ?: "",
                 )
             },
             runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.todayHere()),
