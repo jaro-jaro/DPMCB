@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -425,95 +426,73 @@ fun DeparturesScreen(
                 CircularProgressIndicator()
             }
 
-            is DeparturesState.NothingRuns -> Row(
-                Modifier
-                    .padding(top = 8.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    when (state) {
-                        DeparturesState.NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
-                        DeparturesState.NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.stopFilter}"
-                        DeparturesState.LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}"
-                        DeparturesState.LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}, který bude zastavovat na zastávce ${info.stopFilter}"
-                    },
-                    Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            is DeparturesState.Runs -> LazyColumn(
+            else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                items(
-                    count = state.line.size + 2,
-                    key = { i ->
-                        when (i) {
-                            0 -> 0
-                            state.line.lastIndex + 2 -> Int.MAX_VALUE
-                            else -> state.line[i - 1].busName to state.line[i - 1].time
-                        }
-                    },
-                    itemContent = { i ->
-                        when (i) {
-                            0 -> {
-                                Surface(
-                                    modifier = Modifier.clickable {
-                                        onEvent(DeparturesEvent.PreviousDay)
-                                    },
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier
-                                                .weight(1F),
-                                            text = "Předchozí den…",
-                                            fontSize = 20.sp,
-                                            textAlign = TextAlign.Center,
-                                        )
-                                    }
-                                }
-                            }
-
-                            state.line.lastIndex + 2 -> {
-                                HorizontalDivider()
-                                Surface(
-                                    modifier = Modifier.clickable {
-                                        onEvent(DeparturesEvent.NextDay)
-                                    },
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier
-                                                .weight(1F),
-                                            text = "Následující den…",
-                                            fontSize = 20.sp,
-                                            textAlign = TextAlign.Center,
-                                        )
-                                    }
-                                }
-                            }
-
-                            else -> Card(
-                                state.line[i - 1], onEvent, info.compactMode, modifier = Modifier
-                                    .animateContentSize()
-                                    .animateItem()
-//                                    .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
-                            )
-                        }
+                item {
+                    DaySwitcher(onEvent, DeparturesEvent.PreviousDay, "Předchozí den…")
+                }
+                if (state is DeparturesState.NothingRuns) item {
+                    Row(
+                        Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            when (state) {
+                                DeparturesState.NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
+                                DeparturesState.NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.stopFilter}"
+                                DeparturesState.LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}"
+                                DeparturesState.LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}, který bude zastavovat na zastávce ${info.stopFilter}"
+                            },
+                            Modifier.padding(horizontal = 16.dp)
+                        )
                     }
-                )
+                }
+                else if (state is DeparturesState.Runs) items(
+                    items = state.line,
+                    key = { state ->
+                        state.busName to state.time
+                    },
+                ) { state ->
+                    Card(
+                        state, onEvent, info.compactMode, modifier = Modifier
+                            .animateContentSize()
+                            .animateItem()
+//                            .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
+                    )
+                }
+                item {
+                    HorizontalDivider()
+                    DaySwitcher(onEvent, DeparturesEvent.NextDay, "Následující den…")
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun DaySwitcher(onEvent: (DeparturesEvent) -> Unit, event: DeparturesEvent, text: String) {
+    Surface(
+        modifier = Modifier.clickable {
+            onEvent(event)
+        },
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .weight(1F),
+                text = text,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
