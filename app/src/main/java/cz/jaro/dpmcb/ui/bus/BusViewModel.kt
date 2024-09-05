@@ -218,14 +218,14 @@ class BusViewModel(
         ).let { state ->
             onlineState.onlineConnDetail
             if (onlineState.onlineConnDetail == null) state
-            else if (onlineState.delay == null || onlineState.nextStopTime == null) BusState.OnlineNotRunning(
+            else if (onlineState.delay == null && onlineState.nextStopTime == null) BusState.OnlineNotRunning(
                 state = state,
                 onlineConnStops = onlineState.onlineConnDetail.stops,
             )
             else BusState.OnlineRunning(
                 state = state,
                 onlineConnStops = onlineState.onlineConnDetail.stops,
-                delayMin = onlineState.delay.inWholeSeconds.div(60F),
+                delayMin = onlineState.delay?.inWholeSeconds?.div(60F),
                 vehicle = onlineState.vehicle,
                 confirmedLowFloor = onlineState.confirmedLowFloor,
                 nextStopIndex = onlineState.onlineConnDetail.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },

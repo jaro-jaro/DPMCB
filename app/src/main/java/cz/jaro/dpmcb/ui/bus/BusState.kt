@@ -100,20 +100,20 @@ sealed interface BusState {
         override val favourite: PartOfConn?,
         override val error: Boolean,
         override val onlineConnStops: List<OnlineConnStop>,
-        val delayMin: Float,
+        val delayMin: Float?,
         val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
-        val nextStopIndex: Int,
+        val nextStopIndex: Int?,
     ) : Online
 
     companion object {
         fun OnlineRunning(
             state: Offline,
             onlineConnStops: List<OnlineConnStop>,
-            delayMin: Float,
+            delayMin: Float?,
             vehicle: RegistrationNumber?,
             confirmedLowFloor: Boolean?,
-            nextStopIndex: Int,
+            nextStopIndex: Int?,
         ) = with(state) {
             OnlineRunning(
                 busName, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, sequence, sequenceName, nextBus, previousBus,

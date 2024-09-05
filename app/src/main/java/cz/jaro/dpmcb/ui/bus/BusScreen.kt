@@ -106,7 +106,7 @@ fun BusScreen(
                             enableCart = true,
                         )
 
-                        if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+                        if (state is BusState.OnlineRunning && state.delayMin != null) DelayBubble(state.delayMin)
                         if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
 
                         Spacer(Modifier.weight(1F))

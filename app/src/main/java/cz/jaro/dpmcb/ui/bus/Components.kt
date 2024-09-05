@@ -814,7 +814,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             enableCart = true,
         )
 
-        if (state is BusState.OnlineRunning) DelayBubble(state.delayMin)
+        if (state is BusState.OnlineRunning && state.delayMin != null) DelayBubble(state.delayMin)
         if (state is BusState.OnlineRunning) Vehicle(state.vehicle, showInfoButton = false)
     }
     OutlinedCard(
