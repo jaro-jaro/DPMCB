@@ -168,7 +168,7 @@ class NowRunningViewModel(
         buses
             .asyncMap { busName ->
                 val bus = repo.nowRunningBus(busName, SystemClock.todayHere()) ?: return@asyncMap null
-                val (indexOnLine, nextStop) = bus.stops.withIndex().first { it.value.time > SystemClock.timeHere() }
+                val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 RunningConnPlus(
                     busName = bus.busName,
