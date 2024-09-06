@@ -83,18 +83,18 @@ class BusViewModel(
             sequenceName = with(repo) { bus.info.sequence?.seqName() },
             previousBus = bus.sequence?.let { seq ->
                 val i = seq.indexOf(busName)
-                seq.getOrNull(i - 1)?.to(false)
+                seq.getOrNull(i - 1)
                     ?: bus.before?.let {
                         if (it.size != 1) null
-                        else repo.lastBusOfSequence(it.first(), date) to true
+                        else repo.lastBusOfSequence(it.single(), date)
                     }
             },
             nextBus = bus.sequence?.let { seq ->
                 val i = seq.indexOf(busName)
-                seq.getOrNull(i + 1)?.to(false)
+                seq.getOrNull(i + 1)
                     ?: bus.after?.let {
                         if (it.size != 1) null
-                        else repo.firstBusOfSequence(it.first(), date) to true
+                        else repo.firstBusOfSequence(it.single(), date)
                     }
             },
         )
@@ -118,10 +118,7 @@ class BusViewModel(
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
-                if (state.nextBus!!.second) viewModelScope.launch(Dispatchers.Main) {
-                    repo.makeText("Změněn kurz!").show()
-                }
-                navigate(Route.Bus(state.nextBus!!.first), navOptions {
+                navigate(Route.Bus(state.nextBus!!), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }
@@ -133,10 +130,7 @@ class BusViewModel(
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
-                if (state.previousBus!!.second) viewModelScope.launch(Dispatchers.Main) {
-                    repo.makeText("Změněn kurz!").show()
-                }
-                navigate(Route.Bus(state.previousBus!!.first), navOptions {
+                navigate(Route.Bus(state.previousBus!!), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }

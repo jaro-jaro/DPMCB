@@ -20,20 +20,18 @@ sealed interface BusState {
     }
 
     sealed interface OK : Exists {
-
         val stops: List<BusStop>
         val lineNumber: ShortLine
         val lowFloor: Boolean
         val sequence: SequenceCode?
         val sequenceName: String?
-        val nextBus: Pair<BusName, Boolean>?
-        val previousBus: Pair<BusName, Boolean>?
+        val nextBus: BusName?
+        val previousBus: BusName?
         val restriction: Boolean
         val traveledSegments: Int
         val lineHeight: Float
         val favourite: PartOfConn?
         val error: Boolean
-
     }
 
     data class Offline(
@@ -46,8 +44,8 @@ sealed interface BusState {
         override val lineCode: String,
         override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<BusName, Boolean>?,
-        override val previousBus: Pair<BusName, Boolean>?,
+        override val nextBus: BusName?,
+        override val previousBus: BusName?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
@@ -70,8 +68,8 @@ sealed interface BusState {
         override val lineCode: String,
         override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<BusName, Boolean>?,
-        override val previousBus: Pair<BusName, Boolean>?,
+        override val nextBus: BusName?,
+        override val previousBus: BusName?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
@@ -91,8 +89,8 @@ sealed interface BusState {
         override val lineCode: String,
         override val sequence: SequenceCode?,
         override val sequenceName: String?,
-        override val nextBus: Pair<BusName, Boolean>?,
-        override val previousBus: Pair<BusName, Boolean>?,
+        override val nextBus: BusName?,
+        override val previousBus: BusName?,
         override val deeplink: String,
         override val restriction: Boolean,
         override val traveledSegments: Int,
