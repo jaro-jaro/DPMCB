@@ -43,8 +43,6 @@ import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
 import cz.jaro.dpmcb.ui.chooser.autoFocus
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 @Composable
 fun FindBusDialog(
@@ -364,6 +362,6 @@ fun FindBusDialog(
 }
 
 fun busStateSaver(): Saver<BusName, String> = Saver(
-    save = { Json.encodeToString(it) },
-    restore = { Json.decodeFromString(it) }
+    save = { it.value },
+    restore = { BusName(it) }
 )
