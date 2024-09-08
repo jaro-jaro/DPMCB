@@ -74,7 +74,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 object UtilFunctions {
 
-    fun LocalDate.toCzechLocative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+    fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
         0L -> "dnes"
         1L -> "zítra"
         2L -> "pozítří"
@@ -91,7 +91,7 @@ object UtilFunctions {
         else -> asString()
     }
 
-    fun LocalDate.toCzechAccusative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+    fun LocalDate.toCzechAccusative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
         0L -> "dnešek"
         1L -> "zítřek"
         2L -> "pozítří"
@@ -489,10 +489,10 @@ object UtilFunctions {
     fun Int.two() = toLastDigits(2)
 
     fun Int.atLeastDigits(amount: Int) = toString().atLeastDigits(amount)
-    fun String.atLeastDigits(amount: Int) = "0" * (amount - length) + this
+    fun CharSequence.atLeastDigits(amount: Int) = "0" * (amount - length) + this
     fun Int.toLastDigits(amount: Int) = toString().toLastDigits(amount)
-    fun String.toLastDigits(amount: Int) = atLeastDigits(amount).takeLast(amount)
-    operator fun String.times(times: Int) = buildString {
+    fun CharSequence.toLastDigits(amount: Int) = atLeastDigits(amount).takeLast(amount)
+    operator fun CharSequence.times(times: Int) = buildString {
         if (times <= 0) return@buildString
         repeat(times) {
             append(this@times)
