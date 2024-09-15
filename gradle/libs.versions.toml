@@ -40,6 +40,7 @@ semver = "2.0.0"
 firebase-config = "22.0.0"
 zoomable = "0.11.2"
 ksoup = "0.1.2"
+transportation-consumer = "2.3.0"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -87,6 +88,7 @@ firebase-config = { group = "com.google.firebase", name = "firebase-config", ver
 zoomable-image-coil = { module = "me.saket.telephoto:zoomable-image-coil", version.ref = "zoomable" }
 ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
 ksoup-network = { module = "com.fleeksoft.ksoup:ksoup-network", version.ref = "ksoup" }
+transportation-consumer = { group = "com.google.android.libraries.mapsplatform.transportation", name = "transportation-consumer", version.ref = "transportation-consumer" }
 
 [plugins]
 android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }

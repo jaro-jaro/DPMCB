@@ -16,7 +16,6 @@ import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
@@ -39,11 +38,11 @@ class FavouritesViewModel(
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBusToday -> {
-                params.navigate(Route.Bus(e.name))
+                params.navigate(Route.Bus(e.name, SystemClock.todayHere()))
             }
 
             is FavouritesEvent.NavToBusOtherDay -> {
-                params.navigate(Route.Bus(e.name))
+                params.navigate(Route.Bus(e.name, e.nextWillRun ?: SystemClock.todayHere()))
             }
         }
     }
@@ -61,10 +60,10 @@ class FavouritesViewModel(
                 .onEmpty {
                     emit(null)
                 }
-                .combine(repo.date) { it, date ->
+                .map {
                     it?.zip(favourites) { onlineConn, favourite ->
                         val bus = try {
-                            repo.favouriteBus(favourite.busName, date)
+                            repo.favouriteBus(favourite.busName, SystemClock.todayHere())
                         } catch (e: Exception) {
                             Firebase.crashlytics.recordException(e)
                             return@zip null
@@ -73,9 +72,9 @@ class FavouritesViewModel(
                     }
                 }
         }
-        .combine(repo.date) { buses, date ->
+        .map { buses ->
             (buses ?: emptyList()).filterNotNull().map { (onlineConn, info, stops, runsAt, favourite) ->
-                if (onlineConn?.delayMin != null && date == SystemClock.todayHere()) FavouriteState.Online(
+                if (onlineConn?.delayMin != null) FavouriteState.Online(
                     busName = info.connName,
                     line = info.line,
                     delay = onlineConn.delayMin,
@@ -99,28 +98,28 @@ class FavouritesViewModel(
                     originStopTime = (stops.getOrNull(favourite.start) ?: stops.last()).time,
                     destinationStopName = (stops.getOrNull(favourite.end) ?: stops.last()).name,
                     destinationStopTime = (stops.getOrNull(favourite.end) ?: stops.last()).time,
-                    nextWillRun = List(365) { date + it.days }.firstOrNull { runsAt(it) },
+                    nextWillRun = List(365) { SystemClock.todayHere() + it.days }.firstOrNull { runsAt(it) },
                 )
-            } to date
+            }
         }
-        .map { (buses, date) ->
+        .map { buses ->
 
             if (buses.isEmpty()) return@map FavouritesState.NoFavourites
 
             val today = buses
-                .filter { it.nextWillRun == date }
+                .filter { it.nextWillRun == SystemClock.todayHere() }
                 .sortedBy { it.originStopTime }
             val otherDay = buses
-                .filter { it.nextWillRun != date }
+                .filter { it.nextWillRun != SystemClock.todayHere() }
                 .sortedWith(compareBy<FavouriteState> { it.nextWillRun }
                     .thenBy { it.originStopTime })
                 .filterIsInstance<FavouriteState.Offline>() // To by mělo být vždy
 
-            if (today.isEmpty()) return@map FavouritesState.NothingRunsToday(otherDay, date)
+            if (today.isEmpty()) return@map FavouritesState.NothingRunsToday(otherDay)
 
-            if (otherDay.isEmpty()) return@map FavouritesState.RunsJustToday(today, date)
+            if (otherDay.isEmpty()) return@map FavouritesState.RunsJustToday(today)
 
-            return@map FavouritesState.RunsAnytime(today, otherDay, date)
+            return@map FavouritesState.RunsAnytime(today, otherDay)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavouritesState.Loading)
 }

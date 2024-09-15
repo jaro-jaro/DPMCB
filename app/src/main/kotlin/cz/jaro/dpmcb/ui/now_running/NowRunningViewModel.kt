@@ -16,6 +16,7 @@ import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.groupByPair
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
@@ -75,19 +76,20 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            params.navigate(Route.Bus(busName = e.busName))
+            params.navigate(Route.Bus(busName = e.busName, date = SystemClock.todayHere()))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(Route.Sequence(sequence = e.seq))
+            params.navigate(Route.Sequence(sequence = e.seq, date = SystemClock.todayHere()))
         }
     }
 
-    private val list = onlineRepo.nowRunningBuses().map { onlineConns ->
+    private val list = onlineRepo.work { 0 }.nowRunningBuses().work { 1 }.map { onlineConns ->
         loading.value = true
-        onlineConns
-            .asyncMap { onlineConn ->
-                val bus = repo.nowRunningBus(onlineConn.name, SystemClock.todayHere()) ?: return@asyncMap null
+        onlineConns.work { 2 }
+            .withIndex()
+            .asyncMap { (i, onlineConn) ->
+                val bus = repo.work { if (i <= 9) i * 10 + 0 else "" }.nowRunningBus(onlineConn.name, SystemClock.todayHere()).work { if (i <= 9) i * 10 + 1 else "" } ?: return@asyncMap null
                 val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
@@ -101,8 +103,9 @@ class NowRunningViewModel(
                     destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else bus.stops.last().name,
                     vehicle = onlineConn.vehicle ?: return@asyncMap null,
                     sequence = bus.sequence,
-                )
+                ).work { if (i <= 9) i * 10 + 2 else "" }
             }
+            .work { 3 }
             .filterNotNull()
             .also { loading.value = false }
     }
@@ -226,14 +229,14 @@ class NowRunningViewModel(
 
     val state =
         combine(
-            repo.date, lineNumbers, filteredResult, loading,
+            lineNumbers, filteredResult, loading,
             repo.hasAccessToMap, filters, type, nowNotRunning
         ) {
-                date, lineNumbers, result, listIsLoading,
+                lineNumbers, result, listIsLoading,
                 isOnline, filters, type, nowNotRunning,
             ->
             when {
-                date != SystemClock.todayHere() -> NowRunningState.IsNotToday
+//                false -> NowRunningState.IsNotToday
                 !isOnline -> NowRunningState.Offline
                 lineNumbers.isEmpty() -> NowRunningState.NoLines
                 result == null/* || listIsLoading*/ -> NowRunningState.Loading(lineNumbers, filters, type)

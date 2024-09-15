@@ -133,6 +133,17 @@ object UtilFunctions {
             args[5] as T6,
         )
     }
+
+    /**
+     * Returns a [Flow] whose values are generated with [transform] function by combining
+     * the most recently emitted values by each flow.
+     */
+    fun <T1, T2, T3, R : Any> Flow<T1>.combine(
+        flow2: Flow<T2>,
+        flow3: Flow<T3>,
+        transform: suspend (T1, T2, T3) -> R
+    ): Flow<R> = combine(this, flow2, flow3, transform)
+
     /**
      * Returns a [Flow] whose values are generated with [transform] function by combining
      * the most recently emitted values by each flow.

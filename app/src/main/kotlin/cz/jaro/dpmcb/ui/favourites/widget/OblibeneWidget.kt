@@ -93,7 +93,7 @@ class OblibeneWidget : GlanceAppWidget() {
                                     return@state OblibeneWidgetState.Error
                                 }
                             }
-                        val date = repo.date.first()
+                        val date = SystemClock.todayHere()
 
                         if (ids.isEmpty()) return@state OblibeneWidgetState.ZadneOblibene
 

@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
@@ -47,7 +48,7 @@ fun Bus(
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate))
+            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate, args.date,))
         }
     },
 ) {
@@ -110,6 +111,13 @@ fun BusScreen(
                         if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
 
                         Spacer(Modifier.weight(1F))
+
+                        DateSelector(
+                            date = state.date,
+                            onDateChange = {
+                                onEvent(BusEvent.ChangeDate(it))
+                            }
+                        )
 
                         Favouritificator(
                             onEvent = onEvent,

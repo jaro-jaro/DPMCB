@@ -43,10 +43,9 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
+import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
@@ -55,44 +54,36 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun Timetable(
     args: Route.Timetable,
-    viewModel: TimetableViewModel = koinViewModel {
-        parametersOf(
-            TimetableViewModel.Parameters(
-                lineNumber = args.lineNumber,
-                stop = args.stop,
-                nextStop = args.nextStop,
-            )
-        )
-    },
     navController: NavHostController,
 ) {
     title = R.string.timetable
     selected = DrawerAction.Timetable
 
+    val viewModel: TimetableViewModel = koinViewModel {
+        parametersOf(
+            TimetableViewModel.Parameters(
+                lineNumber = args.lineNumber,
+                stop = args.stop,
+                nextStop = args.nextStop,
+                date = args.date,
+                navigate = navController.navigateFunction,
+            )
+        )
+    }
+
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val showLowFloorFromLastTime by viewModel.showLowFloorFromLastTime.collectAsStateWithLifecycle()
 
     TimetableScreen(
-        lineNumber = args.lineNumber,
-        stop = args.stop,
-        nextStop = args.nextStop,
         state = state,
-        navigate = navController.navigateFunction,
-        showLowFloorFromLastTime = showLowFloorFromLastTime,
-        editShowLowFloor = viewModel::editShowLowFloor,
+        onEvent = viewModel::onEvent,
     )
 }
 
 
 @Composable
 fun TimetableScreen(
-    lineNumber: ShortLine,
-    stop: String,
-    nextStop: String,
     state: TimetableState,
-    navigate: NavigateFunction,
-    showLowFloorFromLastTime: Boolean,
-    editShowLowFloor: (Boolean) -> Unit,
+    onEvent: (TimetableEvent) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -105,79 +96,90 @@ fun TimetableScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = lineNumber.toString(),
+                text = state.lineNumber.toString(),
                 fontSize = 30.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "$stop -> $nextStop",
+                text = "${state.stop} -> ${state.nextStop}",
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
 
-        var showLowFloor by remember(showLowFloorFromLastTime) { mutableStateOf(showLowFloorFromLastTime) }
+        var showLowFloor by remember(state.showLowFloorFromLastTime) { mutableStateOf(state.showLowFloorFromLastTime) }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(checked = showLowFloor, onCheckedChange = {
                 showLowFloor = it
-                editShowLowFloor(showLowFloor)
+                onEvent(TimetableEvent.EditShowLowFloor(it))
             })
             Text("Zobrazit nízkopodlažnost", Modifier.clickable {
                 showLowFloor = !showLowFloor
-                editShowLowFloor(showLowFloor)
+                onEvent(TimetableEvent.EditShowLowFloor(showLowFloor))
             })
+
+            Spacer(Modifier.weight(1F))
+
+            DateSelector(
+                date = state.date,
+                onDateChange = {
+                    onEvent(TimetableEvent.ChangeDate(it))
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state == TimetableState.Loading) Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            CircularProgressIndicator()
-        }
-
-        if (state is TimetableState.Success) Row(
-            modifier = Modifier
-                .verticalScroll(state = rememberScrollState())
-                .fillMaxWidth()
-                .height(IntrinsicSize.Max),
-        ) {
-            Column(
-                modifier = Modifier
-                    .width(IntrinsicSize.Max)
+        when (state) {
+            is TimetableState.Loading -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
             ) {
-                repeat(24) { h ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1F)
-                            .fillMaxWidth()
-                            .padding(4.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Text(
-                            text = h.toString(),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                        )
+                CircularProgressIndicator()
+            }
+
+            is TimetableState.Success -> Row(
+                modifier = Modifier
+                    .verticalScroll(state = rememberScrollState())
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Max),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .width(IntrinsicSize.Max)
+                ) {
+                    repeat(24) { h ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1F)
+                                .fillMaxWidth()
+                                .padding(4.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Text(
+                                text = h.toString(),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                            )
+                        }
                     }
                 }
-            }
-            Column(
-                modifier = Modifier
-                    .horizontalScroll(state = rememberScrollState())
-                    .fillMaxWidth()
-            ) {
-                repeat(24) { h ->
-                    DepartureRow(
-                        navigate = navigate,
-                        result = state.data.filter { it.departure.hour == h },
-                        showLowFloor = showLowFloor
-                    )
+                Column(
+                    modifier = Modifier
+                        .horizontalScroll(state = rememberScrollState())
+                        .fillMaxWidth()
+                ) {
+                    repeat(24) { h ->
+                        DepartureRow(
+                            onEvent = onEvent,
+                            result = state.data.filter { it.departure.hour == h },
+                            showLowFloor = showLowFloor,
+                        )
+                    }
                 }
             }
         }
@@ -188,7 +190,7 @@ fun TimetableScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ColumnScope.DepartureRow(
-    navigate: NavigateFunction,
+    onEvent: (TimetableEvent) -> Unit,
     result: List<BusInTimetable>,
     showLowFloor: Boolean,
 ) {
@@ -224,11 +226,7 @@ fun ColumnScope.DepartureRow(
                         Text("Detail spoje")
                     },
                     onClick = {
-                        navigate(
-                            Route.Bus(
-                                busName = busName,
-                            )
-                        )
+                        onEvent(TimetableEvent.GoToBus(busName))
                         showDropDown = false
                     },
                 )
@@ -238,7 +236,7 @@ fun ColumnScope.DepartureRow(
                     .clip(CircleShape)
                     .combinedClickable(
                         onClick = {
-                            navigate(Route.Bus(busName = busName))
+                            onEvent(TimetableEvent.GoToBus(busName))
                         },
                         onLongClick = {
                             showDropDown = true

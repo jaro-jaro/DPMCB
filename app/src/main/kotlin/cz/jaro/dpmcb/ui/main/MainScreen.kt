@@ -1,18 +1,17 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -62,8 +60,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -77,21 +73,17 @@ import com.google.firebase.Firebase
 import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.database
-import com.marosseleng.compose.material3.datetimepickers.date.ui.dialog.DatePickerDialog
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
-import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -103,10 +95,12 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
+import cz.jaro.dpmcb.ui.find_bus.FindBus
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -116,40 +110,63 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.toJavaLocalDate
-import kotlinx.datetime.toKotlinLocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import kotlin.reflect.KClass
 
 inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Bus::class -> mapOf(
         serializationTypePair<LongLine>(),
         serializationTypePair<BusNumber>(),
+        serializationTypePair<LocalDate>(),
     )
 
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
         serializationTypePair<ShortLine>(),
+        serializationTypePair<LocalDate>(),
     )
 
     Route.Departures::class -> mapOf(
         serializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
         serializationTypePair<ShortLine?>(),
+        serializationTypePair<LocalDate>(),
+    )
+
+    Route.Favourites::class -> mapOf(
+        serializationTypePair<LocalDate>(),
+    )
+
+    Route.FindBus::class -> mapOf(
+        serializationTypePair<LocalDate>(),
     )
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
         serializationTypePair<List<ShortLine>>(),
+        serializationTypePair<LocalDate>(),
     )
 
     Route.Sequence::class -> mapOf(
         serializationTypePair<SequenceCode>(),
+        serializationTypePair<LocalDate>(),
     )
 
     Route.Timetable::class -> mapOf(
         serializationTypePair<ShortLine>(),
+        serializationTypePair<LocalDate>(),
+    )
+
+    Route.Card::class -> mapOf(
+        serializationTypePair<LocalDate>(),
+    )
+
+    Route.Map::class -> mapOf(
+        serializationTypePair<LocalDate>(),
+    )
+
+    Route.FindBus::class -> mapOf(
+        serializationTypePair<LocalDate>(),
     )
 
     else -> emptyMap()
@@ -207,7 +224,6 @@ fun Main(
     val isOnline = viewModel.isOnline.collectAsStateWithLifecycle()
     val hasCard = viewModel.hasCard.collectAsStateWithLifecycle()
     val isOnlineModeEnabled = viewModel.isOnlineModeEnabled.collectAsStateWithLifecycle()
-    val date = viewModel.date.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -219,10 +235,6 @@ fun Main(
     }
 
     MainScreen(
-        startActivity = {
-            ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
-        },
-        startIntent = ctx::startActivity,
         drawerState = drawerState,
         toggleDrawer = {
             keyboardController?.hide()
@@ -232,21 +244,16 @@ fun Main(
         isOnline = isOnline,
         isOnlineModeEnabled = isOnlineModeEnabled,
         navigate = navController.navigateFunction,
-        showToast = { text, duration ->
-            Toast.makeText(ctx, text, duration).show()
-        },
         editOnlineMode = viewModel.editOnlineMode,
-        date = date,
-        changeDate = viewModel.changeDate,
         isAppUpdateNeeded = isAppUpdateNeeded,
         updateApp = viewModel.updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
         updateData = viewModel.updateData,
         removeCard = viewModel.removeCard,
         hasCard = hasCard,
-        findBusByRegN = viewModel.findBusByEvn,
-        findSequences = viewModel.findSequences,
-        findLine = viewModel.findLine,
+        getDate = {
+            navController.currentBackStackEntry?.getRoute()?.date ?: SystemClock.todayHere()
+        },
     ) {
         NavHost(
             navController = navController,
@@ -285,6 +292,7 @@ fun Main(
             route<Route.Sequence> { Sequence(args = it, navController = navController) }
             route<Route.Card> { Card(args = it, navController = navController) }
             route<Route.Map> { Map(args = it, navController = navController) }
+            route<Route.FindBus> { FindBus(args = it, navController = navController) }
         }
     }
 }
@@ -292,28 +300,20 @@ fun Main(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    startActivity: (KClass<out Activity>) -> Unit,
-    startIntent: (Intent) -> Unit,
     drawerState: DrawerState,
     toggleDrawer: () -> Unit,
     closeDrawer: () -> Unit,
     isOnline: State<Boolean>,
     isOnlineModeEnabled: State<Boolean>,
     navigate: NavigateFunction,
-    showToast: (String, Int) -> Unit,
-//    tuDuDum: () -> Unit,
     hasCard: State<Boolean>,
     removeCard: () -> Unit,
     editOnlineMode: (Boolean) -> Unit,
-    date: State<LocalDate>,
-    changeDate: (LocalDate) -> Unit,
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
     updateData: () -> Unit,
     updateApp: () -> Unit,
-    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
-    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
-    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
+    getDate: () -> LocalDate,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -560,23 +560,17 @@ fun MainScreen(
             ModalNavigationDrawer(
                 drawerContent = {
                     ModalDrawerSheet(
-                        Modifier.fillMaxHeight().verticalScroll(rememberScrollState())
+                        Modifier
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
                                 action = action,
                                 navigate = navigate,
-                                startIntent = startIntent,
                                 isOnline = isOnline,
-                                showToast = showToast,
-                                date = date,
-                                changeDate = changeDate,
-//                                tuDuDum = tuDuDum,
                                 closeDrawer = closeDrawer,
-                                startActivity = startActivity,
-                                findBusByRegN = findBusByRegN,
-                                findSequences = findSequences,
-                                findLine = findLine,
+                                getDate = getDate,
                             )
                         }
                     }
@@ -593,148 +587,48 @@ fun MainScreen(
 fun DrawerItem(
     action: DrawerAction,
     navigate: NavigateFunction,
-    startIntent: (Intent) -> Unit,
     isOnline: State<Boolean>,
-    showToast: (String, Int) -> Unit,
-    date: State<LocalDate>,
-    changeDate: (LocalDate) -> Unit,
     closeDrawer: () -> Unit,
-    startActivity: (KClass<out Activity>) -> Unit,
-    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
-    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
-    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
+    getDate: () -> LocalDate,
 ) = when (action) {
-    DrawerAction.Feedback -> Feedback(startIntent, action, isOnline, showToast)
+    DrawerAction.Feedback -> Feedback(action, isOnline)
 
-    DrawerAction.FindBus -> FindBus(navigate, closeDrawer, findSequences, isOnline, showToast, findBusByRegN, findLine, action)
-
-    DrawerAction.Date -> ChangeDate(date, changeDate)
-
-    else -> if (action == DrawerAction.NowRunning && date.value != SystemClock.todayHere()) Unit
-    else NavigationDrawerItem(
-        label = {
-            Text(stringResource(action.label))
-        },
-        icon = {
-            IconWithTooltip(action.icon, stringResource(action.label))
-        },
-        selected = App.selected == action,
-        onClick = {
-            if (action.multiselect)
-                App.selected = action
-
-            action.onClick(
-                navigate,
-                { closeDrawer() },
-                { startActivity(it) },
-            )
-        },
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    )
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
-private fun ChangeDate(date: State<LocalDate>, changeDate: (LocalDate) -> Unit) {
-    Row(
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Používané datum: ${date.value.asString()}",
-            modifier = Modifier
-                .padding(all = 16.dp)
-                .weight(1F)
-        )
-        var showDialog by rememberSaveable { mutableStateOf(false) }
-        if (showDialog) DatePickerDialog(
-            onDismissRequest = {
-                showDialog = false
+    else -> {
+        val ctx = LocalContext.current
+        NavigationDrawerItem(
+            label = {
+                Text(stringResource(action.label))
             },
-            onDateChange = {
-                changeDate(it.toKotlinLocalDate())
-                showDialog = false
+            icon = {
+                IconWithTooltip(action.icon, stringResource(action.label))
             },
-            title = {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Změnit datum")
-                    TextButton(
-                        onClick = {
-                            changeDate(SystemClock.todayHere())
-                            showDialog = false
-                        }
-                    ) {
-                        Text("Dnes")
-                    }
-                }
-            },
-            initialDate = date.value.toJavaLocalDate(),
-        )
-
-        IconButton(
+            selected = App.selected == action,
             onClick = {
-                showDialog = true
-            }
-        ) {
-            IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum")
-        }
+                if (action.multiselect)
+                    App.selected = action
+
+                action.route?.let {
+                    navigate(it(getDate()))
+                }
+                action.activity?.let {
+                    ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
+                }
+                closeDrawer()
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun FindBus(
-    navigate: NavigateFunction,
-    closeDrawer: () -> Unit,
-    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
-    isOnline: State<Boolean>,
-    showToast: (String, Int) -> Unit,
-    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
-    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
-    action: DrawerAction,
-) {
-    var showDialog by rememberSaveable { mutableStateOf(false) }
-    FindBusDialog(
-        showDialog = showDialog,
-        onDismiss = { showDialog = false },
-        navigate = navigate,
-        closeDrawer = closeDrawer,
-        findSequences = findSequences,
-        isOnline = isOnline,
-        showToast = showToast,
-        findBusByRegN = findBusByRegN,
-        findLine = findLine,
-    )
-
-    NavigationDrawerItem(
-        label = {
-            Text(stringResource(action.label))
-        },
-        icon = {
-            IconWithTooltip(action.icon, stringResource(action.label))
-        },
-        selected = App.selected == action,
-        onClick = {
-            showDialog = true
-        },
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    )
-}
-
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
 private fun Feedback(
-    startIntent: (Intent) -> Unit,
     action: DrawerAction,
     isOnline: State<Boolean>,
-    showToast: (String, Int) -> Unit,
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
+    val ctx = LocalContext.current
 
     if (showDialog) AlertDialog(
         onDismissRequest = {
@@ -770,10 +664,10 @@ private fun Feedback(
                 }
                 Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
                 TextButton(onClick = {
-                    startIntent(Intent().apply {
-                        this.action = Intent.ACTION_VIEW
-                        data = Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
-                    })
+                    CustomTabsIntent.Builder()
+                        .setShowTitle(true)
+                        .build()
+                        .launchUrl(ctx, Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148"))
                 }) {
                     Text(text = "Přejít na GitHub")
                 }
@@ -792,7 +686,7 @@ private fun Feedback(
             if (isOnline.value)
                 showDialog = true
             else
-                showToast("Jste offline!", Toast.LENGTH_SHORT)
+                Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )

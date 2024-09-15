@@ -14,23 +14,16 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.LongLine
-import cz.jaro.dpmcb.data.entities.RegistrationNumber
-import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.net.SocketTimeoutException
@@ -54,8 +47,6 @@ class MainViewModel(
     val hasCard = repo.hasCard.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
     val isOnlineModeEnabled = repo.isOnlineModeEnabled
     val editOnlineMode = repo::editOnlineMode
-    val date = repo.date
-    val changeDate = { it: LocalDate -> repo.changeDate(it, false) }
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
@@ -165,31 +156,6 @@ class MainViewModel(
     val removeCard = {
         viewModelScope.launch {
             repo.changeCard(false)
-        }
-        Unit
-    }
-
-    val findBusByEvn = { rn: RegistrationNumber, callback: (BusName?) -> Unit ->
-        viewModelScope.launch {
-            callback(onlineRepository.nowRunningBuses().first().find {
-                it.vehicle == rn
-            }?.name)
-        }
-        Unit
-    }
-
-    val findLine = { sl: ShortLine, callback: (LongLine?) -> Unit ->
-        viewModelScope.launch {
-            with(repo) {
-                callback(sl.findLongLine())
-            }
-        }
-        Unit
-    }
-
-    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<SequenceCode, String>>) -> Unit ->
-        viewModelScope.launch {
-            callback(repo.findSequences(kurz))
         }
         Unit
     }

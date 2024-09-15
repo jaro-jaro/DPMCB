@@ -51,7 +51,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusInfo
@@ -153,8 +153,8 @@ class SpojeRepository(
         Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"].asString())
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val _date = MutableStateFlow(SystemClock.todayHere())
-    val date = _date.asStateFlow()
+//    private val _date = MutableStateFlow(SystemClock.todayHere())
+//    val date = _date.asStateFlow()
 
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)
     val isOnlineModeEnabled = _onlineMode.asStateFlow()
@@ -268,6 +268,15 @@ class SpojeRepository(
         localDataSource.allSequences().mapNotNull { seq ->
             nowUsedGroup(date, seq)
         } + SequenceGroup.invalid
+
+    init {
+        scope.launch(Dispatchers.IO) {
+            allGroups(SystemClock.todayHere())
+        }
+        scope.launch(Dispatchers.IO) {
+            allTables(SystemClock.todayHere())
+        }
+    }
 
     suspend fun stopNames(datum: LocalDate) = localDataSource.stopNames(allTables(datum))
     suspend fun lineNumbers(datum: LocalDate) = localDataSource.lineNumbers(allTables(datum))
@@ -562,10 +571,10 @@ class SpojeRepository(
     suspend fun seqGroups() = localDataSource.seqGroups()
     suspend fun seqOfConns() = localDataSource.seqOfConns()
 
-    fun changeDate(date: LocalDate, notify: Boolean = true) {
-        _date.update { date }
-        if (notify) makeText("Datum změněno na ${date.toCzechAccusative()}").show()
-    }
+//    fun changeDate(date: LocalDate, notify: Boolean = true) {
+//        _date.update { date }
+//        if (notify) makeText("Datum změněno na ${date.toCzechAccusative()}").show()
+//    }
 
     fun editOnlineMode(mode: Boolean) {
         _onlineMode.update { mode }
@@ -625,7 +634,7 @@ class SpojeRepository(
                 )
             }
 
-    suspend fun oneWayLines() = localDataSource.oneDirectionLines().map(LongLine::toShortLine)
+    val oneWayLines = withCache(suspend { localDataSource.oneDirectionLines().map(LongLine::toShortLine) })
 
     fun findMiddleStop(stops: List<StopOfNowRunning>): MiddleStop? {
         fun StopOfNowRunning.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
@@ -671,7 +680,9 @@ class SpojeRepository(
     }
 
     suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning? =
-        localDataSource.connWithItsStops(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
+        localDataSource.work { if (busName.line().toShortLine() == ShortLine(7)) 100 else "0" }
+            .connWithItsStops(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
+            .work { if (busName.line().toShortLine() == ShortLine(7)) 101 else "0" }
             .entries.singleOrNull()
             .also {
                 if (it == null)
@@ -686,6 +697,7 @@ class SpojeRepository(
                     stops = stops,
                 )
             }
+            .work { if (busName.line().toShortLine() == ShortLine(7)) 102 else "0" }
 
     val isOnline = flow {
         while (currentCoroutineContext().isActive) {
@@ -946,4 +958,36 @@ fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destinati
         destination.put(element.key, element.value)
     }
     return destination
+}
+
+@JvmName("withCache1")
+inline fun <I, O> withCache(crossinline function: (I) -> O): (I) -> O {
+    val cache: MutableMap<I, O> = HashMap()
+    return {
+        cache.getOrPut(it, { function(it) })
+    }
+}
+
+@JvmName("withCache0")
+inline fun <O> withCache(crossinline function: () -> O): () -> O {
+    var cache: O? = null
+    return {
+        cache ?: function().also { cache = it }
+    }
+}
+
+@JvmName("withCacheSuspend1")
+inline fun <I, O> withCache(crossinline function: suspend (I) -> O): suspend (I) -> O {
+    val cache: MutableMap<I, O> = HashMap()
+    return {
+        cache.getOrPut(it, { function(it) })
+    }
+}
+
+@JvmName("withCacheSuspend0")
+inline fun <O> withCache(crossinline function: suspend () -> O): suspend () -> O {
+    var cache: O? = null
+    return {
+        cache ?: function().also { cache = it }
+    }
 }

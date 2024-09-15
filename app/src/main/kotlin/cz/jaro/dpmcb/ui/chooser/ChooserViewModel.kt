@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.ui.chooser
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -12,9 +14,8 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.sorted
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -37,31 +38,39 @@ class ChooserViewModel(
         val stop: String?,
         val navigate: NavigateFunction,
         val navigateBack: NavigateBackFunction<ChooserResult>,
+        val date: LocalDate,
     )
 
-    private val originalList = repo.date.map { datum ->
+    private val originalList = suspend {
         when (params.type) {
-            ChooserType.Stops -> repo.stopNames(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            ChooserType.Lines -> repo.lineNumbers(datum).sorted().map { it.toString() }
-            ChooserType.LineStops -> repo.stopNamesOfLine(params.lineNumber, datum).distinct()
-            ChooserType.NextStop -> repo.nextStopNames(params.lineNumber, params.stop!!, datum)
-            ChooserType.ReturnStop1 -> repo.stopNames(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            ChooserType.ReturnStop2 -> repo.stopNames(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
-            ChooserType.ReturnLine -> repo.lineNumbers(datum).sorted().map { it.toString() }
-            ChooserType.ReturnStop -> repo.stopNames(datum).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+            ChooserType.Lines,
+            ChooserType.ReturnLine,
+                -> repo.lineNumbers(params.date).sorted().map { it.toString() }
+
+            ChooserType.Stops,
+            ChooserType.ReturnStop1,
+            ChooserType.ReturnStop2,
+            ChooserType.ReturnStop,
+                -> repo.stopNames(params.date).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+
+            ChooserType.LineStops,
+                -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct()
+
+            ChooserType.NextStop,
+                -> repo.nextStopNames(params.lineNumber, params.stop!!, params.date)
         }
-    }
+    }.asFlow()
 
-    private val _search = MutableStateFlow("")
-    val search = _search.asStateFlow()
+    private val search = TextFieldState()
+    private val searchText = snapshotFlow { search.text }
 
-    val list = _search.combine(originalList) { filter, originalList ->
+    val list = searchText.combine(originalList) { filter, originalList ->
         if (filter.isBlank()) originalList
         else originalList
             .asSequence()
             .map { item ->
                 var normalisedItem = item.lowercase().removeNSM().split(" ")
-                item to filter.lowercase().removeNSM().split(" ").map { searchedWord ->
+                item to filter.toString().lowercase().removeNSM().split(" ").map { searchedWord ->
                     normalisedItem.indexOfFirst { itemWord ->
                         itemWord.startsWith(searchedWord)
                     }.also { i ->
@@ -91,90 +100,101 @@ class ChooserViewModel(
             }
             .toList()
             .also { list ->
-                if (list.count() == 1) done(list.first(), repo.date.value)
+                if (list.count() == 1) done(list.single())
             }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val info = when (params.type) {
-        ChooserType.LineStops -> "${params.lineNumber}: ? -> ?"
-        ChooserType.NextStop -> "${params.lineNumber}: ${params.stop} -> ?"
-        else -> ""
     }
 
-    fun wroteSomething(search: String) {
-        _search.value = search.replace("\n", "")
+    fun onEvent(e: ChooserEvent) = when (e) {
+        is ChooserEvent.ChangeDate -> params.navigate(
+            Route.Chooser(
+                lineNumber = params.lineNumber,
+                stop = params.stop,
+                type = params.type,
+                date = e.date,
+            )
+        )
+
+        ChooserEvent.Confirm -> state.value.list.firstOrNull()?.let { done(it) } ?: Unit
+        is ChooserEvent.ClickedOnListItem -> done(e.item)
     }
-
-    fun clickedOnListItem(item: String) = done(item, repo.date.value)
-
-    fun confirm() = list.value.firstOrNull()?.let { done(it, repo.date.value) } ?: Unit
 
     private fun String.removeNSM() = Normalizer.normalize(this, Normalizer.Form.NFD).replace("\\p{Mn}+".toRegex(), "")
 
     private fun done(
         result: String,
-        date: LocalDate,
-    ) {
-//        if (job != null && typ.name.contains("ZPET")) return
-        when (params.type) {
-            ChooserType.Stops -> params.navigate(
-                Route.Departures(
-                    stop = result,
-                )
+    ) = when (params.type) {
+        ChooserType.Stops -> params.navigate(
+            Route.Departures(
+                stop = result,
+                date = params.date,
             )
+        )
 
-            ChooserType.Lines -> params.navigate(
-                Route.Chooser(
-                    lineNumber = result.toShortLine(),
-                    stop = null,
-                    type = ChooserType.LineStops
-                )
+        ChooserType.Lines -> params.navigate(
+            Route.Chooser(
+                lineNumber = result.toShortLine(),
+                stop = null,
+                type = ChooserType.LineStops,
+                date = params.date,
             )
+        )
 
-            ChooserType.LineStops -> viewModelScope.launch(Dispatchers.IO) {
-                repo.nextStopNames(params.lineNumber, result, date).let { stops: List<String> ->
+        ChooserType.LineStops -> {
+            viewModelScope.launch(Dispatchers.IO) {
+                repo.nextStopNames(params.lineNumber, result, params.date).let { stops: List<String> ->
                     withContext(Dispatchers.Main) {
                         params.navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    nextStop = stops.first(),
+                                    nextStop = stops.single(),
+                                    date = params.date,
                                 )
                             else
                                 Route.Chooser(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    type = ChooserType.NextStop
+                                    type = ChooserType.NextStop,
+                                    date = params.date,
                                 )
                         )
                     }
                 }
             }
-
-            ChooserType.NextStop -> params.navigate(
-                Route.Timetable(
-                    lineNumber = params.lineNumber,
-                    stop = params.stop!!,
-                    nextStop = result,
-                )
-            )
-
-            ChooserType.ReturnStop1 -> {
-                params.navigateBack(ChooserResult(result, params.type))
-            }
-
-            ChooserType.ReturnStop2 -> {
-                params.navigateBack(ChooserResult(result, params.type))
-            }
-
-            ChooserType.ReturnLine -> {
-                params.navigateBack(ChooserResult(result, params.type))
-            }
-
-            ChooserType.ReturnStop -> {
-                params.navigateBack(ChooserResult(result, params.type))
-            }
+            Unit
         }
+
+        ChooserType.NextStop -> params.navigate(
+            Route.Timetable(
+                lineNumber = params.lineNumber,
+                stop = params.stop!!,
+                nextStop = result,
+                date = params.date,
+            )
+        )
+
+        ChooserType.ReturnStop1,
+        ChooserType.ReturnStop2,
+        ChooserType.ReturnLine,
+        ChooserType.ReturnStop,
+            -> params.navigateBack(ChooserResult(result, params.type))
     }
+
+    fun ChooserState(
+        list: List<String> = emptyList(),
+    ) = ChooserState(
+        type = params.type,
+        search = search,
+        info = when (params.type) {
+            ChooserType.LineStops -> "${params.lineNumber}: ? -> ?"
+            ChooserType.NextStop -> "${params.lineNumber}: ${params.stop} -> ?"
+            else -> ""
+        },
+        list = list,
+        date = params.date,
+    )
+
+    val state =
+        list.map(::ChooserState).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChooserState())
 }

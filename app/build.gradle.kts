@@ -78,6 +78,7 @@ dependencies {
 
     // Core Android
     implementation(libs.androidx.core)
+    implementation(libs.transportation.consumer)
 
     // Tests
     testImplementation(libs.junit)

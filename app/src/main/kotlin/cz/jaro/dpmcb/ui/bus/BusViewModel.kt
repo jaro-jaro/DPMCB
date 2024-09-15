@@ -25,10 +25,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration
@@ -42,9 +44,10 @@ class BusViewModel(
     onlineRepo: OnlineRepository,
     @InjectedParam private val busName: BusName,
     @InjectedParam private val navigate: NavigateWithOptionsFunction,
+    @InjectedParam private val date: LocalDate,
 ) : ViewModel() {
 
-    private val info: Flow<BusState> = combine(repo.date, repo.favourites, repo.hasAccessToMap) { date, favourites, online ->
+    private val info: Flow<BusState> = combine(repo.favourites, repo.hasAccessToMap) { favourites, online ->
         val exists = repo.doesBusExist(busName)
         if (!exists) return@combine BusState.DoesNotExist(busName)
         val runsAt = repo.doesConnRunAt(busName)
@@ -97,13 +100,14 @@ class BusViewModel(
                         else repo.firstBusOfSequence(it.single(), date)
                     }
             },
+            date = date,
         )
     }
 
     fun onEvent(e: BusEvent) = when (e) {
         is BusEvent.ChangeDate -> {
             viewModelScope.launch {
-                repo.changeDate(e.date)
+                navigate(Route.Bus(busName, e.date))
             }
             Unit
         }
@@ -118,7 +122,7 @@ class BusViewModel(
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
-                navigate(Route.Bus(state.nextBus!!), navOptions {
+                navigate(Route.Bus(state.nextBus!!, state.date), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }
@@ -130,7 +134,7 @@ class BusViewModel(
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
-                navigate(Route.Bus(state.previousBus!!), navOptions {
+                navigate(Route.Bus(state.previousBus!!, state.date), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }
@@ -149,18 +153,18 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence!!))
+                navigate(Route.Sequence(state.sequence!!, date = date))
             }
             Unit
         }
 
         is BusEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop))
+            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = date))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = date))
         }
     }
 
-    private val onlineState = onlineRepo.busByName(busName).map { (onlineConn, onlineConnDetail) ->
+    private val onlineState = (if (date == SystemClock.todayHere()) onlineRepo.busByName(busName).map { (onlineConn, onlineConnDetail) ->
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineConnDetail = onlineConnDetail,
@@ -168,11 +172,11 @@ class BusViewModel(
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
         )
-    }
+    } else flowOf(OnlineBusState()))
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OnlineBusState())
 
-    private val traveledSegments = combine(info, onlineState, nowFlow, repo.date) { info, state, now, date ->
+    private val traveledSegments = combine(info, onlineState, nowFlow) { info, state, now ->
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
@@ -185,7 +189,7 @@ class BusViewModel(
         }
     }
 
-    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments, repo.date) { info, state, now, traveledSegments, date ->
+    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments) { info, state, now, traveledSegments ->
 
         if (info !is BusState.OK) return@combine 0F
 
@@ -210,7 +214,6 @@ class BusViewModel(
             lineHeight = lineHeight,
             traveledSegments = traveledSegments ?: 0
         ).let { state ->
-            onlineState.onlineConnDetail
             if (onlineState.onlineConnDetail == null) state
             else if (onlineState.delay == null && onlineState.nextStopTime == null) BusState.OnlineNotRunning(
                 state = state,

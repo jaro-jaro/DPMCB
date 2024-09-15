@@ -12,14 +12,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.SettingsActivity
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import kotlinx.datetime.LocalDate
 import kotlin.reflect.KClass
 
 
@@ -27,133 +26,80 @@ enum class DrawerAction(
     @StringRes val label: Int,
     val icon: ImageVector,
     val multiselect: Boolean,
-    val onClick: (
-        navigate: NavigateFunction,
-        close: () -> Unit,
-        startActivity: (KClass<out Activity>) -> Unit,
-    ) -> Unit,
+    val route: ((LocalDate) -> Route)? = null,
+    val activity: KClass<out Activity>? = null,
 ) {
     /*Connection(
         R.string.vyhledat_spojeni,
         Icons.Default.Timeline,
         true,
-        onClick = { navigate, zavrit, _ ->
-            navigate(
-                Route.SpojeniScreen)
-            )
-            zavrit()
-        }
+        route = { Route.Spojeni(it) }
     ),*/
     Favourites(
         label = R.string.favourites,
         icon = Icons.Default.Star,
         multiselect = true,
-        onClick = { navigate, close, _ ->
-
-            navigate(
-                Route.Favourites
-            )
-            close()
-        }
+        route = { Route.Favourites },
     ),
     Departures(
         label = R.string.departures,
         icon = Icons.Default.DepartureBoard,
         multiselect = true,
-        onClick = { navigate, close, _ ->
-
-            navigate(
-                Route.Chooser(
-                    type = ChooserType.Stops,
-                    lineNumber = ShortLine.invalid,
-                    stop = null
-                )
+        route = {
+            Route.Chooser(
+                type = ChooserType.Stops,
+                lineNumber = ShortLine.invalid,
+                stop = null,
+                date = it,
             )
-            close()
         }
     ),
     NowRunning(
         label = R.string.now_running,
         icon = Icons.Default.FastForward,
         multiselect = true,
-        onClick = { navigate, close, _ ->
-
-            navigate(
-                Route.NowRunning()
-            )
-            close()
-        }
+        route = { Route.NowRunning() }
     ),
     Timetable(
-        R.string.timetable,
-        Icons.Default.FormatListNumbered,
-        true,
-        onClick = { navigate, close, _ ->
-
-            navigate(
-                Route.Chooser(
-                    type = ChooserType.Lines,
-                    lineNumber = ShortLine.invalid,
-                    stop = null,
-                )
+        label = R.string.timetable,
+        icon = Icons.Default.FormatListNumbered,
+        multiselect = true,
+        route = {
+            Route.Chooser(
+                type = ChooserType.Lines,
+                lineNumber = ShortLine.invalid,
+                stop = null,
+                date = it,
             )
-            close()
         }
     ),
     FindBus(
-        R.string.find_bus_by_id,
-        Icons.Default.Search,
-        true,
-        onClick = { _, _, _ -> }
+        label = R.string.find_bus_by_id,
+        icon = Icons.Default.Search,
+        multiselect = true,
+        route = { Route.FindBus(it) }
     ),
     TransportCard(
-        R.string.card,
+        label = R.string.card,
         icon = Icons.Default.QrCode,
         multiselect = true,
-        onClick = { navigate, zavrit, _ ->
-
-            navigate(
-                Route.Card
-            )
-            zavrit()
-        }
+        route = { Route.Card(it) }
     ),
     LinesMap(
-        R.string.lines_map,
-        Icons.Default.Map,
-        true,
-        onClick = { navigate, zavrit, _ ->
-
-            navigate(
-                Route.Map
-            )
-            zavrit()
-        }
-    ),
-    Date(
-        R.string.day_type,
-        Icons.Default.Today,
-        false,
-        onClick = { _, _, _ -> }
+        label = R.string.lines_map,
+        icon = Icons.Default.Map,
+        multiselect = true,
+        route = { Route.Map(it) }
     ),
     Settings(
-        R.string.settings,
-        Icons.Default.Settings,
-        false,
-        onClick = { _, _, startActivity ->
-            startActivity(SettingsActivity::class as KClass<out Activity>)
-        }
+        label = R.string.settings,
+        icon = Icons.Default.Settings,
+        multiselect = false,
+        activity = SettingsActivity::class
     ),
     Feedback(
-        R.string.feedback,
-        Icons.Default.Stars,
-        false,
-        onClick = { _, _, _ -> }
+        label = R.string.feedback,
+        icon = Icons.Default.Stars,
+        multiselect = false,
     ),
-/*    Exit(
-        R.string.exit_app,
-        Icons.Default.PowerSettingsNew,
-        false,
-        onClick = { _, _, _ -> }
-    )*/
 }

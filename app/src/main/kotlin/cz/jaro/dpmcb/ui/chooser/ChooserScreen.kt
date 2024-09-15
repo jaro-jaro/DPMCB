@@ -1,33 +1,28 @@
 package cz.jaro.dpmcb.ui.chooser
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -40,32 +35,38 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.ui.common.DateSelector
+import cz.jaro.dpmcb.ui.common.TextField
+import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.coroutines.android.awaitFrame
-import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
 fun Chooser(
-    navController: NavHostController,
     args: Route.Chooser,
+    navController: NavHostController,
     viewModel: ChooserViewModel = run {
         val navigate = navController.navigateFunction
         koinViewModel {
-            parametersOf(ChooserViewModel.Parameters(
-                type = args.type,
-                lineNumber = args.lineNumber,
-                stop = args.stop,
-                navigate = navigate,
-                navigateBack = { it: ChooserResult ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
-                    navController.popBackStack()
-                }
-            ))
+            parametersOf(
+                ChooserViewModel.Parameters(
+                    type = args.type,
+                    lineNumber = args.lineNumber,
+                    stop = args.stop,
+                    navigate = navigate,
+                    navigateBack = { it: ChooserResult ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+                        navController.popBackStack()
+                    },
+                    date = args.date,
+                )
+            )
         }
     },
 ) {
@@ -80,105 +81,126 @@ fun Chooser(
         ChooserType.ReturnStop -> R.string.departures
     }
     selected = when (args.type) {
-        ChooserType.Stops -> DrawerAction.Departures
-        ChooserType.Lines -> DrawerAction.Timetable
-        ChooserType.LineStops -> DrawerAction.Timetable
-        ChooserType.NextStop -> DrawerAction.Timetable
-        ChooserType.ReturnStop1 -> null
-        ChooserType.ReturnStop2 -> null
-        ChooserType.ReturnLine -> DrawerAction.Departures
-        ChooserType.ReturnStop -> DrawerAction.Departures
+        ChooserType.Lines,
+        ChooserType.LineStops,
+        ChooserType.NextStop,
+            -> DrawerAction.Timetable
+
+        ChooserType.Stops,
+        ChooserType.ReturnLine,
+        ChooserType.ReturnStop,
+            -> DrawerAction.Departures
+
+        ChooserType.ReturnStop1,
+        ChooserType.ReturnStop2,
+            -> null
     }
 
-    val search by viewModel.search.collectAsStateWithLifecycle()
-    val list by viewModel.list.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     ChooserScreen(
-        type = args.type,
-        info = viewModel.info,
-        search = search,
-        wroteSomething = viewModel::wroteSomething,
-        clickedEnter = viewModel::confirm,
-        clickedOnListItem = viewModel::clickedOnListItem,
-        list = list,
+        state = state,
+        onEvent = viewModel::onEvent,
     )
 }
 
 @Composable
 fun ChooserScreen(
-    type: ChooserType,
-    info: String,
-    search: String,
-    wroteSomething: (String) -> Unit,
-    clickedEnter: () -> Unit,
-    clickedOnListItem: (String) -> Unit,
-    list: List<String>,
+    state: ChooserState,
+    onEvent: (ChooserEvent) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(horizontal = 8.dp)
     ) {
-        Text(text = info, Modifier.padding(horizontal = 16.dp))
-        Text(
-            text = stringResource(
-                id = when (type) {
-                    ChooserType.Stops -> R.string.vyberte_zastavku
-                    ChooserType.Lines -> R.string.vyberte_linku
-                    ChooserType.LineStops -> R.string.vyberte_zastavku
-                    ChooserType.NextStop -> R.string.vyberte_dalsi_zastávku
-                    ChooserType.ReturnStop1 -> R.string.vyberte_linku
-                    ChooserType.ReturnStop2 -> R.string.vyberte_zastavku
-                    ChooserType.ReturnLine -> R.string.vyberte_linku
-                    ChooserType.ReturnStop -> R.string.vyberte_zastavku
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+        ) {
+            Column(
+                Modifier
+                    .weight(1F)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (state.info.isNotBlank()) Text(text = state.info, Modifier.padding(vertical = 8.dp))
+
+                Text(
+                    text = stringResource(
+                        id = when (state.type) {
+                            ChooserType.Stops,
+                            ChooserType.LineStops,
+                            ChooserType.ReturnStop,
+                            ChooserType.ReturnStop1,
+                            ChooserType.ReturnStop2,
+                                -> R.string.vyberte_zastavku
+
+                            ChooserType.Lines,
+                            ChooserType.ReturnLine,
+                                -> R.string.vyberte_linku
+
+                            ChooserType.NextStop,
+                                -> R.string.vyberte_dalsi_zastávku
+                        }
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 20.sp,
+                )
+            }
+
+            DateSelector(
+                date = state.date,
+                onDateChange = {
+                    onEvent(ChooserEvent.ChangeDate(it))
                 }
-            ),
-            Modifier.padding(all = 16.dp),
-            color = MaterialTheme.colorScheme.primary,
-            fontSize = 20.sp,
-        )
+            )
+        }
         TextField(
-            value = search,
-            onValueChange = { wroteSomething(it) },
+            state = state.search,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(all = 16.dp)
-                .autoFocus()
-                .onKeyEvent {
-                    if (it.key == Key.Enter) {
-                        clickedEnter()
-                    }
-                    return@onKeyEvent it.key == Key.Enter
-                },
+                .padding(top = 8.dp)
+                .autoFocus(),
             label = { Text("Vyhledávání") },
             keyboardOptions = KeyboardOptions(
                 autoCorrectEnabled = false,
                 capitalization = KeyboardCapitalization.None,
-                keyboardType = when (type) {
-                    ChooserType.Stops -> KeyboardType.Text
-                    ChooserType.Lines -> KeyboardType.Number
-                    ChooserType.LineStops -> KeyboardType.Text
-                    ChooserType.NextStop -> KeyboardType.Text
-                    ChooserType.ReturnStop1 -> KeyboardType.Text
-                    ChooserType.ReturnStop2 -> KeyboardType.Text
-                    ChooserType.ReturnLine -> KeyboardType.Number
-                    ChooserType.ReturnStop -> KeyboardType.Text
+                keyboardType = when (state.type) {
+                    ChooserType.Stops,
+                    ChooserType.LineStops,
+                    ChooserType.NextStop,
+                    ChooserType.ReturnStop1,
+                    ChooserType.ReturnStop2,
+                    ChooserType.ReturnStop,
+                        -> KeyboardType.Text
+
+                    ChooserType.Lines,
+                    ChooserType.ReturnLine,
+                        -> KeyboardType.Number
                 },
-                imeAction = when (type) {
-                    ChooserType.Stops -> ImeAction.Search
-                    ChooserType.Lines -> ImeAction.Next
-                    ChooserType.LineStops -> ImeAction.Next
-                    ChooserType.NextStop -> ImeAction.Search
-                    ChooserType.ReturnStop1 -> ImeAction.Done
-                    ChooserType.ReturnStop2 -> ImeAction.Done
-                    ChooserType.ReturnLine -> ImeAction.Done
-                    ChooserType.ReturnStop -> ImeAction.Done
+                imeAction = when (state.type) {
+                    ChooserType.Stops,
+                    ChooserType.NextStop,
+                        -> ImeAction.Search
+
+                    ChooserType.Lines,
+                    ChooserType.LineStops,
+                        -> ImeAction.Next
+
+                    ChooserType.ReturnStop1,
+                    ChooserType.ReturnStop2,
+                    ChooserType.ReturnLine,
+                    ChooserType.ReturnStop,
+                        -> ImeAction.Done
                 }
             ),
-            keyboardActions = KeyboardActions {
-                clickedEnter()
+            onKeyboardAction = {
+                onEvent(ChooserEvent.Confirm)
             },
             singleLine = true,
-            maxLines = 1,
+            lineLimits = TextFieldLineLimits.SingleLine,
         )
 
 
@@ -187,21 +209,21 @@ fun ChooserScreen(
                 .fillMaxWidth()
                 .imePadding(),
         ) {
-            itemsIndexed(list) { i, item ->
+            itemsIndexed(state.list, key = { _, it -> it }) { i, item ->
                 Surface(
                     onClick = {
-                        clickedOnListItem(item)
+                        onEvent(ChooserEvent.ClickedOnListItem(item))
                     },
                     Modifier
                         .fillMaxWidth()
-                        .padding(all = 8.dp),
+                        .padding(top = 8.dp),
                     shape = CircleShape,
                     color = if (i == 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
                 ) {
                     DropdownMenuItem(
                         text = { Text(item) },
                         onClick = {
-                            clickedOnListItem(item)
+                            onEvent(ChooserEvent.ClickedOnListItem(item))
                         },
                     )
                 }
@@ -210,37 +232,20 @@ fun ChooserScreen(
     }
 }
 
-fun Modifier.autoFocus() = composed {
-
-    val focusRequester = remember { FocusRequester() }
-    val windowInfo = LocalWindowInfo.current
-
-    LaunchedEffect(windowInfo) {
-        snapshotFlow { windowInfo.isWindowFocused }.collect { isWindowFocused ->
-            if (isWindowFocused) {
-                awaitFrame()
-                delay(250)
-                focusRequester.requestFocus()
-            }
-        }
-    }
-
-    focusRequester(focusRequester)
-}
-
 @Preview
 @Composable
 fun ChooserPreview() {
     MaterialTheme {
         Surface {
             ChooserScreen(
-                type = ChooserType.Stops,
-                info = "",
-                search = "u ko",
-                wroteSomething = {},
-                clickedEnter = {},
-                clickedOnListItem = {},
-                list = listOf("U Koníčka"),
+                state = ChooserState(
+                    date = SystemClock.todayHere(),
+                    type = ChooserType.Stops,
+                    search = TextFieldState("u ko"),
+                    list = listOf("U Koníčka"),
+                    info = "U koní",
+                ),
+                onEvent = {},
             )
         }
     }

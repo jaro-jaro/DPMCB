@@ -12,9 +12,12 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.database.AppDatabase
+import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.ksp.generated.defaultModule
@@ -81,6 +84,12 @@ class App : Application() {
                 }
                 single {
                     PreferenceDataSource(get())
+                }
+                viewModel { params ->
+                    LoadingViewModel(get(), get(), params.get())
+                }
+                viewModel { params ->
+                    SettingsViewModel(get(), params.get())
                 }
             })
             defaultModule()

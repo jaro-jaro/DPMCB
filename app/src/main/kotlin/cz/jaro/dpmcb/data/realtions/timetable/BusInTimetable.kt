@@ -8,5 +8,4 @@ data class BusInTimetable(
     val lowFloor: Boolean,
     val busName: BusName,
     val destination: String,
-    val delay: Float? = null,
 )

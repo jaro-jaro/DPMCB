@@ -26,14 +26,11 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
@@ -53,7 +50,7 @@ fun Favourites(
         koinViewModel {
             parametersOf(
                 FavouritesViewModel.Parameters(
-                    navigate = navigate
+                    navigate = navigate,
                 )
             )
         }
@@ -98,7 +95,7 @@ fun FavouritesScreen(
 
     if (state is FavouritesState.NothingRunsToday) item {
         Text(
-            text = "${state.today.toCzechLocative().replaceFirstChar { it.titlecase() }} nejede žádný z vašich oblíbených spojů",
+            text = "Dnes nejede žádný z vašich oblíbených spojů",
             modifier = Modifier.padding(all = 16.dp),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
@@ -109,7 +106,7 @@ fun FavouritesScreen(
     if (state is FavouritesState.SomethingRunsToday) {
         item {
             Text(
-                text = "Jede ${state.today.toCzechLocative()}",
+                text = "Jede dnes",
                 modifier = Modifier.padding(all = 16.dp),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
@@ -248,7 +245,7 @@ fun FavouritesScreen(
                 }
                 if (it.nextWillRun != null) {
                     Text(
-                        text = "Další pojede ${if (state.today != SystemClock.todayHere()) it.nextWillRun.asString() else it.nextWillRun.toCzechLocative()}", Modifier
+                        text = "Další pojede ${it.nextWillRun.toCzechLocative()}", Modifier
                             .fillMaxWidth()
                             .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
                     )

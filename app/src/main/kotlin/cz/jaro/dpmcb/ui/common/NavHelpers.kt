@@ -23,6 +23,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.serializer
+import kotlin.reflect.KClass
 
 inline fun <reified T : Route> NavGraphBuilder.route(
     crossinline content: @Composable AnimatedVisibilityScope.(T) -> Unit,
@@ -47,7 +48,9 @@ inline fun <reified T : Route> NavGraphBuilder.route(
     }
 
 fun NavBackStackEntry.generateRouteWithArgs() = route?.generateRouteWithArgs(destination)
+fun NavBackStackEntry.getRoute() = route
 
+@get:JvmName("getPrivateRoute")
 private val NavBackStackEntry.route
     get() = try {
         Route.routes.find {

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +34,7 @@ import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
+import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
@@ -53,7 +53,8 @@ fun Sequence(
         parametersOf(
             SequenceViewModel.Parameters(
                 sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
-                navigate = navController.navigateFunction
+                navigate = navController.navigateFunction,
+                date = args.date,
             )
         )
     },
@@ -70,7 +71,7 @@ fun Sequence(
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SequenceScreen(
     state: SequenceState,
@@ -116,6 +117,15 @@ fun SequenceScreen(
                             lowFloor = state.confirmedLowFloor,
                             confirmedLowFloor = state.confirmedLowFloor,
                             modifier = Modifier.padding(start = 8.dp),
+                        )
+
+                        Spacer(Modifier.weight(1F))
+
+                        DateSelector(
+                            date = state.date,
+                            onDateChange = {
+                                onEvent(SequenceEvent.ChangeDate(it))
+                            }
                         )
                     }
                 }

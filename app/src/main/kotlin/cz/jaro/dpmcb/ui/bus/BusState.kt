@@ -17,6 +17,7 @@ sealed interface BusState {
         val fixedCodes: List<String>
         val lineCode: String
         val deeplink: String
+        val date: LocalDate
     }
 
     sealed interface OK : Exists {
@@ -52,6 +53,7 @@ sealed interface BusState {
         override val lineHeight: Float,
         override val favourite: PartOfConn?,
         override val error: Boolean,
+        override val date: LocalDate,
     ) : OK
 
     sealed interface Online : OK {
@@ -76,6 +78,7 @@ sealed interface BusState {
         override val lineHeight: Float,
         override val favourite: PartOfConn?,
         override val error: Boolean,
+        override val date: LocalDate,
         override val onlineConnStops: List<OnlineConnStop>,
     ) : Online
 
@@ -97,6 +100,7 @@ sealed interface BusState {
         override val lineHeight: Float,
         override val favourite: PartOfConn?,
         override val error: Boolean,
+        override val date: LocalDate,
         override val onlineConnStops: List<OnlineConnStop>,
         val delayMin: Float?,
         val vehicle: RegistrationNumber?,
@@ -115,7 +119,7 @@ sealed interface BusState {
         ) = with(state) {
             OnlineRunning(
                 busName, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, sequence, sequenceName, nextBus, previousBus,
-                deeplink, restriction, traveledSegments, lineHeight, favourite, error, onlineConnStops, delayMin, vehicle, confirmedLowFloor, nextStopIndex
+                deeplink, restriction, traveledSegments, lineHeight, favourite, error, date, onlineConnStops, delayMin, vehicle, confirmedLowFloor, nextStopIndex
             )
         }
 
@@ -125,7 +129,7 @@ sealed interface BusState {
         ) = with(state) {
             OnlineNotRunning(
                 busName, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, sequence, sequenceName, nextBus, previousBus,
-                deeplink, restriction, traveledSegments, lineHeight, favourite, error, onlineConnStops
+                deeplink, restriction, traveledSegments, lineHeight, favourite, error, date, onlineConnStops
             )
         }
     }
@@ -138,7 +142,7 @@ sealed interface BusState {
 
     data class DoesNotRun(
         override val busName: BusName,
-        val date: LocalDate,
+        override val date: LocalDate,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
         override val lineCode: String,

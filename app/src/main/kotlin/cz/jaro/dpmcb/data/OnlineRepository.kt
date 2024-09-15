@@ -10,10 +10,8 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
-import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnDetail
@@ -45,7 +43,7 @@ class OnlineRepository(
     private val scope = MainScope()
 
     private suspend fun getAllConns() =
-        if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.todayHere()) withContext(Dispatchers.IO) {
+        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
             if (!ctx.isOnline) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
@@ -93,7 +91,7 @@ class OnlineRepository(
     )
 
     private suspend fun getConnDetail(busName: BusName) =
-        if (repo.isOnlineModeEnabled.value && repo.date.value == SystemClock.todayHere()) withContext(Dispatchers.IO) {
+        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
             if (!ctx.isOnline) return@withContext null
             val response = try {

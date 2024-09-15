@@ -14,6 +14,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,15 +67,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import androidx.navigation.navOptions
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.isInvalid
-import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
@@ -82,6 +80,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
@@ -90,14 +89,17 @@ import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
+import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.LineDoesNotRun
+import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.LineDoesNotRunHere
+import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRunsAtAll
+import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRunsHere
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalTime
 import kotlinx.datetime.toKotlinLocalTime
 import org.koin.androidx.compose.koinViewModel
@@ -112,7 +114,10 @@ import kotlin.time.Duration.Companion.minutes
 fun Departures(
     args: Route.Departures,
     navController: NavHostController,
-    viewModel: DeparturesViewModel = koinViewModel {
+) {
+    val listState = rememberLazyListState()
+
+    val viewModel: DeparturesViewModel = koinViewModel {
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
@@ -121,11 +126,26 @@ fun Departures(
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
-                getNavDestination = { navController.currentBackStackEntry?.destination }
+                getNavDestination = { navController.currentBackStackEntry?.destination },
+                date = args.date,
+                scroll = {
+                    listState.scrollToItem(it)
+                },
+                navigate = navController.navigateWithOptionsFunction,
             )
         )
-    },
-) {
+    }
+
+    LaunchedEffect(listState) {
+        withContext(Dispatchers.IO) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    viewModel.onEvent(DeparturesEvent.Scroll(it))
+                }
+        }
+    }
+
     LifecycleResumeEffect(Unit) {
         val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
 
@@ -140,41 +160,12 @@ fun Departures(
     title = R.string.departures
     App.selected = DrawerAction.Departures
 
-    val info by viewModel.info.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val listState = rememberLazyListState(info.scrollIndex)
-
-    LaunchedEffect(Unit) {
-        viewModel.scroll = {
-            delay(500)
-            listState.scrollToItem(it)
-        }
-    }
-    viewModel.navigate = navController.navigateFunction
-
-    LaunchedEffect(listState) {
-        withContext(Dispatchers.IO) {
-            snapshotFlow { listState.firstVisibleItemIndex }
-                .flowOn(Dispatchers.IO)
-                .collect {
-                    viewModel.onEvent(DeparturesEvent.Scroll(it))
-                }
-        }
-    }
-
-    val isOnline by viewModel.hasMapAccess.collectAsStateWithLifecycle()
-    val date by viewModel.datum.collectAsStateWithLifecycle()
-
     DeparturesScreen(
-        info = info,
         state = state,
-        stop = args.stop,
         onEvent = viewModel::onEvent,
         listState = listState,
-        date = date,
-        navigate = navController.navigateWithOptionsFunction,
-        isOnline = isOnline,
     )
 }
 
@@ -183,22 +174,16 @@ fun Departures(
 @Composable
 fun DeparturesScreen(
     state: DeparturesState,
-    info: DeparturesInfo,
-    stop: String,
     listState: LazyListState,
-    isOnline: Boolean,
-    date: LocalDate,
     onEvent: (DeparturesEvent) -> Unit,
-    navigate: NavigateWithOptionsFunction,
 ) = Scaffold(
     floatingActionButton = {
         if (state is DeparturesState.Runs) {
             val scope = rememberCoroutineScope()
             val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-            val jeDole = !listState.canScrollForward
-
-            val hideBecauseTooLow = jeDole && i < state.line.home(info)
-            val hideBecauseNear = abs(i - state.line.home(info)) <= 1
+            val isAtBottom = !listState.canScrollForward
+            val hideBecauseTooLow = isAtBottom && i < state.departures.home(state.info.time)
+            val hideBecauseNear = abs(i - state.departures.home(state.info.time)) <= 1
 
             AnimatedVisibility(
                 visible = !hideBecauseNear && !hideBecauseTooLow,
@@ -208,7 +193,7 @@ fun DeparturesScreen(
                 SmallFloatingActionButton(
                     onClick = {
                         scope.launch(Dispatchers.Main) {
-                            listState.animateScrollToItem(state.line.home(info))
+                            listState.animateScrollToItem(state.departures.home(state.info.time))
                         }
                     },
                 ) {
@@ -218,8 +203,8 @@ fun DeparturesScreen(
                         Modifier.rotate(
                             animateFloatAsState(
                                 when {
-                                    i > state.line.home(info) -> 0F
-                                    i < state.line.home(info) -> 180F
+                                    i > state.departures.home(state.info.time) -> 0F
+                                    i < state.departures.home(state.info.time) -> 180F
                                     else -> 90F
                                 }, label = "TOČENÍ"
                             ).value
@@ -240,16 +225,26 @@ fun DeparturesScreen(
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(
-                onClick = {
-                    navigate(Route.Chooser(ChooserType.Stops), null)
-                },
+            Box(
+                Modifier.weight(1F),
             ) {
-                Text(
-                    text = stop,
-                    fontSize = 20.sp
-                )
+                TextButton(
+                    onClick = {
+                        onEvent(DeparturesEvent.ChangeStop)
+                    },
+                ) {
+                    Text(
+                        text = state.stop,
+                        fontSize = 20.sp,
+                    )
+                }
             }
+            DateSelector(
+                date = state.info.date,
+                onDateChange = {
+                    onEvent(DeparturesEvent.ChangeDate(it))
+                },
+            )
             var showDialog by rememberSaveable { mutableStateOf(false) }
             if (showDialog) TimePickerDialog(
                 onDismissRequest = {
@@ -276,7 +271,7 @@ fun DeparturesScreen(
                         }
                     }
                 },
-                initialTime = info.time.toJavaLocalTime(),
+                initialTime = state.info.time.toJavaLocalTime(),
             )
 
             TextButton(
@@ -284,15 +279,15 @@ fun DeparturesScreen(
                     showDialog = true
                 }
             ) {
-                Text(text = info.time.toString())
+                Text(text = state.info.time.toString())
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isOnline) Surface(
-                checked = info.compactMode,
+            if (state.isOnline) Surface(
+                checked = state.info.compactMode,
                 onCheckedChange = {
                     onEvent(ChangeCompactMode)
                 },
@@ -303,7 +298,7 @@ fun DeparturesScreen(
                     Modifier.padding(all = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(checked = info.compactMode, onCheckedChange = {
+                    Checkbox(checked = state.info.compactMode, onCheckedChange = {
                         onEvent(ChangeCompactMode)
                     })
                     Text("Zjednodušit")
@@ -313,7 +308,7 @@ fun DeparturesScreen(
             Spacer(modifier = Modifier.weight(1F))
 
             Surface(
-                checked = info.justDepartures,
+                checked = state.info.justDepartures,
                 onCheckedChange = {
                     onEvent(ChangeJustDepartures)
                 },
@@ -324,7 +319,7 @@ fun DeparturesScreen(
                     Modifier.padding(all = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Checkbox(checked = info.justDepartures, onCheckedChange = {
+                    Checkbox(checked = state.info.justDepartures, onCheckedChange = {
                         onEvent(ChangeJustDepartures)
                     })
                     Text("Pouze odjezdy")
@@ -339,7 +334,7 @@ fun DeparturesScreen(
             val lineSource = remember { MutableInteractionSource() }
             val containerColor = MaterialTheme.colorScheme.surfaceVariant
             TextField(
-                value = info.lineFilter?.toString() ?: "Všechny",
+                value = state.info.lineFilter?.toString() ?: "Všechny",
                 onValueChange = {},
                 Modifier
                     .fillMaxWidth(),
@@ -349,15 +344,15 @@ fun DeparturesScreen(
                 interactionSource = lineSource,
                 readOnly = true,
                 trailingIcon = {
-                    if (info.lineFilter != null) IconButton(onClick = {
+                    if (state.info.lineFilter != null) IconButton(onClick = {
                         onEvent(Canceled(ChooserType.ReturnLine))
                     }) {
                         IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
                     }
                 },
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     focusedContainerColor = containerColor,
                     unfocusedContainerColor = containerColor,
                     disabledContainerColor = containerColor,
@@ -365,19 +360,12 @@ fun DeparturesScreen(
             )
             val linePressedState by lineSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (linePressedState is PressInteraction.Release) {
-                navigate(
-                    Route.Chooser(
-                        type = ChooserType.ReturnLine,
-                    ),
-                    navOptions {
-                        launchSingleTop = true
-                    },
-                )
+                onEvent(DeparturesEvent.ChangeLine)
                 lineSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
             val stopSource = remember { MutableInteractionSource() }
             TextField(
-                value = info.stopFilter ?: "Cokoliv",
+                value = state.info.stopFilter ?: "Cokoliv",
                 onValueChange = {},
                 Modifier
                     .fillMaxWidth()
@@ -388,7 +376,7 @@ fun DeparturesScreen(
                 },
                 readOnly = true,
                 trailingIcon = {
-                    if (info.stopFilter != null) IconButton(onClick = {
+                    if (state.info.stopFilter != null) IconButton(onClick = {
                         onEvent(Canceled(ChooserType.ReturnStop))
                     }) {
                         IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
@@ -396,8 +384,8 @@ fun DeparturesScreen(
                 },
                 interactionSource = stopSource,
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     focusedContainerColor = containerColor,
                     unfocusedContainerColor = containerColor,
                     disabledContainerColor = containerColor,
@@ -405,19 +393,12 @@ fun DeparturesScreen(
             )
             val stopPressedState by stopSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             if (stopPressedState is PressInteraction.Release) {
-                navigate(
-                    Route.Chooser(
-                        type = ChooserType.ReturnStop,
-                    ),
-                    navOptions {
-                        launchSingleTop = true
-                    },
-                )
+                onEvent(DeparturesEvent.ChangeVia)
                 stopSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
             }
         }
         when (state) {
-            DeparturesState.Loading -> Row(
+            is DeparturesState.Loading -> Row(
                 Modifier
                     .padding(top = 8.dp)
                     .fillMaxWidth(),
@@ -426,7 +407,7 @@ fun DeparturesScreen(
                 CircularProgressIndicator()
             }
 
-            else -> LazyColumn(
+            is DeparturesState.Loaded -> LazyColumn(
                 state = listState,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
@@ -443,24 +424,24 @@ fun DeparturesScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            when (state) {
-                                DeparturesState.NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
-                                DeparturesState.NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.stopFilter}"
-                                DeparturesState.LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}"
-                                DeparturesState.LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}, který bude zastavovat na zastávce ${info.stopFilter}"
+                            when (state.reason) {
+                                NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
+                                NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${state.info.stopFilter}"
+                                LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${state.info.lineFilter}"
+                                LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${state.info.lineFilter}, který bude zastavovat na zastávce ${state.info.stopFilter}"
                             },
                             Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
                 else if (state is DeparturesState.Runs) items(
-                    items = state.line,
+                    items = state.departures,
                     key = { state ->
                         state.busName to state.time
                     },
-                ) { state ->
+                ) { itemState ->
                     Card(
-                        state, onEvent, info.compactMode, modifier = Modifier
+                        itemState, state.info, onEvent, Modifier
                             .animateContentSize()
                             .animateItem()
 //                            .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
@@ -504,8 +485,8 @@ private fun DaySwitcher(onEvent: (DeparturesEvent) -> Unit, event: DeparturesEve
 @Composable
 private fun Card(
     departureState: DepartureState,
+    info: DeparturesInfo,
     onEvent: (DeparturesEvent) -> Unit,
-    compact: Boolean,
     modifier: Modifier = Modifier,
 ) = Column(modifier) {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
@@ -597,7 +578,7 @@ private fun Card(
 
                 if (departureState.stopType != StopType.Normal) StopTypeIcon(departureState.stopType, Modifier.padding(horizontal = 8.dp))
 
-                if (compact) {
+                if (info.compactMode) {
                     Text(
                         text = if (runsIn < Duration.ZERO || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
                         color = if (delay == null || runsIn < Duration.ZERO) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
@@ -614,7 +595,7 @@ private fun Card(
                 }
             }
 
-            if (nextStop != null && delay != null && !compact) {
+            if (nextStop != null && delay != null && !info.compactMode) {
                 Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth()
