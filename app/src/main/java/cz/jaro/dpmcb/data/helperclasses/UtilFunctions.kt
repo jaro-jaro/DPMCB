@@ -74,7 +74,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 object UtilFunctions {
 
-    fun LocalDate.toCzechLocative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+    fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
         0L -> "dnes"
         1L -> "zítra"
         2L -> "pozítří"
@@ -91,7 +91,7 @@ object UtilFunctions {
         else -> asString()
     }
 
-    fun LocalDate.toCzechAccusative() = when (durationUntil(SystemClock.todayHere()).inWholeDays) {
+    fun LocalDate.toCzechAccusative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
         0L -> "dnešek"
         1L -> "zítřek"
         2L -> "pozítří"
