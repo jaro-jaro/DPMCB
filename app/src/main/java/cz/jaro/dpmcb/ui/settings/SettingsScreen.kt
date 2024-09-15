@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -63,7 +62,6 @@ import org.koin.core.parameter.parametersOf
 fun Settings(
     finish: () -> Unit,
 ) {
-
     val ctx = LocalContext.current
 
     val viewModel: SettingsViewModel = koinViewModel {
@@ -89,7 +87,7 @@ fun Settings(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalTextApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTextApi::class)
 @Composable
 fun SettingsScreen(
     onEvent: (SettingsEvent) -> Unit,
@@ -249,24 +247,6 @@ fun SettingsScreen(
                         },
                     )
                 }
-
-//                rowItem(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(16.dp),
-//                    verticalAlignment = Alignment.CenterVertically,
-//                ) {
-//                    Text("Speciální režim", Modifier.weight(1F))
-//
-//                    Switch(
-//                        checked = state.settings.special,
-//                        onCheckedChange = { value ->
-//                            onEvent(SettingsEvent.EditSettings {
-//                                it.copy(special = value)
-//                            })
-//                        },
-//                    )
-//                }
 
                 rowItem(
                     modifier = Modifier
