@@ -5,7 +5,6 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -52,6 +51,9 @@ import cz.jaro.dpmcb.ui.common.icons.Empty
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
 import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
+import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
+import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
@@ -290,10 +292,10 @@ fun IconWithTooltip(
 ) = if (tooltipText != null) TooltipBox(
     tooltip = {
         DPMCBTheme(
-            useDarkTheme = isSystemInDarkTheme(),
-            useDynamicColor = true,
-            theme = Theme.Yellow,
-            doTheThing = false,
+            useDarkTheme = LocalIsDarkThemeUsed.current,
+            useDynamicColor = LocalIsDynamicThemeUsed.current,
+            theme = LocalTheme.current ?: Theme.Default,
+            setStatusBarColor = false,
         ) {
             PlainTooltip {
                 Text(text = tooltipText)
