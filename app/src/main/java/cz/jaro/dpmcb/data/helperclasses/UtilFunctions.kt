@@ -377,12 +377,6 @@ object UtilFunctions {
     fun List<Boolean>.allTrue() = all { it }
     fun List<Boolean>.anyTrue() = any { it }
 
-    @Composable
-    @ReadOnlyComposable
-    fun Settings.darkMode(): Boolean {
-        return if (dmAsSystem) isSystemInDarkTheme() else dm
-    }
-
     /**
      * Performs the given [action] on each element.
      */

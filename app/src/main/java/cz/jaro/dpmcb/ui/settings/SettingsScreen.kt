@@ -38,22 +38,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
+import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
+import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -281,8 +285,7 @@ fun SettingsScreen(
                 textItem("")
 
                 item {
-                    val context = LocalContext.current
-                    val text = buildAnnotatedString {
+                    TextWithLink(buildAnnotatedString {
                         withStyle(
                             style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)
                         ) {
@@ -292,34 +295,51 @@ fun SettingsScreen(
                             style = SpanStyle(color = MaterialTheme.colorScheme.primary)
                         ) {
                             withAnnotation(
-                                tag = "cis",
+                                tag = "link",
                                 annotation = "https://portal.cisjr.cz/IDS/Search.aspx?param=cbcz"
                             ) {
-                                append("CIS JŘ")
+                                append("CIS JŘ (CHAPS)")
                             }
                         }
-                    }
-                    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-
-                    Text(
-                        text = text,
-                        modifier = Modifier.pointerInput(Unit) {
-                            detectTapGestures { pos ->
-                                layoutResult?.let { layoutResult ->
-                                    val offset = layoutResult.getOffsetForPosition(pos)
-                                    text.getStringAnnotations(tag = "cis", start = offset, end = offset).firstOrNull()?.let { stringRange ->
-                                        CustomTabsIntent.Builder()
-                                            .setShowTitle(true)
-                                            .build()
-                                            .launchUrl(context, Uri.parse(stringRange.item))
-                                    }
-                                }
-                            }
-                        },
-                        onTextLayout = {
-                            layoutResult = it
+                    })
+                }
+                item {
+                    TextWithLink(buildAnnotatedString {
+                        withStyle(
+                            style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)
+                        ) {
+                            append("Zdroj aktuálních dat: ")
                         }
-                    )
+                        withStyle(
+                            style = SpanStyle(color = MaterialTheme.colorScheme.primary)
+                        ) {
+                            withAnnotation(
+                                tag = "link",
+                                annotation = "https://mpvnet.cz/jikord/map"
+                            ) {
+                                append("MPV (CHAPS)")
+                            }
+                        }
+                    })
+                }
+                item {
+                    TextWithLink(buildAnnotatedString {
+                        withStyle(
+                            style = SpanStyle(color = MaterialTheme.colorScheme.onSurface)
+                        ) {
+                            append("Zdroj informací o nasazení na kurzech: ")
+                        }
+                        withStyle(
+                            style = SpanStyle(color = MaterialTheme.colorScheme.primary)
+                        ) {
+                            withAnnotation(
+                                tag = "link",
+                                annotation = "https://seznam-autobusu.cz/vypravenost/mhd-cb"
+                            ) {
+                                append("Seznam autobusů")
+                            }
+                        }
+                    })
                 }
                 textItem("Veškerá data o kurzech jsou neoficiální a proto za ně neručíme")
 
@@ -335,5 +355,48 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TextWithLink(text: AnnotatedString) {
+    val context = LocalContext.current
+    var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    Text(
+        text = text,
+        modifier = Modifier.pointerInput(Unit) {
+            detectTapGestures { pos ->
+                layoutResult?.let { layoutResult ->
+                    val offset = layoutResult.getOffsetForPosition(pos)
+                    text.getStringAnnotations(tag = "link", start = offset, end = offset).firstOrNull()?.let { stringRange ->
+                        CustomTabsIntent.Builder()
+                            .setShowTitle(true)
+                            .build()
+                            .launchUrl(context, Uri.parse(stringRange.item))
+                    }
+                }
+            }
+        },
+        onTextLayout = {
+            layoutResult = it
+        }
+    )
+}
+
+@Preview
+@Composable
+private fun SettingsPreview() {
+    val settings = Settings()
+    DPMCBTheme(settings) {
+        SettingsScreen(
+            onEvent = {},
+            state = SettingsState(
+                settings = settings,
+                version = "1.0",
+                dataVersion = 5,
+                dataMetaVersion = 1,
+            )
+        )
     }
 }
