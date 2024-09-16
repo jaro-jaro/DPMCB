@@ -99,6 +99,8 @@ dependencies {
     implementation(libs.firebase.common)
     // Realtime Databse
     implementation(libs.firebase.database)
+    // In-App Messaging
+    implementation(libs.firebase.inappmessaging.display)
     // Storage
     implementation(libs.firebase.storage)
     // Crashlytics
