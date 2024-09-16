@@ -34,7 +34,7 @@ typealias BusNumber = Int
 
 @Serializable
 @JvmInline
-value class BusName(val value: String) {
+value class BusName(val value: String): java.io.Serializable {
     override fun toString() = value
 }
 
