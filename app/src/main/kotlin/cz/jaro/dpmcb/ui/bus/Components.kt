@@ -95,6 +95,7 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.Name
@@ -816,6 +817,11 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
 
         if (state is BusState.OnlineRunning && state.delayMin != null) DelayBubble(state.delayMin)
         if (state is BusState.OnlineRunning) Vehicle(state.vehicle, showInfoButton = false)
+        Spacer(Modifier.weight(1F))
+        DateSelector(
+            date = state.date,
+            onDateChange = {},
+        )
     }
     OutlinedCard(
         modifier = Modifier
