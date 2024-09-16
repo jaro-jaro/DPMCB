@@ -40,6 +40,7 @@ semver = "2.0.0"
 firebase-config = "22.0.0"
 zoomable = "0.11.2"
 ksoup = "0.1.2"
+firebase-inappmessaging-display = "21.0.0"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -68,6 +69,7 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics", version.ref = "firebase-analytics" }
 firebase-common = { module = "com.google.firebase:firebase-common", version.ref = "firebase-common" }
+firebase-inappmessaging-display = { module = "com.google.firebase:firebase-inappmessaging-display", version.ref = "firebase-inappmessaging-display" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics", version.ref = "firebase-crashlytics" }
 firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebase-database" }
 firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebase-storage" }
