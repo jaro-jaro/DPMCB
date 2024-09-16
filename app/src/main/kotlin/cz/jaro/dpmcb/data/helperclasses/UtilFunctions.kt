@@ -6,7 +6,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -36,7 +35,6 @@ import androidx.navigation.NavOptions
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -207,15 +205,15 @@ object UtilFunctions {
 
     inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
 
-    fun Duration.toDelay() = run {
+    fun Duration.toDelay(): String {
         val sign = when {
             inWholeSeconds < 0 -> "-"
             inWholeSeconds > 0 -> "+"
-            else -> ""
+            else -> return "včas"
         }
         val min = inWholeMinutes.absoluteValue
         val s = inWholeSeconds.absoluteValue % 60
-        "$sign$min min $s s"
+        return "$sign$min min $s s"
     }
 
     @ReadOnlyComposable
@@ -387,12 +385,6 @@ object UtilFunctions {
 
     fun List<Boolean>.allTrue() = all { it }
     fun List<Boolean>.anyTrue() = any { it }
-
-    @Composable
-    @ReadOnlyComposable
-    fun Settings.darkMode(): Boolean {
-        return if (dmAsSystem) isSystemInDarkTheme() else dm
-    }
 
     /**
      * Performs the given [action] on each element.

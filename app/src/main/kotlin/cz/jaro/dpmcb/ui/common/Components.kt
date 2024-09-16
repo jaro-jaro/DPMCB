@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -106,6 +105,9 @@ import cz.jaro.dpmcb.ui.common.icons.Empty
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
 import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
+import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
+import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
@@ -352,10 +354,10 @@ fun IconWithTooltip(
 ) = if (tooltipText != null) TooltipBox(
     tooltip = {
         DPMCBTheme(
-            useDarkTheme = isSystemInDarkTheme(),
-            useDynamicColor = true,
-            theme = Theme.Yellow,
-            doTheThing = false,
+            useDarkTheme = LocalIsDarkThemeUsed.current,
+            useDynamicColor = LocalIsDynamicThemeUsed.current,
+            theme = LocalTheme.current ?: Theme.Default,
+            setStatusBarColor = false,
         ) {
             PlainTooltip {
                 Text(text = tooltipText)

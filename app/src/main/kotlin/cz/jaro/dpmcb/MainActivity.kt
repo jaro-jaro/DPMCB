@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.darkMode
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.Main
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -25,11 +24,7 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val settings by repo.settings.collectAsStateWithLifecycle()
-            DPMCBTheme(
-                useDarkTheme = settings.darkMode(),
-                useDynamicColor = settings.dynamicColors,
-                theme = settings.theme,
-            ) {
+            DPMCBTheme(settings) {
                 Main(
                     link = intent.getStringExtra(LoadingViewModel.EXTRA_KEY_DEEPLINK),
                     isDataUpdateNeeded = intent.getBooleanExtra(LoadingViewModel.EXTRA_KEY_UPDATE_DATA, false),
