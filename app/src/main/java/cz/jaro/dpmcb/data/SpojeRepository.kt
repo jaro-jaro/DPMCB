@@ -625,7 +625,11 @@ class SpojeRepository(
                 )
             }
 
-    suspend fun oneWayLines() = localDataSource.oneDirectionLines().map(LongLine::toShortLine)
+    private val _lines = MutableStateFlow(null as List<ShortLine>?)
+
+    suspend fun oneWayLines() = _lines.value ?: localDataSource.oneDirectionLines().map(LongLine::toShortLine).also {
+        _lines.value = it
+    }
 
     fun findMiddleStop(stops: List<StopOfNowRunning>): MiddleStop? {
         fun StopOfNowRunning.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
@@ -670,15 +674,11 @@ class SpojeRepository(
         )
     }
 
-    suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning? =
-        localDataSource.connWithItsStops(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
-            .entries.singleOrNull()
-            .also {
-                if (it == null)
-                    Firebase.crashlytics.recordException(IllegalStateException("No running bus found for $busName"))
-            }
-            ?.let { (conn, stops) ->
-                NowRunning(
+    suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
+        localDataSource.nowRunningBuses(busNames, allGroups(date), allTables(date))
+            .entries
+            .associate { (conn, stops) ->
+                conn.connName to NowRunning(
                     busName = conn.connName,
                     lineNumber = conn.line.toShortLine(),
                     direction = conn.direction,

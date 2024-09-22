@@ -23,7 +23,7 @@ fun Transmitter.toOnlineConn(): OnlineConn {
     val cn = cn!!.split("|")
     return OnlineConn(
         name = BusName("${cn[0]}/${cn[2]}"),
-        delayMin = cn[6].toIntOrNull()?.div(60F),
+        delayMin = if (cn[3].isBlank()) null else cn[6].toIntOrNull()?.div(60F),
         vehicle = cn[11].toIntOrNull()?.minus(17_000)?.let { RegistrationNumber(it) },
         lowFloor = cn[10] == "1",
         nextStop = if (cn[7].isBlank()) null else LocalTime(cn[7].toInt() / 60, cn[7].toInt() % 60),

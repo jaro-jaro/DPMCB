@@ -451,9 +451,9 @@ interface Dao {
         JOIN connstop ON connstop.connNumber = conn.connNumber AND connstop.tab = conn.tab
         JOIN stop ON stop.stopNumber = connstop.stopNumber AND stop.tab = connstop.tab
         JOIN seqofconn ON seqofconn.connNumber = conn.connNumber AND seqofconn.line = conn.line
-        WHERE conn.name = :connName
+        WHERE conn.name IN (:connNames)
         AND seqofconn.`group` IN (:groups)
-        AND conn.tab = :tab
+        AND conn.tab IN (:tabs)
         AND (
             NOT connstop.departure IS null
             OR NOT connstop.arrival IS null
@@ -464,7 +464,7 @@ interface Dao {
         END
     """
     )
-    suspend fun connWithItsStops(connName: BusName, groups: List<SequenceGroup>, tab: Table, positive: Direction = Direction.POSITIVE): Map<BusOfNowRunning, List<StopOfNowRunning>>
+    suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>, positive: Direction = Direction.POSITIVE): Map<BusOfNowRunning, List<StopOfNowRunning>>
 
 //    @Transaction
 //    @Query(

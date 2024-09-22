@@ -64,7 +64,7 @@ class App : Application() {
                 }
                 single {
                     Retrofit.Builder()
-                        .baseUrl("https://jih.mpvnet.cz/jikord/")
+                        .baseUrl("https://mpvnet.cz/Jikord/")
                         .build()
                         .create(OnlineApi::class.java)
                 }
