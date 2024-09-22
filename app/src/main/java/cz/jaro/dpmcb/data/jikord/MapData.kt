@@ -1,6 +1,8 @@
 package cz.jaro.dpmcb.data.jikord
 
 
+import RegionBorder
+import RouteStop
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -31,10 +33,14 @@ data class MapData(
     @SerialName("refreshInterval") val refreshInterval: Int,
     @SerialName("lat") val lat: Double,
     @SerialName("lng") val lng: Double,
+    @SerialName("regionBorder") val regionBorder: RegionBorder,
     @SerialName("portal") val portal: String,
+    @SerialName("mapFilterId") val mapFilterId: Nothing?,
+    @SerialName("apiKey") val apiKey: Nothing?,
+    @SerialName("mapFilterLines") val mapFilterLines: Nothing?,
     @SerialName("transmitters") val transmitters: List<Transmitter>,
-    @SerialName("routeStops") val routeStops: Nothing?,
-    @SerialName("stops") val stops: List<Nothing>,
+    @SerialName("routeStops") val routeStops: List<RouteStop>?,
+    @SerialName("stops") val stops: List<Nothing>?,
     @SerialName("selectedStop") val selectedStop: Nothing?,
     @SerialName("external") val `external`: Nothing?,
 )

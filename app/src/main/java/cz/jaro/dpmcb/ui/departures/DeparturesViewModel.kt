@@ -7,13 +7,15 @@ import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.busOnMapByName
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
@@ -98,7 +100,7 @@ class DeparturesViewModel(
         .combine(onlineRepo.nowRunningBuses()) { datum, onlineConns ->
             repo.departures(datum, params.stop)
                 .map {
-                    val onlineConn = onlineConns.busOnMapByName(it.busName)
+                    val onlineConn = onlineConns.onlineBus(it.busName)
                     it to onlineConn
                 }
                 .sortedBy { (stop, onlineConn) ->
@@ -113,7 +115,11 @@ class DeparturesViewModel(
                             .filter { it.time != null }
                             .findLast { it.time!! == nextStop }
                             ?.let { it.name to it.time!! }
-                    }
+                    } ?: stop.busStops
+                        .filter { it.time != null }
+                        .find { SystemClock.timeHere() < it.time!! }
+                        ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
+                        ?.let { it.name to it.time!! }
                     val lastIndexOfThisStop = stop.busStops.indexOfLast { it.name == stop.name }.let {
                         if (it == thisStopIndex) stop.busStops.lastIndex else it
                     }

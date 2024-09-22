@@ -160,10 +160,11 @@ class BusViewModel(
         }
     }
 
-    private val onlineState = onlineRepo.busByName(busName).map { (onlineConn, onlineConnDetail) ->
+    private val onlineState = onlineRepo.bus(busName).map { (onlineConn, onlineTimetable, onlineStopIndex) ->
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
-            onlineConnDetail = onlineConnDetail,
+            onlineTimetable = onlineTimetable,
+            onlineStopIndex = onlineStopIndex,
             vehicle = onlineConn?.vehicle,
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
@@ -178,7 +179,9 @@ class BusViewModel(
             info.stops.isEmpty() -> null
             date > SystemClock.todayHere() -> null
             date < SystemClock.todayHere() -> info.stops.lastIndex
-            state.onlineConnDetail?.nextStopIndex != null -> state.onlineConnDetail.nextStopIndex - 1
+            state.onlineStopIndex?.size == 1 -> state.onlineStopIndex.single().toInt()
+            !state.onlineStopIndex.isNullOrEmpty() -> state.onlineStopIndex.minBy { (info.stops[it.toInt()].time - now).absoluteValue }.toInt()
+//            state.onlineTimetable?.nextStopIndex != null -> state.onlineTimetable.nextStopIndex - 1
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex
             else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
@@ -191,9 +194,12 @@ class BusViewModel(
 
         if (traveledSegments == null) return@combine 0F
 
+        if (state.onlineStopIndex?.size == 1) state.onlineStopIndex.single()
+        if (!state.onlineStopIndex.isNullOrEmpty()) state.onlineStopIndex.minBy { (info.stops[it.toInt()].time - now).absoluteValue }.toInt()
+
         val departureFromLastStop = info.stops.getOrElse(traveledSegments) { info.stops.last() }.time.plus(state.delay ?: 0.minutes)
 
-        val arrivalToNextStop = state.onlineConnDetail?.stops?.getOrNull(traveledSegments + 1)?.let {
+        val arrivalToNextStop = state.onlineTimetable?.stops?.getOrNull(traveledSegments + 1)?.let {
             it.scheduledTime.plus(it.delay.minutes).plus(state.delay ?: 0.seconds)
         } ?: (info.stops.getOrNull(traveledSegments + 1)?.time?.plus(state.delay ?: 0.minutes))
 
@@ -210,19 +216,19 @@ class BusViewModel(
             lineHeight = lineHeight,
             traveledSegments = traveledSegments ?: 0
         ).let { state ->
-            onlineState.onlineConnDetail
-            if (onlineState.onlineConnDetail == null) state
+            onlineState.onlineTimetable
+            if (onlineState.onlineTimetable == null) state
             else if (onlineState.delay == null && onlineState.nextStopTime == null) BusState.OnlineNotRunning(
                 state = state,
-                onlineConnStops = onlineState.onlineConnDetail.stops,
+                onlineConnStops = onlineState.onlineTimetable.stops,
             )
             else BusState.OnlineRunning(
                 state = state,
-                onlineConnStops = onlineState.onlineConnDetail.stops,
+                onlineConnStops = onlineState.onlineTimetable.stops,
                 delayMin = onlineState.delay?.inWholeSeconds?.div(60F),
                 vehicle = onlineState.vehicle,
                 confirmedLowFloor = onlineState.confirmedLowFloor,
-                nextStopIndex = onlineState.onlineConnDetail.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },
+                nextStopIndex = (traveledSegments ?: 0) + 1//onlineState.onlineTimetable.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)

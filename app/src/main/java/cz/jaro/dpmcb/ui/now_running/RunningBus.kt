@@ -9,7 +9,7 @@ data class RunningBus(
     val busName: BusName,
     val nextStopName: String,
     val nextStopTime: LocalTime,
-    val delay: Float,
+    val delay: Float?,
     val vehicle: RegistrationNumber,
     val sequence: SequenceCode?,
 )

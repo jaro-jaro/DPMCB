@@ -614,7 +614,7 @@ private fun Card(
                 }
             }
 
-            if (nextStop != null && delay != null && !compact) {
+            if (nextStop != null && !compact) {
                 Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth()
@@ -625,10 +625,11 @@ private fun Card(
                         text = nextStop.first,
                         fontSize = 20.sp
                     )
-                    Text(
+                    if (delay != null) Text(
                         text = (nextStop.second + delay.roundToInt().minutes).toString(),
                         color = colorOfDelayText(delay)
                     )
+                    else Text(nextStop.second.toString())
                 }
             }
         }
