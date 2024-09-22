@@ -51,7 +51,6 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusInfo
@@ -679,17 +678,11 @@ class SpojeRepository(
         )
     }
 
-    suspend fun nowRunningBus(busName: BusName, date: LocalDate): NowRunning? =
-        localDataSource.work { if (busName.line().toShortLine() == ShortLine(7)) 100 else "0" }
-            .connWithItsStops(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
-            .work { if (busName.line().toShortLine() == ShortLine(7)) 101 else "0" }
-            .entries.singleOrNull()
-            .also {
-                if (it == null)
-                    Firebase.crashlytics.recordException(IllegalStateException("No running bus found for $busName"))
-            }
-            ?.let { (conn, stops) ->
-                NowRunning(
+    suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
+        localDataSource.nowRunningBuses(busNames, allGroups(date), allTables(date))
+            .entries
+            .associate { (conn, stops) ->
+                conn.connName to NowRunning(
                     busName = conn.connName,
                     lineNumber = conn.line.toShortLine(),
                     direction = conn.direction,
@@ -697,7 +690,6 @@ class SpojeRepository(
                     stops = stops,
                 )
             }
-            .work { if (busName.line().toShortLine() == ShortLine(7)) 102 else "0" }
 
     val isOnline = flow {
         while (currentCoroutineContext().isActive) {

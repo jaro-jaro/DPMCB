@@ -19,9 +19,9 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.asyncMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -86,27 +86,26 @@ class NowRunningViewModel(
 
     private val list = onlineRepo.work { 0 }.nowRunningBuses().work { 1 }.map { onlineConns ->
         loading.value = true
-        onlineConns.work { 2 }
-            .withIndex()
-            .asyncMap { (i, onlineConn) ->
-                val bus = repo.work { if (i <= 9) i * 10 + 0 else "" }.nowRunningBus(onlineConn.name, SystemClock.todayHere()).work { if (i <= 9) i * 10 + 1 else "" } ?: return@asyncMap null
-                val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
+        val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
+        val oneWayLines = repo.oneWayLines()
+        onlineConns
+            .mapNotNull { onlineConn ->
+                val bus = buses[onlineConn.name] ?: return@mapNotNull null
+                val middleStop = if (bus.lineNumber in oneWayLines) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
                     busName = bus.busName,
-                    nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@asyncMap null,
-                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@asyncMap null,
-                    delay = onlineConn.delayMin ?: return@asyncMap null,
+                    nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
+                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@mapNotNull null,
+                    delay = onlineConn.delayMin,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
                     lineNumber = bus.lineNumber,
                     destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else bus.stops.last().name,
-                    vehicle = onlineConn.vehicle ?: return@asyncMap null,
+                    vehicle = onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
-                ).work { if (i <= 9) i * 10 + 2 else "" }
+                )
             }
-            .work { 3 }
-            .filterNotNull()
             .also { loading.value = false }
     }
 
@@ -167,12 +166,12 @@ class NowRunningViewModel(
         }.map { it.second }
     }
 
-    private val notRunningList = nowNotRunningBuses.map { buses ->
-        buses
-            .asyncMap { busName ->
-                val bus = repo.nowRunningBus(busName, SystemClock.todayHere()) ?: return@asyncMap null
+    private val notRunningList = nowNotRunningBuses.map { busNames ->
+        val oneWayLines = repo.oneWayLines()
+        repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
+            .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
-                val middleStop = if (bus.lineNumber in repo.oneWayLines()) repo.findMiddleStop(bus.stops) else null
+                val middleStop = if (bus.lineNumber in oneWayLines) repo.findMiddleStop(bus.stops) else null
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
@@ -186,7 +185,6 @@ class NowRunningViewModel(
                     sequence = bus.sequence,
                 )
             }
-            .filterNotNull()
     }
 
     private val nowNotRunning = notRunningList.combine(type) { it, type ->
@@ -257,7 +255,7 @@ class NowRunningViewModel(
         val busName: BusName,
         val nextStopName: String,
         val nextStopTime: LocalTime,
-        val delay: Float,
+        val delay: Float?,
         val indexOnLine: Int,
         val direction: Direction,
         val lineNumber: ShortLine,

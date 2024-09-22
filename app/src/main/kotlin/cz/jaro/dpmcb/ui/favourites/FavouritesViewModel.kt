@@ -52,7 +52,7 @@ class FavouritesViewModel(
         .flatMapLatest { favourites ->
             favourites
                 .map { favourite ->
-                    onlineRepo.busOnMapByName(favourite.busName)
+                    onlineRepo.onlineBus(favourite.busName)
                 }
                 .combine {
                     it.nullable()

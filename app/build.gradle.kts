@@ -16,8 +16,10 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 47
-        versionName = "1.6.4-RC.2"
+        //            Mmmppbvv
+        versionCode = 10700001
+        versionName = "1.7.0-alpha.1"
+        //             M.m.p-b    .v
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -100,6 +102,8 @@ dependencies {
     implementation(libs.firebase.common)
     // Realtime Databse
     implementation(libs.firebase.database)
+    // In-App Messaging
+    implementation(libs.firebase.inappmessaging.display)
     // Storage
     implementation(libs.firebase.storage)
     // Crashlytics

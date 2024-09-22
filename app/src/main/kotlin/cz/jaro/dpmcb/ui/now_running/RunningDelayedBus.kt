@@ -7,7 +7,7 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 data class RunningDelayedBus(
     val busName: BusName,
     val sequence: SequenceCode?,
-    val delay: Float,
+    val delay: Float?,
     val lineNumber: ShortLine,
     val destination: String,
 )

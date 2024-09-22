@@ -203,11 +203,13 @@ private fun LazyListScope.busResult(
                 ) {
                     Text(text = "${bus.vehicle}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
                     Text(text = bus.nextStopTime.toString())
-                    Text(
-                        text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
-                        color = UtilFunctions.colorOfDelayText(bus.delay),
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                    bus.delay?.let {
+                        Text(
+                            text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
+                            color = UtilFunctions.colorOfDelayText(bus.delay),
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             }
         }
@@ -234,10 +236,12 @@ private fun LazyListScope.busResult(
                     }
             ) {
                 Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
-                Text(
-                    text = bus.delay.toDouble().minutes.toDelay(),
-                    color = UtilFunctions.colorOfDelayText(bus.delay)
-                )
+                bus.delay?.let {
+                    Text(
+                        text = bus.delay.toDouble().minutes.toDelay(),
+                        color = UtilFunctions.colorOfDelayText(bus.delay)
+                    )
+                }
             }
         }
     }
