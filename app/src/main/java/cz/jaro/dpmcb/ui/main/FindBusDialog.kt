@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,45 +112,50 @@ fun FindBusDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (line.isNotEmpty() && number.isNotEmpty()) {
-                    if (line.length == 6) confirm(line / number)
-                    else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
-                        if (it != null) confirm(it / number)
+                when {
+                    line.isNotEmpty() && number.isNotEmpty() -> {
+                        if (line.length == 6) confirm(line / number)
+                        else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
+                            if (it != null) confirm(it / number)
+                            else {
+                                showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                onDismiss()
+                            }
+                        }
                         else {
                             showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
                             onDismiss()
                         }
                     }
-                    else {
-                        showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
-                        onDismiss()
+                    evn.isNotEmpty() -> {
+                        if (!isOnline.value) {
+                            showToast("Jste offline", Toast.LENGTH_SHORT)
+                            onDismiss()
+                            return@TextButton
+                        }
+                        findBusByRegN(RegistrationNumber(evn.toInt())) {
+                            if (it == null) {
+                                showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
+                                onDismiss()
+                                return@findBusByRegN
+                            }
+                            confirm(it)
+                        }
                     }
+                    sequence.isNotEmpty() -> {
+                        findSequence(sequence)
+                    }
+                    name.isUnknown() -> {
+                        findLine(name.shortLine()) {
+                            if (it != null) confirm(it / number)
+                            else {
+                                showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                onDismiss()
+                            }
+                        }
+                    }
+                    else -> confirm(name)
                 }
-                else if (evn.isNotEmpty()) {
-                    if (!isOnline.value) {
-                        showToast("Jste offline", Toast.LENGTH_SHORT)
-                        onDismiss()
-                        return@TextButton
-                    }
-                    findBusByRegN(RegistrationNumber(evn.toInt())) {
-                        if (it == null) {
-                            showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
-                            onDismiss()
-                            return@findBusByRegN
-                        }
-                        confirm(it)
-                    }
-                } else if (sequence.isNotEmpty()) {
-                    findSequence(sequence)
-                } else if (name.isUnknown()) {
-                    findLine(name.shortLine()) {
-                        if (it != null) confirm(it / number)
-                        else {
-                            showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
-                            onDismiss()
-                        }
-                    }
-                } else confirm(name)
             }) {
                 Text("Vyhledat")
             }
@@ -336,6 +342,9 @@ fun FindBusDialog(
                 options!!.forEach {
                     HorizontalDivider(Modifier.fillMaxWidth())
                     ListItem(
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
                         headlineContent = {
                             TextButton(
                                 onClick = {
