@@ -118,13 +118,13 @@ class ChooserViewModel(
     ) {
 //        if (job != null && typ.name.contains("ZPET")) return
         when (params.type) {
-            ChooserType.Stops -> params.navigate(
+            ChooserType.Stops -> navigate(
                 Route.Departures(
                     stop = result,
                 )
             )
 
-            ChooserType.Lines -> params.navigate(
+            ChooserType.Lines -> navigate(
                 Route.Chooser(
                     lineNumber = result.toShortLine(),
                     stop = null,
@@ -135,7 +135,7 @@ class ChooserViewModel(
             ChooserType.LineStops -> viewModelScope.launch(Dispatchers.IO) {
                 repo.nextStopNames(params.lineNumber, result, date).let { stops: List<String> ->
                     withContext(Dispatchers.Main) {
-                        params.navigate(
+                        navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
@@ -153,7 +153,7 @@ class ChooserViewModel(
                 }
             }
 
-            ChooserType.NextStop -> params.navigate(
+            ChooserType.NextStop -> navigate(
                 Route.Timetable(
                     lineNumber = params.lineNumber,
                     stop = params.stop!!,
@@ -162,19 +162,19 @@ class ChooserViewModel(
             )
 
             ChooserType.ReturnStop1 -> {
-                params.navigateBack(ChooserResult(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop2 -> {
-                params.navigateBack(ChooserResult(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnLine -> {
-                params.navigateBack(ChooserResult(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop -> {
-                params.navigateBack(ChooserResult(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
         }
     }
