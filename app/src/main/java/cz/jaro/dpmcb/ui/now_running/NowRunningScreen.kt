@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -46,13 +47,16 @@ fun NowRunning(
     args: Route.NowRunning,
     navController: NavHostController,
     viewModel: NowRunningViewModel = run {
-        val navigate = navController.navigateFunction
-        val getNavDestination = { navController.currentBackStackEntry?.destination }
         koinViewModel {
-            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type, navigate = navigate, getNavDestination = getNavDestination))
+            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type))
         }
     },
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
+    }
+
     App.title = R.string.now_running
     App.selected = DrawerAction.NowRunning
 

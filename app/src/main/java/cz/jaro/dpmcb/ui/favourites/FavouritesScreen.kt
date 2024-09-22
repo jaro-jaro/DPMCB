@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,18 +50,19 @@ fun Favourites(
     args: Route.Favourites,
     navController: NavHostController,
     viewModel: FavouritesViewModel = run {
-        val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(
-                FavouritesViewModel.Parameters(
-                    navigate = navigate
-                )
+                FavouritesViewModel.Parameters
             )
         }
     },
 ) {
     title = R.string.app_name
     selected = DrawerAction.Favourites
+
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

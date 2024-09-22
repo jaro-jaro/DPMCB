@@ -54,11 +54,11 @@ class DeparturesViewModel(
         val via: String?,
         val onlyDepartures: Boolean?,
         val simple: Boolean?,
-        val getNavDestination: () -> NavDestination?,
     )
 
     lateinit var scroll: suspend (Int) -> Unit
     lateinit var navigate: NavigateFunction
+    lateinit var getNavDestination: () -> NavDestination?
 
     private val _info = MutableStateFlow(DeparturesInfo(
         time = params.time,
@@ -90,7 +90,7 @@ class DeparturesViewModel(
             via = info.stopFilter,
             onlyDepartures = info.justDepartures,
             simple = info.compactMode,
-        ).generateRouteWithArgs(params.getNavDestination() ?: return)
+        ).generateRouteWithArgs(getNavDestination() ?: return)
     }
 
     val hasMapAccess = repo.hasAccessToMap

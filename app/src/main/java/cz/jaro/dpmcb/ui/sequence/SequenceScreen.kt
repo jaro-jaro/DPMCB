@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,13 +54,16 @@ fun Sequence(
         parametersOf(
             SequenceViewModel.Parameters(
                 sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
-                navigate = navController.navigateFunction
             )
         )
     },
 ) {
     title = R.string.detail_kurzu
     App.selected = DrawerAction.FindBus
+
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
