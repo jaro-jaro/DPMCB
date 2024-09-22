@@ -35,9 +35,10 @@ class ChooserViewModel(
         val type: ChooserType,
         val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String?,
-        val navigate: NavigateFunction,
-        val navigateBack: NavigateBackFunction<ChooserResult>,
     )
+
+    lateinit var navigate: NavigateFunction
+    lateinit var navigateBack: NavigateBackFunction<ChooserResult>
 
     private val originalList = repo.date.map { datum ->
         when (params.type) {

@@ -121,7 +121,6 @@ fun Departures(
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
-                getNavDestination = { navController.currentBackStackEntry?.destination }
             )
         )
     },
@@ -150,8 +149,9 @@ fun Departures(
             delay(500)
             listState.scrollToItem(it)
         }
+        viewModel.navigate = navController.navigateFunction
+        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
     }
-    viewModel.navigate = navController.navigateFunction
 
     LaunchedEffect(listState) {
         withContext(Dispatchers.IO) {

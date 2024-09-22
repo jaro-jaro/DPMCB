@@ -43,9 +43,10 @@ class NowRunningViewModel(
     data class Parameters(
         val filters: List<ShortLine>,
         val type: NowRunningType,
-        val navigate: NavigateFunction,
-        val getNavDestination: () -> NavDestination?,
     )
+
+    lateinit var navigate: NavigateFunction
+    lateinit var getNavDestination: () -> NavDestination?
 
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
@@ -57,7 +58,7 @@ class NowRunningViewModel(
             App.route = Route.NowRunning(
                 filters = filters.value,
                 type = type.value,
-            ).generateRouteWithArgs(params.getNavDestination() ?: return)
+            ).generateRouteWithArgs(getNavDestination() ?: return)
         } catch (_: IllegalStateException) {
             return
         }
@@ -75,11 +76,11 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            params.navigate(Route.Bus(busName = e.busName))
+            navigate(Route.Bus(busName = e.busName))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(Route.Sequence(sequence = e.seq))
+            navigate(Route.Sequence(sequence = e.seq))
         }
     }
 
