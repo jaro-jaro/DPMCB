@@ -730,7 +730,7 @@ fun CodesAndShare(
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
-                .launchUrl(context, Uri.parse("https://jih.mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
+                .launchUrl(context, Uri.parse("https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
         }) {
             IconWithTooltip(Icons.Filled.Language, null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
