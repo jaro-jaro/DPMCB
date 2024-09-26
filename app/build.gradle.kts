@@ -16,8 +16,8 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 33
-        versionName = "1.6.3"
+        versionCode = 51
+        versionName = "1.6.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,6 +71,7 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
 }
 
 dependencies {
@@ -83,8 +84,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // PDF Viewer
-    implementation(libs.pdf.viewer)
+    // Kotlin reflection
+    implementation(kotlin("reflect"))
+
+    // SVG Viewer
+    implementation(libs.coil.svg)
+    implementation(libs.zoomable.image.coil)
 
     // Kotlinx Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -94,6 +99,8 @@ dependencies {
     implementation(libs.firebase.common)
     // Realtime Databse
     implementation(libs.firebase.database)
+    // In-App Messaging
+    implementation(libs.firebase.inappmessaging.display)
     // Storage
     implementation(libs.firebase.storage)
     // Crashlytics
@@ -140,17 +147,21 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
 
+    // Kotlinx DateTime
+    implementation(libs.kotlinx.datetime)
+
     // Semantic versioning
     implementation(libs.semver)
 
     // Web scaping
-    implementation(libs.jsoup)
+    implementation(libs.ksoup)
+    implementation(libs.ksoup.network)
     implementation(libs.konsume.xml)
     implementation(libs.retrofit)
 
     implementation(libs.stax.api)
     implementation(libs.aalto.xml)
 
+    // ChNT
     implementation(libs.androidx.browser)
-    implementation(kotlin("reflect"))
 }

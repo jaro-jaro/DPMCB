@@ -8,15 +8,17 @@ import cz.jaro.dpmcb.data.database.AppDatabase.Companion.Converters
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.types.Direction
-import java.time.LocalDate
-import java.time.LocalTime
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 @Database(
-    entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class],
-    version = 27,
+    entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class, SeqOfConn::class, SeqGroup::class],
+    version = 29,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -24,24 +26,20 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         class Converters {
+            @TypeConverter
+            fun toDirection(value: Int) = Direction.entries[value]
+            @TypeConverter
+            fun fromDirection(value: Direction) = value.ordinal
 
             @TypeConverter
-            fun toSmer(value: Int) = Direction.entries[value]
+            fun toLocalDate(value: String) = LocalDate.parse(value)
+            @TypeConverter
+            fun fromLocalDate(value: LocalDate) = value.toString()
 
             @TypeConverter
-            fun fromSmer(value: Direction) = value.ordinal
-
+            fun toLocalTime(value: String?) = value?.let { LocalTime.parse(it) }
             @TypeConverter
-            fun toLocalDate(value: Long) = LocalDate.ofEpochDay(value)!!
-
-            @TypeConverter
-            fun fromLocalDate(value: LocalDate) = value.toEpochDay()
-
-            @TypeConverter
-            fun toLocalTime(value: Long?) = value?.let { LocalTime.ofSecondOfDay(it) }
-
-            @TypeConverter
-            fun fromLocalTime(value: LocalTime?) = value?.toSecondOfDay()?.toLong()
+            fun fromLocalTime(value: LocalTime?) = value?.toString()
         }
     }
 }

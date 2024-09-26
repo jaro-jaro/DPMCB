@@ -7,10 +7,15 @@ import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.busOnMapByName
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
@@ -28,11 +33,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalTime
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.time.Duration
-import java.time.LocalTime
-import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.collections.filterNot as remove
 
@@ -46,15 +50,15 @@ class DeparturesViewModel(
     data class Parameters(
         val stop: String,
         val time: LocalTime,
-        val line: Int?,
+        val line: ShortLine?,
         val via: String?,
         val onlyDepartures: Boolean?,
         val simple: Boolean?,
-        val getNavDestination: () -> NavDestination?,
     )
 
     lateinit var scroll: suspend (Int) -> Unit
     lateinit var navigate: NavigateFunction
+    lateinit var getNavDestination: () -> NavDestination?
 
     private val _info = MutableStateFlow(DeparturesInfo(
         time = params.time,
@@ -86,7 +90,7 @@ class DeparturesViewModel(
             via = info.stopFilter,
             onlyDepartures = info.justDepartures,
             simple = info.compactMode,
-        ).generateRouteWithArgs(params.getNavDestination() ?: return)
+        ).generateRouteWithArgs(getNavDestination() ?: return)
     }
 
     val hasMapAccess = repo.hasAccessToMap
@@ -96,11 +100,11 @@ class DeparturesViewModel(
         .combine(onlineRepo.nowRunningBuses()) { datum, onlineConns ->
             repo.departures(datum, params.stop)
                 .map {
-                    val onlineConn = onlineConns.busOnMapByName(it.busName)
+                    val onlineConn = onlineConns.onlineBus(it.busName)
                     it to onlineConn
                 }
                 .sortedBy { (stop, onlineConn) ->
-                    stop.time.plusSeconds(onlineConn?.delayMin?.times(60)?.roundToLong() ?: 0L)
+                    stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes
                 }
                 .map { (stop, onlineConn) ->
                     val thisStopIndex = stop.busStops.indexOfFirst { it.stopIndexOnLine == stop.stopIndexOnLine }
@@ -111,7 +115,11 @@ class DeparturesViewModel(
                             .filter { it.time != null }
                             .findLast { it.time!! == nextStop }
                             ?.let { it.name to it.time!! }
-                    }
+                    } ?: stop.busStops
+                        .filter { it.time != null }
+                        .find { SystemClock.timeHere() < it.time!! }
+                        ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
+                        ?.let { it.name to it.time!! }
                     val lastIndexOfThisStop = stop.busStops.indexOfLast { it.name == stop.name }.let {
                         if (it == thisStopIndex) stop.busStops.lastIndex else it
                     }
@@ -126,7 +134,7 @@ class DeparturesViewModel(
                         confirmedLowFloor = onlineConn?.lowFloor,
                         delay = onlineConn?.delayMin,
                         runsVia = stop.busStops.map { it.name }.filterIndexed { i, _ -> i in (thisStopIndex + 1)..lastIndexOfThisStop },
-                        runsIn = Duration.between(now, stop.time + (onlineConn?.delayMin?.toDouble() ?: 0.0).minutes),
+                        runsIn = stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes - now,
                         nextStop = stop.busStops.map { it.name }.getOrNull(thisStopIndex + 1),
                         stopType = stop.stopType,
                     )
@@ -218,7 +226,7 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 _info.update { oldState ->
                     when (e.result.chooserType) {
-                        ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toInt())
+                        ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = e.result.value)
                         else -> return@launch
                     }.also(::changeCurrentRoute)
@@ -269,19 +277,19 @@ class DeparturesViewModel(
         }
 
         DeparturesEvent.NextDay -> {
-            repo.changeDate(repo.date.value.plusDays(1))
+            repo.changeDate(repo.date.value + 1.days)
             _info.update {
                 it.copy(
-                    time = LocalTime.of(0, 0)
+                    time = LocalTime(0, 0)
                 )
             }
         }
 
         DeparturesEvent.PreviousDay -> {
-            repo.changeDate(repo.date.value.plusDays(-1))
+            repo.changeDate(repo.date.value + (-1).days)
             _info.update {
                 it.copy(
-                    time = LocalTime.of(23, 59)
+                    time = LocalTime(23, 59)
                 )
             }
         }

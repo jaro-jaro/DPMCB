@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.ui.now_running
 
+import cz.jaro.dpmcb.data.entities.ShortLine
+
 sealed interface NowRunningState {
 
     data object IsNotToday : NowRunningState
@@ -13,8 +15,8 @@ sealed interface NowRunningState {
     data object NoLines : NowRunningState
 
     sealed interface HasFilters : HasType {
-        val lineNumbers: List<Int>
-        val filters: List<Int>
+        val lineNumbers: List<ShortLine>
+        val filters: List<ShortLine>
     }
 
     sealed interface HasType : NowRunningState {
@@ -22,33 +24,33 @@ sealed interface NowRunningState {
     }
 
     sealed interface HasNotRunning : NowRunningState {
-        val nowNotRunning: List<Pair<String, String>>
+        val nowNotRunning: NowRunningResults<*>
     }
 
-//    data class NeniNicVybrano(
-//        override val cislaLinek: List<Int>,
-//    ) : LinkyNacteny {
-//        override val filtry: List<Int> = emptyList()
-//    }
-
     data class Loading(
-        override val lineNumbers: List<Int>,
-        override val filters: List<Int>,
+        override val lineNumbers: List<ShortLine>,
+        override val filters: List<ShortLine>,
+        override val type: NowRunningType,
+    ) : HasFilters, HasType
+
+    data class NothingRunsToday(
+        override val lineNumbers: List<ShortLine>,
+        override val filters: List<ShortLine>,
         override val type: NowRunningType,
     ) : HasFilters, HasType
 
     data class NothingRunningNow(
-        override val lineNumbers: List<Int>,
-        override val filters: List<Int>,
+        override val lineNumbers: List<ShortLine>,
+        override val filters: List<ShortLine>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<Pair<String, String>>,
+        override val nowNotRunning: NowRunningResults<*>,
     ) : HasFilters, HasType, HasNotRunning
 
     data class OK(
-        override val lineNumbers: List<Int>,
-        override val filters: List<Int>,
+        override val lineNumbers: List<ShortLine>,
+        override val filters: List<ShortLine>,
         override val type: NowRunningType,
-        override val nowNotRunning: List<Pair<String, String>>,
+        override val nowNotRunning: NowRunningResults<*>,
         val result: NowRunningResults<*>,
     ) : HasFilters, HasType, HasNotRunning
 }

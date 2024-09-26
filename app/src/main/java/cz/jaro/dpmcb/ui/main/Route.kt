@@ -1,5 +1,16 @@
 package cz.jaro.dpmcb.ui.main
 
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.BusNumber
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.hasModifiers
+import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.entities.modifiers
+import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -17,10 +28,10 @@ sealed interface Route {
     @Serializable
     @SerialName("bus")
     data class Bus(
-        val lineNumber: String,
-        val busNumber: String,
+        val lineNumber: LongLine,
+        val busNumber: BusNumber,
     ) : Route {
-        constructor(busName: String) : this(busName.split("/")[0], busName.split("/")[1])
+        constructor(busName: BusName) : this(busName.line(), busName.bus())
     }
 
     @Serializable
@@ -31,7 +42,7 @@ sealed interface Route {
     @SerialName("chooser")
     data class Chooser(
         val type: ChooserType,
-        val lineNumber: Int = -1,
+        val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String? = null,
     ) : Route
 
@@ -40,7 +51,7 @@ sealed interface Route {
     data class Departures(
         val stop: String,
         val time: SimpleTime = SimpleTime.invalid,
-        val line: Int? = null,
+        val line: ShortLine? = null,
         val via: String? = null,
         val onlyDepartures: Boolean? = null,
         val simple: Boolean? = null,
@@ -57,20 +68,23 @@ sealed interface Route {
     @Serializable
     @SerialName("now_running")
     data class NowRunning(
-        val filters: List<Int> = listOf(),
+        val filters: List<ShortLine> = listOf(),
         val type: NowRunningType = NowRunningType.Line,
     ) : Route
 
     @Serializable
     @SerialName("sequence")
     data class Sequence(
-        val sequence: String,
-    ) : Route
+        val sequenceNumber: String,
+        val lineAndModifiers: String,
+    ) : Route {
+        constructor(sequence: SequenceCode) : this("${sequence.sequenceNumber()}", "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}")
+    }
 
     @Serializable
     @SerialName("timetable")
     data class Timetable(
-        val lineNumber: Int,
+        val lineNumber: ShortLine,
         val stop: String,
         val nextStop: String,
     ) : Route

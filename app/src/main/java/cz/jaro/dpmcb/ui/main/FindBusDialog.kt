@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,7 +32,17 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.div
+import cz.jaro.dpmcb.data.entities.isUnknown
+import cz.jaro.dpmcb.data.entities.shortLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
 import cz.jaro.dpmcb.ui.chooser.autoFocus
 
 @Composable
@@ -39,20 +51,21 @@ fun FindBusDialog(
     onDismiss: () -> Unit,
     navigate: NavigateFunction,
     closeDrawer: () -> Unit,
-    findSequences: (String, (List<Pair<String, String>>) -> Unit) -> Unit,
+    findSequences: (String, (List<Pair<SequenceCode, String>>) -> Unit) -> Unit,
     isOnline: State<Boolean>,
     showToast: (String, Int) -> Unit,
-    findBusByEvn: (String, (String?) -> Unit) -> Unit,
+    findBusByRegN: (RegistrationNumber, (BusName?) -> Unit) -> Unit,
+    findLine: (ShortLine, (LongLine?) -> Unit) -> Unit,
 ) {
     var isNotFound by rememberSaveable { mutableStateOf(false) }
-    var options by rememberSaveable { mutableStateOf(null as List<Pair<String, String>>?) }
+    var options by rememberSaveable { mutableStateOf(null as List<Pair<SequenceCode, String>>?) }
     var sequence by rememberSaveable { mutableStateOf("") }
-    var name by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable(stateSaver = busStateSaver()) { mutableStateOf(BusName("")) }
     var evn by rememberSaveable { mutableStateOf("") }
     var line by rememberSaveable { mutableStateOf("") }
     var number by rememberSaveable { mutableStateOf("") }
 
-    fun confirm(busName: String) {
+    fun confirm(busName: BusName) {
         navigate(
             Route.Bus(
                 busName = busName
@@ -61,23 +74,19 @@ fun FindBusDialog(
         onDismiss()
         closeDrawer()
         sequence = ""
-        name = ""
+        name = BusName("")
         evn = ""
         line = ""
         number = ""
     }
 
-    fun confirmSeq(seqId: String) {
-        navigate(
-            Route.Sequence(
-                sequence = seqId
-            )
-        )
+    fun confirmSeq(seqId: SequenceCode) {
+        navigate(Route.Sequence(sequence = seqId))
         onDismiss()
         closeDrawer()
         sequence = ""
         options = null
-        name = ""
+        name = BusName("")
         evn = ""
         line = ""
         number = ""
@@ -93,7 +102,7 @@ fun FindBusDialog(
         onDismissRequest = {
             onDismiss()
             sequence = ""
-            name = ""
+            name = BusName("")
             evn = ""
             line = ""
             number = ""
@@ -103,42 +112,50 @@ fun FindBusDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (line.isNotEmpty() && number.isNotEmpty()) confirm(
-                    "325${
-                        when (line.length) {
-                            1 -> "00$line"
-                            2 -> "0$line"
-                            else -> line
-                        }
-                    }/$number"
-                )
-                else if (evn.isNotEmpty()) {
-                    if (!isOnline.value) {
-                        showToast("Jste offline", Toast.LENGTH_SHORT)
-                        onDismiss()
-                        return@TextButton
-                    }
-                    findBusByEvn(evn) {
-                        if (it == null) {
-                            showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
-                            onDismiss()
-                            return@findBusByEvn
-                        }
-                        confirm(it)
-                    }
-                } else if (sequence.isNotEmpty()) {
-                    findSequence(sequence)
-                } else if (!name.startsWith("325")) {
-                    confirm(
-                        "325${
-                            when (name.split("/").getOrNull(0)?.length) {
-                                1 -> "00$name"
-                                2 -> "0$name"
-                                else -> name
+                when {
+                    line.isNotEmpty() && number.isNotEmpty() -> {
+                        if (line.length == 6) confirm(line / number)
+                        else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
+                            if (it != null) confirm(it / number)
+                            else {
+                                showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                onDismiss()
                             }
-                        }"
-                    )
-                } else confirm(name)
+                        }
+                        else {
+                            showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                            onDismiss()
+                        }
+                    }
+                    evn.isNotEmpty() -> {
+                        if (!isOnline.value) {
+                            showToast("Jste offline", Toast.LENGTH_SHORT)
+                            onDismiss()
+                            return@TextButton
+                        }
+                        findBusByRegN(RegistrationNumber(evn.toInt())) {
+                            if (it == null) {
+                                showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
+                                onDismiss()
+                                return@findBusByRegN
+                            }
+                            confirm(it)
+                        }
+                    }
+                    sequence.isNotEmpty() -> {
+                        findSequence(sequence)
+                    }
+                    name.isUnknown() -> {
+                        findLine(name.shortLine()) {
+                            if (it != null) confirm(it / number)
+                            else {
+                                showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                onDismiss()
+                            }
+                        }
+                    }
+                    else -> confirm(name)
+                }
             }) {
                 Text("Vyhledat")
             }
@@ -147,7 +164,7 @@ fun FindBusDialog(
             TextButton(onClick = {
                 onDismiss()
                 sequence = ""
-                name = ""
+                name = BusName("")
                 line = ""
                 number = ""
             }) {
@@ -189,15 +206,18 @@ fun FindBusDialog(
                         },
                         keyboardActions = KeyboardActions {
                             if (line.isNotEmpty() && number.isNotEmpty())
-                                confirm(
-                                    "325${
-                                        when (line.length) {
-                                            1 -> "00$line"
-                                            2 -> "0$line"
-                                            else -> line
-                                        }
-                                    }/$number"
-                                )
+                                if (line.length == 6) confirm(line / number)
+                                else if (line.length <= 3) findLine(line.toLastDigits(3).toShortLine()) {
+                                    if (it != null) confirm(it / number)
+                                    else {
+                                        showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                        onDismiss()
+                                    }
+                                }
+                                else {
+                                    showToast("Linka $line neexistuje", Toast.LENGTH_SHORT)
+                                    onDismiss()
+                                }
                             else
                                 focusManager.moveFocus(FocusDirection.Down)
                         },
@@ -225,11 +245,11 @@ fun FindBusDialog(
                                 onDismiss()
                                 return@KeyboardActions
                             }
-                            findBusByEvn(evn) {
+                            findBusByRegN(RegistrationNumber(evn.toInt())) {
                                 if (it == null) {
                                     showToast("Vůz ev. č. $evn nebyl nalezen.", Toast.LENGTH_LONG)
                                     onDismiss()
-                                    return@findBusByEvn
+                                    return@findBusByRegN
                                 }
                                 confirm(it)
                             }
@@ -242,9 +262,9 @@ fun FindBusDialog(
                     ),
                 )
                 TextField(
-                    value = name,
+                    value = name.value,
                     onValueChange = {
-                        name = it
+                        name = BusName(it)
                     },
                     Modifier
                         .fillMaxWidth()
@@ -322,6 +342,9 @@ fun FindBusDialog(
                 options!!.forEach {
                     HorizontalDivider(Modifier.fillMaxWidth())
                     ListItem(
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ),
                         headlineContent = {
                             TextButton(
                                 onClick = {
@@ -346,3 +369,8 @@ fun FindBusDialog(
         }
     )
 }
+
+fun busStateSaver(): Saver<BusName, String> = Saver(
+    save = { it.value },
+    restore = { BusName(it) }
+)

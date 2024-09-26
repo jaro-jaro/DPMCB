@@ -20,4 +20,10 @@ interface OnlineApi {
         @HeaderMap headers: Map<String, String>,
         @Body body: RequestBody,
     ): Response<ResponseBody>
+
+    @POST("map/pathData")
+    suspend fun pathData(
+        @HeaderMap headers: Map<String, String>,
+        @Body body: RequestBody,
+    ): Response<ResponseBody>
 }

@@ -10,22 +10,50 @@ import com.google.firebase.remoteconfig.get
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.dpmcb.data.database.Dao
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.SequenceGroup
+import cz.jaro.dpmcb.data.entities.SequenceModifiers
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
+import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.entities.changePart
+import cz.jaro.dpmcb.data.entities.div
+import cz.jaro.dpmcb.data.entities.generic
+import cz.jaro.dpmcb.data.entities.hasPart
+import cz.jaro.dpmcb.data.entities.hasType
+import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.data.entities.isInvalid
+import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.entities.modifiers
+import cz.jaro.dpmcb.data.entities.part
+import cz.jaro.dpmcb.data.entities.sequenceNumber
+import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.typeChar
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Runs
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -46,6 +74,7 @@ import cz.jaro.dpmcb.data.realtions.sequence.Sequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.tuples.Quadruple
+import cz.jaro.dpmcb.ui.bus.unaryPlus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -54,6 +83,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
@@ -67,18 +97,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
 import kotlinx.serialization.json.Json
-import org.koin.core.annotation.Single
 import java.io.File
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.Month
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
 
-@Single
+//@Single
 class SpojeRepository(
     ctx: Application,
     private val localDataSource: Dao,
@@ -88,36 +118,42 @@ class SpojeRepository(
 
     private val remoteConfig = Firebase.remoteConfig
 
-    private val configActive = flow {
+    private suspend fun getConfigActive() = try {
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 3600
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        if (!isOnline.value)
+            remoteConfig.activate().await()
+        else
+            remoteConfig.fetchAndActivate().await()
+    } catch (e: FirebaseRemoteConfigException) {
+        e.printStackTrace()
+        Firebase.crashlytics.recordException(e)
         try {
-            val configSettings = remoteConfigSettings {
-                minimumFetchIntervalInSeconds = 3600
-            }
-            remoteConfig.setConfigSettingsAsync(configSettings)
-            if (!ctx.isOnline)
-                emit(remoteConfig.activate().await())
-            else
-                emit(remoteConfig.fetchAndActivate().await())
+            remoteConfig.activate().await()
         } catch (e: FirebaseRemoteConfigException) {
-            e.printStackTrace()
-            Firebase.crashlytics.recordException(e)
-            try {
-                emit(remoteConfig.activate().await())
-            } catch (e: FirebaseRemoteConfigException) {
-                emit(false)
-            }
+            false
         }
     }
+
+    private val configActive = ::getConfigActive.asFlow()
 
     private val sequenceTypes = configActive.map {
         Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"].asString())
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
+    suspend fun SequenceModifiers.type() = typeChar()?.let { sequenceTypes.first()[it] }
+
     private val sequenceConnections = configActive.map {
-        Json.decodeFromString<List<List<String>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
+        Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val _date = MutableStateFlow(LocalDate.now())
+    private val dividedSequencesWithMultipleBuses = configActive.map {
+        Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"].asString())
+    }//.stateIn(scope, SharingStarted.Eagerly, null)
+
+    private val _date = MutableStateFlow(SystemClock.todayHere())
     val date = _date.asStateFlow()
 
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)
@@ -149,19 +185,19 @@ class SpojeRepository(
         }
     }
 
-    private val tablesMap = mutableMapOf<Int, MutableMap<LocalDate, String?>>()
+    private val _tables = mutableMapOf<LongLine, MutableMap<LocalDate, Table?>>()
 
-    private suspend fun nowUsedTabInternal(date: LocalDate, lineNumber: Int): Line? {
+    private suspend fun _nowUsedTable(date: LocalDate, lineNumber: LongLine): Line? {
         val allTables = localDataSource.lineTables(lineNumber)
 
         val tablesByDate = allTables.filter {
-            it.validFrom <= date && date <= it.validTo
+            it.validity.validFrom <= date && date <= it.validity.validTo
         }
 
         if (tablesByDate.isEmpty()) return null
         if (tablesByDate.size == 1) return tablesByDate.first()
 
-        val sortedTablesByDate = tablesByDate.sortedByDescending { it.validFrom }
+        val sortedTablesByDate = tablesByDate.sortedByDescending { it.validity.validFrom }
 
         val tablesByDateAndRestriction =
             if (sortedTablesByDate.none { it.hasRestriction })
@@ -172,8 +208,29 @@ class SpojeRepository(
         return tablesByDateAndRestriction.first()
     }
 
-    private suspend fun nowUsedTable(datum: LocalDate, lineNumber: Int) = tablesMap.getOrPut(lineNumber) { mutableMapOf() }.getOrPut(datum) {
-        nowUsedTabInternal(datum, lineNumber)?.tab
+    private suspend fun nowUsedTable(date: LocalDate, lineNumber: LongLine) = _tables.getOrPut(lineNumber) { mutableMapOf() }.getOrPut(date) {
+        _nowUsedTable(date, lineNumber)?.tab
+    }
+
+    private val _groups = mutableMapOf<SequenceCode, MutableMap<LocalDate, SequenceGroup?>>()
+
+    private suspend fun _nowUsedGroup(date: LocalDate, seq: SequenceCode): SeqGroup? {
+        val allGroups = localDataSource.seqGroups(seq)
+
+        val groupsByDate = allGroups.filter {
+            it.validity.validFrom <= date && date <= it.validity.validTo
+        }
+
+        if (groupsByDate.isEmpty()) return null
+        if (groupsByDate.size == 1) return groupsByDate.first()
+
+        val sortedGroupsByDate = groupsByDate.sortedByDescending { it.validity.validFrom }
+
+        return sortedGroupsByDate.first()
+    }
+
+    private suspend fun nowUsedGroup(date: LocalDate, seq: SequenceCode) = _groups.getOrPut(seq) { mutableMapOf() }.getOrPut(date) {
+        _nowUsedGroup(date, seq)?.group
     }
 
     private val sequencesMap = mutableMapOf<LocalDate, Set<TimeOfSequence>>()
@@ -181,6 +238,7 @@ class SpojeRepository(
     private suspend fun nowRunningSequencesOrNotInternal(date: LocalDate): Set<TimeOfSequence> {
         return localDataSource.fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
             date = date,
+            groups = allGroups(date),
             tabs = allTables(date),
         )
             .filter { (_, conns) ->
@@ -201,23 +259,24 @@ class SpojeRepository(
         nowRunningSequencesOrNotInternal(datum)
     }
 
-    private suspend fun LocalDate.isThisTableNowUsed(tab: String): Boolean {
-        val lineNumber = tab.split("-").first().toInt()
-        return nowUsedTable(this, lineNumber) == tab
-    }
-
     private suspend fun allTables(date: LocalDate) =
         localDataSource.allLineNumbers().mapNotNull { lineNumber ->
             nowUsedTable(date, lineNumber)
         }
 
+    private suspend fun allGroups(date: LocalDate) =
+        localDataSource.allSequences().mapNotNull { seq ->
+            nowUsedGroup(date, seq)
+        } + SequenceGroup.invalid
+
     suspend fun stopNames(datum: LocalDate) = localDataSource.stopNames(allTables(datum))
     suspend fun lineNumbers(datum: LocalDate) = localDataSource.lineNumbers(allTables(datum))
+    suspend fun lineNumbersToday() = lineNumbers(SystemClock.todayHere())
 
-    suspend fun busDetail(busName: String, date: LocalDate) =
-        localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!).run {
+    suspend fun busDetail(busName: BusName, date: LocalDate) =
+        localDataSource.coreBus(busName, allGroups(date), nowUsedTable(date, busName.line())!!).run {
             val noCodes = distinctBy {
-                it.copy(fixedCodes = "", type = DoesNotRun, from = LocalDate.now(), to = LocalDate.now())
+                it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
             }
             val timeCodes = map {
                 RunsFromTo(
@@ -227,17 +286,18 @@ class SpojeRepository(
             }.distinctBy {
                 it.type to it.`in`.toString()
             }
+            val sequence = first().sequence.takeUnless { it.isInvalid() }
 
-            val before = first().sequence?.let { seq ->
+            val before = sequence?.let { seq ->
                 buildList {
-                    if ('-' in seq && seq.endsWith('2')) add(seq.dropLast(1) + '1')
+                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
                     addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
                 }
             }
 
-            val after = first().sequence?.let { seq ->
+            val after = sequence?.let { seq ->
                 buildList {
-                    if ('-' in seq && seq.endsWith('1')) add(seq.dropLast(1) + '2')
+                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
                     addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
                 }
             }
@@ -246,16 +306,16 @@ class SpojeRepository(
                 info = first().let {
                     BusInfo(
                         lowFloor = it.lowFloor,
-                        line = it.line - 325_000,
+                        line = it.line.toShortLine(),
                         connName = it.connName,
-                        sequence = it.sequence,
+                        sequence = sequence,
                     )
                 },
                 stops = noCodes.mapIndexed { i, it ->
                     BusStop(
                         time = it.time,
                         name = it.name,
-                        line = it.line - 325_000,
+                        line = it.line.toShortLine(),
                         nextStop = noCodes.getOrNull(i + 1)?.name,
                         connName = it.connName,
                         type = StopType(it.connStopFixedCodes),
@@ -263,41 +323,41 @@ class SpojeRepository(
                 }.distinct(),
                 timeCodes = timeCodes,
                 fixedCodes = first().fixedCodes,
-                sequence = first().sequence?.let { sequenceBuses(it, date) },
+                sequence = sequence?.let { sequenceBuses(it, date) },
                 before = before,
                 after = after,
             )
         }
 
-    suspend fun codes(connName: String, date: LocalDate) =
-        localDataSource.codes(connName, nowUsedTable(date, extractLineNumber(connName))!!).run {
+    suspend fun codes(connName: BusName, date: LocalDate) =
+        localDataSource.codes(connName, nowUsedTable(date, connName.line())!!).run {
             if (isEmpty()) return@run emptyList<RunsFromTo>() to ""
             map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to first().fixedCodes
         }
 
-    private fun extractLineNumber(connName: String) = connName.split("/")[0].toInt()
-
-    suspend fun favouriteBus(busName: String, date: LocalDate) =
-        localDataSource.connWithItsConnStopsAndCodes(busName, nowUsedTable(date, extractLineNumber(busName))!!)
+    suspend fun favouriteBus(busName: BusName, date: LocalDate) =
+        localDataSource.coreBus(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
             .run {
                 Pair(
-                    first().let { Favourite(it.lowFloor, it.line - 325_000, it.connName) },
+                    first().let { Favourite(it.lowFloor, it.line.toShortLine(), it.connName) },
                     map { StopOfFavourite(it.time, it.name, it.connName) }.distinct(),
                 )
             }
 
-    suspend fun stopNamesOfLine(line: Int, date: LocalDate) =
-        localDataSource.stopNamesOfLine(line + 325_000, nowUsedTable(date, line + 325_000)!!)
+    suspend fun ShortLine.findLongLine() = localDataSource.findLongLine(this)
 
-    suspend fun nextStopNames(line: Int, thisStop: String, date: LocalDate) =
-        localDataSource.nextStops(line + 325_000, thisStop, nowUsedTable(date, line + 325_000)!!)
+    suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
+        localDataSource.stopNamesOfLine(line.findLongLine(), nowUsedTable(date, line.findLongLine())!!)
 
-    suspend fun timetable(line: Int, thisStop: String, nextStop: String, date: LocalDate) =
+    suspend fun nextStopNames(line: ShortLine, thisStop: String, date: LocalDate) =
+        localDataSource.nextStops(line.findLongLine(), thisStop, nowUsedTable(date, line.findLongLine())!!)
+
+    suspend fun timetable(line: ShortLine, thisStop: String, nextStop: String, date: LocalDate) =
         localDataSource.connStopsOnLineWithNextStopAtDate(
             stop = thisStop,
             nextStop = nextStop,
             date = date,
-            tab = nowUsedTable(date, line + 325_000)!!
+            tab = nowUsedTable(date, line.findLongLine())!!
         )
             .groupBy {
                 BusInTimetable(
@@ -325,8 +385,11 @@ class SpojeRepository(
             sequence5 = "$s-_1",
             sequence6 = "$s-_2",
         ).sortedWith(getSequenceComparator())
+            .remove {
+                it.isInvalid()
+            }
             .map {
-                it to seqName(it)
+                it to it.seqName()
             }
     } ?: emptyList()
 
@@ -335,13 +398,20 @@ class SpojeRepository(
             while (currentCoroutineContext().isActive) {
                 launch {
                     send(
-                        localDataSource.sequenceLines(
-                            todayRunningSequences = nowRunningSequencesOrNot(LocalDate.now())
+                        localDataSource.lastStopTimesOfConnsInSequences(
+                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
                                 .filter {
-                                    it.start < LocalTime.now() && LocalTime.now() < it.end
+                                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
                                 }
-                                .map { it.sequence }
+                                .map { it.sequence },
+                            groups = allGroups(SystemClock.todayHere()),
+                            tabs = allTables(SystemClock.todayHere()),
                         )
+                            .mapValues { (_, a) ->
+                                a.toList().sortedBy { it.second }.find {
+                                    SystemClock.timeHere() <= it.second
+                                }?.first ?: error("This should never happen")
+                            }
                             .toList()
                             .sortedWith(Comparator.comparing({ it.first }, getSequenceComparator()))
                     )
@@ -357,19 +427,19 @@ class SpojeRepository(
             replay = 1
         )
 
-    suspend fun sequence(seq: String, date: LocalDate): Sequence? {
-        val conns = localDataSource.connsOfSeqWithTheirConnStops(seq)
+    suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
+        val conns = localDataSource.coreBusOfSequence(seq, nowUsedGroup(date, seq))
             .groupBy {
                 it.connName to it.tab
             }
             .filter { (a, _) ->
                 val (connName, tab) = a
-                val nowUsedTable = nowUsedTable(date, extractLineNumber(connName))
+                val nowUsedTable = nowUsedTable(date, connName.line())
                 nowUsedTable == tab
             }
             .map { (_, stops) ->
                 val noCodes = stops.distinctBy {
-                    it.copy(fixedCodes = "", type = DoesNotRun, from = LocalDate.now(), to = LocalDate.now())
+                    it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
                 }
                 val timeCodes = stops.map {
                     RunsFromTo(
@@ -383,7 +453,7 @@ class SpojeRepository(
                     stops.first().let {
                         BusInfo(
                             lowFloor = it.lowFloor,
-                            line = it.line - 325_000,
+                            line = it.line.toShortLine(),
                             connName = it.connName,
                             sequence = it.sequence,
                         )
@@ -392,7 +462,7 @@ class SpojeRepository(
                         BusStop(
                             time = it.time,
                             name = it.name,
-                            line = it.line - 325_000,
+                            line = it.line.toShortLine(),
                             nextStop = noCodes.getOrNull(i + 1)?.name,
                             connName = it.connName,
                             type = StopType(it.connStopFixedCodes),
@@ -400,6 +470,7 @@ class SpojeRepository(
                     }.distinct(),
                     timeCodes,
                     stops.first().fixedCodes,
+                    Validity(stops.first().validFrom, stops.first().validTo),
                 )
             }
             .sortedBy {
@@ -420,13 +491,17 @@ class SpojeRepository(
             }
         }
 
+        val commonValidity = conns.first().validity.takeIf {
+            conns.distinctBy { it.validity }.size == 1
+        }
+
         val before = buildList {
-            if ('-' in seq && seq.endsWith('2')) add(seq.dropLast(1) + '1')
+            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
             addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
         }
 
         val after = buildList {
-            if ('-' in seq && seq.endsWith('1')) add(seq.dropLast(1) + '2')
+            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
             addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
         }
 
@@ -444,36 +519,18 @@ class SpojeRepository(
                     uniqueFixedCodes = it.fixedCodes.split(" ").filter { code ->
                         code !in commonFixedCodes
                     }.joinToString(" "),
+                    uniqueValidity = it.validity.takeIf { commonValidity == null },
                 )
-          },
+            },
             commonTimeCodes = commonTimeCodes,
             commonFixedCodes = commonFixedCodes.joinToString(" "),
+            commonValidity = commonValidity,
         )
     }
 
-    suspend fun busStopTimesOfSequence(seq: String, date: LocalDate): List<Pair<Boolean, List<LocalTime>>>? {
-        val conns = localDataSource.connsOfSeqWithTheirConnStopTimes(seq)
-            .groupBy { it.connName to it.tab }
-            .filter { (a, _) ->
-                val (connName, tab) = a
-                val nowUsedTable = nowUsedTable(date, extractLineNumber(connName))
-                nowUsedTable == tab
-            }
-            .map { (_, stops) ->
-                stops.first().lowFloor to stops.map { it.time }.distinct()
-            }
-            .sortedBy {
-                it.second.first()
-            }
-
-        if (conns.isEmpty()) return null
-
-        return conns
-    }
-
-    private suspend fun sequenceBuses(seq: String, date: LocalDate) = localDataSource.connsOfSeq(seq, allTables(date)).ifEmpty { null }
-    suspend fun firstBusOfSequence(seq: String, date: LocalDate) = localDataSource.firstConnOfSeq(seq, allTables(date))
-    suspend fun lastBusOfSequence(seq: String, date: LocalDate) = localDataSource.lastConnOfSeq(seq, allTables(date))
+    private suspend fun sequenceBuses(seq: SequenceCode, date: LocalDate) = localDataSource.connsOfSeq(seq, nowUsedGroup(date, seq), allTables(date))
+    suspend fun firstBusOfSequence(seq: SequenceCode, date: LocalDate) = localDataSource.firstConnOfSeq(seq, nowUsedGroup(date, seq), allTables(date))
+    suspend fun lastBusOfSequence(seq: SequenceCode, date: LocalDate) = localDataSource.lastConnOfSeq(seq, nowUsedGroup(date, seq), allTables(date))
 
 
     suspend fun write(
@@ -482,6 +539,8 @@ class SpojeRepository(
         timeCodes: Array<TimeCode>,
         lines: Array<Line>,
         conns: Array<Conn>,
+        seqGroups: Array<SeqGroup>,
+        seqOfConns: Array<SeqOfConn>,
         version: Int,
     ) {
         preferenceDataSource.changeVersion(version)
@@ -491,6 +550,8 @@ class SpojeRepository(
         localDataSource.insertTimeCodes(*timeCodes)
         localDataSource.insertLines(*lines)
         localDataSource.insertConns(*conns)
+        localDataSource.insertSeqGroups(*seqGroups)
+        localDataSource.insertSeqOfConns(*seqOfConns)
     }
 
     suspend fun connStops() = localDataSource.connStops()
@@ -498,6 +559,8 @@ class SpojeRepository(
     suspend fun timeCodes() = localDataSource.timeCodes()
     suspend fun lines() = localDataSource.lines()
     suspend fun conns() = localDataSource.conns()
+    suspend fun seqGroups() = localDataSource.seqGroups()
+    suspend fun seqOfConns() = localDataSource.seqOfConns()
 
     fun changeDate(date: LocalDate, notify: Boolean = true) {
         _date.update { date }
@@ -530,7 +593,7 @@ class SpojeRepository(
         }
     }
 
-    suspend fun removeFavourite(name: String) {
+    suspend fun removeFavourite(name: BusName) {
         preferenceDataSource.changeFavourites { favourites ->
             favourites - favourites.first { it.busName == name }
         }
@@ -538,7 +601,7 @@ class SpojeRepository(
 
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
         localDataSource.departures(stop, allTables(date))
-            .groupBy { "${it.line}/${it.connNumber}" to it.stopIndexOnLine }
+            .groupBy { it.line / it.connNumber to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
                 val timeCodes = list.map { RunsFromTo(it.type, it.from..it.to) }.distinctBy { it.type to it.`in`.toString() }
@@ -555,14 +618,18 @@ class SpojeRepository(
                     time = info.time,
                     stopIndexOnLine = stopIndexOnLine,
                     busName = connName,
-                    line = info.line - 325_000,
+                    line = info.line.toShortLine(),
                     lowFloor = info.lowFloor,
                     busStops = stops,
                     stopType = StopType(info.connStopFixedCodes),
                 )
             }
 
-    suspend fun oneWayLines() = localDataSource.oneDirectionLines()
+    private val _lines = MutableStateFlow(null as List<ShortLine>?)
+
+    suspend fun oneWayLines() = _lines.value ?: localDataSource.oneDirectionLines().map(LongLine::toShortLine).also {
+        _lines.value = it
+    }
 
     fun findMiddleStop(stops: List<StopOfNowRunning>): MiddleStop? {
         fun StopOfNowRunning.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
@@ -607,14 +674,13 @@ class SpojeRepository(
         )
     }
 
-    suspend fun nowRunningBus(busName: String, date: LocalDate): NowRunning =
-        localDataSource.connWithItsStops(busName, nowUsedTable(date, extractLineNumber(busName))!!)
-            .toList()
-            .first { date.isThisTableNowUsed(it.first.tab) }
-            .let { (conn, stops) ->
-                NowRunning(
-                    busName = conn.name,
-                    lineNumber = conn.line - 325_000,
+    suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
+        localDataSource.nowRunningBuses(busNames, allGroups(date), allTables(date))
+            .entries
+            .associate { (conn, stops) ->
+                conn.connName to NowRunning(
+                    busName = conn.connName,
+                    lineNumber = conn.line.toShortLine(),
                     direction = conn.direction,
                     sequence = conn.sequence,
                     stops = stops,
@@ -632,18 +698,18 @@ class SpojeRepository(
         isOnline && onlineMode
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline && settings.value.autoOnline)
 
-    suspend fun hasRestriction(busName: String, date: LocalDate) =
-        localDataSource.hasRestriction(nowUsedTable(date, extractLineNumber(busName))!!)
+    suspend fun hasRestriction(busName: BusName, date: LocalDate) =
+        localDataSource.hasRestriction(nowUsedTable(date, busName.line())!!)
 
-    suspend fun lineValidity(busName: String, date: LocalDate) =
-        localDataSource.validity(nowUsedTable(date, extractLineNumber(busName))!!)
+    suspend fun lineValidity(busName: BusName, date: LocalDate) =
+        localDataSource.validity(nowUsedTable(date, busName.line())!!)
 
-    suspend fun doesBusExist(busName: String): Boolean {
+    suspend fun doesBusExist(busName: BusName): Boolean {
         return localDataSource.doesConnExist(busName) != null
     }
 
-    fun doesConnRunAt(connName: String): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
-        val tab = nowUsedTable(datum, extractLineNumber(connName)) ?: return@runsAt false
+    fun doesConnRunAt(connName: BusName): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
+        val tab = nowUsedTable(datum, connName.line()) ?: return@runsAt false
 
         val list = localDataSource.codes(connName, tab).map { RunsFromTo(it.type, it.from..it.to) to it.fixedCodes }
 
@@ -659,14 +725,16 @@ class SpojeRepository(
         timeCodes: List<RunsFromTo>,
         fixedCodes: String,
         date: LocalDate,
-    ): Boolean = when {
-        timeCodes anyAre RunsOnly -> timeCodes filter RunsOnly anySatisfies date
-        timeCodes filter RunsAlso anySatisfies date -> true
-        !date.runsToday(fixedCodes) -> false
-        timeCodes filter DoesNotRun anySatisfies date -> false
-        timeCodes noneAre Runs -> true
-        timeCodes filter Runs anySatisfies date -> true
-        else -> false
+    ): Boolean = timeCodes.removeNoCodes().let { filteredCodes ->
+        when {
+            filteredCodes anyAre RunsOnly -> filteredCodes filter RunsOnly anySatisfies date
+            filteredCodes filter RunsAlso anySatisfies date -> true
+            !date.runsToday(fixedCodes) -> false
+            filteredCodes filter DoesNotRun anySatisfies date -> false
+            filteredCodes noneAre Runs -> true
+            filteredCodes filter Runs anySatisfies date -> true
+            else -> false
+        }
     }
 
     private val contentResolver = ctx.contentResolver
@@ -679,69 +747,57 @@ class SpojeRepository(
         }
     }
 
-    suspend fun seqName(s: String) = s.let {
-        val seq = it.split("-")
-        val rawSeq = seq[0]
-        val notes = seq.getOrNull(1) ?: ""
-        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
-        val hasValidity = validity != null
-        val part = if (hasValidity) notes.drop(1) else notes
-        val hasPart = part.isNotEmpty()
-        val (validityNominative, validityGenitive) = this.sequenceTypes.first().mapValues { (_, type) ->
+    suspend fun SequenceCode.seqName() = let {
+        val m = modifiers()
+        val (typeNominative, typeGenitive) = m.type()?.let { type ->
             type.nominative to type.genitive
-        }[validity] ?: ("" to "")
+        } ?: ("" to "")
         buildString {
-            if (hasPart) this.append("$part. část ")
-            if (hasPart && hasValidity) this.append("$validityGenitive ")
-            if (!hasPart && hasValidity) this.append("$validityNominative ")
-            this.append(rawSeq)
+            if (m.hasPart()) +"${m.part()}. část "
+            if (m.hasPart() && m.hasType()) +"$typeGenitive "
+            if (!m.hasPart() && m.hasType()) +"$typeNominative "
+            +generic().value
         }
     }
 
-    suspend fun seqConnection(s: String) = "Potenciální návaznost na " + s.let {
-        val seq = it.split("-")
-        val rawSeq = seq[0]
-        val notes = seq.getOrNull(1) ?: ""
-        val validity = "([A-Z])\\d?".toRegex().matchEntire(notes)?.groups?.get(index = 0)?.value?.get(0)
-        val hasValidity = validity != null
-        val part = if (hasValidity) notes.drop(1) else notes
-        val hasPart = part.isNotEmpty()
-        val (validityAccusative, validityGenitive) = this.sequenceTypes.first().mapValues { (_, type) ->
+    suspend fun SequenceCode.seqConnection() = "Potenciální návaznost na " + let {
+        val m = modifiers()
+        val (validityAccusative, typeGenitive) = m.type()?.let { type ->
             type.accusative to type.genitive
-        }[validity] ?: ("" to "")
-
+        } ?: ("" to "")
         buildString {
-            if (hasPart) this.append("$part. část ")
-            if (hasPart && hasValidity) this.append("$validityGenitive ")
-            if (!hasPart && hasValidity) this.append("$validityAccusative ")
-            this.append(rawSeq)
+            if (m.hasPart()) +"${m.part()}. část "
+            if (m.hasPart() && m.hasType()) +"$typeGenitive "
+            if (!m.hasPart() && m.hasType()) +"$validityAccusative "
+            +generic().value
         }
     }
 
-    suspend fun getSequenceComparator(): Comparator<String> {
+    suspend fun getSequenceComparator(): Comparator<SequenceCode> {
         val sequenceTypes = sequenceTypes.first()
 
-        return compareBy<String> {
+        return compareBy<SequenceCode> {
             0
         }.thenBy {
-            val type = "([A-Z])\\d?".toRegex().matchEntire(it.split("-").getOrNull(1) ?: "")?.groups?.get(index = 0)?.value?.get(0)
-            type?.let {
+            it.modifiers().typeChar()?.let { type ->
                 sequenceTypes[type]?.order
             } ?: 0
         }.thenBy {
-            it.split("/")[1].split("-")[0].toIntOrNull() ?: 21
+            it.line().toIntOrNull() ?: 20
         }.thenBy {
-            it.split("/")[0].toInt()
+            it.sequenceNumber()
         }.thenBy {
-            it.split("-").getOrNull(1) ?: ""
+            it.modifiers().part()
         }
     }
 
-    suspend fun seqOfBus(busName: String, date: LocalDate) =
-        localDataSource.seqOfConn(busName, nowUsedTable(date, extractLineNumber(busName))!!)
-            .toList()
-            .first { date.isThisTableNowUsed(it.first) }
-            .second
+//    suspend fun seqOfBus(busName: BusName, date: LocalDate) =
+//        localDataSource.seqOfConn(busName, nowUsedTable(date, busName.line())!!, allGroups(date))
+
+    fun reset() {
+        sequencesMap.clear()
+        _tables.clear()
+    }
 }
 
 private infix fun List<RunsFromTo>.anyAre(type: TimeCodeType) = any { it.type == type }
@@ -751,11 +807,12 @@ private infix fun List<RunsFromTo>.filter(type: TimeCodeType) = filter { it.type
 private infix fun List<RunsFromTo>.anySatisfies(date: LocalDate) = any { it satisfies date }
 private infix fun RunsFromTo.satisfies(date: LocalDate) = date in `in`
 
-private fun String.partMayBeMissing() =
-    if (matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) split("-")[0]
-    else if (matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex())) "%" + split("-")[0]
-    else if (matches("^[0-9A-Z]{1,2}$".toRegex())) "%/$this"
-    else null
+private fun String.partMayBeMissing() = when {
+    matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> substringBefore('-')
+    matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> "%" + substringBefore('-')
+    matches("^[0-9A-Z]{1,2}$".toRegex()) -> "%/$this"
+    else -> null
+}
 
 private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
     .split(" ")
@@ -778,18 +835,18 @@ private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
 
 // Je státní svátek nebo den pracovního klidu
 private fun isPublicHoliday(datum: LocalDate) = listOf(
-    LocalDate.of(1, 1, 1), // Den obnovy samostatného českého státu
-    LocalDate.of(1, 1, 1), // Nový rok
-    LocalDate.of(1, 5, 1), // Svátek práce
-    LocalDate.of(1, 5, 8), // Den vítězství
-    LocalDate.of(1, 7, 5), // Den slovanských věrozvěstů Cyrila a Metoděje,
-    LocalDate.of(1, 7, 6), // Den upálení mistra Jana Husa
-    LocalDate.of(1, 9, 28), // Den české státnosti
-    LocalDate.of(1, 10, 28), // Den vzniku samostatného československého státu
-    LocalDate.of(1, 11, 17), // Den boje za svobodu a demokracii
-    LocalDate.of(1, 12, 24), // Štědrý den
-    LocalDate.of(1, 12, 25), // 1. svátek vánoční
-    LocalDate.of(1, 12, 26), // 2. svátek vánoční
+    LocalDate(1, 1, 1), // Den obnovy samostatného českého státu
+    LocalDate(1, 1, 1), // Nový rok
+    LocalDate(1, 5, 1), // Svátek práce
+    LocalDate(1, 5, 8), // Den vítězství
+    LocalDate(1, 7, 5), // Den slovanských věrozvěstů Cyrila a Metoděje,
+    LocalDate(1, 7, 6), // Den upálení mistra Jana Husa
+    LocalDate(1, 9, 28), // Den české státnosti
+    LocalDate(1, 10, 28), // Den vzniku samostatného československého státu
+    LocalDate(1, 11, 17), // Den boje za svobodu a demokracii
+    LocalDate(1, 12, 24), // Štědrý den
+    LocalDate(1, 12, 25), // 1. svátek vánoční
+    LocalDate(1, 12, 26), // 2. svátek vánoční
 ).any {
     it.dayOfMonth == datum.dayOfMonth && it.month == datum.month
 } || isEaster(datum)
@@ -802,7 +859,7 @@ private fun isEaster(date: LocalDate): Boolean {
 }
 
 // Poloha Velkého pátku a Velikonočního pondělí v roce
-// Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data_Velikonoc
+// Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data
 fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
     val (m, n) = listOf(
         1583..1599 to (22 to 2),
@@ -822,13 +879,16 @@ fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
     val c = year % 7
     val d = (19 * a + m) % 30
     val e = (n + 2 * b + 4 * c + 6 * d) % 7
-    val eaterSundayFromTheStartOfMarch = 22 + d + e
 
-    val bigFridayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch - 2
-    val bigFriday = LocalDate.of(year, Month.MARCH, 1).plusDays(bigFridayFromTheStartOfMarch - 1L)
+    val isException = (d == 29 && e == 6) || (d == 28 && e == 6 && a > 10)
 
-    val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1
-    val easterMonday = LocalDate.of(year, Month.MARCH, 1).plusDays(easterMondayFromTheStartOfMarch - 1L)
+    val eaterSundayFromTheStartOfMarch = (d + e).days + if (isException) 15.days else 22.days
+
+    val bigFridayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch - 2.days
+    val bigFriday = LocalDate(year, Month.MARCH, 1) + (bigFridayFromTheStartOfMarch - 1.days)
+
+    val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1.days
+    val easterMonday = LocalDate(year, Month.MARCH, 1) + (easterMondayFromTheStartOfMarch - 1.days)
 
     return bigFriday to easterMonday
 }
@@ -853,10 +913,7 @@ fun filterFixedCodesAndMakeReadable(fixedCodes: String, timeCodes: List<RunsFrom
     .takeUnless { timeCodes.any { it.type == RunsOnly } }
     .orEmpty()
 
-fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes
-    .remove {
-        it.type == DoesNotRun && it.`in`.start == noCode && it.`in`.endInclusive == noCode
-    }
+fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes.removeNoCodes()
     .groupBy({
         it.type
     }, {
@@ -873,3 +930,20 @@ fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes
             DoesNotRun -> "Nejede "
         } + dates.joinToString()
     }
+
+fun validityString(validity: Validity) = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}"
+
+private fun List<RunsFromTo>.removeNoCodes() = remove(::isNoCode)
+
+private fun isNoCode(it: RunsFromTo) = it.`in`.start == noCode && it.`in`.endInclusive == noCode
+
+fun <K, V> Collection<Map.Entry<K, V>>.toMap(): Map<K, V> {
+    return toMap(LinkedHashMap(size))
+}
+
+fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destination: M): M {
+    for (element in this) {
+        destination.put(element.key, element.value)
+    }
+    return destination
+}

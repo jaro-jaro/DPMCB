@@ -40,8 +40,8 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.ui.common.Result
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.android.awaitFrame
@@ -54,21 +54,23 @@ fun Chooser(
     navController: NavHostController,
     args: Route.Chooser,
     viewModel: ChooserViewModel = run {
-        val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(ChooserViewModel.Parameters(
                 type = args.type,
                 lineNumber = args.lineNumber,
                 stop = args.stop,
-                navigate = navigate,
-                navigateBack = { it: Result ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
-                    navController.popBackStack()
-                }
             ))
         }
     },
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+        viewModel.navigateBack = { it: ChooserResult ->
+            navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+            navController.popBackStack()
+        }
+    }
+
     title = when (args.type) {
         ChooserType.Stops -> R.string.departures
         ChooserType.Lines -> R.string.timetable

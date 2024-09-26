@@ -7,11 +7,18 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -23,13 +30,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -137,22 +143,16 @@ class MainViewModel(
     }
     val updateApp = {
         viewModelScope.launch(Dispatchers.IO) {
-            val response = try {
+            val doc = try {
                 withContext(Dispatchers.IO) {
-                    Jsoup
-                        .connect("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
-                        .ignoreContentType(true)
-                        .maxBodySize(0)
-                        .execute()
+                    Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
                 }
             } catch (e: SocketTimeoutException) {
                 Firebase.crashlytics.recordException(e)
                 return@launch
             }
 
-            if (response.statusCode() != 200) return@launch
-
-            val newestVersion = response.body()
+            val newestVersion = doc.text()
 
             startActivity(Intent().apply {
                 action = Intent.ACTION_VIEW
@@ -169,16 +169,25 @@ class MainViewModel(
         Unit
     }
 
-    val findBusByEvn = { evc: String, callback: (String?) -> Unit ->
+    val findBusByEvn = { rn: RegistrationNumber, callback: (BusName?) -> Unit ->
         viewModelScope.launch {
             callback(onlineRepository.nowRunningBuses().first().find {
-                it.vehicle == evc.toIntOrNull()
+                it.vehicle == rn
             }?.name)
         }
         Unit
     }
 
-    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<String, String>>) -> Unit ->
+    val findLine = { sl: ShortLine, callback: (LongLine?) -> Unit ->
+        viewModelScope.launch {
+            with(repo) {
+                callback(sl.findLongLine())
+            }
+        }
+        Unit
+    }
+
+    val findSequences = findSequences@{ kurz: String, callback: (List<Pair<SequenceCode, String>>) -> Unit ->
         viewModelScope.launch {
             callback(repo.findSequences(kurz))
         }

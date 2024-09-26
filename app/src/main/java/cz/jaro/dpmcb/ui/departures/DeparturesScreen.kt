@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -70,17 +71,18 @@ import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePick
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.IconWithTooltip
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
-import cz.jaro.dpmcb.ui.common.Result
-import cz.jaro.dpmcb.ui.common.SimpleTime
+import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
@@ -95,12 +97,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toKotlinLocalTime
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.Duration
-import java.time.LocalDate
 import kotlin.math.abs
-import kotlin.math.roundToLong
+import kotlin.math.roundToInt
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 fun Departures(
@@ -110,24 +116,23 @@ fun Departures(
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
-                time = args.time.takeUnless { it == SimpleTime.invalid }?.toLocalTime() ?: now,
-                line = args.line.takeUnless { it == -1 },
+                time = args.time.takeUnless { it.isInvalid() }?.toLocalTime() ?: now,
+                line = args.line.takeUnless { it.isInvalid() },
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
-                getNavDestination = { navController.currentBackStackEntry?.destination }
             )
         )
     },
 ) {
     LifecycleResumeEffect(Unit) {
-        val result = navController.currentBackStackEntry?.savedStateHandle?.get<Result>("result")
+        val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
 
         if (result != null) viewModel.onEvent(WentBack(result))
 
         onPauseOrDispose {
             if (navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) == true)
-                navController.currentBackStackEntry?.savedStateHandle?.remove<Result>("result")
+                navController.currentBackStackEntry?.savedStateHandle?.remove<ChooserResult>("result")
         }
     }
 
@@ -144,8 +149,9 @@ fun Departures(
             delay(500)
             listState.scrollToItem(it)
         }
+        viewModel.navigate = navController.navigateFunction
+        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
     }
-    viewModel.navigate = navController.navigateFunction
 
     LaunchedEffect(listState) {
         withContext(Dispatchers.IO) {
@@ -250,7 +256,7 @@ fun DeparturesScreen(
                     showDialog = false
                 },
                 onTimeChange = {
-                    onEvent(ChangeTime(it))
+                    onEvent(ChangeTime(it.toKotlinLocalTime()))
                     showDialog = false
                 },
                 title = {
@@ -270,7 +276,7 @@ fun DeparturesScreen(
                         }
                     }
                 },
-                initialTime = info.time,
+                initialTime = info.time.toJavaLocalTime(),
             )
 
             TextButton(
@@ -420,94 +426,76 @@ fun DeparturesScreen(
                 CircularProgressIndicator()
             }
 
-            is DeparturesState.NothingRuns -> Row(
-                Modifier
-                    .padding(top = 8.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    when (state) {
-                        DeparturesState.NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
-                        DeparturesState.NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.stopFilter}"
-                        DeparturesState.LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}"
-                        DeparturesState.LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}, který bude zastavovat na zastávce ${info.stopFilter}"
-                    },
-                    Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            is DeparturesState.Runs -> LazyColumn(
+            else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                items(
-                    count = state.line.size + 2,
-                    key = { i ->
-                        when (i) {
-                            0 -> 0
-                            state.line.lastIndex + 2 -> Int.MAX_VALUE
-                            else -> state.line[i - 1].busName to state.line[i - 1].time
-                        }
-                    },
-                    itemContent = { i ->
-                        when (i) {
-                            0 -> {
-                                Surface(
-                                    modifier = Modifier.clickable {
-                                        onEvent(DeparturesEvent.PreviousDay)
-                                    },
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier
-                                                .weight(1F),
-                                            text = "Předchozí den…",
-                                            fontSize = 20.sp,
-                                            textAlign = TextAlign.Center,
-                                        )
-                                    }
-                                }
-                            }
-
-                            state.line.lastIndex + 2 -> {
-                                HorizontalDivider()
-                                Surface(
-                                    modifier = Modifier.clickable {
-                                        onEvent(DeparturesEvent.NextDay)
-                                    },
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
-                                    ) {
-                                        Text(
-                                            modifier = Modifier
-                                                .weight(1F),
-                                            text = "Následující den…",
-                                            fontSize = 20.sp,
-                                            textAlign = TextAlign.Center,
-                                        )
-                                    }
-                                }
-                            }
-
-                            else -> Card(
-                                state.line[i - 1], onEvent, info.compactMode, modifier = Modifier
-                                    .animateContentSize()
-//                                    .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
-                            )
-                        }
+                item {
+                    HorizontalDivider()
+                    DaySwitcher(onEvent, DeparturesEvent.PreviousDay, "Předchozí den…")
+                }
+                if (state is DeparturesState.NothingRuns) item {
+                    HorizontalDivider()
+                    Row(
+                        Modifier
+                            .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            when (state) {
+                                DeparturesState.NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
+                                DeparturesState.NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${info.stopFilter}"
+                                DeparturesState.LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}"
+                                DeparturesState.LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${info.lineFilter}, který bude zastavovat na zastávce ${info.stopFilter}"
+                            },
+                            Modifier.padding(horizontal = 16.dp)
+                        )
                     }
-                )
+                }
+                else if (state is DeparturesState.Runs) items(
+                    items = state.line,
+                    key = { state ->
+                        state.busName to state.time
+                    },
+                ) { state ->
+                    Card(
+                        state, onEvent, info.compactMode, modifier = Modifier
+                            .animateContentSize()
+                            .animateItem()
+//                            .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
+                    )
+                }
+                item {
+                    HorizontalDivider()
+                    DaySwitcher(onEvent, DeparturesEvent.NextDay, "Následující den…")
+                    HorizontalDivider()
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun DaySwitcher(onEvent: (DeparturesEvent) -> Unit, event: DeparturesEvent, text: String) {
+    Surface(
+        modifier = Modifier.clickable {
+            onEvent(event)
+        },
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
+        ) {
+            Text(
+                modifier = Modifier
+                    .weight(1F),
+                text = text,
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -611,7 +599,7 @@ private fun Card(
 
                 if (compact) {
                     Text(
-                        text = if (runsIn < Duration.ZERO || (runsIn > Duration.ofHours(1L) && delay == null)) "${departureState.time}" else runsIn.asString(),
+                        text = if (runsIn < Duration.ZERO || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
                         color = if (delay == null || runsIn < Duration.ZERO) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
                     )
                 } else {
@@ -619,14 +607,14 @@ private fun Card(
                         text = "${departureState.time}"
                     )
                     if (delay != null && runsIn > Duration.ZERO) Text(
-                        text = "${departureState.time.plusMinutes(delay.toLong())}",
+                        text = "${departureState.time + delay.toInt().minutes}",
                         color = colorOfDelayText(delay),
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
 
-            if (nextStop != null && delay != null && !compact) {
+            if (nextStop != null && !compact) {
                 Text(text = "Následující zastávka:", style = MaterialTheme.typography.labelMedium)
                 Row(
                     modifier = Modifier.fillMaxWidth()
@@ -637,10 +625,11 @@ private fun Card(
                         text = nextStop.first,
                         fontSize = 20.sp
                     )
-                    Text(
-                        text = nextStop.second.plusMinutes(delay.roundToLong()).toString(),
+                    if (delay != null) Text(
+                        text = (nextStop.second + delay.roundToInt().minutes).toString(),
                         color = colorOfDelayText(delay)
                     )
+                    else Text(nextStop.second.toString())
                 }
             }
         }
@@ -648,8 +637,8 @@ private fun Card(
 }
 
 fun Duration.asString(): String {
-    val hours = toHours()
-    val minutes = (toMinutes() % 60).toInt()
+    val hours = inWholeHours
+    val minutes = (inWholeMinutes % 60).toInt()
 
     return when {
         hours == 0L && minutes == 0 -> "<1 min"

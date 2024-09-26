@@ -1,9 +1,5 @@
 package cz.jaro.dpmcb.ui.card
 
-import android.net.Uri
-import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,8 +25,6 @@ import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-var callback = { _: Uri? -> }
-
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun Card(
@@ -40,19 +34,11 @@ fun Card(
     App.title = R.string.empty
     App.selected = DrawerAction.TransportCard
 
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
-        callback(it)
-    }
-
-    fun getPickMultipleMedia(cb: (Uri?) -> Unit): ManagedActivityResultLauncher<PickVisualMediaRequest, Uri?> {
-        callback = cb
-        return launcher
-    }
+    val launcher = rememberResultLauncher(ActivityResultContracts.PickVisualMedia())
 
     val viewModel: CardViewModel = koinViewModel {
         parametersOf(CardViewModel.Parameters(
-            getPickMultipleMedia = ::getPickMultipleMedia
+            pickMediaLauncher = launcher
         ))
     }
 

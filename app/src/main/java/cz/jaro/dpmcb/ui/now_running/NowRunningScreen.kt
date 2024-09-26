@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -28,10 +30,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.regN
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
@@ -45,13 +47,16 @@ fun NowRunning(
     args: Route.NowRunning,
     navController: NavHostController,
     viewModel: NowRunningViewModel = run {
-        val navigate = navController.navigateFunction
-        val getNavDestination = { navController.currentBackStackEntry?.destination }
         koinViewModel {
-            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type, navigate = navigate, getNavDestination = getNavDestination))
+            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type))
         }
     },
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
+    }
+
     App.title = R.string.now_running
     App.selected = DrawerAction.NowRunning
 
@@ -147,98 +152,9 @@ fun NowRunningScreen(
                             .padding(horizontal = 8.dp),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
-                        when (state) {
-                            is NowRunningState.NothingRunningNow -> textItem("Od vybraných linek právě nic nejede")
-                            is NowRunningState.Loading -> textItem("Načítání...")
-                            is NowRunningState.OK -> when (state.result) {
-                                is NowRunningResults.Lines -> state.result.list.forEach { line ->
-                                    stickyHeader(key = line.lineNumber to line.destination) {
-                                        Column(
-                                            Modifier.background(MaterialTheme.colorScheme.surface)
-                                        ) {
-                                            Text(
-                                                text = "${line.lineNumber} -> ${line.destination}",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = 8.dp)
-                                            ) {
-                                                Text(text = "Vůz: příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
-                                                Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(1.dp)
-                                                    .background(MaterialTheme.colorScheme.onSurface)
-                                            )
-                                        }
-                                    }
-                                    items(line.buses, key = { it.busName }) { bus ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    onEvent(NowRunningEvent.NavToBus(bus.busName))
-                                                }
-                                        ) {
-                                            Text(text = "${bus.vehicle.regN()}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
-                                            Text(text = bus.nextStopTime.toString())
-                                            Text(
-                                                text = bus.nextStopTime.plus(bus.delay.toInt().minutes).toString(),
-                                                color = UtilFunctions.colorOfDelayText(bus.delay),
-                                                modifier = Modifier.padding(start = 8.dp)
-                                            )
-                                        }
-                                    }
-                                }
+                        busResult(state, onEvent)
 
-                                is NowRunningResults.RegN -> items(state.result.list, key = { it.busName }) { bus ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                onEvent(NowRunningEvent.NavToBus(bus.busName))
-                                            }
-                                    ) {
-                                        Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
-                                        Text(text = bus.vehicle.regN())
-                                    }
-                                }
-
-                                is NowRunningResults.Delay -> items(state.result.list, key = { it.busName }) { bus ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                onEvent(NowRunningEvent.NavToBus(bus.busName))
-                                            }
-                                    ) {
-                                        Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
-                                        Text(
-                                            text = bus.delay.toDouble().minutes.toDelay(),
-                                            color = UtilFunctions.colorOfDelayText(bus.delay)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        if (state is NowRunningState.HasNotRunning && state.nowNotRunning.isNotEmpty()) {
-                            stickyHeader {
-                                Surface {
-                                    Text("Jedoucí kurzy, které nejsou online:", color = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                            items(state.nowNotRunning) {
-                                Text(it.second, Modifier.clickable {
-                                    onEvent(NowRunningEvent.NavToSeq(it.first))
-                                })
-                            }
-                        }
+                        notRunning(state, onEvent)
                     }
                 }
             }
@@ -246,10 +162,179 @@ fun NowRunningScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.busResult(
+    state: NowRunningState.HasFilters,
+    onEvent: (NowRunningEvent) -> Unit,
+) = when (state) {
+    is NowRunningState.NothingRunningNow -> textItem("Od vybraných linek právě nic nejede")
+    is NowRunningState.NothingRunsToday -> textItem("Od vybraných linek v blízké době nejede")
+    is NowRunningState.Loading -> textItem("Načítání...")
+    is NowRunningState.OK -> when (state.result) {
+        is NowRunningResults.Lines -> state.result.list.forEach { line ->
+            stickyHeader(key = "OL ${line.lineNumber.value} -> ${line.destination}") {
+                Column(
+                    Modifier.background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text(
+                        text = "${line.lineNumber} -> ${line.destination}",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(text = "Vůz: příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                        Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurface)
+                    )
+                }
+            }
+            items(line.buses, key = { "OL" + it.busName.value }) { bus ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onEvent(NowRunningEvent.NavToBus(bus.busName))
+                        }
+                ) {
+                    Text(text = "${bus.vehicle}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
+                    Text(text = bus.nextStopTime.toString())
+                    bus.delay?.let {
+                        Text(
+                            text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
+                            color = UtilFunctions.colorOfDelayText(bus.delay),
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        is NowRunningResults.RegN -> items(state.result.list, key = { "OR" + it.busName.value }) { bus ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.vehicle}")
+            }
+        }
+
+        is NowRunningResults.Delay -> items(state.result.list, key = { "OD" + it.busName.value }) { bus ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                bus.delay?.let {
+                    Text(
+                        text = bus.delay.toDouble().minutes.toDelay(),
+                        color = UtilFunctions.colorOfDelayText(bus.delay)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.notRunning(
+    state: NowRunningState.HasFilters,
+    onEvent: (NowRunningEvent) -> Unit,
+) = if (state is NowRunningState.HasNotRunning && state.nowNotRunning.list.isNotEmpty()) {
+    stickyHeader(key = "NH") {
+        Surface {
+            Text(
+                text = "Jedoucí spoje, které nejsou online:",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+    }
+    when (val result = state.nowNotRunning) {
+        is NowRunningResults.Lines -> result.list.forEach { line ->
+            stickyHeader(key = "NL ${line.lineNumber.value} -> ${line.destination}") {
+                Column(
+                    Modifier.background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text(
+                        text = "${line.lineNumber} -> ${line.destination}",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(text = "Příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                        Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurface)
+                    )
+                }
+            }
+            items(line.buses, key = { "NL" + it.busName.value }) { bus ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onEvent(NowRunningEvent.NavToBus(bus.busName))
+                        }
+                ) {
+                    Text(text = bus.nextStopName, modifier = Modifier.weight(1F))
+                    Text(text = bus.nextStopTime.toString())
+                }
+            }
+        }
+
+        is NowRunningResults.RegN -> items(result.list, key = { "NR" + it.busName.value }) { bus ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+            }
+        }
+
+        is NowRunningResults.Delay -> items(result.list, key = { "ND" + it.busName.value }) { bus ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+            }
+        }
+    }
+} else Unit
+
 @Composable
 fun Chip(
-    list: List<Int>,
-    lineNumber: Int,
+    list: List<ShortLine>,
+    lineNumber: ShortLine,
     onClick: (Boolean) -> Unit,
 ) = FilterChip(
     modifier = Modifier

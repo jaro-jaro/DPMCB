@@ -38,13 +38,16 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.allTrue
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -53,8 +56,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.time.LocalDate
-import java.time.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
 
@@ -85,29 +86,33 @@ class OblibeneWidget : GlanceAppWidget() {
                         val ids =
                             repo.favourites.first().map { cast ->
                                 try {
-                                    val a = repo.favouriteBus(cast.busName, LocalDate.now())
+                                    val a = repo.favouriteBus(cast.busName, SystemClock.todayHere())
                                     Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
                                     Firebase.crashlytics.recordException(e)
                                     return@state OblibeneWidgetState.Error
                                 }
                             }
+                        val date = repo.date.first()
 
                         if (ids.isEmpty()) return@state OblibeneWidgetState.ZadneOblibene
 
                         val tedJede = ids.map { (info, zastavky, cast) ->
                             val jedeV = repo.doesConnRunAt(info.connName)
+                            val start = zastavky.getOrNull(cast.start) ?: zastavky.last()
+                            val end = zastavky.getOrNull(cast.end) ?: zastavky.last()
+
                             KartickaWidgetState(
                                 spojId = info.connName,
                                 linka = info.line,
-                                vychoziZastavka = zastavky[cast.start].name,
-                                vychoziZastavkaCas = zastavky[cast.start].time,
-                                cilovaZastavka = zastavky[cast.end].name,
-                                cilovaZastavkaCas = zastavky[cast.end].time,
+                                vychoziZastavka = start.name,
+                                vychoziZastavkaCas = start.time,
+                                cilovaZastavka = end.name,
+                                cilovaZastavkaCas = end.time,
                             ) to listOf(
-                                jedeV(LocalDate.now()),
-                                zastavky[cast.start].time <= LocalTime.now() + 30.minutes,
-                                LocalTime.now() <= zastavky[cast.end].time + 5.minutes,
+                                jedeV(SystemClock.todayHere()),
+                                start.time <= SystemClock.timeHere().plus(30.minutes, date),
+                                SystemClock.timeHere() <= end.time.plus(30.minutes, date),
                             ).allTrue()
                         }
                             .filter { it.second }.map { it.first }

@@ -3,9 +3,13 @@ package cz.jaro.dpmcb.ui.chooser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.ui.common.Result
+import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.sorted
+import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +20,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.text.Normalizer
-import java.time.LocalDate
 
 @KoinViewModel
 class ChooserViewModel(
@@ -29,11 +33,12 @@ class ChooserViewModel(
 
     data class Parameters(
         val type: ChooserType,
-        val lineNumber: Int = -1,
+        val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String?,
-        val navigate: NavigateFunction,
-        val navigateBack: NavigateBackFunction<Result>,
     )
+
+    lateinit var navigate: NavigateFunction
+    lateinit var navigateBack: NavigateBackFunction<ChooserResult>
 
     private val originalList = repo.date.map { datum ->
         when (params.type) {
@@ -113,15 +118,15 @@ class ChooserViewModel(
     ) {
 //        if (job != null && typ.name.contains("ZPET")) return
         when (params.type) {
-            ChooserType.Stops -> params.navigate(
+            ChooserType.Stops -> navigate(
                 Route.Departures(
                     stop = result,
                 )
             )
 
-            ChooserType.Lines -> params.navigate(
+            ChooserType.Lines -> navigate(
                 Route.Chooser(
-                    lineNumber = result.toInt(),
+                    lineNumber = result.toShortLine(),
                     stop = null,
                     type = ChooserType.LineStops
                 )
@@ -130,7 +135,7 @@ class ChooserViewModel(
             ChooserType.LineStops -> viewModelScope.launch(Dispatchers.IO) {
                 repo.nextStopNames(params.lineNumber, result, date).let { stops: List<String> ->
                     withContext(Dispatchers.Main) {
-                        params.navigate(
+                        navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
@@ -148,7 +153,7 @@ class ChooserViewModel(
                 }
             }
 
-            ChooserType.NextStop -> params.navigate(
+            ChooserType.NextStop -> navigate(
                 Route.Timetable(
                     lineNumber = params.lineNumber,
                     stop = params.stop!!,
@@ -157,19 +162,19 @@ class ChooserViewModel(
             )
 
             ChooserType.ReturnStop1 -> {
-                params.navigateBack(Result(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop2 -> {
-                params.navigateBack(Result(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnLine -> {
-                params.navigateBack(Result(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
 
             ChooserType.ReturnStop -> {
-                params.navigateBack(Result(result, params.type))
+                navigateBack(ChooserResult(result, params.type))
             }
         }
     }

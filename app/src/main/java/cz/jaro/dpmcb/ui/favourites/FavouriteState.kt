@@ -1,11 +1,16 @@
 package cz.jaro.dpmcb.ui.favourites
 
-import java.time.LocalDate
-import java.time.LocalTime
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.todayHere
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 sealed interface FavouriteState {
-    val busName: String
-    val line: Int
+    val busName: BusName
+    val line: ShortLine
     val originStopName: String
     val originStopTime: LocalTime
     val destinationStopName: String
@@ -13,8 +18,8 @@ sealed interface FavouriteState {
     val nextWillRun: LocalDate?
 
     data class Offline(
-        override val busName: String,
-        override val line: Int,
+        override val busName: BusName,
+        override val line: ShortLine,
         override val originStopName: String,
         override val originStopTime: LocalTime,
         override val destinationStopName: String,
@@ -23,10 +28,10 @@ sealed interface FavouriteState {
     ) : FavouriteState
 
     data class Online(
-        override val busName: String,
-        override val line: Int,
+        override val busName: BusName,
+        override val line: ShortLine,
         val delay: Float,
-        val vehicle: Int?,
+        val vehicle: RegistrationNumber?,
         override val originStopName: String,
         override val originStopTime: LocalTime,
         val currentStopName: String,
@@ -35,6 +40,6 @@ sealed interface FavouriteState {
         override val destinationStopTime: LocalTime,
         val positionOfCurrentStop: Int,
     ) : FavouriteState {
-        override val nextWillRun: LocalDate? get() = LocalDate.now()
+        override val nextWillRun: LocalDate get() = SystemClock.todayHere()
     }
 }

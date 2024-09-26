@@ -26,7 +26,7 @@ data class Transmitter(
     @SerialName("t") val t: String,
     @SerialName("c") val c: Int,
     @SerialName("dm") val dm: Int,
-    @SerialName("ds") val ds: String,
+    @SerialName("ds") val ds: String?,
     @SerialName("n") val n: String?,
     @SerialName("cr") val cr: String,
     @SerialName("x") val x: Double,

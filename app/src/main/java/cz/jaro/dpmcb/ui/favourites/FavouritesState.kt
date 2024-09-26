@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.favourites
 
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 sealed interface FavouritesState {
 
