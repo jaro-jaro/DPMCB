@@ -200,6 +200,10 @@ object LocationSearcher {
 
     private val client = HttpClient()
 
+    private val json = Json {
+        explicitNulls = false
+    }
+
     private fun getMapDataPerConnName(busName: BusName): MapData? {
         val data = runBlocking {
             client.post("https://mpvnet.cz/jikord/map/getRoute") {
@@ -211,7 +215,7 @@ object LocationSearcher {
             }.bodyAsText()
         }
         if (data == "null") return null
-        return Json.decodeFromString(data)
+        return json.decodeFromString(data)
     }
 
     private fun Result.toSearchResult() = SearchResult.FoundOne(
