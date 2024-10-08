@@ -21,6 +21,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -83,6 +84,8 @@ class NowRunningViewModel(
             navigate(Route.Sequence(sequence = e.seq))
         }
     }
+
+    private val oneWayLines = viewModelScope.async { repo.oneWayLines() }
 
     private val list = onlineRepo.nowRunningBuses().map { onlineConns ->
         loading.value = true
@@ -167,7 +170,7 @@ class NowRunningViewModel(
     }
 
     private val notRunningList = nowNotRunningBuses.map { busNames ->
-        val oneWayLines = repo.oneWayLines()
+        val oneWayLines = oneWayLines.await()
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
