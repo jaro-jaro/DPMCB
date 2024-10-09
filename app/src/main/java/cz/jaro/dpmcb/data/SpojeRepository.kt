@@ -674,8 +674,11 @@ class SpojeRepository(
         )
     }
 
+    // Without the also block, the function takes about 10 more seconds to run
+    // It's a mystery, but it's not a problem
+    @Suppress("ControlFlowWithEmptyBody")
     suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
-        localDataSource.nowRunningBuses(busNames, allGroups(date), allTables(date))
+        localDataSource.nowRunningBuses(busNames, allGroups(date), allTables(date)).also {}
             .entries
             .associate { (conn, stops) ->
                 conn.connName to NowRunning(

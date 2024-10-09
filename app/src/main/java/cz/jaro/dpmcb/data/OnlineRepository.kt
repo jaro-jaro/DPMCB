@@ -85,6 +85,7 @@ class OnlineRepository(
 
     private val json = Json {
         ignoreUnknownKeys = true
+        explicitNulls = false
     }
 
     private suspend fun getStopIndex(busName: BusName) =
