@@ -16,8 +16,10 @@ android {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
         targetSdk = 34
-        versionCode = 53
-        versionName = "1.6.5"
+        //            Mmmppbvv
+        versionCode = 10700001
+        versionName = "1.7.0-alpha.1"
+        //             M.m.p-b    .v
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -78,6 +80,7 @@ dependencies {
 
     // Core Android
     implementation(libs.androidx.core)
+    implementation(libs.transportation.consumer)
 
     // Tests
     testImplementation(libs.junit)
