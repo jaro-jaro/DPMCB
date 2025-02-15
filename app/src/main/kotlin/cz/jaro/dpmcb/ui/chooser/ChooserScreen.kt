@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -52,24 +53,26 @@ fun Chooser(
     args: Route.Chooser,
     navController: NavHostController,
     viewModel: ChooserViewModel = run {
-        val navigate = navController.navigateFunction
         koinViewModel {
             parametersOf(
                 ChooserViewModel.Parameters(
                     type = args.type,
                     lineNumber = args.lineNumber,
                     stop = args.stop,
-                    navigate = navigate,
-                    navigateBack = { it: ChooserResult ->
-                        navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
-                        navController.popBackStack()
-                    },
                     date = args.date,
                 )
             )
         }
     },
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+        viewModel.navigateBack = { it: ChooserResult ->
+            navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+            navController.popBackStack()
+        }
+    }
+
     title = when (args.type) {
         ChooserType.Stops -> R.string.departures
         ChooserType.Lines -> R.string.timetable

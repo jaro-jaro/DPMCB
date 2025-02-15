@@ -17,6 +17,7 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,9 +36,10 @@ import kotlin.time.Duration.Companion.seconds
 class FindBusViewModel(
     private val repo: SpojeRepository,
     private val onlineRepository: OnlineRepository,
-    @InjectedParam private val navigate: (Route) -> Unit,
     @InjectedParam private val date: LocalDate,
 ) : ViewModel() {
+    lateinit var navigate: NavigateFunction
+
     private val result = MutableStateFlow<FindBusResult>(FindBusResult.None)
 
     private val name = TextFieldState()

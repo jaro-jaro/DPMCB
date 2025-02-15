@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -49,15 +50,16 @@ import org.koin.core.parameter.ParametersHolder
 fun FindBus(
     args: Route.FindBus,
     navController: NavHostController,
-    viewModel: FindBusViewModel = run {
-        val navigate = navController.navigateFunction
-        koinViewModel {
-            ParametersHolder(mutableListOf(navigate, args.date))
-        }
+    viewModel: FindBusViewModel = koinViewModel {
+        ParametersHolder(mutableListOf(args.date))
     },
 ) {
     title = R.string.find_bus_by_id
     App.selected = DrawerAction.FindBus
+
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

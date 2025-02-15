@@ -8,7 +8,6 @@ import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.busOnMapByName
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
@@ -17,7 +16,9 @@ import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
@@ -62,26 +64,28 @@ class DeparturesViewModel(
         val via: String?,
         val onlyDepartures: Boolean?,
         val simple: Boolean?,
-        val getNavDestination: () -> NavDestination?,
-        val scroll: suspend (Int) -> Unit,
-        val navigate: NavigateWithOptionsFunction,
     )
 
-    private val info = MutableStateFlow(
+    lateinit var scroll: suspend (Int) -> Unit
+    lateinit var navigate: NavigateWithOptionsFunction
+    lateinit var getNavDestination: () -> NavDestination?
+
+    private val _info = MutableStateFlow(
         DeparturesInfo(
             time = params.time,
             date = params.date,
             lineFilter = params.line,
             stopFilter = params.via,
-            justDepartures = params.onlyDepartures ?: false,
-            compactMode = params.simple ?: false,
+            justDepartures = params.onlyDepartures == true,
+            compactMode = params.simple == true,
         )
     )
+    val info = _info.asStateFlow()
 
     init {
         viewModelScope.launch {
             repo.showDeparturesOnly.collect {
-                if (params.onlyDepartures == null) info.update { i ->
+                if (params.onlyDepartures == null) _info.update { i ->
                     i.copy(
                         justDepartures = it
                     )
@@ -100,7 +104,7 @@ class DeparturesViewModel(
             onlyDepartures = info.justDepartures,
             simple = info.compactMode,
             date = info.date,
-        ).generateRouteWithArgs(params.getNavDestination() ?: return)
+        ).generateRouteWithArgs(getNavDestination() ?: return)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -109,10 +113,12 @@ class DeparturesViewModel(
             if (info.date == SystemClock.todayHere()) onlineRepo.nowRunningBuses() else flowOf(emptyList())
         }
 
+    val hasMapAccess = repo.hasAccessToMap
+
     private val list = onlineConns.combine(info) { onlineConns, info ->
         repo.departures(info.date, params.stop)
             .map {
-                val onlineConn = onlineConns.busOnMapByName(it.busName)
+                val onlineConn = onlineConns.onlineBus(it.busName)
                 it to onlineConn
             }
             .sortedBy { (stop, onlineConn) ->
@@ -127,7 +133,11 @@ class DeparturesViewModel(
                         .filter { it.time != null }
                         .findLast { it.time!! == nextStop }
                         ?.let { it.name to it.time!! }
-                }
+                } ?: stop.busStops
+                    .filter { it.time != null }
+                    .find { SystemClock.timeHere() < it.time!! }
+                    ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
+                        ?.let { it.name to it.time!! }
                 val lastIndexOfThisStop = stop.busStops.indexOfLast { it.name == stop.name }.let {
                     if (it == thisStopIndex) stop.busStops.lastIndex else it
                 }
@@ -150,28 +160,28 @@ class DeparturesViewModel(
     }
         .flowOn(Dispatchers.IO)
 
-    val state = info
+    val state = _info
         .runningFold(null as Pair<DeparturesInfo?, DeparturesInfo>?) { last, new ->
             last?.second to new
         }
         .filterNotNull()
-        .combine(list) { (lastInfo, info), list ->
+        .combine(list) { (lastState, info), list ->
             list
                 .filter {
-                    info.lineFilter?.let { filter -> it.lineNumber == filter } ?: true
+                    info.lineFilter?.let { filter -> it.lineNumber == filter } != false
                 }
                 .filter {
-                    info.stopFilter?.let { filter -> it.runsVia.contains(filter) } ?: true
+                    info.stopFilter?.let { filter -> it.runsVia.contains(filter) } != false
                 }
                 .remove {
                     info.justDepartures && (it.nextStop == null || it.stopType == StopType.GetOffOnly)
                 }
                 .also { filteredList ->
-                    if (lastInfo == null) return@also
-                    if (lastInfo.time == info.time && lastInfo.justDepartures == info.justDepartures && lastInfo.stopFilter == info.stopFilter && lastInfo.lineFilter == info.lineFilter) return@also
+                    if (lastState == null) return@also
+                    if (lastState.time == info.time && lastState.justDepartures == info.justDepartures && lastState.stopFilter == info.stopFilter && lastState.lineFilter == info.lineFilter) return@also
                     if (filteredList.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
-                        params.scroll(filteredList.home(info.time))
+                        scroll(filteredList.home(info.time))
                     }
                 }
         }
@@ -208,7 +218,7 @@ class DeparturesViewModel(
 
     fun onEvent(e: DeparturesEvent) = when (e) {
         is DeparturesEvent.GoToBus -> {
-            params.navigate(
+            navigate(
                 Route.Bus(
                     e.bus.busName,
                     info.value.date,
@@ -218,7 +228,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.GoToTimetable -> {
             e.bus.nextStop?.let {
-                params.navigate(
+                navigate(
                     Route.Timetable(
                         lineNumber = e.bus.lineNumber,
                         stop = params.stop,
@@ -231,7 +241,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.ChangeTime -> {
             viewModelScope.launch(Dispatchers.Main) {
-                info.update { oldState ->
+                _info.update { oldState ->
                     oldState.copy(
                         time = e.time,
                     ).also(::changeCurrentRoute)
@@ -242,7 +252,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.Scroll -> {
             viewModelScope.launch(Dispatchers.Main) {
-                info.update {
+                _info.update {
                     it.copy(
                         scrollIndex = e.i,
                     )
@@ -253,7 +263,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.WentBack -> {
             viewModelScope.launch(Dispatchers.Main) {
-                info.update { oldState ->
+                _info.update { oldState ->
                     when (e.result.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = e.result.value)
@@ -266,7 +276,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.Canceled -> {
             viewModelScope.launch(Dispatchers.IO) {
-                info.update { oldState ->
+                _info.update { oldState ->
                     when (e.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = null)
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = null)
@@ -278,7 +288,7 @@ class DeparturesViewModel(
         }
 
         DeparturesEvent.ChangeCompactMode -> {
-            info.update {
+            _info.update {
                 it.copy(
                     compactMode = !it.compactMode
                 )
@@ -286,7 +296,7 @@ class DeparturesViewModel(
         }
 
         DeparturesEvent.ChangeJustDepartures -> {
-            info.update {
+            _info.update {
                 it.copy(
                     justDepartures = !it.justDepartures
                 ).also {
@@ -301,12 +311,12 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 val state = state.value
                 if (state !is DeparturesState.Runs) return@launch
-                params.scroll(state.departures.home(state.info.time))
+                scroll(state.departures.home(state.info.time))
             }
             Unit
         }
 
-        DeparturesEvent.NextDay -> params.navigate(
+        DeparturesEvent.NextDay -> navigate(
             Route.Departures(
                 stop = params.stop,
                 time = SimpleTime(0, 0),
@@ -318,7 +328,7 @@ class DeparturesViewModel(
             ), null
         )
 
-        DeparturesEvent.PreviousDay -> params.navigate(
+        DeparturesEvent.PreviousDay -> navigate(
             Route.Departures(
                 stop = params.stop,
                 time = SimpleTime(23, 59),
@@ -330,7 +340,7 @@ class DeparturesViewModel(
             ), null
         )
 
-        is DeparturesEvent.ChangeDate -> params.navigate(
+        is DeparturesEvent.ChangeDate -> navigate(
             Route.Departures(
                 stop = params.stop,
                 time = info.value.time.toSimpleTime(),
@@ -342,15 +352,15 @@ class DeparturesViewModel(
             ), null
         )
 
-        DeparturesEvent.ChangeLine -> params.navigate(
+        DeparturesEvent.ChangeLine -> navigate(
             Route.Chooser(ChooserType.ReturnLine, date = info.value.date),
             navOptions {
                 launchSingleTop = true
             }
         )
 
-        DeparturesEvent.ChangeStop -> params.navigate(Route.Chooser(ChooserType.Stops, date = date), null)
-        DeparturesEvent.ChangeVia -> params.navigate(
+        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(ChooserType.Stops, date = date), null)
+        DeparturesEvent.ChangeVia -> navigate(
             Route.Chooser(ChooserType.ReturnStop, date = date),
             navOptions {
                 launchSingleTop = true
@@ -362,9 +372,10 @@ class DeparturesViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             while (state.value is DeparturesState.Loading) Unit
             if (state.value !is DeparturesState.Runs) return@launch
+            while (!::scroll.isInitialized) Unit
             withContext(Dispatchers.Main) {
                 val list = (state.value as DeparturesState.Runs).departures
-                params.scroll(
+                scroll(
                     list.home(params.time)
                 )
             }
