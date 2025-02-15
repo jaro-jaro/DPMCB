@@ -39,9 +39,9 @@ import cz.jaro.dpmcb.ExitActivity
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.diagramFile
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
+import cz.jaro.dpmcb.data.helperclasses.diagramFile
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.two
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.io.File
@@ -146,7 +146,7 @@ fun LoadingScreen(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val time by UtilFunctions.nowFlow.collectAsStateWithLifecycle()
+                val time by nowFlow.collectAsStateWithLifecycle()
                 Text(
                     text = "${time.hour.two()}:${time.minute.two()}:${time.second.two()}",
                     Modifier.padding(horizontal = 16.dp),

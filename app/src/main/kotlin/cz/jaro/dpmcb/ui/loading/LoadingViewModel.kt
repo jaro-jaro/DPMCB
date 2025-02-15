@@ -43,9 +43,9 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDateWeirdly
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTimeWeirdly
+import cz.jaro.dpmcb.data.helperclasses.noCode
+import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
+import cz.jaro.dpmcb.data.helperclasses.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple

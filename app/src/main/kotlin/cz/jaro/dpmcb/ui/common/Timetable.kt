@@ -34,8 +34,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.Offset
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
@@ -119,7 +120,7 @@ fun Timetable(
                 line = stop.line,
                 platform = onlineStop.platform,
                 Modifier,
-                color = UtilFunctions.colorOfDelayText(onlineStop.delay.toFloat()),
+                color = colorOfDelayText(onlineStop.delay.toFloat()),
             )
             else Text("", Modifier.defaultMinSize(24.dp, 24.dp))
         }
@@ -178,8 +179,8 @@ fun PartialLine(
             val drawNext = part.end != stops.lastIndex
             drawLine(
                 color = lineColor,
-                start = UtilFunctions.Offset(y = if (drawPrevious) -rowHeight else 0F),
-                end = UtilFunctions.Offset(y = if (drawNext) canvasHeight else canvasHeight - rowHeight),
+                start = Offset(y = if (drawPrevious) -rowHeight else 0F),
+                end = Offset(y = if (drawNext) canvasHeight else canvasHeight - rowHeight),
                 strokeWidth = lineWidth,
             )
 
@@ -190,13 +191,13 @@ fun PartialLine(
                     drawCircle(
                         color = if (passed) passedColor else bgColor,
                         radius = circleRadius,
-                        center = UtilFunctions.Offset(),
+                        center = Offset(),
                         style = Fill
                     )
                     drawCircle(
                         color = if (passed) passedColor else lineColor,
                         radius = circleRadius,
-                        center = UtilFunctions.Offset(),
+                        center = Offset(),
                         style = Stroke(
                             width = circleStrokeWidth
                         )
@@ -206,15 +207,15 @@ fun PartialLine(
 
             drawLine(
                 color = passedColor,
-                start = UtilFunctions.Offset(y = if (drawPrevious) -rowHeight else 0F),
-                end = UtilFunctions.Offset(y = rowHeight * animatedHeight),
+                start = Offset(y = if (drawPrevious) -rowHeight else 0F),
+                end = Offset(y = rowHeight * animatedHeight),
                 strokeWidth = lineWidth,
             )
 
             if (height > 0F) drawCircle(
                 color = busColor,
                 radius = circleRadius - circleStrokeWidth * .5F,
-                center = UtilFunctions.Offset(y = rowHeight * animatedHeight)
+                center = Offset(y = rowHeight * animatedHeight)
             )
         }
     }

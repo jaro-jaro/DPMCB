@@ -29,7 +29,7 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
+import cz.jaro.dpmcb.data.helperclasses.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble

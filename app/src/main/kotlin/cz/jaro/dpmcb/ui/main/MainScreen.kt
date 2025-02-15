@@ -83,10 +83,10 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.two
+import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -335,7 +335,7 @@ fun MainScreen(
                     }
                 },
                 actions = {
-                    val time by UtilFunctions.nowFlow.collectAsStateWithLifecycle()
+                    val time by nowFlow.collectAsStateWithLifecycle()
                     if (App.selected != DrawerAction.TransportCard)
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 

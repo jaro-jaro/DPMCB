@@ -89,9 +89,10 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechAccusative
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.Offset
+import cz.jaro.dpmcb.data.helperclasses.toCzechAccusative
+import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
@@ -114,9 +115,8 @@ fun BusDoesNotExist(
     busName: BusName,
 ) = ErrorMessage("Tento spoj ($busName) bohužel neexistuje :(\n Asi jste zadali špatně název.")
 
-context(ColumnScope)
 @Composable
-fun BusDoesNotRun(
+fun ColumnScope.BusDoesNotRun(
     runsNextTimeAfterToday: LocalDate?,
     onEvent: (BusEvent) -> Unit,
     runsNextTimeAfterDate: LocalDate?,
@@ -332,9 +332,8 @@ fun Favouritificator(
     )
 }
 
-context(ColumnScope)
 @Composable
-private fun PartOfBusChooser(
+private fun ColumnScope.PartOfBusChooser(
     part: PartOfConn,
     editPart: MutateFunction<PartOfConn>,
     stops: List<BusStop>,
@@ -435,8 +434,8 @@ private fun PartOfBusChooser(
 
                         drawLine(
                             color = disabledColor1,
-                            start = UtilFunctions.Offset(),
-                            end = UtilFunctions.Offset(y = canvasHeight - rowHeight),
+                            start = Offset(),
+                            end = Offset(y = canvasHeight - rowHeight),
                             strokeWidth = lineWidth,
                         )
 
@@ -446,7 +445,7 @@ private fun PartOfBusChooser(
                                 if (isInFavouritePart && isDisabled(i)) drawCircle(
                                     color = disabledColor1,
                                     radius = smallCircleRadius,
-                                    center = UtilFunctions.Offset(),
+                                    center = Offset(),
                                     style = Fill,
                                 )
                             }
@@ -469,8 +468,8 @@ private fun PartOfBusChooser(
                         val iMax = stops.indices.last { !isDisabled(it) }
                         drawLine(
                             color = lineColor,
-                            start = UtilFunctions.Offset(y = iMin * rowHeight),
-                            end = UtilFunctions.Offset(y = iMax * rowHeight),
+                            start = Offset(y = iMin * rowHeight),
+                            end = Offset(y = iMax * rowHeight),
                             strokeWidth = lineWidth,
                         )
 
@@ -480,7 +479,7 @@ private fun PartOfBusChooser(
                                 if (isInFavouritePart && !isDisabled(i)) drawCircle(
                                     color = lineColor,
                                     radius = smallCircleRadius,
-                                    center = UtilFunctions.Offset(),
+                                    center = Offset(),
                                     style = Fill,
                                 )
                             }
@@ -489,22 +488,22 @@ private fun PartOfBusChooser(
                         drawCircle(
                             color = selectedColor,
                             radius = bigCircleRadius,
-                            center = UtilFunctions.Offset(y = rowHeight * end.value),
+                            center = Offset(y = rowHeight * end.value),
                             style = Fill,
                             alpha = alpha,
                         )
                         drawCircle(
                             color = selectedColor,
                             radius = bigCircleRadius,
-                            center = UtilFunctions.Offset(y = rowHeight * start.value),
+                            center = Offset(y = rowHeight * start.value),
                             style = Fill,
                             alpha = alpha,
                         )
 
                         if (part.start != -1) drawLine(
                             color = selectedColor,
-                            start = UtilFunctions.Offset(y = start.value * rowHeight),
-                            end = UtilFunctions.Offset(y = end.value * rowHeight),
+                            start = Offset(y = start.value * rowHeight),
+                            end = Offset(y = end.value * rowHeight),
                             strokeWidth = lineWidth,
                         )
                     }
@@ -643,9 +642,8 @@ fun copy(clipboardManager: ClipboardManager, state: BusState.Exists) {
     clipboardManager.setText(AnnotatedString(state.deeplink))
 }
 
-context(ColumnScope)
 @Composable
-fun CodesAndShare(
+fun ColumnScope.CodesAndShare(
     state: BusState.Exists,
 ) = CodesAndShare(
     state = state,
@@ -655,10 +653,9 @@ fun CodesAndShare(
     editPart = { },
 )
 
-context(ColumnScope)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun CodesAndShare(
+fun ColumnScope.CodesAndShare(
     state: BusState.Exists,
     graphicsLayerWhole: GraphicsLayer,
     graphicsLayerPart: GraphicsLayer,
@@ -840,5 +837,3 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         )
     }
 }
-
-context(StringBuilder) operator fun String.unaryPlus(): StringBuilder = append(this)

@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.sorted
+import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
@@ -106,7 +106,7 @@ class ChooserViewModel(
     }
 
     fun onEvent(e: ChooserEvent) = when (e) {
-        is ChooserEvent.ChangeDate -> params.navigate(
+        is ChooserEvent.ChangeDate -> navigate(
             Route.Chooser(
                 lineNumber = params.lineNumber,
                 stop = params.stop,

@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.entities
 
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.atLeastDigits
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
+import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
+import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import kotlinx.serialization.Serializable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract

@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.departures
 
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.indexOfFirstOrNull
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.indexOfFirstOrNull
+import cz.jaro.dpmcb.data.helperclasses.plus
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds

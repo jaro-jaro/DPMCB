@@ -18,7 +18,7 @@ import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toLastDigits
+import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -48,7 +48,7 @@ class FindBusViewModel(
     private val vehicle = TextFieldState()
     private val sequence = TextFieldState()
 
-    private val busName get() = BusName(name.text.toString()).takeIf { it.isValid() }
+    private val busName get() = BusName(name.text.toString()).takeIf(BusName::isValid)
 
     val state = result.map { result ->
         FindBusState(
@@ -142,8 +142,10 @@ class FindBusViewModel(
                 else
                     result.value = FindBusResult.LineNotFound(busName!!.line().toString())
             }
+
             else -> confirm(busName!!)
         }
+
         FindBusEvent.ConfirmSequence -> findSequences(sequence.text.toString())
         FindBusEvent.Confirm ->
             when {

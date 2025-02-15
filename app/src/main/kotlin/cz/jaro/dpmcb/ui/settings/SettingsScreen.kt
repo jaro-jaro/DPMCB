@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.settings
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
@@ -22,6 +21,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -48,13 +48,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
+import cz.jaro.dpmcb.data.helperclasses.rowItem
+import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -185,7 +186,7 @@ fun SettingsScreen(
                     ) {
                         TextField(
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth(),
                             readOnly = true,
                             value = selectedOption,
@@ -373,7 +374,7 @@ private fun TextWithLink(text: AnnotatedString) {
                         CustomTabsIntent.Builder()
                             .setShowTitle(true)
                             .build()
-                            .launchUrl(context, Uri.parse(stringRange.item))
+                            .launchUrl(context, stringRange.item.toUri())
                     }
                 }
             }

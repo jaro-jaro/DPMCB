@@ -14,11 +14,11 @@ import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.groupByPair
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.work
+import cz.jaro.dpmcb.data.helperclasses.combine
+import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route

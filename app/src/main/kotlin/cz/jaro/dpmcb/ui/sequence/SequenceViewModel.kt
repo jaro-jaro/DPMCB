@@ -13,15 +13,15 @@ import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toRegNum
-import cz.jaro.dpmcb.data.filterFixedCodesAndMakeReadable
-import cz.jaro.dpmcb.data.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
+import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.validityString
+import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Route
@@ -108,7 +108,7 @@ class SequenceViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val traveledSegments = combine(info, nowRunningOnlineConn, UtilFunctions.nowFlow) { info, onlineConn, now ->
+    private val traveledSegments = combine(info, nowRunningOnlineConn, nowFlow) { info, onlineConn, now ->
 
         if (info !is SequenceState.OK) return@combine null
 
@@ -127,7 +127,7 @@ class SequenceViewModel(
         }
     }
 
-    private val lineHeight = combine(info, nowRunningOnlineConn, UtilFunctions.nowFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
+    private val lineHeight = combine(info, nowRunningOnlineConn, nowFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
 
         if (info !is SequenceState.OK) return@combine 0F
 
@@ -234,6 +234,6 @@ class SequenceViewModel(
             Unit
         }
 
-        is SequenceEvent.ChangeDate -> params.navigate(Route.Sequence(params.sequence, e.date))
+        is SequenceEvent.ChangeDate -> navigate(Route.Sequence(params.sequence, e.date))
     }
 }

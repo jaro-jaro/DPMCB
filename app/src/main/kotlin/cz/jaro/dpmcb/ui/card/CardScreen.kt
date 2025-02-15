@@ -25,7 +25,7 @@ import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-@Suppress("UNUSED_PARAMETER")
+@Suppress("unused")
 @Composable
 fun Card(
     args: Route.Card,

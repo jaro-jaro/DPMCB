@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.main
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -14,15 +14,12 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateToRouteFunction
+import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
@@ -65,7 +62,7 @@ class MainViewModel(
     private val NavController.graphOrNull: NavGraph?
         get() = try {
             graph
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
             null
         }
 
@@ -147,7 +144,7 @@ class MainViewModel(
 
             startActivity(Intent().apply {
                 action = Intent.ACTION_VIEW
-                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/download/v$newestVersion/Lepsi-DPMCB-v$newestVersion.apk")
+                data = "https://github.com/jaro-jaro/DPMCB/releases/download/v$newestVersion/Lepsi-DPMCB-v$newestVersion.apk".toUri()
             })
         }
         Unit
@@ -159,10 +156,4 @@ class MainViewModel(
         }
         Unit
     }
-}
-
-suspend inline fun <T, R> Iterable<T>.asyncMap(crossinline transform: suspend (T) -> R): List<R> = supervisorScope {
-    map {
-        async { transform(it) }
-    }.awaitAll()
 }

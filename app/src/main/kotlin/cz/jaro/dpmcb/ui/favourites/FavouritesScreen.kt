@@ -27,11 +27,11 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App.Companion.selected
 import cz.jaro.dpmcb.data.App.Companion.title
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.rowItem
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.rowItem
+import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
@@ -42,7 +42,7 @@ import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
-@Suppress("UNUSED_PARAMETER")
+@Suppress("unused")
 fun Favourites(
     args: Route.Favourites,
     navController: NavHostController,

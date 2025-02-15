@@ -31,11 +31,11 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.textItem
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.textItem
+import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
@@ -210,7 +210,7 @@ private fun LazyListScope.busResult(
                     bus.delay?.let {
                         Text(
                             text = (bus.nextStopTime + bus.delay.toInt().minutes).toString(),
-                            color = UtilFunctions.colorOfDelayText(bus.delay),
+                            color = colorOfDelayText(bus.delay),
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -243,7 +243,7 @@ private fun LazyListScope.busResult(
                 bus.delay?.let {
                     Text(
                         text = bus.delay.toDouble().minutes.toDelay(),
-                        color = UtilFunctions.colorOfDelayText(bus.delay)
+                        color = colorOfDelayText(bus.delay)
                     )
                 }
             }

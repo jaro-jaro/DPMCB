@@ -94,10 +94,12 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toDelay
+import cz.jaro.dpmcb.data.helperclasses.asString
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleContainer
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleText
+import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -118,6 +120,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
+import androidx.core.net.toUri
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -198,8 +201,8 @@ fun Line(
         translate(left = lineXOffset, top = rowHeight * .5F) {
             drawLine(
                 color = lineColor,
-                start = UtilFunctions.Offset(),
-                end = UtilFunctions.Offset(y = canvasHeight - rowHeight),
+                start = Offset(),
+                end = Offset(y = canvasHeight - rowHeight),
                 strokeWidth = lineWidth,
             )
 
@@ -210,13 +213,13 @@ fun Line(
                     drawCircle(
                         color = if (passed) passedColor else bgColor,
                         radius = circleRadius,
-                        center = UtilFunctions.Offset(),
+                        center = Offset(),
                         style = Fill
                     )
                     drawCircle(
                         color = if (passed) passedColor else lineColor,
                         radius = circleRadius,
-                        center = UtilFunctions.Offset(),
+                        center = Offset(),
                         style = Stroke(
                             width = circleStrokeWidth
                         )
@@ -226,15 +229,15 @@ fun Line(
 
             drawLine(
                 color = passedColor,
-                start = UtilFunctions.Offset(),
-                end = UtilFunctions.Offset(y = rowHeight * animatedHeight),
+                start = Offset(),
+                end = Offset(y = rowHeight * animatedHeight),
                 strokeWidth = lineWidth,
             )
 
             if (height > 0F) drawCircle(
                 color = busColor,
                 radius = circleRadius - circleStrokeWidth * .5F,
-                center = UtilFunctions.Offset(y = rowHeight * animatedHeight)
+                center = Offset(y = rowHeight * animatedHeight)
             )
         }
     }
@@ -279,7 +282,7 @@ fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
                 CustomTabsIntent.Builder()
                     .setShowTitle(true)
                     .build()
-                    .launchUrl(context, Uri.parse("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle"))
+                    .launchUrl(context, "https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle".toUri())
             },
         )
     }
@@ -289,8 +292,8 @@ fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
 fun DelayBubble(delayMin: Float) {
     Badge(
         Modifier,
-        containerColor = UtilFunctions.colorOfDelayBubbleContainer(delayMin),
-        contentColor = UtilFunctions.colorOfDelayBubbleText(delayMin),
+        containerColor = colorOfDelayBubbleContainer(delayMin),
+        contentColor = colorOfDelayBubbleText(delayMin),
     ) {
         Text(
             text = delayMin.toDouble().minutes.toDelay(),

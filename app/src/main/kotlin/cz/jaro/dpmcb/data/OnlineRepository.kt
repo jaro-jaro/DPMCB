@@ -10,8 +10,8 @@ import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asRepeatingFlow
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
+import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -96,10 +96,10 @@ class OnlineRepository(
             when (result) {
                 is LocationSearcher.SearchResult.FoundOne -> listOf(result.stopsFromStart)
                 is LocationSearcher.SearchResult.FoundMore -> result.options.map { it.stopsFromStart }
-                is LocationSearcher.SearchResult.NotFound -> null
-                is LocationSearcher.SearchResult.NoData -> null
-                is LocationSearcher.SearchResult.NoTransmitters -> null
-                else -> error("Unknown search result: $result")
+                is LocationSearcher.SearchResult.NotFound,
+                is LocationSearcher.SearchResult.NoData,
+                is LocationSearcher.SearchResult.NoTransmitters
+                    -> null
             }
         }
         else null

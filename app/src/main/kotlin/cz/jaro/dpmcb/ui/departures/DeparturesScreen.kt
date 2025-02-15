@@ -72,11 +72,11 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.App.Companion.title
 import cz.jaro.dpmcb.data.entities.isInvalid
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.navigateWithOptionsFunction
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.navigateWithOptionsFunction
+import cz.jaro.dpmcb.data.helperclasses.now
+import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.ChooserResult
@@ -97,6 +97,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -114,10 +115,7 @@ import kotlin.time.Duration.Companion.minutes
 fun Departures(
     args: Route.Departures,
     navController: NavHostController,
-) {
-    val listState = rememberLazyListState()
-
-    val viewModel: DeparturesViewModel = koinViewModel {
+    viewModel: DeparturesViewModel = koinViewModel {
         parametersOf(
             DeparturesViewModel.Parameters(
                 stop = args.stop,
@@ -127,23 +125,10 @@ fun Departures(
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
                 date = args.date,
-                scroll = {
-                    listState.scrollToItem(it)
-                },
             )
         )
     }
-
-    LaunchedEffect(listState) {
-        withContext(Dispatchers.IO) {
-            snapshotFlow { listState.firstVisibleItemIndex }
-                .flowOn(Dispatchers.IO)
-                .collect {
-                    viewModel.onEvent(DeparturesEvent.Scroll(it))
-                }
-        }
-    }
-
+) {
     LifecycleResumeEffect(Unit) {
         val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
 
@@ -158,6 +143,7 @@ fun Departures(
     title = R.string.departures
     App.selected = DrawerAction.Departures
 
+    val info by viewModel.info.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState(info.scrollIndex)
@@ -167,7 +153,7 @@ fun Departures(
             delay(500)
             listState.scrollToItem(it)
         }
-        viewModel.navigate = navController.navigateFunction
+        viewModel.navigate = navController.navigateWithOptionsFunction
         viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
     }
 
@@ -180,9 +166,6 @@ fun Departures(
                 }
         }
     }
-
-    val isOnline by viewModel.hasMapAccess.collectAsStateWithLifecycle()
-    val date by viewModel.datum.collectAsStateWithLifecycle()
 
     DeparturesScreen(
         state = state,

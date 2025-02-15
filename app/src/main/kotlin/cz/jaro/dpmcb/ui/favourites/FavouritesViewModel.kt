@@ -8,9 +8,9 @@ import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.nullable
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.combine
+import cz.jaro.dpmcb.data.helperclasses.nullable
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.Route

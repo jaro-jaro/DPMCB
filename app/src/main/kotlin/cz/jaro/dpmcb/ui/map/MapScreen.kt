@@ -16,7 +16,7 @@ import coil.request.ImageRequest
 import coil.size.Dimension
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.diagramFile
+import cz.jaro.dpmcb.data.helperclasses.diagramFile
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -24,7 +24,7 @@ import me.saket.telephoto.zoomable.coil.ZoomableAsyncImage
 import me.saket.telephoto.zoomable.rememberZoomableImageState
 import me.saket.telephoto.zoomable.rememberZoomableState
 
-@Suppress("UNUSED_PARAMETER")
+@Suppress("unused")
 @Composable
 fun Map(
     args: Route.Map,

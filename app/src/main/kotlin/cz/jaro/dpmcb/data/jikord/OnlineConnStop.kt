@@ -1,9 +1,9 @@
 package cz.jaro.dpmcb.data.jikord
 
 import com.gitlab.mvysny.konsumexml.Konsumer
-import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.toTime
+import com.google.firebase.crashlytics.crashlytics
+import cz.jaro.dpmcb.data.helperclasses.toTime
 import kotlinx.datetime.LocalTime
 
 data class OnlineConnStop(
@@ -13,8 +13,7 @@ data class OnlineConnStop(
     val delay: Int,
 )
 
-context(Konsumer)
-fun OnlineConnStop(): OnlineConnStop? {
+fun Konsumer.OnlineConnStop(): OnlineConnStop? {
     try {
         checkCurrent("tr")
         val children = childrenText("td", 4, 4)

@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.data
 
 import android.app.Application
 import android.net.Uri
-import android.widget.Toast
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
@@ -38,21 +37,25 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.typeChar
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Runs
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.anyTrue
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asString
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.noCode
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.anyAre
+import cz.jaro.dpmcb.data.helperclasses.anySatisfies
+import cz.jaro.dpmcb.data.helperclasses.filter
+import cz.jaro.dpmcb.data.helperclasses.isOnline
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.noneAre
+import cz.jaro.dpmcb.data.helperclasses.partMayBeMissing
+import cz.jaro.dpmcb.data.helperclasses.removeNoCodes
+import cz.jaro.dpmcb.data.helperclasses.runsToday
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.unaryPlus
+import cz.jaro.dpmcb.data.helperclasses.withCache
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -73,7 +76,6 @@ import cz.jaro.dpmcb.data.realtions.sequence.Sequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.tuples.Quadruple
-import cz.jaro.dpmcb.ui.bus.unaryPlus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -96,18 +98,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.Month
 import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
 
-//@Single
 class SpojeRepository(
     ctx: Application,
     private val localDataSource: Dao,
@@ -131,7 +129,7 @@ class SpojeRepository(
         Firebase.crashlytics.recordException(e)
         try {
             remoteConfig.activate().await()
-        } catch (e: FirebaseRemoteConfigException) {
+        } catch (_: FirebaseRemoteConfigException) {
             false
         }
     }
@@ -152,9 +150,6 @@ class SpojeRepository(
         Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"].asString())
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
-//    private val _date = MutableStateFlow(SystemClock.todayHere())
-//    val date = _date.asStateFlow()
-
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)
     val isOnlineModeEnabled = _onlineMode.asStateFlow()
 
@@ -167,10 +162,6 @@ class SpojeRepository(
     val favourites = preferenceDataSource.favourites
 
     val version = preferenceDataSource.version
-
-    internal val makeText = { text: String ->
-        Toast.makeText(ctx, text, Toast.LENGTH_LONG)
-    }
 
     val hasCard = preferenceDataSource.hasCard
 
@@ -798,191 +789,8 @@ class SpojeRepository(
         }
     }
 
-//    suspend fun seqOfBus(busName: BusName, date: LocalDate) =
-//        localDataSource.seqOfConn(busName, nowUsedTable(date, busName.line())!!, allGroups(date))
-
     fun reset() {
         sequencesMap.clear()
         _tables.clear()
-    }
-}
-
-private infix fun List<RunsFromTo>.anyAre(type: TimeCodeType) = any { it.type == type }
-private infix fun List<RunsFromTo>.noneAre(type: TimeCodeType) = none { it.type == type }
-private infix fun List<RunsFromTo>.filter(type: TimeCodeType) = filter { it.type == type }
-
-private infix fun List<RunsFromTo>.anySatisfies(date: LocalDate) = any { it satisfies date }
-private infix fun RunsFromTo.satisfies(date: LocalDate) = date in `in`
-
-private fun String.partMayBeMissing() = when {
-    matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> substringBefore('-')
-    matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> "%" + substringBefore('-')
-    matches("^[0-9A-Z]{1,2}$".toRegex()) -> "%/$this"
-    else -> null
-}
-
-private fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
-    .split(" ")
-    .mapNotNull {
-        when (it) {
-            "X" -> dayOfWeek in DayOfWeek.MONDAY..DayOfWeek.FRIDAY && !isPublicHoliday(this) // jede v pracovních dnech
-            "+" -> dayOfWeek == DayOfWeek.SUNDAY || isPublicHoliday(this) // jede v neděli a ve státem uznané svátky
-            "1" -> dayOfWeek == DayOfWeek.MONDAY // jede v pondělí
-            "2" -> dayOfWeek == DayOfWeek.TUESDAY // jede v úterý
-            "3" -> dayOfWeek == DayOfWeek.WEDNESDAY // jede ve středu
-            "4" -> dayOfWeek == DayOfWeek.THURSDAY // jede ve čtvrtek
-            "5" -> dayOfWeek == DayOfWeek.FRIDAY // jede v pátek
-            "6" -> dayOfWeek == DayOfWeek.SATURDAY // jede v sobotu
-            "7" -> dayOfWeek == DayOfWeek.SUNDAY // jede v neděli
-            else -> null
-        }
-    }
-    .ifEmpty { listOf(true) }
-    .anyTrue()
-
-// Je státní svátek nebo den pracovního klidu
-private fun isPublicHoliday(datum: LocalDate) = listOf(
-    LocalDate(1, 1, 1), // Den obnovy samostatného českého státu
-    LocalDate(1, 1, 1), // Nový rok
-    LocalDate(1, 5, 1), // Svátek práce
-    LocalDate(1, 5, 8), // Den vítězství
-    LocalDate(1, 7, 5), // Den slovanských věrozvěstů Cyrila a Metoděje,
-    LocalDate(1, 7, 6), // Den upálení mistra Jana Husa
-    LocalDate(1, 9, 28), // Den české státnosti
-    LocalDate(1, 10, 28), // Den vzniku samostatného československého státu
-    LocalDate(1, 11, 17), // Den boje za svobodu a demokracii
-    LocalDate(1, 12, 24), // Štědrý den
-    LocalDate(1, 12, 25), // 1. svátek vánoční
-    LocalDate(1, 12, 26), // 2. svátek vánoční
-).any {
-    it.dayOfMonth == datum.dayOfMonth && it.month == datum.month
-} || isEaster(datum)
-
-// Je Velký pátek nebo Velikonoční pondělí
-private fun isEaster(date: LocalDate): Boolean {
-    val (bigFriday, easterMonday) = positionOfEasterInYear(date.year) ?: return false
-
-    return date == easterMonday || date == bigFriday
-}
-
-// Poloha Velkého pátku a Velikonočního pondělí v roce
-// Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data
-fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
-    val (m, n) = listOf(
-        1583..1599 to (22 to 2),
-        1600..1699 to (22 to 2),
-        1700..1799 to (23 to 3),
-        1800..1899 to (23 to 4),
-        1900..1999 to (24 to 5),
-        2000..2099 to (24 to 5),
-        2100..2199 to (24 to 6),
-        2200..2299 to (25 to 0),
-    ).find { (years, _) ->
-        year in years
-    }?.second ?: return null
-
-    val a = year % 19
-    val b = year % 4
-    val c = year % 7
-    val d = (19 * a + m) % 30
-    val e = (n + 2 * b + 4 * c + 6 * d) % 7
-
-    val isException = (d == 29 && e == 6) || (d == 28 && e == 6 && a > 10)
-
-    val eaterSundayFromTheStartOfMarch = (d + e).days + if (isException) 15.days else 22.days
-
-    val bigFridayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch - 2.days
-    val bigFriday = LocalDate(year, Month.MARCH, 1) + (bigFridayFromTheStartOfMarch - 1.days)
-
-    val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1.days
-    val easterMonday = LocalDate(year, Month.MARCH, 1) + (easterMondayFromTheStartOfMarch - 1.days)
-
-    return bigFriday to easterMonday
-}
-
-fun filterFixedCodesAndMakeReadable(fixedCodes: String, timeCodes: List<RunsFromTo>) = fixedCodes
-    .split(" ")
-    .mapNotNull {
-        when (it) {
-            "X" -> "Jede v pracovních dnech"
-            "+" -> "Jede v neděli a ve státem uznané svátky"
-            "1" -> "Jede v pondělí"
-            "2" -> "Jede v úterý"
-            "3" -> "Jede ve středu"
-            "4" -> "Jede ve čtvrtek"
-            "5" -> "Jede v pátek"
-            "6" -> "Jede v sobotu"
-            "7" -> "Jede v neděli"
-            "24" -> "Spoj s částečně bezbariérově přístupným vozidlem, nutná dopomoc průvodce"
-            else -> null
-        }
-    }
-    .takeUnless { timeCodes.any { it.type == RunsOnly } }
-    .orEmpty()
-
-fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes.removeNoCodes()
-    .groupBy({
-        it.type
-    }, {
-        if (it.`in`.start != it.`in`.endInclusive) "od ${it.`in`.start.asString()} do ${it.`in`.endInclusive.asString()}" else it.`in`.start.asString()
-    })
-    .let {
-        if (it.containsKey(RunsOnly)) mapOf(RunsOnly to it[RunsOnly]!!) else it
-    }
-    .map { (type, dates) ->
-        when (type) {
-            Runs -> "Jede "
-            RunsAlso -> "Jede také "
-            RunsOnly -> "Jede pouze "
-            DoesNotRun -> "Nejede "
-        } + dates.joinToString()
-    }
-
-fun validityString(validity: Validity) = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}"
-
-private fun List<RunsFromTo>.removeNoCodes() = remove(::isNoCode)
-
-private fun isNoCode(it: RunsFromTo) = it.`in`.start == noCode && it.`in`.endInclusive == noCode
-
-fun <K, V> Collection<Map.Entry<K, V>>.toMap(): Map<K, V> {
-    return toMap(LinkedHashMap(size))
-}
-
-fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destination: M): M {
-    for (element in this) {
-        destination.put(element.key, element.value)
-    }
-    return destination
-}
-
-@JvmName("withCache1")
-inline fun <I, O> withCache(crossinline function: (I) -> O): (I) -> O {
-    val cache: MutableMap<I, O> = HashMap()
-    return {
-        cache.getOrPut(it, { function(it) })
-    }
-}
-
-@JvmName("withCache0")
-inline fun <O> withCache(crossinline function: () -> O): () -> O {
-    var cache: O? = null
-    return {
-        cache ?: function().also { cache = it }
-    }
-}
-
-@JvmName("withCacheSuspend1")
-inline fun <I, O> withCache(crossinline function: suspend (I) -> O): suspend (I) -> O {
-    val cache: MutableMap<I, O> = HashMap()
-    return {
-        cache.getOrPut(it, { function(it) })
-    }
-}
-
-@JvmName("withCacheSuspend0")
-inline fun <O> withCache(crossinline function: suspend () -> O): suspend () -> O {
-    var cache: O? = null
-    return {
-        cache ?: function().also { cache = it }
     }
 }

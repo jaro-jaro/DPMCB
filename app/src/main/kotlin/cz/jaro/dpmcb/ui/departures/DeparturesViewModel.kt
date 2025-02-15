@@ -12,10 +12,11 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.combine
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.minus
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.now
-import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.plus
+import cz.jaro.dpmcb.data.helperclasses.combine
+import cz.jaro.dpmcb.data.helperclasses.invoke
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.now
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.onlineBus
@@ -222,7 +223,7 @@ class DeparturesViewModel(
                 Route.Bus(
                     e.bus.busName,
                     info.value.date,
-                ), null
+                )
             )
         }
 
@@ -234,7 +235,7 @@ class DeparturesViewModel(
                         stop = params.stop,
                         nextStop = e.bus.nextStop,
                         date = info.value.date,
-                    ), null
+                    )
                 )
             }
         }
@@ -325,7 +326,7 @@ class DeparturesViewModel(
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = info.value.date + 1.days,
-            ), null
+            )
         )
 
         DeparturesEvent.PreviousDay -> navigate(
@@ -337,7 +338,7 @@ class DeparturesViewModel(
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = info.value.date - 1.days,
-            ), null
+            )
         )
 
         is DeparturesEvent.ChangeDate -> navigate(
@@ -349,7 +350,7 @@ class DeparturesViewModel(
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = info.value.date,
-            ), null
+            )
         )
 
         DeparturesEvent.ChangeLine -> navigate(
@@ -359,7 +360,7 @@ class DeparturesViewModel(
             }
         )
 
-        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(ChooserType.Stops, date = date), null)
+        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(ChooserType.Stops, date = date))
         DeparturesEvent.ChangeVia -> navigate(
             Route.Chooser(ChooserType.ReturnStop, date = date),
             navOptions {
