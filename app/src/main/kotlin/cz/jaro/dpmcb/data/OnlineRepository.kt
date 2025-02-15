@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.UtilFunctions.isOnline
+import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.OnlineTimetable
@@ -45,8 +46,12 @@ class OnlineRepository(
     private suspend fun getAllConns() =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
             if (!ctx.isOnline) return@withContext null
+            val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
-                onlineApi.mapData()
+                onlineApi.mapData(
+                    headers = headers,
+                    body = data.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
+                )
             } catch (e: Exception) {
                 e.printStackTrace()
                 Firebase.crashlytics.recordException(e)
@@ -57,13 +62,14 @@ class OnlineRepository(
 
             val text = response.body() ?: return@withContext null
             try {
-                json.decodeFromString<List<Transmitter>>(text.string())
+                json.decodeFromString<MapData>(text.string())
             } catch (e: SerializationException) {
                 e.printStackTrace()
                 Firebase.crashlytics.recordException(e)
                 null
             }
         }
+            ?.transmitters
             ?.filter {
                 it.cn?.startsWith("325") ?: false
             }
@@ -77,6 +83,7 @@ class OnlineRepository(
 
     private val json = Json {
         ignoreUnknownKeys = true
+        explicitNulls = false
     }
 
     private suspend fun getStopIndex(busName: BusName) =
@@ -97,19 +104,21 @@ class OnlineRepository(
         }
         else null
 
+    private val headers = mapOf(
+        "authority" to "mpvnet.cz",
+        "accept" to "application/json, text/javascript, */*; q=0.01",
+        "content" to "type: application/json; charset=UTF-8",
+        "origin" to "https://mpvnet.cz",
+        "referer" to "https://mpvnet.cz/jikord/map",
+    )
+
     private suspend fun getTimetable(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
             if (!ctx.isOnline) return@withContext null
             val response = try {
                 onlineApi.timetable(
-                    headers = mapOf<String, String>(
-                        "authority" to "jih.mpvnet.cz",
-                        "accept" to "application/json, text/javascript, */*; q=0.01",
-                        "content" to "type: application/json; charset=UTF-8",
-                        "origin" to "https://jih.mpvnet.cz",
-                        "referer" to "https://jih.mpvnet.cz/jikord/map",
-                    ),
+                    headers = headers,
                     body = json("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""")
                         .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
                 )

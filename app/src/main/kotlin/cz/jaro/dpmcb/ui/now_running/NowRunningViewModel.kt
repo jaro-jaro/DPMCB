@@ -22,6 +22,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -44,9 +45,10 @@ class NowRunningViewModel(
     data class Parameters(
         val filters: List<ShortLine>,
         val type: NowRunningType,
-        val navigate: NavigateFunction,
-        val getNavDestination: () -> NavDestination?,
     )
+
+    lateinit var navigate: NavigateFunction
+    lateinit var getNavDestination: () -> NavDestination?
 
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
@@ -58,7 +60,7 @@ class NowRunningViewModel(
             App.route = Route.NowRunning(
                 filters = filters.value,
                 type = type.value,
-            ).generateRouteWithArgs(params.getNavDestination() ?: return)
+            ).generateRouteWithArgs(getNavDestination() ?: return)
         } catch (_: IllegalStateException) {
             return
         }
@@ -76,13 +78,15 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            params.navigate(Route.Bus(busName = e.busName, date = SystemClock.todayHere()))
+            navigate(Route.Bus(busName = e.busName, date = SystemClock.todayHere()))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            params.navigate(Route.Sequence(sequence = e.seq, date = SystemClock.todayHere()))
+            navigate(Route.Sequence(sequence = e.seq, date = SystemClock.todayHere()))
         }
     }
+
+    private val oneWayLines = viewModelScope.async { repo.oneWayLines() }
 
     private val list = onlineRepo.work { 0 }.nowRunningBuses().work { 1 }.map { onlineConns ->
         loading.value = true
@@ -167,7 +171,7 @@ class NowRunningViewModel(
     }
 
     private val notRunningList = nowNotRunningBuses.map { busNames ->
-        val oneWayLines = repo.oneWayLines()
+        val oneWayLines = oneWayLines.await()
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()

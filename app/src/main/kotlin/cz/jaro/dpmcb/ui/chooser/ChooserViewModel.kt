@@ -36,10 +36,11 @@ class ChooserViewModel(
         val type: ChooserType,
         val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String?,
-        val navigate: NavigateFunction,
-        val navigateBack: NavigateBackFunction<ChooserResult>,
         val date: LocalDate,
     )
+
+    lateinit var navigate: NavigateFunction
+    lateinit var navigateBack: NavigateBackFunction<ChooserResult>
 
     private val originalList = suspend {
         when (params.type) {
@@ -123,14 +124,14 @@ class ChooserViewModel(
     private fun done(
         result: String,
     ) = when (params.type) {
-        ChooserType.Stops -> params.navigate(
+        ChooserType.Stops -> navigate(
             Route.Departures(
                 stop = result,
                 date = params.date,
             )
         )
 
-        ChooserType.Lines -> params.navigate(
+        ChooserType.Lines -> navigate(
             Route.Chooser(
                 lineNumber = result.toShortLine(),
                 stop = null,
@@ -143,7 +144,7 @@ class ChooserViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 repo.nextStopNames(params.lineNumber, result, params.date).let { stops: List<String> ->
                     withContext(Dispatchers.Main) {
-                        params.navigate(
+                        navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
@@ -165,7 +166,7 @@ class ChooserViewModel(
             Unit
         }
 
-        ChooserType.NextStop -> params.navigate(
+        ChooserType.NextStop -> navigate(
             Route.Timetable(
                 lineNumber = params.lineNumber,
                 stop = params.stop!!,
@@ -178,7 +179,7 @@ class ChooserViewModel(
         ChooserType.ReturnStop2,
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
-            -> params.navigateBack(ChooserResult(result, params.type))
+            -> navigateBack(ChooserResult(result, params.type))
     }
 
     fun ChooserState(

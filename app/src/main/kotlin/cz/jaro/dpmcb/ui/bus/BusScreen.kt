@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,10 @@ fun Bus(
 ) {
     title = R.string.detail_spoje
     App.selected = DrawerAction.FindBus
+
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateWithOptionsFunction
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

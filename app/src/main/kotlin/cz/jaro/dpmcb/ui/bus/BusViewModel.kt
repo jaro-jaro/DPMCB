@@ -43,9 +43,10 @@ class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
     @InjectedParam private val busName: BusName,
-    @InjectedParam private val navigate: NavigateWithOptionsFunction,
     @InjectedParam private val date: LocalDate,
 ) : ViewModel() {
+
+    lateinit var navigate: NavigateWithOptionsFunction
 
     private val info: Flow<BusState> = combine(repo.favourites, repo.hasAccessToMap) { favourites, online ->
         val exists = repo.doesBusExist(busName)

@@ -192,7 +192,7 @@ fun Error(
         Text(text = "Offline", Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.headlineSmall)
     }
     Text(
-        text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel z výchozí zastávky. Často se také stává, že spoj je přibližně první tři minuty své jízdy offline a až poté začne odesílat aktuální data",
+        text = "Pravděpodobně spoj neodesílá data o své poloze, nebo má zpoždění a ještě nevyjel z výchozí zastávky.",
         Modifier.padding(all = 8.dp)
     )
 }
@@ -731,7 +731,7 @@ fun CodesAndShare(
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
-                .launchUrl(context, Uri.parse("https://jih.mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
+                .launchUrl(context, Uri.parse("https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
         }) {
             IconWithTooltip(Icons.Filled.Language, null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))

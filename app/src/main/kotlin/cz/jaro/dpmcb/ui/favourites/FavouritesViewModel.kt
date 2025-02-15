@@ -31,18 +31,18 @@ class FavouritesViewModel(
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    data class Parameters(
-        val navigate: NavigateFunction,
-    )
+    data object Parameters
+
+    lateinit var navigate: NavigateFunction
 
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBusToday -> {
-                params.navigate(Route.Bus(e.name, SystemClock.todayHere()))
+                navigate(Route.Bus(e.name, SystemClock.todayHere()))
             }
 
             is FavouritesEvent.NavToBusOtherDay -> {
-                params.navigate(Route.Bus(e.name, e.nextWillRun ?: SystemClock.todayHere()))
+                navigate(Route.Bus(e.name, e.nextWillRun ?: SystemClock.todayHere()))
             }
         }
     }

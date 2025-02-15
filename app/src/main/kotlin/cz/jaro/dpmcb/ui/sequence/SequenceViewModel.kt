@@ -51,9 +51,10 @@ class SequenceViewModel(
 
     data class Parameters(
         val sequence: SequenceCode,
-        val navigate: (Route) -> Unit,
         val date: LocalDate,
     )
+
+    lateinit var navigate: (Route) -> Unit
 
     private val info: Flow<SequenceState> = suspend info@{
         val sequence = repo.sequence(params.sequence, params.date)
@@ -188,11 +189,11 @@ class SequenceViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
 
     fun onEvent(e: SequenceEvent) = when (e) {
-        is SequenceEvent.BusClick -> params.navigate(Route.Bus(e.busName, params.date))
-        is SequenceEvent.SequenceClick -> params.navigate(Route.Sequence(e.sequence, params.date))
+        is SequenceEvent.BusClick -> navigate(Route.Bus(e.busName, params.date))
+        is SequenceEvent.SequenceClick -> navigate(Route.Sequence(e.sequence, params.date))
         is SequenceEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> params.navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = params.date))
-            is TimetableEvent.TimetableClick -> params.navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = params.date))
+            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = params.date))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = params.date))
         }
 
         is SequenceEvent.FindBus -> {

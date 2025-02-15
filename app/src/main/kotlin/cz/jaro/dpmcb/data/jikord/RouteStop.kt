@@ -10,7 +10,7 @@ data class RouteStop(
     val s: Nothing?,
     val x: Double,
     val y: Double,
-    val c: Int,
-    val sc: Int,
+    val c: Int? = null,
+    val sc: Int?,
     val sn: Long,
 )

@@ -126,12 +126,10 @@ fun Departures(
                 via = args.via,
                 onlyDepartures = args.onlyDepartures,
                 simple = args.simple,
-                getNavDestination = { navController.currentBackStackEntry?.destination },
                 date = args.date,
                 scroll = {
                     listState.scrollToItem(it)
                 },
-                navigate = navController.navigateWithOptionsFunction,
             )
         )
     }
@@ -161,6 +159,30 @@ fun Departures(
     App.selected = DrawerAction.Departures
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val listState = rememberLazyListState(info.scrollIndex)
+
+    LaunchedEffect(Unit) {
+        viewModel.scroll = {
+            delay(500)
+            listState.scrollToItem(it)
+        }
+        viewModel.navigate = navController.navigateFunction
+        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
+    }
+
+    LaunchedEffect(listState) {
+        withContext(Dispatchers.IO) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    viewModel.onEvent(DeparturesEvent.Scroll(it))
+                }
+        }
+    }
+
+    val isOnline by viewModel.hasMapAccess.collectAsStateWithLifecycle()
+    val date by viewModel.datum.collectAsStateWithLifecycle()
 
     DeparturesScreen(
         state = state,
