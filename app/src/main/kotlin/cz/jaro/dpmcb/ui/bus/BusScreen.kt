@@ -49,7 +49,7 @@ fun Bus(
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {
-            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate, args.date,))
+            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate, args.date))
         }
     },
 ) {
@@ -107,13 +107,10 @@ fun BusScreen(
                         Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
                         Wheelchair(
                             lowFloor = state.lowFloor,
-                            confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
+                            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
                             Modifier.padding(start = 8.dp),
                             enableCart = true,
                         )
-
-                        if (state is BusState.OnlineRunning && state.delayMin != null) DelayBubble(state.delayMin)
-                        if (state is BusState.OnlineRunning) Vehicle(state.vehicle)
 
                         Spacer(Modifier.weight(1F))
 
@@ -131,6 +128,15 @@ fun BusScreen(
                             stops = state.stops
                         )
                     }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
+                        if (state.online?.running != null) Vehicle(state.online.running.vehicle)
+                    }
 
                     Column(
                         modifier = Modifier
@@ -139,7 +145,7 @@ fun BusScreen(
                     ) {
                         SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
                         if (state.restriction) Restriction()
-                        if (state !is BusState.OnlineRunning && state.error) Error()
+                        if ((state.online == null || state.online.running == null) && state.error) Error()
                         OutlinedCard(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -148,11 +154,11 @@ fun BusScreen(
                             Timetable(
                                 stops = state.stops,
                                 onEvent = onEvent.fromTimetable,
-                                onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
-                                nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
+                                onlineConnStops = state.online?.onlineConnStops,
+                                nextStopIndex = state.online?.running?.nextStopIndex,
                                 traveledSegments = state.traveledSegments,
                                 height = state.lineHeight,
-                                isOnline = state is BusState.OnlineRunning,
+                                isOnline = state.online?.running != null,
                             )
                         }
 

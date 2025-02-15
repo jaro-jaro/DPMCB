@@ -37,16 +37,18 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
     fun Int.busIndexToListIndex() = 4 + state.before.count() * 2 + this * 4
 
     val now = remember(state.buses, state.date) {
-        if (state.date != SystemClock.todayHere()) null
-        else state.buses.indexOfFirst {
-            it.isRunning
-        }.takeUnless {
-            it == -1
-        } ?: state.buses.indexOfFirst {
-            SystemClock.timeHere() < it.stops.last().time
-        }.takeIf {
-            state.runsToday && state.buses.first().stops.first().time < SystemClock.timeHere() && SystemClock.timeHere() < state.buses.last().stops.last().time
-        }
+        if (
+            state.date != SystemClock.todayHere() || !state.runsToday ||
+            SystemClock.timeHere() < state.buses.first().stops.first().time ||
+            state.buses.last().stops.last().time < SystemClock.timeHere()
+        ) null else
+            state.buses.indexOfFirst {
+                it.isRunning
+            }.takeUnless {
+                it == -1
+            } ?: state.buses.indexOfFirst {
+                SystemClock.timeHere() < it.stops.last().time
+            }
     }
 
     val scope = rememberCoroutineScope()

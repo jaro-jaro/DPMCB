@@ -20,119 +20,39 @@ sealed interface BusState {
         val date: LocalDate
     }
 
-    sealed interface OK : Exists {
-        val stops: List<BusStop>
-        val lineNumber: ShortLine
-        val lowFloor: Boolean
-        val sequence: SequenceCode?
-        val sequenceName: String?
-        val nextBus: BusName?
-        val previousBus: BusName?
-        val restriction: Boolean
-        val traveledSegments: Int
-        val lineHeight: Float
-        val favourite: PartOfConn?
-        val error: Boolean
-    }
-
-    data class Offline(
+    data class OK(
         override val busName: BusName,
-        override val stops: List<BusStop>,
-        override val lineNumber: ShortLine,
-        override val lowFloor: Boolean,
+        val stops: List<BusStop>,
+        val lineNumber: ShortLine,
+        val lowFloor: Boolean,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
         override val lineCode: String,
-        override val sequence: SequenceCode?,
-        override val sequenceName: String?,
-        override val nextBus: BusName?,
-        override val previousBus: BusName?,
+        val sequence: SequenceCode?,
+        val sequenceName: String?,
+        val nextBus: BusName?,
+        val previousBus: BusName?,
         override val deeplink: String,
-        override val restriction: Boolean,
-        override val traveledSegments: Int,
-        override val lineHeight: Float,
-        override val favourite: PartOfConn?,
-        override val error: Boolean,
+        val restriction: Boolean,
+        val traveledSegments: Int,
+        val lineHeight: Float,
+        val favourite: PartOfConn?,
+        val error: Boolean,
         override val date: LocalDate,
-    ) : OK
+        val online: OnlineState? = null,
+    ) : Exists
 
-    sealed interface Online : OK {
-        val onlineConnStops: List<OnlineConnStop>
-    }
+    data class OnlineState(
+        val onlineConnStops: List<OnlineConnStop>,
+        val running: RunningState? = null,
+    )
 
-    data class OnlineNotRunning(
-        override val busName: BusName,
-        override val stops: List<BusStop>,
-        override val lineNumber: ShortLine,
-        override val lowFloor: Boolean,
-        override val timeCodes: List<String>,
-        override val fixedCodes: List<String>,
-        override val lineCode: String,
-        override val sequence: SequenceCode?,
-        override val sequenceName: String?,
-        override val nextBus: BusName?,
-        override val previousBus: BusName?,
-        override val deeplink: String,
-        override val restriction: Boolean,
-        override val traveledSegments: Int,
-        override val lineHeight: Float,
-        override val favourite: PartOfConn?,
-        override val error: Boolean,
-        override val date: LocalDate,
-        override val onlineConnStops: List<OnlineConnStop>,
-    ) : Online
-
-    data class OnlineRunning(
-        override val busName: BusName,
-        override val stops: List<BusStop>,
-        override val lineNumber: ShortLine,
-        override val lowFloor: Boolean,
-        override val timeCodes: List<String>,
-        override val fixedCodes: List<String>,
-        override val lineCode: String,
-        override val sequence: SequenceCode?,
-        override val sequenceName: String?,
-        override val nextBus: BusName?,
-        override val previousBus: BusName?,
-        override val deeplink: String,
-        override val restriction: Boolean,
-        override val traveledSegments: Int,
-        override val lineHeight: Float,
-        override val favourite: PartOfConn?,
-        override val error: Boolean,
-        override val date: LocalDate,
-        override val onlineConnStops: List<OnlineConnStop>,
+    data class RunningState(
         val delayMin: Float?,
         val vehicle: RegistrationNumber?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int?,
-    ) : Online
-
-    companion object {
-        fun OnlineRunning(
-            state: Offline,
-            onlineConnStops: List<OnlineConnStop>,
-            delayMin: Float?,
-            vehicle: RegistrationNumber?,
-            confirmedLowFloor: Boolean?,
-            nextStopIndex: Int?,
-        ) = with(state) {
-            OnlineRunning(
-                busName, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, sequence, sequenceName, nextBus, previousBus,
-                deeplink, restriction, traveledSegments, lineHeight, favourite, error, date, onlineConnStops, delayMin, vehicle, confirmedLowFloor, nextStopIndex
-            )
-        }
-
-        fun OnlineNotRunning(
-            state: Offline,
-            onlineConnStops: List<OnlineConnStop>,
-        ) = with(state) {
-            OnlineNotRunning(
-                busName, stops, lineNumber, lowFloor, timeCodes, fixedCodes, lineCode, sequence, sequenceName, nextBus, previousBus,
-                deeplink, restriction, traveledSegments, lineHeight, favourite, error, date, onlineConnStops
-            )
-        }
-    }
+    )
 
     data object Loading : BusState
 

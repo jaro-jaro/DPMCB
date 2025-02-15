@@ -10,22 +10,19 @@ import cz.jaro.dpmcb.ui.main.Route
 
 inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
 inline val NavHostController.navigateFunction: NavigateFunction
-    get() {
-        val f = navigateWithOptionsFunction
-        return { route: Route ->
+    get() = navigateWithOptionsFunction.let { f ->
+        { route: Route ->
             f(route, null)
         }
     }
 inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFunction
-    get() {
-        return navigate@{ route: Route, navOptions: NavOptions? ->
-            try {
-                this.navigate(route.work(), navOptions)
-            } catch (e: IllegalStateException) {
-                e.printStackTrace()
-                Firebase.crashlytics.log("Pokus o navigaci na $route")
-                Firebase.crashlytics.recordException(e)
-            }
+    get() = navigate@{ route: Route, navOptions: NavOptions? ->
+        try {
+            this.navigate(route.work(), navOptions)
+        } catch (e: IllegalStateException) {
+            e.printStackTrace()
+            Firebase.crashlytics.log("Pokus o navigaci na $route")
+            Firebase.crashlytics.recordException(e)
         }
     }
 

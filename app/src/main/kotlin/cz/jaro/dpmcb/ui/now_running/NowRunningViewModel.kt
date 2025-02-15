@@ -18,7 +18,6 @@ import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Route
@@ -88,7 +87,7 @@ class NowRunningViewModel(
 
     private val oneWayLines = viewModelScope.async { repo.oneWayLines() }
 
-    private val list = onlineRepo.work { 0 }.nowRunningBuses().work { 1 }.map { onlineConns ->
+    private val list = onlineRepo.nowRunningBuses().map { onlineConns ->
         loading.value = true
         val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
         val oneWayLines = repo.oneWayLines()

@@ -64,7 +64,7 @@ class SequenceViewModel(
             stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
         }
 
-        SequenceState.Offline(
+        SequenceState.OK(
             sequence = sequence.name,
             sequenceName = with(repo) { sequence.name.seqName() },
             timeCodes = filterTimeCodesAndMakeReadable(sequence.commonTimeCodes),
@@ -76,7 +76,7 @@ class SequenceViewModel(
                 val runsToday = repo.runsAt(
                     timeCodes = sequence.commonTimeCodes + bus.uniqueTimeCodes,
                     fixedCodes = sequence.commonFixedCodes + bus.uniqueFixedCodes,
-                    date = SystemClock.todayHere()
+                    date = params.date
                 )
                 BusInSequence(
                     busName = bus.info.connName,
@@ -90,7 +90,7 @@ class SequenceViewModel(
                     lineCode = bus.uniqueValidity?.let { validityString(it) } ?: "",
                 )
             },
-            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = SystemClock.todayHere()),
+            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = params.date),
             height = 0F,
             traveledSegments = 0,
             date = params.date,
@@ -163,7 +163,7 @@ class SequenceViewModel(
         downloadedVehicle
     ) { info, traveledSegments, lineHeight, onlineConn, downloadedVehicle ->
         if (info !is SequenceState.OK) return@combine info
-        (info as SequenceState.Offline).copy(
+        info.copy(
             vehicle = downloadedVehicle,
         ).let { info2 ->
             if (params.date != SystemClock.todayHere()) return@combine info2
@@ -172,12 +172,12 @@ class SequenceViewModel(
                 traveledSegments = traveledSegments ?: 0,
             ).let { info3 ->
                 if (onlineConn?.delayMin == null) return@combine info3
-                SequenceState.Online(
-                    state = info3,
-                    delayMin = onlineConn.delayMin,
-                    vehicle = onlineConn.vehicle,
-                    confirmedLowFloor = onlineConn.lowFloor,
-                ).copy(
+                info3.copy(
+                    online = SequenceState.OnlineState(
+                        delayMin = onlineConn.delayMin,
+                        confirmedLowFloor = onlineConn.lowFloor,
+                    ),
+                    vehicle = onlineConn.vehicle ?: info3.vehicle,
                     buses = info3.buses.map {
                         it.copy(
                             isRunning = it.busName == onlineConn.name
@@ -203,20 +203,20 @@ class SequenceViewModel(
                 val doc = Ksoup.parseGetRequest(
                     if (params.sequence.line().startsWith('5') && params.sequence.line().length == 2 && params.sequence.modifiers().part() == 2)
                         "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date.minus(1.days)}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
-                    else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}".also(::println)
+                    else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
                 )
                 val data = doc
                     .body()
                     .select("#snippet--table > div > table > tbody")
                     .single()
-                    .children().also(::println)
+                    .children()
                     .filter { !it.hasClass("table-header") }
                     .map {
                         Pair(
                             it.getElementsByClass("car").single().text().toRegNum(),
                             it.getElementsByClass("note").single().text(),
                         )
-                    }.also(::println)
+                    }
 
                 downloadedVehicle.value =
                     if (data.isEmpty()) null.also { e.onLost() }
@@ -226,7 +226,7 @@ class SequenceViewModel(
                             1 -> "ran"
                             2 -> "odpo"
                             else -> null
-                        }.also(::println)
+                        }
                         if (cast == null) null.also { e.onLost() }
                         else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
                     }

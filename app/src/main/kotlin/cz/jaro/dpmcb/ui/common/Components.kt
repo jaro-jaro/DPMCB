@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.common
 
-import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -93,6 +92,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -120,7 +120,6 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
-import androidx.core.net.toUri
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -397,6 +396,9 @@ fun DateSelector(
         initialSelectedDateMillis = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
         initialDisplayMode = DisplayMode.Picker,
     )
+    LaunchedEffect(date) {
+        state.selectedDateMillis = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+    }
     if (showDialog) DatePickerDialog(
         onDismissRequest = {
             showDialog = false

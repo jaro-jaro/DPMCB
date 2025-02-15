@@ -14,67 +14,25 @@ sealed interface SequenceState {
         val date: LocalDate,
     ) : SequenceState
 
-    sealed interface OK : SequenceState {
-        val sequence: SequenceCode
-        val sequenceName: String
-        val before: List<Pair<SequenceCode, String>>
-        val after: List<Pair<SequenceCode, String>>
-        val buses: List<BusInSequence>
-        val timeCodes: List<String>
-        val fixedCodes: List<String>
-        val lineCode: String
-        val runsToday: Boolean
-        val height: Float
-        val traveledSegments: Int
-        val date: LocalDate
-        val vehicle: RegistrationNumber?
-    }
+    data class OK(
+        val sequence: SequenceCode,
+        val sequenceName: String,
+        val before: List<Pair<SequenceCode, String>>,
+        val after: List<Pair<SequenceCode, String>>,
+        val buses: List<BusInSequence>,
+        val timeCodes: List<String>,
+        val fixedCodes: List<String>,
+        val lineCode: String,
+        val runsToday: Boolean,
+        val height: Float,
+        val traveledSegments: Int,
+        val date: LocalDate,
+        val vehicle: RegistrationNumber?,
+        val online: OnlineState? = null,
+    ) : SequenceState
 
-    data class Offline(
-        override val sequence: SequenceCode,
-        override val sequenceName: String,
-        override val before: List<Pair<SequenceCode, String>>,
-        override val after: List<Pair<SequenceCode, String>>,
-        override val buses: List<BusInSequence>,
-        override val timeCodes: List<String>,
-        override val fixedCodes: List<String>,
-        override val lineCode: String,
-        override val runsToday: Boolean,
-        override val height: Float,
-        override val traveledSegments: Int,
-        override val date: LocalDate,
-        override val vehicle: RegistrationNumber?,
-    ) : OK
-
-    data class Online(
-        override val sequence: SequenceCode,
-        override val sequenceName: String,
-        override val before: List<Pair<SequenceCode, String>>,
-        override val after: List<Pair<SequenceCode, String>>,
-        override val buses: List<BusInSequence>,
-        override val timeCodes: List<String>,
-        override val fixedCodes: List<String>,
-        override val lineCode: String,
-        override val runsToday: Boolean,
-        override val height: Float,
-        override val traveledSegments: Int,
-        override val date: LocalDate,
-        override val vehicle: RegistrationNumber?,
+    data class OnlineState(
         val delayMin: Float,
         val confirmedLowFloor: Boolean?,
-    ) : OK
-
-    companion object {
-        fun Online(
-            state: OK,
-            delayMin: Float,
-            vehicle: RegistrationNumber?,
-            confirmedLowFloor: Boolean?,
-        ) = with(state) {
-            Online(
-                sequence, sequenceName, before, after, buses, timeCodes, fixedCodes, lineCode, runsToday, height, traveledSegments, date,
-                vehicle ?: this.vehicle, delayMin, confirmedLowFloor
-            )
-        }
-    }
+    )
 }

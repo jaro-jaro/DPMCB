@@ -807,13 +807,13 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
         Wheelchair(
             lowFloor = state.lowFloor,
-            confirmedLowFloor = (state as? BusState.OnlineRunning)?.confirmedLowFloor,
+            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
             Modifier.padding(start = 8.dp),
             enableCart = true,
         )
 
-        if (state is BusState.OnlineRunning && state.delayMin != null) DelayBubble(state.delayMin)
-        if (state is BusState.OnlineRunning) Vehicle(state.vehicle, showInfoButton = false)
+        if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
+        if (state.online?.running?.vehicle != null) Vehicle(state.online.running.vehicle, showInfoButton = false)
         Spacer(Modifier.weight(1F))
         DateSelector(
             date = state.date,
@@ -827,12 +827,12 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
     ) {
         Timetable(
             onEvent = {},
-            onlineConnStops = (state as? BusState.Online)?.onlineConnStops,
-            nextStopIndex = (state as? BusState.OnlineRunning)?.nextStopIndex,
+            onlineConnStops = state.online?.onlineConnStops,
+            nextStopIndex = state.online?.running?.nextStopIndex,
             stops = state.stops,
             traveledSegments = state.traveledSegments,
             height = state.lineHeight,
-            isOnline = state is BusState.OnlineRunning,
+            isOnline = state.online?.running != null,
             part = part
         )
     }

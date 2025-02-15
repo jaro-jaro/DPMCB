@@ -114,13 +114,10 @@ class DeparturesViewModel(
             if (info.date == SystemClock.todayHere()) onlineRepo.nowRunningBuses() else flowOf(emptyList())
         }
 
-    val hasMapAccess = repo.hasAccessToMap
-
     private val list = onlineConns.combine(info) { onlineConns, info ->
         repo.departures(info.date, params.stop)
             .map {
-                val onlineConn = onlineConns.onlineBus(it.busName)
-                it to onlineConn
+                it to onlineConns.onlineBus(it.busName)
             }
             .sortedBy { (stop, onlineConn) ->
                 stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes
@@ -135,10 +132,11 @@ class DeparturesViewModel(
                         .findLast { it.time!! == nextStop }
                         ?.let { it.name to it.time!! }
                 } ?: stop.busStops
-                    .filter { it.time != null }
-                    .find { SystemClock.timeHere() < it.time!! }
+                    .takeIf { info.date == SystemClock.todayHere() }
+                    ?.filter { it.time != null }
+                    ?.find { SystemClock.timeHere() < it.time!! }
                     ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
-                        ?.let { it.name to it.time!! }
+                    ?.let { it.name to it.time!! }
                 val lastIndexOfThisStop = stop.busStops.indexOfLast { it.name == stop.name }.let {
                     if (it == thisStopIndex) stop.busStops.lastIndex else it
                 }
@@ -195,6 +193,7 @@ class DeparturesViewModel(
                     stop = params.stop,
                     isOnline = isOnline,
                 )
+
                 filteredList.isEmpty() -> DeparturesState.NothingRuns(
                     reason = when {
                         info.lineFilter == null && info.stopFilter == null -> DeparturesState.NothingRunsReason.NothingRunsAtAll
@@ -206,6 +205,7 @@ class DeparturesViewModel(
                     stop = params.stop,
                     isOnline = isOnline,
                 )
+
                 else -> DeparturesState.Runs(
                     departures = filteredList,
                     info = info,
