@@ -2,13 +2,16 @@ package cz.jaro.dpmcb.ui.chooser
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -52,17 +58,15 @@ import org.koin.core.parameter.parametersOf
 fun Chooser(
     args: Route.Chooser,
     navController: NavHostController,
-    viewModel: ChooserViewModel = run {
-        koinViewModel {
-            parametersOf(
-                ChooserViewModel.Parameters(
-                    type = args.type,
-                    lineNumber = args.lineNumber,
-                    stop = args.stop,
-                    date = args.date,
-                )
+    viewModel: ChooserViewModel = koinViewModel {
+        parametersOf(
+            ChooserViewModel.Parameters(
+                type = args.type,
+                lineNumber = args.lineNumber,
+                stop = args.stop,
+                date = args.date,
             )
-        }
+        )
     },
 ) {
     LaunchedEffect(Unit) {
@@ -104,13 +108,16 @@ fun Chooser(
     ChooserScreen(
         state = state,
         onEvent = viewModel::onEvent,
+        navigateUp = navController::navigateUp,
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChooserScreen(
     state: ChooserState,
     onEvent: (ChooserEvent) -> Unit,
+    navigateUp: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -159,6 +166,14 @@ fun ChooserScreen(
                     onEvent(ChooserEvent.ChangeDate(it))
                 }
             )
+        }
+        val imeVisible = WindowInsets.isImeVisible
+        var wasShown by remember { mutableStateOf(false) }
+        LaunchedEffect(imeVisible) {
+            when {
+                imeVisible -> wasShown = true
+                wasShown -> navigateUp()
+            }
         }
         TextField(
             state = state.search,
@@ -243,12 +258,13 @@ fun ChooserPreview() {
             ChooserScreen(
                 state = ChooserState(
                     date = SystemClock.todayHere(),
-                    type = ChooserType.Stops,
-                    search = TextFieldState("u ko"),
-                    list = listOf("U Koníčka"),
-                    info = "U koní",
+                    type = ChooserType.LineStops,
+                    search = TextFieldState("u k"),
+                    list = listOf("U Koníčka", "Dobrá Voda, U Kapličky", "Dobrá Voda, U Křížku"),
+                    info = "6: ? -> ?",
                 ),
                 onEvent = {},
+                navigateUp = {},
             )
         }
     }
