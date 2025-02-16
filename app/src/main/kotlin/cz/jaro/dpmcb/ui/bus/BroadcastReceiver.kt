@@ -22,6 +22,11 @@ class BroadcastReceiver : BroadcastReceiver() {
     companion object {
         val clicked = Channel<String>(UNLIMITED)
 
+        fun createIntent(context: Context, type: String) =
+            Intent(context, BroadcastReceiver::class.java).apply {
+                putExtra("type", type)
+            }
+
         const val TYPE_COPY = "copy"
         const val TYPE_ADD_IMAGE = "add_image"
         const val TYPE_SHARE_PART = "share_part"
