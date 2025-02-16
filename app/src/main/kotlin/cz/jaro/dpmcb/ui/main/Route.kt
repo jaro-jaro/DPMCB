@@ -26,8 +26,10 @@ sealed interface Route {
     val date: LocalDate
 
     companion object {
-        val routes =
-            listOf(Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class, NowRunning::class, Sequence::class, Timetable::class, FindBus::class)
+        val routes = listOf(
+            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class,
+            NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
+        )
     }
 
     @Serializable
@@ -95,7 +97,11 @@ sealed interface Route {
         val lineAndModifiers: String,
         override val date: LocalDate,
     ) : Route {
-        constructor(sequence: SequenceCode, date: LocalDate) : this("${sequence.sequenceNumber()}", "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}", date)
+        constructor(sequence: SequenceCode, date: LocalDate) : this(
+            "${sequence.sequenceNumber()}",
+            "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}",
+            date
+        )
     }
 
     @Serializable
@@ -112,4 +118,10 @@ sealed interface Route {
     data class FindBus(
         override val date: LocalDate,
     ) : Route
+
+    @Serializable
+    @SerialName("settings")
+    data object Settings : Route {
+        override val date: LocalDate get() = SystemClock.todayHere()
+    }
 }

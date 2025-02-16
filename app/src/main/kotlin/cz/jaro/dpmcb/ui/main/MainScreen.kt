@@ -102,6 +102,7 @@ import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import cz.jaro.dpmcb.ui.sequence.Sequence
+import cz.jaro.dpmcb.ui.settings.Settings
 import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -188,9 +189,6 @@ fun Main(
                             putExtra("update", update)
                         })
                     },
-                    startActivity = {
-                        ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_VIEW))
-                    },
                     currentBackStackEntry = navController.currentBackStackEntryFlow,
                 )
             )
@@ -257,9 +255,7 @@ fun Main(
         isAppUpdateNeeded = isAppUpdateNeeded,
         updateApp = updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
-        onEvent = {
-
-        },
+        onEvent = viewModel::onEvent,
     ) {
         NavHost(
             navController = navController,
@@ -299,6 +295,7 @@ fun Main(
             route<Route.Card> { Card(args = it, navController = navController) }
             route<Route.Map> { Map(args = it, navController = navController) }
             route<Route.FindBus> { FindBus(args = it, navController = navController) }
+            route<Route.Settings> { Settings(args = it, navController = navController) }
         }
     }
 }

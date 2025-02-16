@@ -41,7 +41,9 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter android:label="Lepší DPMCB spoj Deeplink">
+            <intent-filter
+                android:autoVerify="true"
+                android:label="Lepší DPMCB spoj Deeplink">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
@@ -53,9 +55,6 @@
                 <data android:scheme="https" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true" />

@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavBackStackEntry
@@ -25,7 +24,6 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
@@ -37,7 +35,6 @@ class MainViewModel(
     data class Parameters(
         val link: String?,
         val navigateToLoadingActivity: (update: Boolean) -> Unit,
-        val startActivity: (KClass<out Activity>) -> Unit,
         val currentBackStackEntry: Flow<NavBackStackEntry>,
     )
 
@@ -127,7 +124,6 @@ class MainViewModel(
                     e.action.route?.let {
                         navigate(it(params.currentBackStackEntry.first().getRoute()?.date ?: SystemClock.todayHere()))
                     }
-                    e.action.activity?.also(params.startActivity)
                     updateDrawerState { false }
                 }
                 MainEvent.RemoveCard -> repo.changeCard(false)

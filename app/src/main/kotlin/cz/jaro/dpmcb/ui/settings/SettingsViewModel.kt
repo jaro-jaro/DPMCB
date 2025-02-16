@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildConfig
@@ -43,7 +43,7 @@ class SettingsViewModel(
         SettingsEvent.UpdateApp -> {
             params.startActivity(Intent().apply {
                 action = Intent.ACTION_VIEW
-                data = Uri.parse("https://github.com/jaro-jaro/DPMCB/releases/latest")
+                data = "https://github.com/jaro-jaro/DPMCB/releases/latest".toUri()
             })
         }
 
@@ -56,10 +56,6 @@ class SettingsViewModel(
                 params.navigateBack()
             } else
                 params.youAreOfflineToast()
-        }
-
-        SettingsEvent.NavigateBack -> {
-            params.navigateBack()
         }
 
         is SettingsEvent.EditSettings -> {
