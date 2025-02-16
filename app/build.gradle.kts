@@ -10,12 +10,12 @@ plugins {
 
 android {
     namespace = "cz.jaro.dpmcb"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         //            Mmmppbvv
         versionCode = 10700001
         versionName = "1.7.0-alpha.1"
@@ -52,6 +52,7 @@ android {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs += "-Xcontext-receivers"
+        freeCompilerArgs += "-Xwhen-guards"
     }
     buildFeatures {
         compose = true
