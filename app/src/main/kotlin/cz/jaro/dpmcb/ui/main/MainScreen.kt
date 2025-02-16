@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.ui.main
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
-import android.net.Uri
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
@@ -66,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -444,7 +444,7 @@ fun MainScreen(
                                                 ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, Uri.parse("https://jaro-jaro.github.io/DPMCB/${App.route}")))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/${App.route}".toUri()))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
@@ -667,7 +667,7 @@ private fun Feedback(
                     CustomTabsIntent.Builder()
                         .setShowTitle(true)
                         .build()
-                        .launchUrl(ctx, Uri.parse("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148"))
+                        .launchUrl(ctx, "https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148".toUri())
                 }) {
                     Text(text = "Přejít na GitHub")
                 }

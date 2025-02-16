@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
@@ -65,6 +66,15 @@ class ChooserViewModel(
     private val search = TextFieldState()
     private val searchText = snapshotFlow { search.text }
 
+    private val triggered = MutableStateFlow(false)
+    init {
+        viewModelScope.launch {
+            searchText.collect {
+                triggered.value = false
+            }
+        }
+    }
+
     val list = searchText.combine(originalList) { filter, originalList ->
         if (filter.isBlank()) originalList
         else originalList
@@ -101,7 +111,10 @@ class ChooserViewModel(
             }
             .toList()
             .also { list ->
-                if (list.count() == 1) done(list.single())
+                if (list.count() == 1 && !triggered.value) {
+                    triggered.value = true
+                    done(list.single())
+                }
             }
     }
 
