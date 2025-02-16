@@ -84,6 +84,7 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
@@ -177,7 +178,13 @@ fun Main(
     link: String?,
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
+    updateApp: () -> Unit,
+    viewModel: MainViewModel = koinViewModel {
+        parametersOf(link)
+    },
 ) {
+    val ctx = LocalContext.current
+
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -211,14 +218,24 @@ fun Main(
         }
     }
 
-    val ctx = LocalContext.current
-
-    val logError = { it: String ->
-        Toast.makeText(ctx, it, Toast.LENGTH_SHORT)
-    }
-
-    val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) }, logError)
+    LaunchedEffect(Unit) {
+        viewModel.navGraph = {
+            try {
+                navController.graph
+            } catch (_: IllegalStateException) {
+                null
+            }
+        }
+        viewModel.confirmDeeplink = { path ->
+            navController.navigateToRouteFunction(path)
+            closeDrawer()
+        }
+        viewModel.navigateToLoadingActivity = { update ->
+            ctx.startActivity(Intent(ctx, LoadingActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+                putExtra("update", update)
+            })
+        }
     }
 
     val isOnline = viewModel.isOnline.collectAsStateWithLifecycle()
@@ -246,7 +263,7 @@ fun Main(
         navigate = navController.navigateFunction,
         editOnlineMode = viewModel.editOnlineMode,
         isAppUpdateNeeded = isAppUpdateNeeded,
-        updateApp = viewModel.updateApp,
+        updateApp = updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
         updateData = viewModel.updateData,
         removeCard = viewModel.removeCard,

@@ -1,20 +1,11 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
 import androidx.navigation.NavGraph
-import androidx.navigation.NavHostController
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -23,7 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
@@ -32,12 +22,7 @@ import kotlin.time.Duration.Companion.seconds
 class MainViewModel(
     repo: SpojeRepository,
     onlineRepository: OnlineRepository,
-    @InjectedParam closeDrawer: () -> Unit,
     @InjectedParam link: String?,
-    @InjectedParam navController: NavHostController,
-    @InjectedParam loadingActivityIntent: Intent,
-    @InjectedParam startActivity: (Intent) -> Unit,
-    @InjectedParam logError: (String) -> Unit,
 ) : ViewModel() {
 
     val isOnline = repo.isOnline
@@ -58,13 +43,6 @@ class MainViewModel(
         }?.let { "?$it" } ?: ""
         "$path$args".replace(Regex("%25([0-9A-F]{2})"), "%$1")
     }
-
-    private val NavController.graphOrNull: NavGraph?
-        get() = try {
-            graph
-        } catch (_: IllegalStateException) {
-            null
-        }
 
     private fun String.translateOldCzechLinks() = this
         .replace("prave_jedouci", "now_running")
@@ -101,53 +79,30 @@ class MainViewModel(
         return plus("?time=99:99")
     }
 
+    lateinit var confirmDeeplink: (String) -> Unit
+    lateinit var navGraph: () -> NavGraph?
+    lateinit var navigateToLoadingActivity: (update: Boolean) -> Unit
+
     init {
         link?.let {
             viewModelScope.launch(Dispatchers.IO) {
                 val url = encodeLink(link.removePrefix("/"))
-                while (navController.graphOrNull == null) Unit
+                while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
                         App.selected = null
-                        navController.graphOrNull?.nodes
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
-                        closeDrawer()
+                        navGraph()?.nodes
+                        confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                     }
                 } catch (e: IllegalArgumentException) {
                     e.printStackTrace()
-                    withContext(Dispatchers.Main) {
-                        logError("Vadná zkratka $url")
-                    }
                 }
             }
         }
     }
 
     val updateData = {
-        startActivity(loadingActivityIntent.apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-            putExtra("update", true)
-        })
-    }
-    val updateApp = {
-        viewModelScope.launch(Dispatchers.IO) {
-            val doc = try {
-                withContext(Dispatchers.IO) {
-                    Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
-                }
-            } catch (e: SocketTimeoutException) {
-                Firebase.crashlytics.recordException(e)
-                return@launch
-            }
-
-            val newestVersion = doc.text()
-
-            startActivity(Intent().apply {
-                action = Intent.ACTION_VIEW
-                data = "https://github.com/jaro-jaro/DPMCB/releases/download/v$newestVersion/Lepsi-DPMCB-v$newestVersion.apk".toUri()
-            })
-        }
-        Unit
+        navigateToLoadingActivity(true)
     }
 
     val removeCard = {
