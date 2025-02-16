@@ -51,12 +51,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -67,6 +65,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.Firebase
@@ -81,12 +80,10 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
-import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
@@ -96,7 +93,6 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
-import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.departures.Departures
@@ -179,14 +175,28 @@ fun Main(
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
     updateApp: () -> Unit,
-    viewModel: MainViewModel = koinViewModel {
-        parametersOf(link)
+    navController: NavHostController = rememberNavController(),
+    viewModel: MainViewModel = run {
+        val ctx = LocalContext.current
+        koinViewModel {
+            parametersOf(
+                MainViewModel.Parameters(
+                    link = link,
+                    navigateToLoadingActivity = { update ->
+                        ctx.startActivity(Intent(ctx, LoadingActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
+                            putExtra("update", update)
+                        })
+                    },
+                    startActivity = {
+                        ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_VIEW))
+                    },
+                    currentBackStackEntry = navController.currentBackStackEntryFlow,
+                )
+            )
+        }
     },
 ) {
-    val ctx = LocalContext.current
-
-    val scope = rememberCoroutineScope()
-    val navController = rememberNavController()
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
@@ -206,17 +216,6 @@ fun Main(
 
         true
     }
-    val closeDrawer = {
-        scope.launch {
-            drawerState.close()
-        }
-        Unit
-    }
-    val openDrawer = {
-        scope.launch {
-            drawerState.open()
-        }
-    }
 
     LaunchedEffect(Unit) {
         viewModel.navGraph = {
@@ -228,19 +227,20 @@ fun Main(
         }
         viewModel.confirmDeeplink = { path ->
             navController.navigateToRouteFunction(path)
-            closeDrawer()
+            launch {
+                drawerState.close()
+            }
         }
-        viewModel.navigateToLoadingActivity = { update ->
-            ctx.startActivity(Intent(ctx, LoadingActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                putExtra("update", update)
-            })
+        viewModel.navigate = navController.navigateFunction
+        viewModel.updateDrawerState = { mutate ->
+            val newValue = mutate(drawerState.isOpen)
+            launch {
+                if (newValue) drawerState.open() else drawerState.close()
+            }
         }
     }
 
-    val isOnline = viewModel.isOnline.collectAsStateWithLifecycle()
-    val hasCard = viewModel.hasCard.collectAsStateWithLifecycle()
-    val isOnlineModeEnabled = viewModel.isOnlineModeEnabled.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -252,24 +252,13 @@ fun Main(
     }
 
     MainScreen(
+        state = state,
         drawerState = drawerState,
-        toggleDrawer = {
-            keyboardController?.hide()
-            if (drawerState.isClosed) openDrawer() else closeDrawer()
-        },
-        closeDrawer = closeDrawer,
-        isOnline = isOnline,
-        isOnlineModeEnabled = isOnlineModeEnabled,
-        navigate = navController.navigateFunction,
-        editOnlineMode = viewModel.editOnlineMode,
         isAppUpdateNeeded = isAppUpdateNeeded,
         updateApp = updateApp,
         isDataUpdateNeeded = isDataUpdateNeeded,
-        updateData = viewModel.updateData,
-        removeCard = viewModel.removeCard,
-        hasCard = hasCard,
-        getDate = {
-            navController.currentBackStackEntry?.getRoute()?.date ?: SystemClock.todayHere()
+        onEvent = {
+
         },
     ) {
         NavHost(
@@ -317,20 +306,12 @@ fun Main(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    state: MainState,
     drawerState: DrawerState,
-    toggleDrawer: () -> Unit,
-    closeDrawer: () -> Unit,
-    isOnline: State<Boolean>,
-    isOnlineModeEnabled: State<Boolean>,
-    navigate: NavigateFunction,
-    hasCard: State<Boolean>,
-    removeCard: () -> Unit,
-    editOnlineMode: (Boolean) -> Unit,
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
-    updateData: () -> Unit,
     updateApp: () -> Unit,
-    getDate: () -> LocalDate,
+    onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -342,7 +323,7 @@ fun MainScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            toggleDrawer()
+                            onEvent(MainEvent.ToggleDrawer)
                         }
                     ) {
                         IconWithTooltip(
@@ -357,18 +338,16 @@ fun MainScreen(
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
                     if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
-                        if (!isOnline.value) return@IconButton
-
-                        editOnlineMode(!isOnlineModeEnabled.value)
+                        onEvent(MainEvent.ToggleOnlineMode)
                     }) {
                         IconWithTooltip(
-                            imageVector = if (isOnline.value && isOnlineModeEnabled.value) Icons.Default.Wifi else Icons.Default.WifiOff,
-                            contentDescription = when {
-                                isOnline.value && isOnlineModeEnabled.value -> "Online, kliknutím přepnete do offline módu"
-                                isOnline.value && !isOnlineModeEnabled.value -> "Offline, kliknutím vypnete offline mód"
-                                else -> "Offline, nejste připojeni k internetu"
+                            imageVector = if (state.onlineStatus is MainState.OnlineStatus.Online && state.onlineStatus.onlineMode) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            contentDescription = when (state.onlineStatus) {
+                                is MainState.OnlineStatus.Online if state.onlineStatus.onlineMode -> "Online, kliknutím přepnete do offline módu"
+                                is MainState.OnlineStatus.Online -> "Offline, kliknutím vypnete offline mód"
+                                is MainState.OnlineStatus.Offline -> "Offline, nejste připojeni k internetu"
                             },
-                            tint = if (isOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                            tint = if (state.onlineStatus is MainState.OnlineStatus.Online) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                         )
                     }
 
@@ -392,12 +371,12 @@ fun MainScreen(
                             open = false
                         }
                     ) {
-                        if (App.selected == DrawerAction.TransportCard && hasCard.value) DropdownMenuItem(
+                        if (App.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
                             onClick = {
-                                removeCard()
+                                onEvent(MainEvent.RemoveCard)
                                 open = false
                             },
                             leadingIcon = {
@@ -517,7 +496,7 @@ fun MainScreen(
                         TextButton(
                             onClick = {
                                 showDialog = false
-                                updateData()
+                                onEvent(MainEvent.UpdateData)
                             }
                         ) {
                             Text(stringResource(id = R.string.yes))
@@ -584,10 +563,7 @@ fun MainScreen(
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
                                 action = action,
-                                navigate = navigate,
-                                isOnline = isOnline,
-                                closeDrawer = closeDrawer,
-                                getDate = getDate,
+                                onEvent = onEvent,
                             )
                         }
                     }
@@ -603,15 +579,11 @@ fun MainScreen(
 @Composable
 fun DrawerItem(
     action: DrawerAction,
-    navigate: NavigateFunction,
-    isOnline: State<Boolean>,
-    closeDrawer: () -> Unit,
-    getDate: () -> LocalDate,
+    onEvent: (MainEvent) -> Unit,
 ) = when (action) {
-    DrawerAction.Feedback -> Feedback(action, isOnline)
+    DrawerAction.Feedback -> Feedback(action)
 
     else -> {
-        val ctx = LocalContext.current
         NavigationDrawerItem(
             label = {
                 Text(stringResource(action.label))
@@ -621,16 +593,7 @@ fun DrawerItem(
             },
             selected = App.selected == action,
             onClick = {
-                if (action.multiselect)
-                    App.selected = action
-
-                action.route?.let {
-                    navigate(it(getDate()))
-                }
-                action.activity?.let {
-                    ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
-                }
-                closeDrawer()
+                onEvent(MainEvent.DrawerItemClicked(action))
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
@@ -641,7 +604,6 @@ fun DrawerItem(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Feedback(
     action: DrawerAction,
-    isOnline: State<Boolean>,
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
@@ -700,7 +662,7 @@ private fun Feedback(
         },
         selected = false,
         onClick = {
-            if (isOnline.value)
+            if (ctx.isOnline)
                 showDialog = true
             else
                 Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
