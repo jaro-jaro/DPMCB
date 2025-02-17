@@ -82,10 +82,13 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
@@ -97,6 +100,7 @@ import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
+import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
@@ -113,60 +117,73 @@ import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+val localDateTypePair = typePair(
+    parseValue = {
+        LocalDate(
+            year = it.substring(0..<4).toInt(),
+            monthNumber = it.substring(4..<6).toInt(),
+            dayOfMonth = it.substring(6..<8).toInt(),
+        )
+    },
+    serializeAsValue = {
+        "${it.year.atLeastDigits(4)}${it.monthNumber.atLeastDigits(2)}${it.dayOfMonth.atLeastDigits(2)}"
+    },
+)
+
 inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Bus::class -> mapOf(
         serializationTypePair<LongLine>(),
         serializationTypePair<BusNumber>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
         serializationTypePair<ShortLine>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Departures::class -> mapOf(
         serializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
         serializationTypePair<ShortLine?>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Favourites::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.FindBus::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
         serializationTypePair<List<ShortLine>>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Sequence::class -> mapOf(
         serializationTypePair<SequenceCode>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Timetable::class -> mapOf(
         serializationTypePair<ShortLine>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Card::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Map::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.FindBus::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     else -> emptyMap()

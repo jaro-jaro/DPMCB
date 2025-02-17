@@ -72,8 +72,8 @@ class TimetableViewModel(
         }
         is TimetableEvent.GoToBus -> params.navigate(
             Route.Bus(
-                busName = e.bus,
                 date = date,
+                busName = e.bus,
             )
         )
     }

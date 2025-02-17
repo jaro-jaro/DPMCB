@@ -108,7 +108,7 @@ class BusViewModel(
     fun onEvent(e: BusEvent) = when (e) {
         is BusEvent.ChangeDate -> {
             viewModelScope.launch {
-                navigate(Route.Bus(busName, e.date))
+                navigate(Route.Bus(e.date, busName))
             }
             Unit
         }
@@ -123,7 +123,7 @@ class BusViewModel(
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
-                navigate(Route.Bus(state.nextBus, state.date), navOptions {
+                navigate(Route.Bus(state.date, state.nextBus), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }
@@ -135,7 +135,7 @@ class BusViewModel(
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
-                navigate(Route.Bus(state.previousBus, state.date), navOptions {
+                navigate(Route.Bus(state.date, state.previousBus), navOptions {
                     popUpTo<Route.Bus> {
                         inclusive = true
                     }
@@ -154,14 +154,14 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence, date = date))
+                navigate(Route.Sequence(date = date, state.sequence))
             }
             Unit
         }
 
         is BusEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = date))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = date))
+            is TimetableEvent.StopClick -> navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
         }
     }
 

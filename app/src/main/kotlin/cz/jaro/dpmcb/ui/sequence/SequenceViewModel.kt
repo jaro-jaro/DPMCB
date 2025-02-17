@@ -189,11 +189,11 @@ class SequenceViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
 
     fun onEvent(e: SequenceEvent) = when (e) {
-        is SequenceEvent.BusClick -> navigate(Route.Bus(e.busName, params.date))
-        is SequenceEvent.SequenceClick -> navigate(Route.Sequence(e.sequence, params.date))
+        is SequenceEvent.BusClick -> navigate(Route.Bus(params.date, e.busName))
+        is SequenceEvent.SequenceClick -> navigate(Route.Sequence(params.date, e.sequence))
         is SequenceEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = params.date))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = params.date))
+            is TimetableEvent.StopClick -> navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.nextStop))
         }
 
         is SequenceEvent.FindBus -> {
@@ -234,6 +234,6 @@ class SequenceViewModel(
             Unit
         }
 
-        is SequenceEvent.ChangeDate -> navigate(Route.Sequence(params.sequence, e.date))
+        is SequenceEvent.ChangeDate -> navigate(Route.Sequence(e.date, params.sequence))
     }
 }

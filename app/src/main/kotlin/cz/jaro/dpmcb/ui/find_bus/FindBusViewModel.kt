@@ -74,8 +74,8 @@ class FindBusViewModel(
 
     private fun confirm(busName: BusName) = navigate(
         Route.Bus(
-            busName = busName,
             date = date,
+            busName = busName,
         )
     )
 
@@ -157,8 +157,8 @@ class FindBusViewModel(
 
         is FindBusEvent.SelectSequence -> navigate(
             Route.Sequence(
-                sequence = e.seq,
                 date = date,
+                sequence = e.seq,
             )
         )
 

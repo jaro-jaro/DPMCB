@@ -38,11 +38,11 @@ class FavouritesViewModel(
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBusToday -> {
-                navigate(Route.Bus(e.name, SystemClock.todayHere()))
+                navigate(Route.Bus(SystemClock.todayHere(), e.name))
             }
 
             is FavouritesEvent.NavToBusOtherDay -> {
-                navigate(Route.Bus(e.name, e.nextWillRun ?: SystemClock.todayHere()))
+                navigate(Route.Bus(e.nextWillRun ?: SystemClock.todayHere(), e.name))
             }
         }
     }
