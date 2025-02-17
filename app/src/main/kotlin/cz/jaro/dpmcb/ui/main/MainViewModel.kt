@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.net.URLEncoder
@@ -122,7 +123,7 @@ class MainViewModel(
                         App.selected = e.action
 
                     e.action.route?.let {
-                        navigate(it(params.currentBackStackEntry.first().getRoute()?.date ?: SystemClock.todayHere()))
+                        navigate(it(params.currentBackStackEntry.first().date()))
                     }
                     updateDrawerState { false }
                 }
@@ -133,15 +134,18 @@ class MainViewModel(
             }
         }
 
-    val state = combine(isOnline, isOnlineModeEnabled, repo.hasCard) { isOnline, isOnlineModeEnabled, hasCard ->
+    private fun NavBackStackEntry.date(): LocalDate = getRoute()?.date ?: SystemClock.todayHere()
+
+    val state = combine(isOnline, isOnlineModeEnabled, repo.hasCard, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
         MainState(
             onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
             hasCard = hasCard,
+            date = currentBackStackEntry.date(),
         )
     }.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
         MainState(
-            onlineStatus = OnlineStatus(isOnline.value, isOnlineModeEnabled.value)
+            onlineStatus = OnlineStatus(isOnline.value, isOnlineModeEnabled.value),
         )
     )
 

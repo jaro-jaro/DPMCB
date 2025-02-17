@@ -1,8 +1,12 @@
 package cz.jaro.dpmcb.ui.main
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon.createWithResource
+import android.os.Build
+import android.service.chooser.ChooserAction
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
@@ -11,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -44,6 +49,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -58,6 +64,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -90,6 +97,7 @@ import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -119,7 +127,8 @@ import org.koin.core.parameter.parametersOf
 
 val localDateTypePair = typePair(
     parseValue = {
-        LocalDate(
+        if (it == "T") SystemClock.todayHere()
+        else LocalDate(
             year = it.substring(0..<4).toInt(),
             monthNumber = it.substring(4..<6).toInt(),
             dayOfMonth = it.substring(6..<8).toInt(),
@@ -372,7 +381,9 @@ fun MainScreen(
 
                     var open by remember { mutableStateOf(false) }
                     var show by remember { mutableStateOf(false) }
+                    var includeDate by remember { mutableStateOf(true) }
                     var label by remember { mutableStateOf("") }
+                    var deeplink2 by remember { mutableStateOf("") }
 
                     val ctx = LocalContext.current
                     val shortcutManager = ctx.getSystemService(ShortcutManager::class.java)!!
@@ -384,6 +395,17 @@ fun MainScreen(
                         IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
                     }
 
+                    LaunchedEffect(Unit) {
+                        for (e in BroadcastReceiver.clicked) when (e) {
+                            BroadcastReceiver.TYPE_REMOVE_DATE -> {
+                                ctx.startActivity(Intent.createChooser(Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, deeplink2)
+                                    type = "text/uri-list"
+                                }, "Sdílet"))
+                            }
+                        }
+                    }
 
                     DropdownMenu(
                         expanded = open,
@@ -413,11 +435,26 @@ fun MainScreen(
                             },
                             onClick = {
                                 val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
+                                deeplink2 = "https://jaro-jaro.github.io/DPMCB/${App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
                                 ctx.startActivity(Intent.createChooser(Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, deeplink)
                                     type = "text/uri-list"
-                                }, "Sdílet"))
+                                }, "Sdílet").apply {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                                        putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
+                                            ChooserAction.Builder(
+                                                createWithResource(ctx, R.drawable.baseline_today_24),
+                                                "Odstranit z odkazu datum",
+                                                PendingIntent.getBroadcast(
+                                                    ctx,
+                                                    5,
+                                                    BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
+                                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                                                ),
+                                            ).build()
+                                        ))
+                                })
                                 open = false
                             },
                             leadingIcon = {
@@ -454,16 +491,18 @@ fun MainScreen(
                             TextButton(onClick = {
                                 if (shortcutManager.isRequestPinShortcutSupported) {
 
+                                    val route = if (includeDate) App.route else App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")
+
                                     val pinShortcutInfo = ShortcutInfo
-                                        .Builder(ctx, "${App.route}-$label")
+                                        .Builder(ctx, "$route-$label")
                                         .setShortLabel(label)
                                         .setLongLabel(label)
                                         .setIcon(
-                                            android.graphics.drawable.Icon.createWithResource(
+                                            createWithResource(
                                                 ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/${App.route}".toUri()))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/$route".toUri()))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
@@ -481,18 +520,34 @@ fun MainScreen(
                             }
                         },
                         text = {
-                            OutlinedTextField(
-                                value = label,
-                                onValueChange = {
-                                    label = it
-                                },
+                            Column(
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                label = {
-                                    Text("Titulek")
-                                },
-                            )
+                                    .padding(top = 8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = label,
+                                    onValueChange = {
+                                        label = it
+                                    },
+                                    Modifier
+                                        .fillMaxWidth(),
+                                    label = {
+                                        Text("Titulek")
+                                    },
+                                )
+                                Row(
+                                    Modifier.padding(top = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Switch(checked = includeDate, onCheckedChange = {
+                                        includeDate = it
+                                    })
+                                    Text("Ponechat datum ve zkratce", Modifier.clickable {
+                                        includeDate = !includeDate
+                                    }.padding(start = 8.dp))
+                                }
+                            }
                         }
                     )
                 },
