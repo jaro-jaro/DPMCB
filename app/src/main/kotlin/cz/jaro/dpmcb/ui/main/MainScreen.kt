@@ -55,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -63,6 +64,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -215,6 +217,8 @@ fun Main(
         true
     }
 
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         viewModel.navGraph = {
             try {
@@ -225,14 +229,14 @@ fun Main(
         }
         viewModel.confirmDeeplink = { path ->
             navController.navigateToRouteFunction(path)
-            launch {
+            scope.launch(Dispatchers.Main) {
                 drawerState.close()
             }
         }
         viewModel.navigate = navController.navigateFunction
         viewModel.updateDrawerState = { mutate ->
             val newValue = mutate(drawerState.isOpen)
-            launch {
+            scope.launch(Dispatchers.Main) {
                 if (newValue) drawerState.open() else drawerState.close()
             }
         }
@@ -335,7 +339,8 @@ fun MainScreen(
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
                     if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
-                        onEvent(MainEvent.ToggleOnlineMode)
+                        if (state.onlineStatus is MainState.OnlineStatus.Online)
+                            onEvent(MainEvent.ToggleOnlineMode)
                     }) {
                         IconWithTooltip(
                             imageVector = if (state.onlineStatus is MainState.OnlineStatus.Online && state.onlineStatus.onlineMode) Icons.Default.Wifi else Icons.Default.WifiOff,
@@ -362,11 +367,15 @@ fun MainScreen(
                         IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
                     }
 
+
                     DropdownMenu(
                         expanded = open,
                         onDismissRequest = {
                             open = false
-                        }
+                        },
+                        properties = PopupProperties(
+                            focusable = false
+                        ),
                     ) {
                         if (App.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
                             text = {

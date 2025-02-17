@@ -128,7 +128,7 @@ class MainViewModel(
                 }
                 MainEvent.RemoveCard -> repo.changeCard(false)
                 MainEvent.ToggleDrawer -> updateDrawerState { !it }
-                MainEvent.ToggleOnlineMode -> repo.editOnlineMode(isOnlineModeEnabled.value)
+                MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
                 MainEvent.UpdateData -> params.navigateToLoadingActivity(true)
             }
         }
