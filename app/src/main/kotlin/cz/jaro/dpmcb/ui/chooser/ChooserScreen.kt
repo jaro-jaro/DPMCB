@@ -58,6 +58,7 @@ import org.koin.core.parameter.parametersOf
 fun Chooser(
     args: Route.Chooser,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: ChooserViewModel = koinViewModel {
         parametersOf(
             ChooserViewModel.Parameters(

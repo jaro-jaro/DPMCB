@@ -115,6 +115,7 @@ import kotlin.time.Duration.Companion.minutes
 fun Departures(
     args: Route.Departures,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: DeparturesViewModel = koinViewModel {
         parametersOf(
             DeparturesViewModel.Parameters(

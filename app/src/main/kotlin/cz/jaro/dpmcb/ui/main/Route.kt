@@ -125,3 +125,23 @@ sealed interface Route {
         override val date: LocalDate get() = SystemClock.todayHere()
     }
 }
+
+@Serializable
+@SerialName("SuperRoute")
+sealed interface SuperRoute {
+
+    @Serializable
+    @SerialName("loading")
+    data class Loading(
+        val link: String?,
+        val update: Boolean? = null,
+    ) : SuperRoute
+
+    @Serializable
+    @SerialName("main")
+    data class Main(
+        val link: String?,
+        val isDataUpdateNeeded: Boolean = false,
+        val isAppDataUpdateNeeded: Boolean = false,
+    ) : SuperRoute
+}

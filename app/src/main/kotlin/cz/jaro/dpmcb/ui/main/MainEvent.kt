@@ -6,4 +6,5 @@ sealed interface MainEvent {
     data object ToggleOnlineMode : MainEvent
     data object RemoveCard : MainEvent
     data object UpdateData : MainEvent
+    data object UpdateApp : MainEvent
 }

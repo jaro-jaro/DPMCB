@@ -46,6 +46,7 @@ import kotlin.time.Duration.Companion.minutes
 fun NowRunning(
     args: Route.NowRunning,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: NowRunningViewModel = run {
         koinViewModel {
             parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type))

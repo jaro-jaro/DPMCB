@@ -46,6 +46,7 @@ import kotlin.time.Duration.Companion.minutes
 fun Favourites(
     args: Route.Favourites,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: FavouritesViewModel = run {
         koinViewModel {
             parametersOf(

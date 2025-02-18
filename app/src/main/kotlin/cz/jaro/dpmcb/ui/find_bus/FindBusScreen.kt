@@ -50,6 +50,7 @@ import org.koin.core.parameter.ParametersHolder
 fun FindBus(
     args: Route.FindBus,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: FindBusViewModel = koinViewModel {
         ParametersHolder(mutableListOf(args.date))
     },

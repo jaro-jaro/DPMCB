@@ -40,7 +40,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
-import cz.jaro.dpmcb.LoadingActivity
+import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -159,7 +159,7 @@ class OblibeneWidget : GlanceAppWidget() {
                 val state = prefs[PREFS_KEY_DATA]?.let { Json.decodeFromString<OblibeneWidgetState>(it) } ?: OblibeneWidgetState.NacitaSe
 
                 val style = TextStyle(ColorProvider(R.color.on_background_color))
-                val action = actionStartActivity<LoadingActivity>()
+                val action = actionStartActivity<MainActivity>()
 
                 @Composable
                 fun Refresh(text: String) {
@@ -211,7 +211,7 @@ class OblibeneWidget : GlanceAppWidget() {
     ) = Column(
         GlanceModifier.fillMaxWidth(),
     ) {
-        val action = actionStartActivity(Intent(context, LoadingActivity::class.java).apply {
+        val action = actionStartActivity(Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = "https://jaro-jaro.github.io/DPMCB/bus/${state.spojId}".toUri()
         })

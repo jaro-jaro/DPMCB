@@ -7,7 +7,10 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
+import cz.jaro.dpmcb.ui.main.SuperRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
@@ -25,19 +28,20 @@ class SettingsViewModel(
 
     data class Parameters(
         val startActivity: (Intent) -> Unit,
-        val loadingActivityIntent: Intent,
         val youAreOfflineToast: () -> Unit,
-        val navigateBack: () -> Unit,
     )
 
-    val state = repo.settings.combine(repo.version) { settings, version ->
+    lateinit var superNavigate: SuperNavigateFunction
+
+    val state = combine(repo.settings, repo.version, repo.isOnline) { settings, version, isOnline ->
         SettingsState(
             settings = settings,
             version = BuildConfig.VERSION_NAME,
             dataVersion = version,
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
+            isOnline = isOnline,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(Settings(), "", 0, 0))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(Settings(), "", 0, 0, false))
 
     fun onEvent(e: SettingsEvent) = when (e) {
         SettingsEvent.UpdateApp -> {
@@ -49,11 +53,7 @@ class SettingsViewModel(
 
         SettingsEvent.UpdateData -> {
             if (repo.isOnline.value) {
-                params.startActivity(params.loadingActivityIntent.apply {
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                    putExtra("update", true)
-                })
-                params.navigateBack()
+                superNavigate(SuperRoute.Loading(null, true), popUpTo<SuperRoute.Main>())
             } else
                 params.youAreOfflineToast()
         }

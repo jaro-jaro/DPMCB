@@ -23,6 +23,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,12 +47,12 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.rowItem
+import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.main.DrawerAction
@@ -66,6 +67,7 @@ import org.koin.core.parameter.parametersOf
 fun Settings(
     args: Route.Settings,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: SettingsViewModel = run {
         val ctx = LocalContext.current
 
@@ -75,16 +77,18 @@ fun Settings(
                     startActivity = { intent: Intent ->
                         ctx.startActivity(intent)
                     },
-                    loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
                     youAreOfflineToast = {
                         Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
                     },
-                    navigateBack = navController::navigateUp,
                 )
             )
         }
     },
 ) {
+    LaunchedEffect(Unit) {
+        viewModel.superNavigate = superNavController.superNavigateFunction
+    }
+
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     App.title = R.string.settings
@@ -247,7 +251,8 @@ fun SettingsScreen(
             contentAlignment = Alignment.CenterStart
         ) {
             Button(
-                onClick = { onEvent(SettingsEvent.UpdateApp) }
+                onClick = { onEvent(SettingsEvent.UpdateApp) },
+                enabled = state.isOnline,
             ) {
                 Text("Aktualizovat aplikaci")
             }
@@ -257,7 +262,8 @@ fun SettingsScreen(
             contentAlignment = Alignment.CenterEnd
         ) {
             Button(
-                onClick = { onEvent(SettingsEvent.UpdateData) }
+                onClick = { onEvent(SettingsEvent.UpdateData) },
+                enabled = state.isOnline,
             ) {
                 Text("Aktualizovat data")
             }
@@ -377,6 +383,7 @@ private fun SettingsPreview() {
                 version = "1.0",
                 dataVersion = 5,
                 dataMetaVersion = 1,
+                isOnline = false,
             )
         )
     }

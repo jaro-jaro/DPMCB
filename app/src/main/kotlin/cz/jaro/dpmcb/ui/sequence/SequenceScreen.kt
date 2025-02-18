@@ -54,6 +54,7 @@ import org.koin.core.parameter.parametersOf
 fun Sequence(
     args: Route.Sequence,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: SequenceViewModel = koinViewModel {
         parametersOf(
             SequenceViewModel.Parameters(

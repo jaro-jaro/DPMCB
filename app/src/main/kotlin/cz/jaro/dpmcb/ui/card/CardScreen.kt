@@ -30,6 +30,7 @@ import org.koin.core.parameter.parametersOf
 fun Card(
     args: Route.Card,
     navController: NavHostController,
+    superNavController: NavHostController,
 ) {
     App.title = R.string.empty
     App.selected = DrawerAction.TransportCard

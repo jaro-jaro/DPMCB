@@ -46,6 +46,7 @@ import org.koin.core.parameter.ParametersHolder
 fun Bus(
     args: Route.Bus,
     navController: NavHostController,
+    superNavController: NavHostController,
     viewModel: BusViewModel = run {
         val navigate = navController.navigateWithOptionsFunction
         koinViewModel {

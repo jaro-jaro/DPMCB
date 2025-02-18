@@ -29,6 +29,7 @@ import me.saket.telephoto.zoomable.rememberZoomableState
 fun Map(
     args: Route.Map,
     navController: NavHostController,
+    superNavController: NavHostController,
 ) {
     App.title = R.string.lines_map
     App.selected = DrawerAction.LinesMap

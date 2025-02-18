@@ -1,30 +1,31 @@
 package cz.jaro.dpmcb.ui.loading
 
-import android.content.Intent
-import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -35,106 +36,55 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cz.jaro.dpmcb.ExitActivity
-import cz.jaro.dpmcb.LoadingActivity
-import cz.jaro.dpmcb.MainActivity
+import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.diagramFile
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.ui.main.SuperRoute
+import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
+import kotlinx.coroutines.Job
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.io.File
-import kotlin.system.exitProcess
 
 @Composable
 fun Loading(
-    uri: String?,
-    update: Boolean,
-    finish: () -> Unit,
-) {
-    val ctx = LocalContext.current
-
-    var callback by remember { mutableStateOf({}) }
-    var errorDialog by remember { mutableStateOf(false) }
-
-    val viewModel: LoadingViewModel = koinViewModel {
-        parametersOf(
-            LoadingViewModel.Parameters(
-                uri = uri,
-                update = update,
-                error = { it: () -> Unit ->
-                    callback = it
-                    errorDialog = true
-                },
-                internetNeeded = {
-                    Toast.makeText(ctx, "Na stažení jizdních řádů je potřeba připojení k internetu!", Toast.LENGTH_LONG).show()
-                },
-                finish = finish,
-                diagramFile = ctx.diagramFile,
-                dataFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
-                sequencesFile = File(ctx.cacheDir, "kurzy.jaro"),
-                mainActivityIntent = Intent(ctx, MainActivity::class.java),
-                loadingActivityIntent = Intent(ctx, LoadingActivity::class.java),
-                startActivity = { it: Intent ->
-                    ctx.startActivity(it)
-                },
-                packageName = ctx.packageName,
-                exit = {
-                    ExitActivity.exitApplication(ctx)
-                    exitProcess(0)
-                }
+    navController: NavHostController,
+    args: SuperRoute.Loading,
+    viewModel: LoadingViewModel = run {
+        val ctx = LocalContext.current
+        koinViewModel {
+            parametersOf(
+                LoadingViewModel.Parameters(
+                    update = args.update == true,
+                    diagramFile = ctx.diagramFile,
+                    dataFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
+                    sequencesFile = File(ctx.cacheDir, "kurzy.jaro"),
+                    link = args.link,
+                )
             )
-        )
-    }
-
-    if (errorDialog) AlertDialog(
-        onDismissRequest = {
-            ExitActivity.exitApplication(ctx)
-            exitProcess(0)
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                errorDialog = false
-                callback()
-            }) {
-                Text(text = "Ano")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                ExitActivity.exitApplication(ctx)
-                exitProcess(0)
-            }) {
-                Text(text = "Ne, zavřít aplikaci")
-            }
-        },
-        title = {
-            Text(text = "Chyba!")
-        },
-        text = {
-            Text(text = "Zdá se, ža vaše jizdní řády uložené v zařízení jsou poškozené! Chcete stáhnout nové?")
         }
-    )
+    },
+) {
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.superNavigateFunction
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
-
     LoadingScreen(
-        progress = state.second,
-        infoText = state.first,
-        darkMode = if (settings.dmAsSystem) isSystemInDarkTheme() else settings.dm,
+        state = state,
+        onEvent = viewModel::onEvent,
     )
 }
 
 @Composable
 fun LoadingScreen(
-    progress: Float?,
-    infoText: String,
-    darkMode: Boolean,
+    state: LoadingState,
+    onEvent: (LoadingEvent) -> Job,
 ) {
-
     Surface(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -142,7 +92,9 @@ fun LoadingScreen(
             Modifier.fillMaxWidth()
         ) {
             Row(
-                Modifier.fillMaxWidth().height(64.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -163,28 +115,50 @@ fun LoadingScreen(
         ) {
             Image(
                 painter = painterResource(
-                    if (darkMode) R.drawable.logo_jaro_black else R.drawable.logo_jaro_white
+                    if (LocalIsDarkThemeUsed.current) R.drawable.logo_jaro_black else R.drawable.logo_jaro_white
                 ),
                 contentDescription = "Logo JARO",
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxWidth(),
                 colorFilter = ColorFilter.colorMatrix(ColorMatrix())
             )
-            Text(infoText, textAlign = TextAlign.Center)
-            if (progress == null) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                )
-            } else {
-                val animatedProgress by animateFloatAsState(progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                )
+            when (state) {
+                is LoadingState.Loading -> {
+                    Text(state.infoText, textAlign = TextAlign.Center)
+                    if (state.progress == null) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        )
+                    } else {
+                        val animatedProgress by animateFloatAsState(state.progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
+                        LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                        )
+                    }
+                }
+
+                LoadingState.Error -> {
+                    Text("Zdá se, ža vaše jizdní řády uložené v zařízení jsou poškozené!")
+                    TextButton(
+                        onClick = {
+                            onEvent(LoadingEvent.DownloadDataIfError)
+                        },
+                        contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    ) {
+                        Icon(Icons.Default.Download, null, Modifier.size(ButtonDefaults.IconSize))
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text("Stáhnout nové JŘ")
+                    }
+                }
+
+                LoadingState.Offline -> {
+                    Text("Na stažení jizdních řádů je potřeba připojení k internetu!")
+                }
             }
         }
     }

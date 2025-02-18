@@ -29,12 +29,7 @@
         </provider>
 
         <activity
-            android:name=".ExitActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.NoDisplay"
-            android:autoRemoveFromRecents="true" />
-        <activity
-            android:name=".LoadingActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -55,9 +50,6 @@
                 <data android:scheme="https" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".MainActivity"
-            android:exported="true" />
 
         <receiver android:name=".ui.bus.BroadcastReceiver" android:exported="false" />
 

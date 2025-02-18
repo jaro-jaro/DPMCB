@@ -55,6 +55,7 @@ import org.koin.core.parameter.parametersOf
 fun Timetable(
     args: Route.Timetable,
     navController: NavHostController,
+    superNavController: NavHostController,
 ) {
     title = R.string.timetable
     selected = DrawerAction.Timetable

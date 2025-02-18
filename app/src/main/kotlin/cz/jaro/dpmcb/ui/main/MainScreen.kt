@@ -82,7 +82,6 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.database
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.entities.BusNumber
@@ -95,6 +94,7 @@ import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
@@ -200,27 +200,16 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
 @Composable
 fun Main(
-    link: String?,
-    isDataUpdateNeeded: Boolean,
-    isAppUpdateNeeded: Boolean,
-    updateApp: () -> Unit,
+    superNavController: NavHostController,
+    args: SuperRoute.Main,
     navController: NavHostController = rememberNavController(),
-    viewModel: MainViewModel = run {
-        val ctx = LocalContext.current
-        koinViewModel {
-            parametersOf(
-                MainViewModel.Parameters(
-                    link = link,
-                    navigateToLoadingActivity = { update ->
-                        ctx.startActivity(Intent(ctx, LoadingActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                            putExtra("update", update)
-                        })
-                    },
-                    currentBackStackEntry = navController.currentBackStackEntryFlow,
-                )
+    viewModel: MainViewModel = koinViewModel {
+        parametersOf(
+            MainViewModel.Parameters(
+                link = args.link,
+                currentBackStackEntry = navController.currentBackStackEntryFlow,
             )
-        }
+        )
     },
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -260,6 +249,7 @@ fun Main(
             }
         }
         viewModel.navigate = navController.navigateFunction
+        viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.updateDrawerState = { mutate ->
             val newValue = mutate(drawerState.isOpen)
             scope.launch(Dispatchers.Main) {
@@ -282,9 +272,8 @@ fun Main(
     MainScreen(
         state = state,
         drawerState = drawerState,
-        isAppUpdateNeeded = isAppUpdateNeeded,
-        updateApp = updateApp,
-        isDataUpdateNeeded = isDataUpdateNeeded,
+        isAppUpdateNeeded = args.isAppDataUpdateNeeded,
+        isDataUpdateNeeded = args.isDataUpdateNeeded,
         onEvent = viewModel::onEvent,
     ) {
         NavHost(
@@ -315,17 +304,17 @@ fun Main(
                 )
             },
         ) {
-            route<Route.Favourites> { Favourites(args = it, navController = navController) }
-            route<Route.Chooser> { Chooser(args = it, navController = navController) }
-            route<Route.Departures> { Departures(args = it, navController = navController) }
-            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
-            route<Route.Timetable> { Timetable(args = it, navController = navController) }
-            route<Route.Bus> { Bus(args = it, navController = navController) }
-            route<Route.Sequence> { Sequence(args = it, navController = navController) }
-            route<Route.Card> { Card(args = it, navController = navController) }
-            route<Route.Map> { Map(args = it, navController = navController) }
-            route<Route.FindBus> { FindBus(args = it, navController = navController) }
-            route<Route.Settings> { Settings(args = it, navController = navController) }
+            route<Route.Favourites> { Favourites(args = it, navController, superNavController) }
+            route<Route.Chooser> { Chooser(args = it, navController, superNavController) }
+            route<Route.Departures> { Departures(args = it, navController, superNavController) }
+            route<Route.NowRunning> { NowRunning(args = it, navController, superNavController) }
+            route<Route.Timetable> { Timetable(args = it, navController, superNavController) }
+            route<Route.Bus> { Bus(args = it, navController, superNavController) }
+            route<Route.Sequence> { Sequence(args = it, navController, superNavController) }
+            route<Route.Card> { Card(args = it, navController, superNavController) }
+            route<Route.Map> { Map(args = it, navController, superNavController) }
+            route<Route.FindBus> { FindBus(args = it, navController, superNavController) }
+            route<Route.Settings> { Settings(args = it, navController, superNavController) }
         }
     }
 }
@@ -337,7 +326,6 @@ fun MainScreen(
     drawerState: DrawerState,
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
-    updateApp: () -> Unit,
     onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -442,18 +430,20 @@ fun MainScreen(
                                     type = "text/uri-list"
                                 }, "Sdílet").apply {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-                                        putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
-                                            ChooserAction.Builder(
-                                                createWithResource(ctx, R.drawable.baseline_today_24),
-                                                "Odstranit z odkazu datum",
-                                                PendingIntent.getBroadcast(
-                                                    ctx,
-                                                    5,
-                                                    BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
-                                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                                                ),
-                                            ).build()
-                                        ))
+                                        putExtra(
+                                            Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
+                                                ChooserAction.Builder(
+                                                    createWithResource(ctx, R.drawable.baseline_today_24),
+                                                    "Odstranit z odkazu datum",
+                                                    PendingIntent.getBroadcast(
+                                                        ctx,
+                                                        5,
+                                                        BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
+                                                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                                                    ),
+                                                ).build()
+                                            )
+                                        )
                                 })
                                 open = false
                             },
@@ -543,9 +533,12 @@ fun MainScreen(
                                     Switch(checked = includeDate, onCheckedChange = {
                                         includeDate = it
                                     })
-                                    Text("Ponechat datum ve zkratce", Modifier.clickable {
-                                        includeDate = !includeDate
-                                    }.padding(start = 8.dp))
+                                    Text(
+                                        "Ponechat datum ve zkratce", Modifier
+                                            .clickable {
+                                                includeDate = !includeDate
+                                            }
+                                            .padding(start = 8.dp))
                                 }
                             }
                         }
@@ -608,7 +601,7 @@ fun MainScreen(
                         TextButton(
                             onClick = {
                                 showDialog = false
-                                updateApp()
+                                onEvent(MainEvent.UpdateApp)
                             }
                         ) {
                             Text(stringResource(id = R.string.yes))

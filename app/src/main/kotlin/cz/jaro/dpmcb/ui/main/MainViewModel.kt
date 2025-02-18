@@ -8,9 +8,12 @@ import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.common.getRoute
+import cz.jaro.dpmcb.ui.loading.AppUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,12 +33,13 @@ import kotlin.time.Duration.Companion.seconds
 @KoinViewModel
 class MainViewModel(
     private val repo: SpojeRepository,
+    private val detailsOpener: DetailsOpener,
+    private val appUpdater: AppUpdater,
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
         val link: String?,
-        val navigateToLoadingActivity: (update: Boolean) -> Unit,
         val currentBackStackEntry: Flow<NavBackStackEntry>,
     )
 
@@ -95,11 +99,14 @@ class MainViewModel(
     lateinit var navGraph: () -> NavGraph?
     lateinit var updateDrawerState: MutateFunction<Boolean>
     lateinit var navigate: NavigateFunction
+    lateinit var superNavigate: SuperNavigateFunction
 
     init {
         params.link?.let {
             viewModelScope.launch(Dispatchers.IO) {
-                val url = encodeLink(params.link.removePrefix("/"))
+                val link = params.link.removePrefix("/DPMCB/")
+                if (link == "app-details") detailsOpener.openAppDetails()
+                val url = encodeLink(link)
                 while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
@@ -130,7 +137,8 @@ class MainViewModel(
                 MainEvent.RemoveCard -> repo.changeCard(false)
                 MainEvent.ToggleDrawer -> updateDrawerState { !it }
                 MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
-                MainEvent.UpdateData -> params.navigateToLoadingActivity(true)
+                MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
+                MainEvent.UpdateApp -> appUpdater.updateApp()
             }
         }
 
