@@ -4,9 +4,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +66,7 @@ fun CardScreen(
 ) {
     Box(
         Modifier.background(Color(0xFFD73139)).fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom))
     ) {
         if (!hasCard || card == null) {
             Button(

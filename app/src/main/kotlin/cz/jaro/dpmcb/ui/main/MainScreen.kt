@@ -18,9 +18,13 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -551,11 +555,9 @@ fun MainScreen(
                 ) else TopAppBarDefaults.topAppBarColors()
             )
         },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
-        Surface(
-            modifier = Modifier
-                .padding(paddingValues)
-        ) {
+        Surface {
             if (isDataUpdateNeeded) {
                 var showDialog by rememberSaveable { mutableStateOf(true) }
 
@@ -629,7 +631,7 @@ fun MainScreen(
                     ModalDrawerSheet(
                         Modifier
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState()),
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
@@ -639,6 +641,7 @@ fun MainScreen(
                         }
                     }
                 },
+                Modifier.padding(paddingValues),
                 drawerState = drawerState,
                 content = content
             )
