@@ -1,8 +1,12 @@
 package cz.jaro.dpmcb.ui.main
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.drawable.Icon.createWithResource
+import android.os.Build
+import android.service.chooser.ChooserAction
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
@@ -11,11 +15,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,6 +53,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -51,7 +61,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,14 +68,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.Firebase
@@ -74,19 +86,22 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.database
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.LoadingActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
+import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -95,9 +110,9 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
-import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
+import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
@@ -105,6 +120,7 @@ import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import cz.jaro.dpmcb.ui.sequence.Sequence
+import cz.jaro.dpmcb.ui.settings.Settings
 import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -113,60 +129,74 @@ import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+val localDateTypePair = typePair(
+    parseValue = {
+        if (it == "T") SystemClock.todayHere()
+        else LocalDate(
+            year = it.substring(0..<4).toInt(),
+            monthNumber = it.substring(4..<6).toInt(),
+            dayOfMonth = it.substring(6..<8).toInt(),
+        )
+    },
+    serializeAsValue = {
+        "${it.year.atLeastDigits(4)}${it.monthNumber.atLeastDigits(2)}${it.dayOfMonth.atLeastDigits(2)}"
+    },
+)
+
 inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.Bus::class -> mapOf(
         serializationTypePair<LongLine>(),
         serializationTypePair<BusNumber>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
         serializationTypePair<ShortLine>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Departures::class -> mapOf(
         serializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
         serializationTypePair<ShortLine?>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Favourites::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.FindBus::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
         serializationTypePair<List<ShortLine>>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Sequence::class -> mapOf(
         serializationTypePair<SequenceCode>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Timetable::class -> mapOf(
         serializationTypePair<ShortLine>(),
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Card::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.Map::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     Route.FindBus::class -> mapOf(
-        serializationTypePair<LocalDate>(),
+        localDateTypePair,
     )
 
     else -> emptyMap()
@@ -174,12 +204,18 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
 @Composable
 fun Main(
-    link: String?,
-    isDataUpdateNeeded: Boolean,
-    isAppUpdateNeeded: Boolean,
+    superNavController: NavHostController,
+    args: SuperRoute.Main,
+    navController: NavHostController = rememberNavController(),
+    viewModel: MainViewModel = koinViewModel {
+        parametersOf(
+            MainViewModel.Parameters(
+                link = args.link,
+                currentBackStackEntry = navController.currentBackStackEntryFlow,
+            )
+        )
+    },
 ) {
-    val scope = rememberCoroutineScope()
-    val navController = rememberNavController()
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
@@ -199,31 +235,34 @@ fun Main(
 
         true
     }
-    val closeDrawer = {
-        scope.launch {
-            drawerState.close()
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.navGraph = {
+            try {
+                navController.graph
+            } catch (_: IllegalStateException) {
+                null
+            }
         }
-        Unit
-    }
-    val openDrawer = {
-        scope.launch {
-            drawerState.open()
+        viewModel.confirmDeeplink = { path ->
+            navController.navigateToRouteFunction(path)
+            scope.launch(Dispatchers.Main) {
+                drawerState.close()
+            }
+        }
+        viewModel.navigate = navController.navigateFunction
+        viewModel.superNavigate = superNavController.superNavigateFunction
+        viewModel.updateDrawerState = { mutate ->
+            val newValue = mutate(drawerState.isOpen)
+            scope.launch(Dispatchers.Main) {
+                if (newValue) drawerState.open() else drawerState.close()
+            }
         }
     }
 
-    val ctx = LocalContext.current
-
-    val logError = { it: String ->
-        Toast.makeText(ctx, it, Toast.LENGTH_SHORT)
-    }
-
-    val viewModel: MainViewModel = koinViewModel {
-        parametersOf(closeDrawer, link, navController, Intent(ctx, LoadingActivity::class.java), { it: Intent -> ctx.startActivity(it) }, logError)
-    }
-
-    val isOnline = viewModel.isOnline.collectAsStateWithLifecycle()
-    val hasCard = viewModel.hasCard.collectAsStateWithLifecycle()
-    val isOnlineModeEnabled = viewModel.isOnlineModeEnabled.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -235,25 +274,11 @@ fun Main(
     }
 
     MainScreen(
+        state = state,
         drawerState = drawerState,
-        toggleDrawer = {
-            keyboardController?.hide()
-            if (drawerState.isClosed) openDrawer() else closeDrawer()
-        },
-        closeDrawer = closeDrawer,
-        isOnline = isOnline,
-        isOnlineModeEnabled = isOnlineModeEnabled,
-        navigate = navController.navigateFunction,
-        editOnlineMode = viewModel.editOnlineMode,
-        isAppUpdateNeeded = isAppUpdateNeeded,
-        updateApp = viewModel.updateApp,
-        isDataUpdateNeeded = isDataUpdateNeeded,
-        updateData = viewModel.updateData,
-        removeCard = viewModel.removeCard,
-        hasCard = hasCard,
-        getDate = {
-            navController.currentBackStackEntry?.getRoute()?.date ?: SystemClock.todayHere()
-        },
+        isAppUpdateNeeded = args.isAppDataUpdateNeeded,
+        isDataUpdateNeeded = args.isDataUpdateNeeded,
+        onEvent = viewModel::onEvent,
     ) {
         NavHost(
             navController = navController,
@@ -283,16 +308,17 @@ fun Main(
                 )
             },
         ) {
-            route<Route.Favourites> { Favourites(args = it, navController = navController) }
-            route<Route.Chooser> { Chooser(args = it, navController = navController) }
-            route<Route.Departures> { Departures(args = it, navController = navController) }
-            route<Route.NowRunning> { NowRunning(args = it, navController = navController) }
-            route<Route.Timetable> { Timetable(args = it, navController = navController) }
-            route<Route.Bus> { Bus(args = it, navController = navController) }
-            route<Route.Sequence> { Sequence(args = it, navController = navController) }
-            route<Route.Card> { Card(args = it, navController = navController) }
-            route<Route.Map> { Map(args = it, navController = navController) }
-            route<Route.FindBus> { FindBus(args = it, navController = navController) }
+            route<Route.Favourites> { Favourites(args = it, navController, superNavController) }
+            route<Route.Chooser> { Chooser(args = it, navController, superNavController) }
+            route<Route.Departures> { Departures(args = it, navController, superNavController) }
+            route<Route.NowRunning> { NowRunning(args = it, navController, superNavController) }
+            route<Route.Timetable> { Timetable(args = it, navController, superNavController) }
+            route<Route.Bus> { Bus(args = it, navController, superNavController) }
+            route<Route.Sequence> { Sequence(args = it, navController, superNavController) }
+            route<Route.Card> { Card(args = it, navController, superNavController) }
+            route<Route.Map> { Map(args = it, navController, superNavController) }
+            route<Route.FindBus> { FindBus(args = it, navController, superNavController) }
+            route<Route.Settings> { Settings(args = it, navController, superNavController) }
         }
     }
 }
@@ -300,20 +326,11 @@ fun Main(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    state: MainState,
     drawerState: DrawerState,
-    toggleDrawer: () -> Unit,
-    closeDrawer: () -> Unit,
-    isOnline: State<Boolean>,
-    isOnlineModeEnabled: State<Boolean>,
-    navigate: NavigateFunction,
-    hasCard: State<Boolean>,
-    removeCard: () -> Unit,
-    editOnlineMode: (Boolean) -> Unit,
     isDataUpdateNeeded: Boolean,
     isAppUpdateNeeded: Boolean,
-    updateData: () -> Unit,
-    updateApp: () -> Unit,
-    getDate: () -> LocalDate,
+    onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -325,7 +342,7 @@ fun MainScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            toggleDrawer()
+                            onEvent(MainEvent.ToggleDrawer)
                         }
                     ) {
                         IconWithTooltip(
@@ -340,24 +357,25 @@ fun MainScreen(
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
                     if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
-                        if (!isOnline.value) return@IconButton
-
-                        editOnlineMode(!isOnlineModeEnabled.value)
+                        if (state.onlineStatus is MainState.OnlineStatus.Online)
+                            onEvent(MainEvent.ToggleOnlineMode)
                     }) {
                         IconWithTooltip(
-                            imageVector = if (isOnline.value && isOnlineModeEnabled.value) Icons.Default.Wifi else Icons.Default.WifiOff,
-                            contentDescription = when {
-                                isOnline.value && isOnlineModeEnabled.value -> "Online, kliknutím přepnete do offline módu"
-                                isOnline.value && !isOnlineModeEnabled.value -> "Offline, kliknutím vypnete offline mód"
-                                else -> "Offline, nejste připojeni k internetu"
+                            imageVector = if (state.onlineStatus is MainState.OnlineStatus.Online && state.onlineStatus.onlineMode) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            contentDescription = when (state.onlineStatus) {
+                                is MainState.OnlineStatus.Online if state.onlineStatus.onlineMode -> "Online, kliknutím přepnete do offline módu"
+                                is MainState.OnlineStatus.Online -> "Offline, kliknutím vypnete offline mód"
+                                is MainState.OnlineStatus.Offline -> "Offline, nejste připojeni k internetu"
                             },
-                            tint = if (isOnline.value) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                            tint = if (state.onlineStatus is MainState.OnlineStatus.Online) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
                         )
                     }
 
                     var open by remember { mutableStateOf(false) }
                     var show by remember { mutableStateOf(false) }
+                    var includeDate by remember { mutableStateOf(true) }
                     var label by remember { mutableStateOf("") }
+                    var deeplink2 by remember { mutableStateOf("") }
 
                     val ctx = LocalContext.current
                     val shortcutManager = ctx.getSystemService(ShortcutManager::class.java)!!
@@ -369,18 +387,33 @@ fun MainScreen(
                         IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
                     }
 
+                    LaunchedEffect(Unit) {
+                        for (e in BroadcastReceiver.clicked) when (e) {
+                            BroadcastReceiver.TYPE_REMOVE_DATE -> {
+                                ctx.startActivity(Intent.createChooser(Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, deeplink2)
+                                    type = "text/uri-list"
+                                }, "Sdílet"))
+                            }
+                        }
+                    }
+
                     DropdownMenu(
                         expanded = open,
                         onDismissRequest = {
                             open = false
-                        }
+                        },
+                        properties = PopupProperties(
+                            focusable = false
+                        ),
                     ) {
-                        if (App.selected == DrawerAction.TransportCard && hasCard.value) DropdownMenuItem(
+                        if (App.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
                             onClick = {
-                                removeCard()
+                                onEvent(MainEvent.RemoveCard)
                                 open = false
                             },
                             leadingIcon = {
@@ -394,11 +427,28 @@ fun MainScreen(
                             },
                             onClick = {
                                 val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
+                                deeplink2 = "https://jaro-jaro.github.io/DPMCB/${App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
                                 ctx.startActivity(Intent.createChooser(Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, deeplink)
                                     type = "text/uri-list"
-                                }, "Sdílet"))
+                                }, "Sdílet").apply {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                                        putExtra(
+                                            Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
+                                                ChooserAction.Builder(
+                                                    createWithResource(ctx, R.drawable.baseline_today_24),
+                                                    "Odstranit z odkazu datum",
+                                                    PendingIntent.getBroadcast(
+                                                        ctx,
+                                                        5,
+                                                        BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
+                                                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                                                    ),
+                                                ).build()
+                                            )
+                                        )
+                                })
                                 open = false
                             },
                             leadingIcon = {
@@ -435,16 +485,18 @@ fun MainScreen(
                             TextButton(onClick = {
                                 if (shortcutManager.isRequestPinShortcutSupported) {
 
+                                    val route = if (includeDate) App.route else App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")
+
                                     val pinShortcutInfo = ShortcutInfo
-                                        .Builder(ctx, "${App.route}-$label")
+                                        .Builder(ctx, "$route-$label")
                                         .setShortLabel(label)
                                         .setLongLabel(label)
                                         .setIcon(
-                                            android.graphics.drawable.Icon.createWithResource(
+                                            createWithResource(
                                                 ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                                             )
                                         )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/${App.route}".toUri()))
+                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/$route".toUri()))
                                         .build()
 
                                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
@@ -462,18 +514,37 @@ fun MainScreen(
                             }
                         },
                         text = {
-                            OutlinedTextField(
-                                value = label,
-                                onValueChange = {
-                                    label = it
-                                },
+                            Column(
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                label = {
-                                    Text("Titulek")
-                                },
-                            )
+                                    .padding(top = 8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = label,
+                                    onValueChange = {
+                                        label = it
+                                    },
+                                    Modifier
+                                        .fillMaxWidth(),
+                                    label = {
+                                        Text("Titulek")
+                                    },
+                                )
+                                Row(
+                                    Modifier.padding(top = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Switch(checked = includeDate, onCheckedChange = {
+                                        includeDate = it
+                                    })
+                                    Text(
+                                        "Ponechat datum ve zkratce", Modifier
+                                            .clickable {
+                                                includeDate = !includeDate
+                                            }
+                                            .padding(start = 8.dp))
+                                }
+                            }
                         }
                     )
                 },
@@ -484,11 +555,9 @@ fun MainScreen(
                 ) else TopAppBarDefaults.topAppBarColors()
             )
         },
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
-        Surface(
-            modifier = Modifier
-                .padding(paddingValues)
-        ) {
+        Surface {
             if (isDataUpdateNeeded) {
                 var showDialog by rememberSaveable { mutableStateOf(true) }
 
@@ -500,7 +569,7 @@ fun MainScreen(
                         TextButton(
                             onClick = {
                                 showDialog = false
-                                updateData()
+                                onEvent(MainEvent.UpdateData)
                             }
                         ) {
                             Text(stringResource(id = R.string.yes))
@@ -534,7 +603,7 @@ fun MainScreen(
                         TextButton(
                             onClick = {
                                 showDialog = false
-                                updateApp()
+                                onEvent(MainEvent.UpdateApp)
                             }
                         ) {
                             Text(stringResource(id = R.string.yes))
@@ -562,19 +631,17 @@ fun MainScreen(
                     ModalDrawerSheet(
                         Modifier
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState()),
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
                                 action = action,
-                                navigate = navigate,
-                                isOnline = isOnline,
-                                closeDrawer = closeDrawer,
-                                getDate = getDate,
+                                onEvent = onEvent,
                             )
                         }
                     }
                 },
+                Modifier.padding(paddingValues),
                 drawerState = drawerState,
                 content = content
             )
@@ -586,15 +653,11 @@ fun MainScreen(
 @Composable
 fun DrawerItem(
     action: DrawerAction,
-    navigate: NavigateFunction,
-    isOnline: State<Boolean>,
-    closeDrawer: () -> Unit,
-    getDate: () -> LocalDate,
+    onEvent: (MainEvent) -> Unit,
 ) = when (action) {
-    DrawerAction.Feedback -> Feedback(action, isOnline)
+    DrawerAction.Feedback -> Feedback(action)
 
     else -> {
-        val ctx = LocalContext.current
         NavigationDrawerItem(
             label = {
                 Text(stringResource(action.label))
@@ -604,16 +667,7 @@ fun DrawerItem(
             },
             selected = App.selected == action,
             onClick = {
-                if (action.multiselect)
-                    App.selected = action
-
-                action.route?.let {
-                    navigate(it(getDate()))
-                }
-                action.activity?.let {
-                    ctx.startActivity(Intent(ctx, it.java).setAction(Intent.ACTION_MAIN))
-                }
-                closeDrawer()
+                onEvent(MainEvent.DrawerItemClicked(action))
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
@@ -624,7 +678,6 @@ fun DrawerItem(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Feedback(
     action: DrawerAction,
-    isOnline: State<Boolean>,
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
@@ -683,7 +736,7 @@ private fun Feedback(
         },
         selected = false,
         onClick = {
-            if (isOnline.value)
+            if (ctx.isOnline)
                 showDialog = true
             else
                 Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()

@@ -26,18 +26,20 @@ sealed interface Route {
     val date: LocalDate
 
     companion object {
-        val routes =
-            listOf(Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class, NowRunning::class, Sequence::class, Timetable::class, FindBus::class)
+        val routes = listOf(
+            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class,
+            NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
+        )
     }
 
     @Serializable
     @SerialName("bus")
     data class Bus(
+        override val date: LocalDate,
         val lineNumber: LongLine,
         val busNumber: BusNumber,
-        override val date: LocalDate,
     ) : Route {
-        constructor(busName: BusName, date: LocalDate) : this(busName.line(), busName.bus(), date)
+        constructor(date: LocalDate, busName: BusName) : this(date, busName.line(), busName.bus())
     }
 
     @Serializable
@@ -49,22 +51,22 @@ sealed interface Route {
     @Serializable
     @SerialName("chooser")
     data class Chooser(
+        override val date: LocalDate,
         val type: ChooserType,
         val lineNumber: ShortLine = ShortLine.invalid,
         val stop: String? = null,
-        override val date: LocalDate,
     ) : Route
 
     @Serializable
     @SerialName("departures")
     data class Departures(
+        override val date: LocalDate,
         val stop: String,
         val time: SimpleTime = SimpleTime.invalid,
         val line: ShortLine? = null,
         val via: String? = null,
         val onlyDepartures: Boolean? = null,
         val simple: Boolean? = null,
-        override val date: LocalDate,
     ) : Route
 
     @Serializable
@@ -91,20 +93,24 @@ sealed interface Route {
     @Serializable
     @SerialName("sequence")
     data class Sequence(
+        override val date: LocalDate,
         val sequenceNumber: String,
         val lineAndModifiers: String,
-        override val date: LocalDate,
     ) : Route {
-        constructor(sequence: SequenceCode, date: LocalDate) : this("${sequence.sequenceNumber()}", "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}", date)
+        constructor(date: LocalDate, sequence: SequenceCode) : this(
+            date,
+            "${sequence.sequenceNumber()}",
+            "${sequence.line()}${if (sequence.hasModifiers()) "-" else ""}${sequence.modifiers()}",
+        )
     }
 
     @Serializable
     @SerialName("timetable")
     data class Timetable(
+        override val date: LocalDate,
         val lineNumber: ShortLine,
         val stop: String,
         val nextStop: String,
-        override val date: LocalDate,
     ) : Route
 
     @Serializable
@@ -112,4 +118,30 @@ sealed interface Route {
     data class FindBus(
         override val date: LocalDate,
     ) : Route
+
+    @Serializable
+    @SerialName("settings")
+    data object Settings : Route {
+        override val date: LocalDate get() = SystemClock.todayHere()
+    }
+}
+
+@Serializable
+@SerialName("SuperRoute")
+sealed interface SuperRoute {
+
+    @Serializable
+    @SerialName("loading")
+    data class Loading(
+        val link: String?,
+        val update: Boolean? = null,
+    ) : SuperRoute
+
+    @Serializable
+    @SerialName("main")
+    data class Main(
+        val link: String?,
+        val isDataUpdateNeeded: Boolean = false,
+        val isAppDataUpdateNeeded: Boolean = false,
+    ) : SuperRoute
 }

@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.bus
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -14,6 +13,7 @@ import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
@@ -108,7 +108,7 @@ class BusViewModel(
     fun onEvent(e: BusEvent) = when (e) {
         is BusEvent.ChangeDate -> {
             viewModelScope.launch {
-                navigate(Route.Bus(busName, e.date))
+                navigate(Route.Bus(e.date, busName))
             }
             Unit
         }
@@ -123,11 +123,7 @@ class BusViewModel(
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
-                navigate(Route.Bus(state.nextBus, state.date), navOptions {
-                    popUpTo<Route.Bus> {
-                        inclusive = true
-                    }
-                })
+                navigate(Route.Bus(state.date, state.nextBus), popUpTo<Route.Bus>())
             }
             Unit
         }
@@ -135,11 +131,7 @@ class BusViewModel(
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
-                navigate(Route.Bus(state.previousBus, state.date), navOptions {
-                    popUpTo<Route.Bus> {
-                        inclusive = true
-                    }
-                })
+                navigate(Route.Bus(state.date, state.previousBus), popUpTo<Route.Bus>())
             }
             Unit
         }
@@ -154,14 +146,14 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(state.sequence, date = date))
+                navigate(Route.Sequence(date = date, state.sequence))
             }
             Unit
         }
 
         is BusEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(e.e.stopName, e.e.time.toSimpleTime(), date = date))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(e.e.line, e.e.stop, e.e.nextStop, date = date))
+            is TimetableEvent.StopClick -> navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
         }
     }
 

@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.app.Activity
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DepartureBoard
@@ -14,12 +13,10 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.SettingsActivity
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import kotlinx.datetime.LocalDate
-import kotlin.reflect.KClass
 
 
 enum class DrawerAction(
@@ -27,7 +24,6 @@ enum class DrawerAction(
     val icon: ImageVector,
     val multiselect: Boolean,
     val route: ((LocalDate) -> Route)? = null,
-    val activity: KClass<out Activity>? = null,
 ) {
     /*Connection(
         R.string.vyhledat_spojeni,
@@ -95,7 +91,7 @@ enum class DrawerAction(
         label = R.string.settings,
         icon = Icons.Default.Settings,
         multiselect = false,
-        activity = SettingsActivity::class
+        route = { Route.Settings },
     ),
     Feedback(
         label = R.string.feedback,

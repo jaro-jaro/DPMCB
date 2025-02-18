@@ -1,49 +1,50 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
-import androidx.navigation.NavHostController
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
+import cz.jaro.dpmcb.data.helperclasses.MutateFunction
+import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.popUpTo
+import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.getRoute
+import cz.jaro.dpmcb.ui.loading.AppUpdater
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
-import java.net.SocketTimeoutException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
 
 @KoinViewModel
 class MainViewModel(
-    repo: SpojeRepository,
-    onlineRepository: OnlineRepository,
-    @InjectedParam closeDrawer: () -> Unit,
-    @InjectedParam link: String?,
-    @InjectedParam navController: NavHostController,
-    @InjectedParam loadingActivityIntent: Intent,
-    @InjectedParam startActivity: (Intent) -> Unit,
-    @InjectedParam logError: (String) -> Unit,
+    private val repo: SpojeRepository,
+    private val detailsOpener: DetailsOpener,
+    private val appUpdater: AppUpdater,
+    @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
+    data class Parameters(
+        val link: String?,
+        val currentBackStackEntry: Flow<NavBackStackEntry>,
+    )
+
     val isOnline = repo.isOnline
-    val hasCard = repo.hasCard.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), false)
     val isOnlineModeEnabled = repo.isOnlineModeEnabled
-    val editOnlineMode = repo::editOnlineMode
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
@@ -58,13 +59,6 @@ class MainViewModel(
         }?.let { "?$it" } ?: ""
         "$path$args".replace(Regex("%25([0-9A-F]{2})"), "%$1")
     }
-
-    private val NavController.graphOrNull: NavGraph?
-        get() = try {
-            graph
-        } catch (_: IllegalStateException) {
-            null
-        }
 
     private fun String.translateOldCzechLinks() = this
         .replace("prave_jedouci", "now_running")
@@ -90,70 +84,80 @@ class MainViewModel(
         .replace("prukazka", "card")
         .replace("oblibene", "favourites")
 
-    private fun String.transformBusIds() = this
-        .replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")
+    private fun String.transformBusIds() =
+        replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")
 
-    private fun String.addInvalidDepartureTime(): String {
-        if ("departures" !in this) return this
-        if ("time=null" in this) return replace("time=null", "time=99:99")
-        if ("time=" in this) return this
-        if ("?" in this) return plus("&time=99:99")
-        return plus("?time=99:99")
+    private fun String.addInvalidDepartureTime() = when {
+        "departures" !in this -> this
+        "time=null" in this -> replace("time=null", "time=99:99")
+        "time=" in this -> this
+        "?" in this -> plus("&time=99:99")
+        else -> plus("?time=99:99")
     }
 
+    lateinit var confirmDeeplink: (String) -> Unit
+    lateinit var navGraph: () -> NavGraph?
+    lateinit var updateDrawerState: MutateFunction<Boolean>
+    lateinit var navigate: NavigateFunction
+    lateinit var superNavigate: SuperNavigateFunction
+
     init {
-        link?.let {
+        params.link?.let {
             viewModelScope.launch(Dispatchers.IO) {
-                val url = encodeLink(link.removePrefix("/"))
-                while (navController.graphOrNull == null) Unit
+                val link = params.link.removePrefix("/DPMCB/")
+                if (link == "app-details") detailsOpener.openAppDetails()
+                val url = encodeLink(link)
+                while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
                         App.selected = null
-                        navController.graphOrNull?.nodes
-                        navController.navigateToRouteFunction(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
-                        closeDrawer()
+                        navGraph()?.nodes
+
+                        confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                     }
                 } catch (e: IllegalArgumentException) {
                     e.printStackTrace()
-                    withContext(Dispatchers.Main) {
-                        logError("Vadná zkratka $url")
-                    }
                 }
             }
         }
     }
 
-    val updateData = {
-        startActivity(loadingActivityIntent.apply {
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-            putExtra("update", true)
-        })
-    }
-    val updateApp = {
-        viewModelScope.launch(Dispatchers.IO) {
-            val doc = try {
-                withContext(Dispatchers.IO) {
-                    Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
-                }
-            } catch (e: SocketTimeoutException) {
-                Firebase.crashlytics.recordException(e)
-                return@launch
-            }
-
-            val newestVersion = doc.text()
-
-            startActivity(Intent().apply {
-                action = Intent.ACTION_VIEW
-                data = "https://github.com/jaro-jaro/DPMCB/releases/download/v$newestVersion/Lepsi-DPMCB-v$newestVersion.apk".toUri()
-            })
-        }
-        Unit
-    }
-
-    val removeCard = {
+    fun onEvent(e: MainEvent) =
         viewModelScope.launch {
-            repo.changeCard(false)
+            when (e) {
+                is MainEvent.DrawerItemClicked -> {
+                    if (e.action.multiselect)
+                        App.selected = e.action
+
+                    e.action.route?.let {
+                        navigate(it(params.currentBackStackEntry.first().date()))
+                    }
+                    updateDrawerState { false }
+                }
+                MainEvent.RemoveCard -> repo.changeCard(false)
+                MainEvent.ToggleDrawer -> updateDrawerState { !it }
+                MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
+                MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
+                MainEvent.UpdateApp -> appUpdater.updateApp()
+            }
         }
-        Unit
-    }
+
+    private fun NavBackStackEntry.date(): LocalDate = getRoute()?.date ?: SystemClock.todayHere()
+
+    val state = combine(isOnline, isOnlineModeEnabled, repo.hasCard, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
+        MainState(
+            onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
+            hasCard = hasCard,
+            date = currentBackStackEntry.date(),
+        )
+    }.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
+        MainState(
+            onlineStatus = OnlineStatus(isOnline.value, isOnlineModeEnabled.value),
+        )
+    )
+
+    private fun OnlineStatus(isOnline: Boolean, isOnlineModeEnabled: Boolean): MainState.OnlineStatus =
+        if (!isOnline) MainState.OnlineStatus.Offline
+        else MainState.OnlineStatus.Online(isOnlineModeEnabled)
 }

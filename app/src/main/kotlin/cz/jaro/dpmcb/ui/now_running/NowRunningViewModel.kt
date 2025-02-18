@@ -77,11 +77,11 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            navigate(Route.Bus(busName = e.busName, date = SystemClock.todayHere()))
+            navigate(Route.Bus(date = SystemClock.todayHere(), busName = e.busName))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            navigate(Route.Sequence(sequence = e.seq, date = SystemClock.todayHere()))
+            navigate(Route.Sequence(date = SystemClock.todayHere(), sequence = e.seq))
         }
     }
 

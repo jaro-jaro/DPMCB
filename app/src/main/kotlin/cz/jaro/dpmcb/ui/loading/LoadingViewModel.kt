@@ -1,8 +1,5 @@
 package cz.jaro.dpmcb.ui.loading
 
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -42,17 +39,19 @@ import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.noCode
+import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
+import cz.jaro.dpmcb.ui.main.SuperRoute
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -78,31 +77,21 @@ class LoadingViewModel(
     private val db: AppDatabase,
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
-
     data class Parameters(
-        val uri: String?,
         val update: Boolean,
-        val error: (() -> Unit) -> Unit,
-        val internetNeeded: () -> Unit,
-        val finish: () -> Unit,
         val diagramFile: File,
         val dataFile: File,
         val sequencesFile: File,
-        val mainActivityIntent: Intent,
-        val loadingActivityIntent: Intent,
-        val startActivity: (Intent) -> Unit,
-        val packageName: String,
-        val exit: () -> Nothing,
+        val link: String?,
     )
+
+    lateinit var navigate: SuperNavigateFunction
 
     companion object {
         const val META_DATA_VERSION = 5
-        const val EXTRA_KEY_UPDATE_DATA = "aktualizovat-data"
-        const val EXTRA_KEY_UPDATE_APP = "aktualizovat-aplikaci"
-        const val EXTRA_KEY_DEEPLINK = "link"
     }
 
-    private val _state = MutableStateFlow("" to (null as Float?))
+    private val _state = MutableStateFlow<LoadingState>(LoadingState.Loading())
     val state = _state.asStateFlow()
 
     val settings = repo.settings
@@ -120,11 +109,12 @@ class LoadingViewModel(
             } catch (e: Exception) {
                 Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
-                showErrorDialog()
+                _state.value = LoadingState.Error
+                return@launch
             }
 
             if (params.update || repo.version.first() == -1) {
-                downloadNewData()
+                downloadNewData() ?: return@launch
             }
 
             try {
@@ -132,26 +122,25 @@ class LoadingViewModel(
             } catch (e: Exception) {
                 Firebase.crashlytics.recordException(e)
                 e.printStackTrace()
-                showErrorDialog()
-            }
-
-            val intent = resolveLink(params.mainActivityIntent)
-
-            if (!repo.isOnline.value || !repo.settings.value.checkForUpdates) {
-                params.finish()
-                params.startActivity(intent)
+                _state.value = LoadingState.Error
                 return@launch
             }
 
-            _state.update {
-                "Kontrola dostupnosti aktualizací" to null
+
+            if (!repo.isOnline.value || !repo.settings.value.checkForUpdates) {
+                while (!::navigate.isInitialized) Unit
+                withContext(Dispatchers.Main) {
+                    navigate(SuperRoute.Main(params.link), popUpTo<SuperRoute.Loading>())
+                }
+                return@launch
             }
 
-            intent.putExtra(EXTRA_KEY_UPDATE_DATA, isDataUpdateNeeded())
-            intent.putExtra(EXTRA_KEY_UPDATE_APP, isAppDataUpdateNeeded())
+            _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
-            params.finish()
-            params.startActivity(intent)
+            while (!::navigate.isInitialized) Unit
+            withContext(Dispatchers.Main) {
+                navigate(SuperRoute.Main(params.link, isDataUpdateNeeded(), isAppDataUpdateNeeded()), popUpTo<SuperRoute.Loading>())
+            }
         }
     }
 
@@ -165,43 +154,12 @@ class LoadingViewModel(
         return null
     }
 
-    private suspend fun showErrorDialog(): Nothing {
-        coroutineScope {
-            withContext(Dispatchers.Main) {
-                params.error {
-                    params.startActivity(params.loadingActivityIntent.apply {
-                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NO_HISTORY
-                        putExtra("update", true)
-                    })
-                    params.finish()
-                }
+    fun onEvent(e: LoadingEvent) = viewModelScope.launch {
+        when (e) {
+            LoadingEvent.DownloadDataIfError -> withContext(Dispatchers.Main) {
+                navigate(SuperRoute.Loading(link = params.link, update = true), popUpTo<SuperRoute.Loading>())
             }
         }
-        println() // !!! DO NOT REMOVE !!! DOESN'T WORK WITHOUT IT !!! *** !!! NEODSTRAŇOVAT !!! BEZ TOHO TO NEFUNGUJE !!!
-        while (true) Unit
-    }
-
-    private fun resolveLink(baseIntent: Intent): Intent {
-        params.uri?.let {
-
-            val link = it.removePrefix("/DPMCB")
-
-            if (link == "/app-details") openAppDetails()
-
-            baseIntent.putExtra(EXTRA_KEY_DEEPLINK, link)
-        }
-
-        return baseIntent
-    }
-
-    private fun openAppDetails(): Nothing {
-        params.finish()
-        params.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.fromParts("package", params.packageName, null)
-            addCategory(Intent.CATEGORY_DEFAULT)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-        })
-        params.exit()
     }
 
     @Keep
@@ -254,7 +212,8 @@ class LoadingViewModel(
 
         task.addOnProgressListener { snapshot ->
             _state.update {
-                it.first to snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount
+                require(it is LoadingState.Loading)
+                it.copy(progress = snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount)
             }
         }
 
@@ -263,18 +222,16 @@ class LoadingViewModel(
         return file
     }
 
-    private suspend fun downloadNewData() {
+    private suspend fun downloadNewData(): Unit? {
 
         if (!repo.isOnline.value) {
-            withContext(Dispatchers.Main) {
-                params.internetNeeded()
-            }
-            params.exit()
+            _state.value = LoadingState.Offline
+            return null
         }
 
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)" to null
-        }
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)"
+        )
 
         val storage = Firebase.storage
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
@@ -286,7 +243,7 @@ class LoadingViewModel(
         val doFullUpdate = (currentVersion + 1 != newVersion) || try {
             changesRef.downloadUrl.await()
             false
-        } catch (e: FirebaseException) {
+        } catch (_: FirebaseException) {
             true
         }
 
@@ -300,16 +257,16 @@ class LoadingViewModel(
 
         if (doFullUpdate) {
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)" to null
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)"
+            )
 
             db.clearAllTables()
             repo.reset()
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)", progress = 0F,
+            )
 
             val sequencesRef = storage.reference.child("kurzy3.json")
             val diagramRef = storage.reference.child("schema.svg")
@@ -322,9 +279,9 @@ class LoadingViewModel(
                 file = dataFile,
             ).readText()
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)", progress = 0F,
+            )
 
             val sequencesFile = params.sequencesFile
 
@@ -348,9 +305,9 @@ class LoadingViewModel(
 
             resetRemoteConfig()
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)", progress = 0F,
+            )
 
             val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
@@ -370,15 +327,17 @@ class LoadingViewModel(
                 conns += connsOfTable
             }
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)",
+                progress = 0F,
+            )
 
             downloadDiagram(diagramRef)
         } else {
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)",
+                progress = 0F,
+            )
 
             repo.reset()
 
@@ -417,24 +376,25 @@ class LoadingViewModel(
                 else -> 5
             }
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$n)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$n)",
+                progress = 0F,
+            )
 
             connStops.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { it.first to 1 / 5F }
+            _state.update { require(it is LoadingState.Loading); it.copy(progress = 1 / 5F) }
             stops.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { it.first to 2 / 5F }
+            _state.update { require(it is LoadingState.Loading); it.copy(progress = 2 / 5F) }
             timeCodes.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { it.first to 3 / 5F }
+            _state.update { require(it is LoadingState.Loading); it.copy(progress = 3 / 5F) }
             lines.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { it.first to 4 / 5F }
+            _state.update { require(it is LoadingState.Loading); it.copy(progress = 4 / 5F) }
             conns.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { it.first to 5 / 5F }
+            _state.update { require(it is LoadingState.Loading); it.copy(progress = 5 / 5F) }
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)", progress = 0F,
+            )
 
             val sequencesFile = params.sequencesFile
 
@@ -453,9 +413,10 @@ class LoadingViewModel(
 
             resetRemoteConfig()
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)",
+                progress = 0F,
+            )
 
             plus.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
                 seqOfConns += SeqOfConn(
@@ -473,9 +434,10 @@ class LoadingViewModel(
                 conns += connsOfTable
             }
 
-            _state.update {
-                "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)" to 0F
-            }
+            _state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)",
+                progress = 0F,
+            )
 
             changes.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
                 seqOfConns += SeqOfConn(
@@ -494,17 +456,18 @@ class LoadingViewModel(
             }
 
             if (changeDiagram) {
-                _state.update {
-                    "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)" to 0F
-                }
+                _state.value = LoadingState.Loading(
+                    infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)",
+                    progress = 0F,
+                )
 
                 downloadDiagram(diagramRef)
             }
         }
 
-        _state.update {
-            "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání" to null
-        }
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nUkládání",
+        )
 
         println(conns)
         println(lines)
@@ -524,6 +487,7 @@ class LoadingViewModel(
             seqGroups = seqGroups.distinctBy { it.group }.toTypedArray(),
             version = newVersion,
         )
+        return Unit
     }
 
     private suspend fun resetRemoteConfig() {
@@ -573,7 +537,8 @@ class LoadingViewModel(
                             rowindex++
 
                             _state.update {
-                                it.first to rowindex / rowsCount
+                                require(it is LoadingState.Loading)
+                                it.copy(progress = rowindex / rowsCount)
                             }
 
                             when (TableType.valueOf(typTabulky)) {

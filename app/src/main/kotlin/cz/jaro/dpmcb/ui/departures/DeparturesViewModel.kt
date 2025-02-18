@@ -221,8 +221,8 @@ class DeparturesViewModel(
         is DeparturesEvent.GoToBus -> {
             navigate(
                 Route.Bus(
-                    e.bus.busName,
                     info.value.date,
+                    e.bus.busName,
                 )
             )
         }
@@ -354,15 +354,15 @@ class DeparturesViewModel(
         )
 
         DeparturesEvent.ChangeLine -> navigate(
-            Route.Chooser(ChooserType.ReturnLine, date = info.value.date),
+            Route.Chooser(info.value.date, ChooserType.ReturnLine),
             navOptions {
                 launchSingleTop = true
             }
         )
 
-        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(ChooserType.Stops, date = date))
+        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(date, ChooserType.Stops))
         DeparturesEvent.ChangeVia -> navigate(
-            Route.Chooser(ChooserType.ReturnStop, date = date),
+            Route.Chooser(date, ChooserType.ReturnStop),
             navOptions {
                 launchSingleTop = true
             },

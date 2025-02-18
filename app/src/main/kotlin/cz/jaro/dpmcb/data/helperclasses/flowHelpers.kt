@@ -2,12 +2,16 @@
 
 package cz.jaro.dpmcb.data.helperclasses
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.time.Duration
@@ -117,18 +121,21 @@ fun <T> Flow<T>.compare(initial: T, @BuilderInference comparation: suspend (oldV
     }
 }
 
-fun <T> (() -> T).asRepeatingFlow(duration: Duration = 500.milliseconds): Flow<T> = flow {
-    while (currentCoroutineContext().isActive) {
-        emit(invoke())
-        delay(duration)
-    }
-}
 fun <T> (suspend () -> T).asRepeatingFlow(duration: Duration = 500.milliseconds): Flow<T> = flow {
     while (currentCoroutineContext().isActive) {
         emit(invoke())
         delay(duration)
     }
 }
+
+fun <T> (() -> T).asRepeatingFlow(duration: Duration = 500.milliseconds): Flow<T> = suspend { invoke() }.asRepeatingFlow(duration)
+
+fun <T> (() -> T).asRepeatingStateFlow(
+    scope: CoroutineScope,
+    started: SharingStarted,
+    duration: Duration = 500.milliseconds,
+): StateFlow<T> = asRepeatingFlow(duration).stateIn(scope, started, invoke())
+
 
 /**
  * Performs the given [action] on each element.

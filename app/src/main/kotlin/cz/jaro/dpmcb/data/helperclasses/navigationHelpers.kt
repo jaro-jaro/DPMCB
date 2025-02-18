@@ -4,11 +4,17 @@ package cz.jaro.dpmcb.data.helperclasses
 
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
+import androidx.navigation.navOptions
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.SuperRoute
 
 inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
+inline val NavHostController.superNavigateFunction: SuperNavigateFunction
+    get() = { route: SuperRoute, navOptions: NavOptions? ->
+        navigate(route, navOptions)
+    }
 inline val NavHostController.navigateFunction: NavigateFunction
     get() = navigateWithOptionsFunction.let { f ->
         { route: Route ->
@@ -27,7 +33,10 @@ inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFun
     }
 
 typealias NavigateFunction = (Route) -> Unit
+typealias SuperNavigateFunction = (SuperRoute, NavOptions?) -> Unit
 typealias NavigateWithOptionsFunction = (Route, NavOptions?) -> Unit
 typealias NavigateBackFunction<R> = (R) -> Unit
 
-operator fun NavigateWithOptionsFunction.invoke(route: Route) = invoke(route, null)
+operator fun <T> ((T, NavOptions?) -> Unit).invoke(route: T) = invoke(route, null)
+
+inline fun <reified T : Any> popUpTo() = navOptions { popUpTo<T> { inclusive = true } }

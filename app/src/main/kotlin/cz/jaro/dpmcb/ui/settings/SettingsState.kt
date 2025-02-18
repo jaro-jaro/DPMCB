@@ -7,4 +7,5 @@ data class SettingsState(
     val version: String,
     val dataVersion: Int,
     val dataMetaVersion: Int,
+    val isOnline: Boolean,
 )

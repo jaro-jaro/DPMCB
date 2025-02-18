@@ -560,9 +560,7 @@ fun share(context: Context, state: BusState.Exists) {
             PendingIntent.getBroadcast(
                 context,
                 0,
-                Intent(context, BroadcastReceiver::class.java).apply {
-                    putExtra("type", BroadcastReceiver.TYPE_COPY)
-                },
+                BroadcastReceiver.createIntent(context, BroadcastReceiver.TYPE_COPY),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             ),
         ).build()
@@ -572,9 +570,7 @@ fun share(context: Context, state: BusState.Exists) {
             PendingIntent.getBroadcast(
                 context,
                 1,
-                Intent(context, BroadcastReceiver::class.java).apply {
-                    putExtra("type", BroadcastReceiver.TYPE_ADD_IMAGE)
-                },
+                BroadcastReceiver.createIntent(context, BroadcastReceiver.TYPE_ADD_IMAGE),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             ),
         ).build()
@@ -584,9 +580,7 @@ fun share(context: Context, state: BusState.Exists) {
             PendingIntent.getBroadcast(
                 context,
                 2,
-                Intent(context, BroadcastReceiver::class.java).apply {
-                    putExtra("type", BroadcastReceiver.TYPE_SHARE_PART)
-                },
+                BroadcastReceiver.createIntent(context, BroadcastReceiver.TYPE_SHARE_PART),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             ),
         ).build()

@@ -45,6 +45,7 @@ import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.anyAre
 import cz.jaro.dpmcb.data.helperclasses.anySatisfies
+import cz.jaro.dpmcb.data.helperclasses.asRepeatingStateFlow
 import cz.jaro.dpmcb.data.helperclasses.filter
 import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.minus
@@ -89,7 +90,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
@@ -685,12 +685,8 @@ class SpojeRepository(
                 )
             }
 
-    val isOnline = flow {
-        while (currentCoroutineContext().isActive) {
-            emit(ctx.isOnline)
-            delay(5000)
-        }
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline)
+    val isOnline = ctx::isOnline
+        .asRepeatingStateFlow(scope, SharingStarted.WhileSubscribed(5_000))
 
     val hasAccessToMap = isOnline.combine(isOnlineModeEnabled) { isOnline, onlineMode ->
         isOnline && onlineMode
