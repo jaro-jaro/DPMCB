@@ -25,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -114,11 +115,12 @@ fun SettingsScreen(
 ) = LazyColumn(
     modifier = Modifier
         .fillMaxSize()
+        .padding(horizontal = 16.dp)
 ) {
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Určit tmavý režim podle systému", Modifier.weight(1F))
@@ -135,7 +137,7 @@ fun SettingsScreen(
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Tmavý režim", Modifier.weight(1F))
@@ -153,7 +155,7 @@ fun SettingsScreen(
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
@@ -214,7 +216,7 @@ fun SettingsScreen(
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
@@ -231,7 +233,7 @@ fun SettingsScreen(
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
@@ -249,7 +251,7 @@ fun SettingsScreen(
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -385,15 +387,17 @@ private fun TextWithLink(text: AnnotatedString) {
 private fun SettingsPreview() {
     val settings = Settings()
     DPMCBTheme(settings) {
-        SettingsScreen(
-            onEvent = {},
-            state = SettingsState(
-                settings = settings,
-                version = "1.0",
-                dataVersion = 5,
-                dataMetaVersion = 1,
-                isOnline = false,
+        Surface {
+            SettingsScreen(
+                onEvent = {},
+                state = SettingsState(
+                    settings = settings,
+                    version = "1.0",
+                    dataVersion = 5,
+                    dataMetaVersion = 1,
+                    isOnline = false,
+                )
             )
-        )
+        }
     }
 }
