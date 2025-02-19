@@ -20,6 +20,7 @@ import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.localDateTypePair
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +54,7 @@ class BusViewModel(
         if (!exists) return@combine BusState.DoesNotExist(busName)
         val runsAt = repo.doesConnRunAt(busName)
         val validity = repo.lineValidity(busName, date)
+        val serializedDate = localDateTypePair.second.serializeAsValue(date)
         if (!runsAt(date)) {
             val (timeCodes, fixedCodes) = repo.codes(busName, date)
             return@combine BusState.DoesNotRun(
@@ -63,7 +65,7 @@ class BusViewModel(
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = validityString(validity),
-                deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
+                deeplink = "https://jaro-jaro.github.io/DPMCB/bus/$serializedDate/$busName",
             )
         }
 
@@ -77,7 +79,7 @@ class BusViewModel(
             timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
             lineCode = validityString(validity),
-            deeplink = "https://jaro-jaro.github.io/DPMCB/spoj/$busName",
+            deeplink = "https://jaro-jaro.github.io/DPMCB/bus/$serializedDate/$busName",
             restriction = restriction,
             favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,

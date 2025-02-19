@@ -50,6 +50,7 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import kotlinx.coroutines.Job
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.koin.core.scope.Scope
 import java.io.File
 
 @Composable

@@ -3,8 +3,6 @@ package cz.jaro.dpmcb.ui.loading
 import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseException
 import com.google.firebase.crashlytics.crashlytics
@@ -66,12 +64,9 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import java.io.File
-import java.io.IOException
 
-@KoinViewModel
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val db: AppDatabase,
@@ -185,19 +180,8 @@ class LoadingViewModel(
 
         if (isDebug) return false
 
-        val doc = try {
-            withContext(Dispatchers.IO) {
-                Ksoup.parseGetRequest(
-                    url = "https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt",
-                )
-            }
-        } catch (e: IOException) {
-            Firebase.crashlytics.recordException(e)
-            return false
-        }
-
+        val newestVersion = latestAppVersion()?.toVersion(false) ?: return false
         val localVersion = BuildConfig.VERSION_NAME.toVersion(false)
-        val newestVersion = doc.text().toVersion(false)
 
         return localVersion < newestVersion
     }

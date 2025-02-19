@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.Icon.createWithResource
-import android.net.Uri
 import android.os.Build
 import android.service.chooser.ChooserAction
 import androidx.browser.customtabs.CustomTabsIntent
@@ -85,6 +84,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
@@ -617,7 +617,7 @@ suspend fun shareImage(context: Context, state: BusState.Exists, bitmap: ImageBi
         os.flush()
     }
 
-    val uri = FileProvider.getUriForFile(context, context.applicationContext.packageName + ".provider", f)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", f)
 
     context.startActivity(Intent.createChooser(Intent().apply {
         action = Intent.ACTION_SEND
@@ -722,7 +722,7 @@ fun ColumnScope.CodesAndShare(
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
-                .launchUrl(context, Uri.parse("https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0"))
+                .launchUrl(context, "https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0".toUri())
         }) {
             IconWithTooltip(Icons.Filled.Language, null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))

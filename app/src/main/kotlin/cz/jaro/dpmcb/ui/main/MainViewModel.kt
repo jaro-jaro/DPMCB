@@ -138,7 +138,7 @@ class MainViewModel(
                 MainEvent.ToggleDrawer -> updateDrawerState { !it }
                 MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
                 MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
-                MainEvent.UpdateApp -> appUpdater.updateApp()
+                is MainEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
             }
         }
 
