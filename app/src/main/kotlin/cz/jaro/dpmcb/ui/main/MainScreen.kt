@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -116,6 +117,7 @@ import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
+import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -128,6 +130,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.koin.core.scope.Scope
 
 val localDateTypePair = typePair(
     parseValue = {
@@ -594,6 +597,20 @@ fun MainScreen(
             }
             if (isAppUpdateNeeded) {
                 var showDialog by rememberSaveable { mutableStateOf(true) }
+                var loading by rememberSaveable { mutableStateOf(null as String?) }
+
+                if (loading != null) AlertDialog(
+                    onDismissRequest = {
+                        loading = null
+                    },
+                    confirmButton = {},
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator()
+                            Text(loading!!, Modifier.padding(start = 8.dp))
+                        }
+                    },
+                )
 
                 if (showDialog) AlertDialog(
                     onDismissRequest = {
@@ -603,7 +620,7 @@ fun MainScreen(
                         TextButton(
                             onClick = {
                                 showDialog = false
-                                onEvent(MainEvent.UpdateApp)
+                                onEvent(MainEvent.UpdateApp { loading = it })
                             }
                         ) {
                             Text(stringResource(id = R.string.yes))
