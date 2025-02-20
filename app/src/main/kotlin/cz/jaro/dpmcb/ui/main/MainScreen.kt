@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -68,7 +67,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -98,6 +96,7 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
@@ -675,11 +674,9 @@ private fun Feedback(
                     }
                 }
                 Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
+                val openWebsite = openWebsiteLauncher
                 TextButton(onClick = {
-                    CustomTabsIntent.Builder()
-                        .setShowTitle(true)
-                        .build()
-                        .launchUrl(ctx, "https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148".toUri())
+                    openWebsite("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
                 }) {
                     Text(text = "Přejít na GitHub")
                 }

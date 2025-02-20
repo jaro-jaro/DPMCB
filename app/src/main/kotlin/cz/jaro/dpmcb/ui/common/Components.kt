@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.common
 
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
@@ -92,7 +91,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -273,15 +271,13 @@ fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
             text = "ev. č. $vehicle",
             Modifier.padding(horizontal = 8.dp),
         )
+        val openWebsite = openWebsiteLauncher
         val context = LocalContext.current
         if (showInfoButton) IconWithTooltip(
             Icons.Default.Info,
             "Zobrazit informace o voze",
             Modifier.clickable {
-                CustomTabsIntent.Builder()
-                    .setShowTitle(true)
-                    .build()
-                    .launchUrl(context, "https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle".toUri())
+                openWebsite("https://seznam-autobusu.cz/seznam?operatorName=DP+města+České+Budějovice&prov=1&evc=$vehicle")
             },
         )
     }

@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Icon.createWithResource
 import android.os.Build
 import android.service.chooser.ChooserAction
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -84,7 +83,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
@@ -104,6 +102,7 @@ import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
+import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -718,11 +717,9 @@ fun ColumnScope.CodesAndShare(
     Row(
         modifier = Modifier.fillMaxWidth(),
     ) {
+        val openWebsite = openWebsiteLauncher
         TextButton(onClick = {
-            CustomTabsIntent.Builder()
-                .setShowTitle(true)
-                .build()
-                .launchUrl(context, "https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0".toUri())
+            openWebsite("https://mpvnet.cz/Jikord/map/Route?mode=0,0,2,0,${state.busName.value.replace('/', ',')},0")
         }) {
             IconWithTooltip(Icons.Filled.Language, null, Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
