@@ -66,7 +66,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
@@ -78,7 +77,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.database
-import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
@@ -516,14 +514,14 @@ fun MainScreen(
                                 onEvent(MainEvent.UpdateData)
                             }
                         ) {
-                            Text(stringResource(id = R.string.yes))
+                            Text("Ano")
                         }
                     },
                     title = {
-                        Text(stringResource(id = R.string.data_update))
+                        Text("Aktualizace JŘ")
                     },
                     text = {
-                        Text(stringResource(id = R.string.do_you_want_to_update))
+                        Text("Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?")
                     },
                     dismissButton = {
                         TextButton(
@@ -531,7 +529,7 @@ fun MainScreen(
                                 showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.no))
+                            Text("Ne")
                         }
                     },
                 )
@@ -564,7 +562,7 @@ fun MainScreen(
                                 onEvent(MainEvent.UpdateApp { loading = it })
                             }
                         ) {
-                            Text(stringResource(id = R.string.yes))
+                            Text("Ano")
                         }
                     },
                     title = {
@@ -579,7 +577,7 @@ fun MainScreen(
                                 showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.no))
+                            Text("Ne")
                         }
                     },
                 )
@@ -618,10 +616,10 @@ fun DrawerItem(
     else -> {
         NavigationDrawerItem(
             label = {
-                Text(stringResource(action.label))
+                Text(action.label)
             },
             icon = {
-                IconWithTooltip(action.icon, stringResource(action.label))
+                IconWithTooltip(action.icon, action.label)
             },
             selected = AppState.selected == action,
             onClick = {
@@ -687,10 +685,10 @@ private fun Feedback(
     )
     NavigationDrawerItem(
         label = {
-            Text(stringResource(action.label))
+            Text(action.label)
         },
         icon = {
-            IconWithTooltip(action.icon, stringResource(action.label))
+            IconWithTooltip(action.icon, action.label)
         },
         selected = false,
         onClick = {

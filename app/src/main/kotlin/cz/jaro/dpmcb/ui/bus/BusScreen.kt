@@ -58,7 +58,7 @@ fun Bus(
         }
     },
 ) {
-    AppState.title = "R.string.detail_spoje"
+    AppState.title = "Detail spoje"
     AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
