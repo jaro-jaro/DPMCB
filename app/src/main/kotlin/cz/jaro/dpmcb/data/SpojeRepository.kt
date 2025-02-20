@@ -82,6 +82,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -160,6 +161,8 @@ class SpojeRepository(
     val showDeparturesOnly = preferenceDataSource.departures
 
     val favourites = preferenceDataSource.favourites
+
+    val recents: Flow<List<BusName>> = preferenceDataSource.recents
 
     val version = preferenceDataSource.version
 
@@ -588,13 +591,19 @@ class SpojeRepository(
 
     suspend fun changeFavourite(part: PartOfConn) {
         preferenceDataSource.changeFavourites { favourites ->
-            listOf(part).plus(favourites).distinctBy { it.busName }
+            (listOf(part) + favourites).distinctBy { it.busName }
         }
     }
 
     suspend fun removeFavourite(name: BusName) {
         preferenceDataSource.changeFavourites { favourites ->
             favourites - favourites.first { it.busName == name }
+        }
+    }
+
+    suspend fun pushRecentBus(bus: BusName) {
+        preferenceDataSource.changeRecents { recents ->
+            (listOf(bus) + recents).distinct().take(settings.value.recentBusesCount)
         }
     }
 

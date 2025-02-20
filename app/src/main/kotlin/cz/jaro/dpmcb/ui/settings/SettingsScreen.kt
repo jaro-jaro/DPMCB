@@ -1,13 +1,13 @@
 package cz.jaro.dpmcb.ui.settings
 
-import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -18,13 +18,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -34,6 +39,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +50,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,31 +81,18 @@ fun Settings(
     args: Route.Settings,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: SettingsViewModel = run {
-        val ctx = LocalContext.current
-
-        koinViewModel {
-            parametersOf(
-                SettingsViewModel.Parameters(
-                    startActivity = { intent: Intent ->
-                        ctx.startActivity(intent)
-                    },
-                    youAreOfflineToast = {
-                        Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
-                    },
-                )
-            )
-        }
+    viewModel: SettingsViewModel = koinViewModel {
+        parametersOf(SettingsViewModel.Parameters)
     },
 ) {
+    App.title = R.string.settings
+    App.selected = DrawerAction.Settings
+
     LaunchedEffect(Unit) {
         viewModel.superNavigate = superNavController.superNavigateFunction
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    App.title = R.string.settings
-    App.selected = DrawerAction.Settings
 
     SettingsScreen(
         state = state,
@@ -114,150 +108,42 @@ fun SettingsScreen(
 ) = LazyColumn(
     modifier = Modifier
         .fillMaxSize()
+        .padding(horizontal = 16.dp)
 ) {
-    rowItem(
-        modifier = Modifier
+    if (state.settings != null) settings(state.settings, onEvent)
+    else rowItem(
+        Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(all = 16.dp),
+        horizontalArrangement = Arrangement.Center,
     ) {
-        Text("Určit tmavý režim podle systému", Modifier.weight(1F))
-
-        Switch(
-            checked = state.settings.dmAsSystem,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(dmAsSystem = value)
-                })
-            },
-        )
+        CircularProgressIndicator()
     }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Tmavý režim", Modifier.weight(1F))
 
-        Switch(
-            checked = if (state.settings.dmAsSystem) isSystemInDarkTheme() else state.settings.dm,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(dm = value)
-                })
-            },
-            enabled = !state.settings.dmAsSystem
-        )
-    }
     rowItem(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
-        val options = remember {
-            buildList {
-                if (dynamicColorsSupported) add("Dynamické")
-                addAll(Theme.entries.map { it.jmeno })
-            }
-        }
-        var expanded by remember { mutableStateOf(false) }
-        val selectedOption by remember(state.settings.dynamicColors, state.settings.theme) {
-            derivedStateOf {
-                when {
-                    dynamicColorsSupported && state.settings.dynamicColors -> options.first()
-                    else -> state.settings.theme.jmeno
+        var loading by rememberSaveable { mutableStateOf(null as String?) }
+
+        if (loading != null) AlertDialog(
+            onDismissRequest = { loading = null },
+            confirmButton = {},
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Text(loading!!, Modifier.padding(start = 8.dp))
                 }
-            }
-        }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            TextField(
-                modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-                readOnly = true,
-                value = selectedOption,
-                onValueChange = {},
-                label = { Text("Téma aplikace") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                options.forEachIndexed { i, option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            onEvent(SettingsEvent.EditSettings { settings ->
-                                when {
-                                    dynamicColorsSupported && i == 0 -> settings.copy(dynamicColors = true)
-                                    dynamicColorsSupported -> settings.copy(theme = Theme.entries[i - 1], dynamicColors = false)
-                                    else -> settings.copy(theme = Theme.entries[i], dynamicColors = false)
-                                }
-                            })
-                            expanded = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                    )
-                }
-            }
-        }
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
-
-        Switch(
-            checked = !state.settings.autoOnline,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(autoOnline = !value)
-                })
             },
         )
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
-
-        Switch(
-            checked = state.settings.checkForUpdates,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(checkForUpdates = value)
-                })
-            },
-        )
-    }
-
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
         Box(
             Modifier.weight(1F),
             contentAlignment = Alignment.CenterStart
         ) {
             Button(
-                onClick = { onEvent(SettingsEvent.UpdateApp) },
+                onClick = { onEvent(SettingsEvent.UpdateApp { loading = it }) },
                 enabled = state.isOnline,
             ) {
                 Text("Aktualizovat aplikaci")
@@ -354,6 +240,168 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+private fun LazyListScope.settings(
+    settings: Settings,
+    onEvent: (SettingsEvent) -> Unit,
+) {
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Určit tmavý režim podle systému", Modifier.weight(1F))
+
+        Switch(
+            checked = settings.dmAsSystem,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(dmAsSystem = value)
+                })
+            },
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Tmavý režim", Modifier.weight(1F))
+
+        Switch(
+            checked = if (settings.dmAsSystem) isSystemInDarkTheme() else settings.dm,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(dm = value)
+                })
+            },
+            enabled = !settings.dmAsSystem
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+        val options = remember {
+            buildList {
+                if (dynamicColorsSupported) add("Dynamické")
+                addAll(Theme.entries.map { it.jmeno })
+            }
+        }
+        var expanded by remember { mutableStateOf(false) }
+        val selectedOption by remember(settings.dynamicColors, settings.theme) {
+            derivedStateOf {
+                when {
+                    dynamicColorsSupported && settings.dynamicColors -> options.first()
+                    else -> settings.theme.jmeno
+                }
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+        ) {
+            TextField(
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                readOnly = true,
+                value = selectedOption,
+                onValueChange = {},
+                label = { Text("Téma aplikace") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEachIndexed { i, option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onEvent(SettingsEvent.EditSettings { settings ->
+                                when {
+                                    dynamicColorsSupported && i == 0 -> settings.copy(dynamicColors = true)
+                                    dynamicColorsSupported -> settings.copy(theme = Theme.entries[i - 1], dynamicColors = false)
+                                    else -> settings.copy(theme = Theme.entries[i], dynamicColors = false)
+                                }
+                            })
+                            expanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    )
+                }
+            }
+        }
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
+
+        Switch(
+            checked = !settings.autoOnline,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(autoOnline = !value)
+                })
+            },
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
+
+        Switch(
+            checked = settings.checkForUpdates,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(checkForUpdates = value)
+                })
+            },
+        )
+    }
+
+    item {
+        var value by remember { mutableStateOf(settings.recentBusesCount.toString()) }
+
+        TextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            value = value,
+            onValueChange = {
+                value = it
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(recentBusesCount = value.toIntOrNull() ?: it.recentBusesCount)
+                })
+            },
+            isError = value != settings.recentBusesCount.toString(),
+            label = { Text("Počet uložených nedávno navštívených spojů") },
+            supportingText = { Text("Nastavte 0 pro úplné vypnutí funkce") },
+            singleLine = true,
+            maxLines = 1,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+            )
+        )
+    }
+}
+
 @Composable
 private fun TextWithLink(text: AnnotatedString) {
     val context = LocalContext.current
@@ -385,15 +433,17 @@ private fun TextWithLink(text: AnnotatedString) {
 private fun SettingsPreview() {
     val settings = Settings()
     DPMCBTheme(settings) {
-        SettingsScreen(
-            onEvent = {},
-            state = SettingsState(
-                settings = settings,
-                version = "1.0",
-                dataVersion = 5,
-                dataMetaVersion = 1,
-                isOnline = false,
+        Surface {
+            SettingsScreen(
+                onEvent = {},
+                state = SettingsState(
+                    settings = settings,
+                    version = "1.0",
+                    dataVersion = 5,
+                    dataMetaVersion = 1,
+                    isOnline = false,
+                )
             )
-        )
+        }
     }
 }

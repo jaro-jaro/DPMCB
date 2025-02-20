@@ -7,6 +7,8 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 sealed interface FavouriteState {
     val busName: BusName
@@ -42,4 +44,13 @@ sealed interface FavouriteState {
     ) : FavouriteState {
         override val nextWillRun: LocalDate get() = SystemClock.todayHere()
     }
+
+}
+
+@OptIn(ExperimentalContracts::class)
+fun FavouriteState.isOnline(): Boolean {
+    contract {
+        returns(true) implies (this@isOnline is FavouriteState.Online)
+    }
+    return this is FavouriteState.Online
 }

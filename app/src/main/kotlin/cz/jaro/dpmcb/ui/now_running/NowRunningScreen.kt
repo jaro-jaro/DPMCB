@@ -60,13 +60,13 @@ fun NowRunning(
         }
     },
 ) {
+    App.title = R.string.now_running
+    App.selected = DrawerAction.NowRunning
+
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateFunction
         viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
     }
-
-    App.title = R.string.now_running
-    App.selected = DrawerAction.NowRunning
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

@@ -13,4 +13,5 @@ data class Settings(
     @SerialName("tema") val theme: Theme = Theme.Default,
     val autoOnline: Boolean = true,
     @SerialName("kontrolaAktualizaci") val checkForUpdates: Boolean = true,
+    val recentBusesCount: Int = 3,
 )

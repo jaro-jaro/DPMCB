@@ -89,7 +89,7 @@ class App : Application() {
                     LoadingViewModel(get(), get(), params.get())
                 }
                 viewModel { params ->
-                    SettingsViewModel(get(), params.get())
+                    SettingsViewModel(get(), get(), params.get())
                 }
             })
             defaultModule()

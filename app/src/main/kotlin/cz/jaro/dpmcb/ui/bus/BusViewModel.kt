@@ -69,6 +69,8 @@ class BusViewModel(
             )
         }
 
+        repo.pushRecentBus(busName)
+
         val bus = repo.busDetail(busName, date)
         val restriction = repo.hasRestriction(busName, date)
         BusState.OK(

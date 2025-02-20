@@ -136,6 +136,9 @@ fun Departures(
         )
     }
 ) {
+    title = R.string.departures
+    App.selected = DrawerAction.Departures
+
     LifecycleResumeEffect(Unit) {
         val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
 
@@ -146,9 +149,6 @@ fun Departures(
                 navController.currentBackStackEntry?.savedStateHandle?.remove<ChooserResult>("result")
         }
     }
-
-    title = R.string.departures
-    App.selected = DrawerAction.Departures
 
     val info by viewModel.info.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
