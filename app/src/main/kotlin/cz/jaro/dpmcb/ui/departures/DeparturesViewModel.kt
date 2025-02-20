@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
 import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -97,7 +98,7 @@ class DeparturesViewModel(
 
     @SuppressLint("RestrictedApi")
     private fun changeCurrentRoute(info: DeparturesInfo) {
-        App.route = Route.Departures(
+        AppState.route = Route.Departures(
             stop = params.stop,
             time = info.time.toSimpleTime(),
             line = info.lineFilter,

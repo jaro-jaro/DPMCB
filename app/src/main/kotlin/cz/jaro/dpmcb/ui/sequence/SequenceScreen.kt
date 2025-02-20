@@ -32,9 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -70,8 +68,8 @@ fun Sequence(
         )
     },
 ) {
-    title = R.string.detail_kurzu
-    App.selected = DrawerAction.FindBus
+    AppState.title = "Detail kurzu"
+    AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateFunction

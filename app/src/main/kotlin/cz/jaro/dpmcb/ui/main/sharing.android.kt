@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 
 const val supportsSharing = true
@@ -37,8 +37,8 @@ val shareManager: ShareManager
         }
 
         return ShareManager { state ->
-            val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
-            deeplink2 = "https://jaro-jaro.github.io/DPMCB/${App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
+            val deeplink = "https://jaro-jaro.github.io/DPMCB/${AppState.route}"
+            deeplink2 = "https://jaro-jaro.github.io/DPMCB/${AppState.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
             ctx.startActivity(Intent.createChooser(Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, deeplink)

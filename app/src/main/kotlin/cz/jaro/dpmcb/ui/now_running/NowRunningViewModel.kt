@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.ui.now_running
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -56,7 +56,7 @@ class NowRunningViewModel(
 
     private fun changeCurrentRoute() {
         try {
-            App.route = Route.NowRunning(
+            AppState.route = Route.NowRunning(
                 filters = filters.value,
                 type = type.value,
             ).generateRouteWithArgs(getNavDestination() ?: return)

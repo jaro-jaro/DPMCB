@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 
 const val supportsShortcuts = true
 
@@ -21,7 +21,7 @@ val shortcutCreator: ShortcutCreator
         return ShortcutCreator { includeDate: Boolean, label: String, state: MainState ->
             if (shortcutManager.isRequestPinShortcutSupported) {
 
-                val route = if (includeDate) App.route else App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")
+                val route = if (includeDate) AppState.route else AppState.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")
 
                 val pinShortcutInfo = ShortcutInfo
                     .Builder(ctx, "$route-$label")

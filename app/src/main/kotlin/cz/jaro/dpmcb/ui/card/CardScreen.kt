@@ -23,8 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import org.koin.androidx.compose.koinViewModel
@@ -37,8 +36,8 @@ fun Card(
     navController: NavHostController,
     superNavController: NavHostController,
 ) {
-    App.title = R.string.empty
-    App.selected = DrawerAction.TransportCard
+    AppState.title = ""
+    AppState.selected = DrawerAction.TransportCard
 
     val launcher = rememberResultLauncher(ActivityResultContracts.PickVisualMedia())
 

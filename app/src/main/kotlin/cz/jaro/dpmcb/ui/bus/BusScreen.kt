@@ -29,9 +29,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.helperclasses.navigateWithOptionsFunction
@@ -60,8 +58,8 @@ fun Bus(
         }
     },
 ) {
-    title = R.string.detail_spoje
-    App.selected = DrawerAction.FindBus
+    AppState.title = "R.string.detail_spoje"
+    AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateWithOptionsFunction

@@ -34,8 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
@@ -60,8 +59,8 @@ fun NowRunning(
         }
     },
 ) {
-    App.title = R.string.now_running
-    App.selected = DrawerAction.NowRunning
+    AppState.title = "Právě jedoucí"
+    AppState.selected = DrawerAction.NowRunning
 
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateFunction

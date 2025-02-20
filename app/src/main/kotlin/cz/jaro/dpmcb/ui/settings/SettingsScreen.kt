@@ -60,8 +60,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.rowItem
@@ -85,8 +84,8 @@ fun Settings(
         parametersOf(SettingsViewModel.Parameters)
     },
 ) {
-    App.title = R.string.settings
-    App.selected = DrawerAction.Settings
+    AppState.title = "Nastavení"
+    AppState.selected = DrawerAction.Settings
 
     LaunchedEffect(Unit) {
         viewModel.superNavigate = superNavController.superNavigateFunction

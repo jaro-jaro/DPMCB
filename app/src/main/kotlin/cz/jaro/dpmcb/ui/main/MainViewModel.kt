@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -110,7 +110,7 @@ class MainViewModel(
                 while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
-                        App.selected = null
+                        AppState.selected = null
                         navGraph()?.nodes
 
                         confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
@@ -127,7 +127,7 @@ class MainViewModel(
             when (e) {
                 is MainEvent.DrawerItemClicked -> {
                     if (e.action.multiselect)
-                        App.selected = e.action
+                        AppState.selected = e.action
 
                     e.action.route?.let {
                         navigate(it(params.currentBackStackEntry.first().date()))

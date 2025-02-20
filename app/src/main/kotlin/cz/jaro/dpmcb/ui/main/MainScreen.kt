@@ -79,7 +79,7 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.database.database
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
@@ -259,7 +259,7 @@ fun Main(
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
                 if (entry.destination.route == null) return@collect
-                App.route = entry.generateRouteWithArgs() ?: ""
+                AppState.route = entry.generateRouteWithArgs() ?: ""
             }
         }
     }
@@ -328,7 +328,7 @@ fun MainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(App.title))
+                    Text(AppState.title)
                 },
                 navigationIcon = {
                     IconButton(
@@ -344,10 +344,10 @@ fun MainScreen(
                 },
                 actions = {
                     val time by nowFlow.collectAsStateWithLifecycle()
-                    if (App.selected != DrawerAction.TransportCard)
+                    if (AppState.selected != DrawerAction.TransportCard)
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
-                    if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
+                    if (AppState.selected != DrawerAction.TransportCard) IconButton(onClick = {
                         if (state.onlineStatus is MainState.OnlineStatus.Online)
                             onEvent(MainEvent.ToggleOnlineMode)
                     }) {
@@ -364,10 +364,7 @@ fun MainScreen(
 
                     var open by remember { mutableStateOf(false) }
 
-                    val ctx = LocalContext.current
-                    val res = ctx.resources
-
-                    if (App.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts || supportsSharing)
+                    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts || supportsSharing)
                         IconButton(onClick = {
                             open = !open
                         }) {
@@ -383,7 +380,7 @@ fun MainScreen(
                             focusable = false
                         ),
                     ) {
-                        if (App.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
+                        if (AppState.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
@@ -424,7 +421,7 @@ fun MainScreen(
                                     Text("Připnout zkratku na domovskou obrazovku")
                                 },
                                 onClick = {
-                                    label = res.getString(App.title)
+                                    label = AppState.title
                                     open = false
                                     show = true
                                 },
@@ -495,7 +492,7 @@ fun MainScreen(
                     }
 
                 },
-                colors = if (App.title == R.string.empty) TopAppBarDefaults.topAppBarColors(
+                colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFD73139),
                     navigationIconContentColor = Color.Transparent,
                     actionIconContentColor = Color.White,
@@ -626,7 +623,7 @@ fun DrawerItem(
             icon = {
                 IconWithTooltip(action.icon, stringResource(action.label))
             },
-            selected = App.selected == action,
+            selected = AppState.selected == action,
             onClick = {
                 onEvent(MainEvent.DrawerItemClicked(action))
             },

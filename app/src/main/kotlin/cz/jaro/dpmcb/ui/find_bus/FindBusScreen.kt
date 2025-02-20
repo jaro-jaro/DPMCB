@@ -38,9 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
@@ -61,8 +59,8 @@ fun FindBus(
         ParametersHolder(mutableListOf(args.date))
     },
 ) {
-    title = R.string.find_bus_by_id
-    App.selected = DrawerAction.FindBus
+    AppState.title = "Najít spoj"
+    AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateFunction

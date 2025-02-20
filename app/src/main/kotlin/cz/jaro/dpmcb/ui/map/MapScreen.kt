@@ -19,8 +19,7 @@ import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import coil.size.Dimension
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.diagramFile
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
@@ -36,8 +35,8 @@ fun Map(
     navController: NavHostController,
     superNavController: NavHostController,
 ) {
-    App.title = R.string.lines_map
-    App.selected = DrawerAction.LinesMap
+    AppState.title = "Schéma linek"
+    AppState.selected = DrawerAction.LinesMap
 
     MapScreen()
 }
