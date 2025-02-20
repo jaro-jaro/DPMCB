@@ -76,14 +76,6 @@ fun Chooser(
         )
     },
 ) {
-    LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateFunction
-        viewModel.navigateBack = { it: ChooserResult ->
-            navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
-            navController.popBackStack()
-        }
-    }
-
     title = when (args.type) {
         ChooserType.Stops -> R.string.departures
         ChooserType.Lines -> R.string.timetable
@@ -108,6 +100,14 @@ fun Chooser(
         ChooserType.ReturnStop1,
         ChooserType.ReturnStop2,
             -> null
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigate = navController.navigateFunction
+        viewModel.navigateBack = { it: ChooserResult ->
+            navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
+            navController.popBackStack()
+        }
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

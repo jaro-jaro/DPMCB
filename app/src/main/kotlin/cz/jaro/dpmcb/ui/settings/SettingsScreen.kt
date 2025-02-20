@@ -97,14 +97,14 @@ fun Settings(
         }
     },
 ) {
+    App.title = R.string.settings
+    App.selected = DrawerAction.Settings
+
     LaunchedEffect(Unit) {
         viewModel.superNavigate = superNavController.superNavigateFunction
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    App.title = R.string.settings
-    App.selected = DrawerAction.Settings
 
     SettingsScreen(
         state = state,
