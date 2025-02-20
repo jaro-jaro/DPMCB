@@ -1,14 +1,13 @@
 package cz.jaro.dpmcb.ui.settings
 
-import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -21,6 +20,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +39,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,21 +81,8 @@ fun Settings(
     args: Route.Settings,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: SettingsViewModel = run {
-        val ctx = LocalContext.current
-
-        koinViewModel {
-            parametersOf(
-                SettingsViewModel.Parameters(
-                    startActivity = { intent: Intent ->
-                        ctx.startActivity(intent)
-                    },
-                    youAreOfflineToast = {
-                        Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
-                    },
-                )
-            )
-        }
+    viewModel: SettingsViewModel = koinViewModel {
+        parametersOf(SettingsViewModel.Parameters)
     },
 ) {
     App.title = R.string.settings
@@ -138,12 +126,24 @@ fun SettingsScreen(
             .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        var loading by rememberSaveable { mutableStateOf(null as String?) }
+
+        if (loading != null) AlertDialog(
+            onDismissRequest = { loading = null },
+            confirmButton = {},
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Text(loading!!, Modifier.padding(start = 8.dp))
+                }
+            },
+        )
         Box(
             Modifier.weight(1F),
             contentAlignment = Alignment.CenterStart
         ) {
             Button(
-                onClick = { onEvent(SettingsEvent.UpdateApp) },
+                onClick = { onEvent(SettingsEvent.UpdateApp { loading = it }) },
                 enabled = state.isOnline,
             ) {
                 Text("Aktualizovat aplikaci")

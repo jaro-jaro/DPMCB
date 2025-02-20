@@ -1,13 +1,12 @@
 package cz.jaro.dpmcb.ui.settings
 
-import android.content.Intent
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
+import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,13 +21,11 @@ import kotlin.time.Duration.Companion.seconds
 @KoinViewModel
 class SettingsViewModel(
     private val repo: SpojeRepository,
+    private val appUpdater: AppUpdater,
     @InjectedParam private val params: Parameters,
 ) : ViewModel() {
 
-    data class Parameters(
-        val startActivity: (Intent) -> Unit,
-        val youAreOfflineToast: () -> Unit,
-    )
+    data object Parameters
 
     lateinit var superNavigate: SuperNavigateFunction
 
@@ -43,18 +40,10 @@ class SettingsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false))
 
     fun onEvent(e: SettingsEvent) = when (e) {
-        SettingsEvent.UpdateApp -> {
-            params.startActivity(Intent().apply {
-                action = Intent.ACTION_VIEW
-                data = "https://github.com/jaro-jaro/DPMCB/releases/latest".toUri()
-            })
-        }
+        is SettingsEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
 
         SettingsEvent.UpdateData -> {
-            if (repo.isOnline.value) {
-                superNavigate(SuperRoute.Loading(null, true), popUpTo<SuperRoute.Main>())
-            } else
-                params.youAreOfflineToast()
+            superNavigate(SuperRoute.Loading(null, true), popUpTo<SuperRoute.Main>())
         }
 
         is SettingsEvent.EditSettings -> {
