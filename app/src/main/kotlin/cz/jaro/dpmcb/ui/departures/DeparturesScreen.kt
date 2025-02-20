@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.departures
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -179,7 +178,6 @@ fun Departures(
     )
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeparturesScreen(
@@ -228,7 +226,7 @@ fun DeparturesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding()
+            .padding(it)
     ) {
         Row(
             modifier = Modifier

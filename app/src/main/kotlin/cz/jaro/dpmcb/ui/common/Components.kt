@@ -359,7 +359,6 @@ fun IconWithTooltip(
             useDarkTheme = LocalIsDarkThemeUsed.current,
             useDynamicColor = LocalIsDynamicThemeUsed.current,
             theme = LocalTheme.current ?: Theme.Default,
-            setStatusBarColor = false,
         ) {
             PlainTooltip {
                 Text(text = tooltipText)
