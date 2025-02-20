@@ -5,7 +5,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
@@ -41,7 +40,7 @@ class SettingsViewModel(
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
             isOnline = isOnline,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(Settings(), "", 0, 0, false))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false))
 
     fun onEvent(e: SettingsEvent) = when (e) {
         SettingsEvent.UpdateApp -> {

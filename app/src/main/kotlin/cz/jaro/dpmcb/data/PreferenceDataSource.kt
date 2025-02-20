@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ class PreferenceDataSource(
     object PreferenceKeys {
         val VERSION = intPreferencesKey("verze")
         val FAVOURITES = stringPreferencesKey("oblibene_useky")
+        val RECENTS = stringPreferencesKey("recents")
         val LOW_FLOOR = booleanPreferencesKey("nizkopodlaznost")
         val DEPARTURES = booleanPreferencesKey("odjezdy")
         val SETTINGS = stringPreferencesKey("nastaveni")
@@ -36,6 +38,7 @@ class PreferenceDataSource(
     object DefaultValues {
         const val VERSION = -1
         val FAVOURITES = listOf<PartOfConn>()
+        val RECENTS = listOf<BusName>()
         const val LOW_FLOOR = false
         const val DEPARTURES = false
         val SETTINGS = Settings()
@@ -61,21 +64,11 @@ class PreferenceDataSource(
         it[PreferenceKeys.VERSION] ?: DefaultValues.VERSION
     }
 
-//    val SpojverzeKurzu = dataStore.data.map {
-//        it[PreferenceKeys.VERZE_KURZU] ?: DefaultValues.VERZE_KURZU
-//    }
-
     suspend fun changeVersion(value: Int) {
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.VERSION] = value
         }
     }
-
-//    suspend fun zmenitVerziKurzu(value: Int) {
-//        dataStore.edit { preferences ->
-//            preferences[PreferenceKeys.VERZE_KURZU] = value
-//        }
-//    }
 
     val favourites = dataStore.data.map { preferences ->
         preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString<List<PartOfConn>>(it) } ?: DefaultValues.FAVOURITES
@@ -85,6 +78,17 @@ class PreferenceDataSource(
         dataStore.edit { preferences ->
             val lastValue = preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString(it) } ?: DefaultValues.FAVOURITES
             preferences[PreferenceKeys.FAVOURITES] = Json.encodeToString(update(lastValue))
+        }
+    }
+
+    val recents = dataStore.data.map { preferences ->
+        preferences[PreferenceKeys.RECENTS]?.let { Json.decodeFromString<List<BusName>>(it) } ?: DefaultValues.RECENTS
+    }
+
+    suspend fun changeRecents(update: (List<BusName>) -> List<BusName>) {
+        dataStore.edit { preferences ->
+            val lastValue = preferences[PreferenceKeys.RECENTS]?.let { Json.decodeFromString(it) } ?: DefaultValues.RECENTS
+            preferences[PreferenceKeys.RECENTS] = Json.encodeToString(update(lastValue))
         }
     }
 

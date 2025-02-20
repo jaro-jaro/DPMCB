@@ -7,6 +7,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -18,7 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -45,6 +49,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -117,135 +122,14 @@ fun SettingsScreen(
         .fillMaxSize()
         .padding(horizontal = 16.dp)
 ) {
-    rowItem(
-        modifier = Modifier
+    if (state.settings != null) settings(state.settings, onEvent)
+    else rowItem(
+        Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(all = 16.dp),
+        horizontalArrangement = Arrangement.Center,
     ) {
-        Text("Určit tmavý režim podle systému", Modifier.weight(1F))
-
-        Switch(
-            checked = state.settings.dmAsSystem,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(dmAsSystem = value)
-                })
-            },
-        )
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Tmavý režim", Modifier.weight(1F))
-
-        Switch(
-            checked = if (state.settings.dmAsSystem) isSystemInDarkTheme() else state.settings.dm,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(dm = value)
-                })
-            },
-            enabled = !state.settings.dmAsSystem
-        )
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
-        val options = remember {
-            buildList {
-                if (dynamicColorsSupported) add("Dynamické")
-                addAll(Theme.entries.map { it.jmeno })
-            }
-        }
-        var expanded by remember { mutableStateOf(false) }
-        val selectedOption by remember(state.settings.dynamicColors, state.settings.theme) {
-            derivedStateOf {
-                when {
-                    dynamicColorsSupported && state.settings.dynamicColors -> options.first()
-                    else -> state.settings.theme.jmeno
-                }
-            }
-        }
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            TextField(
-                modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-                readOnly = true,
-                value = selectedOption,
-                onValueChange = {},
-                label = { Text("Téma aplikace") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                options.forEachIndexed { i, option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            onEvent(SettingsEvent.EditSettings { settings ->
-                                when {
-                                    dynamicColorsSupported && i == 0 -> settings.copy(dynamicColors = true)
-                                    dynamicColorsSupported -> settings.copy(theme = Theme.entries[i - 1], dynamicColors = false)
-                                    else -> settings.copy(theme = Theme.entries[i], dynamicColors = false)
-                                }
-                            })
-                            expanded = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                    )
-                }
-            }
-        }
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
-
-        Switch(
-            checked = !state.settings.autoOnline,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(autoOnline = !value)
-                })
-            },
-        )
-    }
-    rowItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
-
-        Switch(
-            checked = state.settings.checkForUpdates,
-            onCheckedChange = { value ->
-                onEvent(SettingsEvent.EditSettings {
-                    it.copy(checkForUpdates = value)
-                })
-            },
-        )
+        CircularProgressIndicator()
     }
 
     rowItem(
@@ -353,6 +237,168 @@ fun SettingsScreen(
     }
     item {
         Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+private fun LazyListScope.settings(
+    settings: Settings,
+    onEvent: (SettingsEvent) -> Unit,
+) {
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Určit tmavý režim podle systému", Modifier.weight(1F))
+
+        Switch(
+            checked = settings.dmAsSystem,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(dmAsSystem = value)
+                })
+            },
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Tmavý režim", Modifier.weight(1F))
+
+        Switch(
+            checked = if (settings.dmAsSystem) isSystemInDarkTheme() else settings.dm,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(dm = value)
+                })
+            },
+            enabled = !settings.dmAsSystem
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+        val options = remember {
+            buildList {
+                if (dynamicColorsSupported) add("Dynamické")
+                addAll(Theme.entries.map { it.jmeno })
+            }
+        }
+        var expanded by remember { mutableStateOf(false) }
+        val selectedOption by remember(settings.dynamicColors, settings.theme) {
+            derivedStateOf {
+                when {
+                    dynamicColorsSupported && settings.dynamicColors -> options.first()
+                    else -> settings.theme.jmeno
+                }
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+        ) {
+            TextField(
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                readOnly = true,
+                value = selectedOption,
+                onValueChange = {},
+                label = { Text("Téma aplikace") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEachIndexed { i, option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onEvent(SettingsEvent.EditSettings { settings ->
+                                when {
+                                    dynamicColorsSupported && i == 0 -> settings.copy(dynamicColors = true)
+                                    dynamicColorsSupported -> settings.copy(theme = Theme.entries[i - 1], dynamicColors = false)
+                                    else -> settings.copy(theme = Theme.entries[i], dynamicColors = false)
+                                }
+                            })
+                            expanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    )
+                }
+            }
+        }
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Automaticky zakázat připojení k internetu po zapnutí aplikace", Modifier.weight(1F))
+
+        Switch(
+            checked = !settings.autoOnline,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(autoOnline = !value)
+                })
+            },
+        )
+    }
+    rowItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Provádět kontrolu dostupnosti aktualizací při startu aplikace", Modifier.weight(1F))
+
+        Switch(
+            checked = settings.checkForUpdates,
+            onCheckedChange = { value ->
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(checkForUpdates = value)
+                })
+            },
+        )
+    }
+
+    item {
+        var value by remember { mutableStateOf(settings.recentBusesCount.toString()) }
+
+        TextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            value = value,
+            onValueChange = {
+                value = it
+                onEvent(SettingsEvent.EditSettings {
+                    it.copy(recentBusesCount = value.toIntOrNull() ?: it.recentBusesCount)
+                })
+            },
+            isError = value != settings.recentBusesCount.toString(),
+            label = { Text("Počet uložených nedávno navštívených spojů") },
+            supportingText = { Text("Nastavte 0 pro úplné vypnutí funkce") },
+            singleLine = true,
+            maxLines = 1,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+            )
+        )
     }
 }
 
