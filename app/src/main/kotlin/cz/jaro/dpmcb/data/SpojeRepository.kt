@@ -45,9 +45,7 @@ import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.anyAre
 import cz.jaro.dpmcb.data.helperclasses.anySatisfies
-import cz.jaro.dpmcb.data.helperclasses.asRepeatingStateFlow
 import cz.jaro.dpmcb.data.helperclasses.filter
-import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.noneAre
 import cz.jaro.dpmcb.data.helperclasses.partMayBeMissing
@@ -109,9 +107,10 @@ import kotlin.collections.filterNot as remove
 
 class SpojeRepository(
     ctx: Application,
+    onlineManager: UserOnlineManager,
     private val localDataSource: Dao,
     private val preferenceDataSource: PreferenceDataSource,
-) {
+) : UserOnlineManager by onlineManager {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private val remoteConfig = Firebase.remoteConfig
@@ -121,7 +120,7 @@ class SpojeRepository(
             minimumFetchIntervalInSeconds = 3600
         }
         remoteConfig.setConfigSettingsAsync(configSettings)
-        if (!isOnline.value)
+        if (!isOnline())
             remoteConfig.activate().await()
         else
             remoteConfig.fetchAndActivate().await()
@@ -694,12 +693,9 @@ class SpojeRepository(
                 )
             }
 
-    val isOnline = ctx::isOnline
-        .asRepeatingStateFlow(scope, SharingStarted.WhileSubscribed(5_000))
-
     val hasAccessToMap = isOnline.combine(isOnlineModeEnabled) { isOnline, onlineMode ->
         isOnline && onlineMode
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), ctx.isOnline && settings.value.autoOnline)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), isOnline() && settings.value.autoOnline)
 
     suspend fun hasRestriction(busName: BusName, date: LocalDate) =
         localDataSource.hasRestriction(nowUsedTable(date, busName.line())!!)

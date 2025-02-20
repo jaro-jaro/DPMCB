@@ -84,7 +84,6 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
-import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
@@ -105,6 +104,7 @@ import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
+import cz.jaro.dpmcb.ui.main.MainState.OnlineStatus
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -591,6 +591,7 @@ fun MainScreen(
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
+                                isOnline = state.onlineStatus is OnlineStatus.Online,
                                 action = action,
                                 onEvent = onEvent,
                             )
@@ -608,10 +609,11 @@ fun MainScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerItem(
+    isOnline: Boolean,
     action: DrawerAction,
     onEvent: (MainEvent) -> Unit,
 ) = when (action) {
-    DrawerAction.Feedback -> Feedback(action)
+    DrawerAction.Feedback -> Feedback(isOnline, action)
 
     else -> {
         NavigationDrawerItem(
@@ -633,6 +635,7 @@ fun DrawerItem(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Feedback(
+    isOnline: Boolean,
     action: DrawerAction,
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
@@ -692,7 +695,7 @@ private fun Feedback(
         },
         selected = false,
         onClick = {
-            if (ctx.isOnline)
+            if (isOnline)
                 showDialog = true
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)

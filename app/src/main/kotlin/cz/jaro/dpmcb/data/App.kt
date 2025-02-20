@@ -2,6 +2,8 @@ package cz.jaro.dpmcb.data
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -68,7 +70,7 @@ class App : Application() {
                     get<AppDatabase>().dao()
                 }
                 single {
-                    SpojeRepository(get(), get(), get())
+                    SpojeRepository(get(), get(), get(), get())
                 }
                 single {
                     PreferenceDataSource(get())
@@ -79,8 +81,24 @@ class App : Application() {
                 viewModel { params ->
                     SettingsViewModel(get(), get(), params.get())
                 }
+                single { UserOnlineManager { get<Context>().isOnline() } }
             })
             defaultModule()
+        }
+    }
+
+    companion object {
+        fun Context.isOnline(): Boolean {
+            val connectivityManager = getSystemService(ConnectivityManager::class.java)
+            val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork) ?: return false
+
+            return capabilities.hasTransport(
+                NetworkCapabilities.TRANSPORT_CELLULAR
+            ) || capabilities.hasTransport(
+                NetworkCapabilities.TRANSPORT_WIFI
+            ) || capabilities.hasTransport(
+                NetworkCapabilities.TRANSPORT_ETHERNET
+            )
         }
     }
 }

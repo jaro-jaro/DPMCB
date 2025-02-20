@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.data
 
 import LocationSearcher
-import android.content.Context
 import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.gitlab.mvysny.konsumexml.textRecursively
@@ -11,17 +10,19 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
-import cz.jaro.dpmcb.data.helperclasses.isOnline
+import cz.jaro.dpmcb.data.helperclasses.asRepeatingStateFlow
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.OnlineTimetable
 import cz.jaro.dpmcb.data.jikord.Transmitter
 import cz.jaro.dpmcb.data.jikord.toOnlineConn
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -35,17 +36,26 @@ import org.intellij.lang.annotations.Language
 import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
+private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+fun interface UserOnlineManager {
+    fun isOnline(): Boolean
+
+    val isOnline: StateFlow<Boolean> get() = ({ isOnline() })
+        .asRepeatingStateFlow(coroutineScope, started = SharingStarted.Lazily)
+}
+
 @Single
 class OnlineRepository(
     private val repo: SpojeRepository,
-    private val ctx: Context,
+    onlineManager: UserOnlineManager,
     private val onlineApi: OnlineApi,
-) {
+) : UserOnlineManager by onlineManager {
     private val scope = MainScope()
 
     private suspend fun getAllConns() =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
                 onlineApi.mapData(
@@ -89,7 +99,7 @@ class OnlineRepository(
     private suspend fun getStopIndex(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val result = LocationSearcher.search(
                 busName = busName
             )
@@ -115,7 +125,7 @@ class OnlineRepository(
     private suspend fun getTimetable(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val response = try {
                 onlineApi.timetable(
                     headers = headers,
