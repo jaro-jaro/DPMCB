@@ -47,6 +47,8 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.SuperRoute
+import cz.jaro.dpmcb.ui.map.DiagramManager
+import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -64,16 +66,15 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.io.File
 
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val db: AppDatabase,
+    private val diagramManager: DiagramManager,
     private val params: Parameters,
 ) : ViewModel() {
     data class Parameters(
         val update: Boolean,
-        val diagramFile: File,
         val link: String?,
     )
 
@@ -140,7 +141,7 @@ class LoadingViewModel(
         repo.lineNumbers(SystemClock.todayHere()).ifEmpty {
             throw Exception()
         }
-        if (!params.diagramFile.exists()) {
+        if (!diagramManager.checkDiagram()) {
             throw Exception()
         }
         return null
@@ -181,24 +182,6 @@ class LoadingViewModel(
         val localVersion = BuildConfig.VERSION_NAME.toVersion(false)
 
         return localVersion < newestVersion
-    }
-
-    private suspend fun File.downloadFile(ref: StorageReference) {
-
-        val task = ref.getFile(this)
-
-        task.addOnFailureListener {
-            throw it
-        }
-
-        task.addOnProgressListener { snapshot ->
-            _state.update {
-                require(it is LoadingState.Loading)
-                it.copy(progress = snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount)
-            }
-        }
-
-        task.await()
     }
 
     private suspend fun downloadText(ref: StorageReference): String {
@@ -258,16 +241,20 @@ class LoadingViewModel(
         val seqGroups: MutableList<SeqGroup> = mutableListOf()
 
         if (doFullUpdate) {
+            val m = when {
+                supportsLineDiagram() -> "5"
+                else -> "4"
+            }
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/5)"
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
             )
 
             db.clearAllTables()
             repo.reset()
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/5)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)", progress = 0F,
             )
 
             val sequencesRef = storage.reference.child("kurzy3.json")
@@ -277,7 +264,7 @@ class LoadingViewModel(
             val json = downloadText(dataRef)
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)", progress = 0F,
             )
 
             val json2 = downloadText(sequencesRef)
@@ -298,7 +285,7 @@ class LoadingViewModel(
             resetRemoteConfig()
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/5)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/$m)", progress = 0F,
             )
 
             val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
@@ -319,15 +306,27 @@ class LoadingViewModel(
                 conns += connsOfTable
             }
 
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)",
-                progress = 0F,
-            )
+            if (supportsLineDiagram()) {
+                _state.value = LoadingState.Loading(
+                    infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)",
+                    progress = 0F,
+                )
 
-            downloadDiagram(diagramRef)
+                diagramManager.downloadDiagram(diagramRef) { progress ->
+                    _state.update {
+                        require(it is LoadingState.Loading)
+                        it.copy(progress = progress)
+                    }
+                }
+            }
         } else {
+            val m = when {
+                supportsLineDiagram() -> "?"
+                else -> "5"
+            }
+
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/?)",
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/$m)",
                 progress = 0F,
             )
 
@@ -359,7 +358,7 @@ class LoadingViewModel(
             seqOfConns.addAll(repo.seqOfConns())
 
             val n = when {
-                changeDiagram -> 6
+                changeDiagram && supportsLineDiagram() -> 6
                 else -> 5
             }
 
@@ -437,13 +436,18 @@ class LoadingViewModel(
                 conns += connsOfTable
             }
 
-            if (changeDiagram) {
+            if (changeDiagram && supportsLineDiagram()) {
                 _state.value = LoadingState.Loading(
                     infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)",
                     progress = 0F,
                 )
 
-                downloadDiagram(diagramRef)
+                diagramManager.downloadDiagram(diagramRef) { progress ->
+                    _state.update {
+                        require(it is LoadingState.Loading)
+                        it.copy(progress = progress)
+                    }
+                }
             }
         }
 
@@ -480,8 +484,6 @@ class LoadingViewModel(
         Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
         Firebase.remoteConfig.fetchAndActivate().await()
     }
-
-    private suspend fun downloadDiagram(schemaRef: StorageReference) = params.diagramFile.downloadFile(schemaRef)
 
     private inline fun Map<Table, Map<String, List<List<String>>>>.exctractData(
         connsWithSequence: List<BusName>,

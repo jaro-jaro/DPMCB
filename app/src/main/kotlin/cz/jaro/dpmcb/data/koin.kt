@@ -48,7 +48,7 @@ val commonModule = module(true) {
     viewModel { DeparturesViewModel(get(), get(), it.get()) }
     viewModel { FavouritesViewModel(get(), get(), it.get()) }
     viewModel { FindBusViewModel(get(), get(), it.get()) }
-    viewModel { LoadingViewModel(get(), get(), it.get()) }
+    viewModel { LoadingViewModel(get(), get(), get(), it.get()) }
     viewModel { MainViewModel(get(), get(), get(), it.get()) }
     viewModel { NowRunningViewModel(get(), get(), it.get()) }
     viewModel { SequenceViewModel(get(), get(), it.get()) }

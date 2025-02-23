@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.helperclasses.diagramFile
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.two
@@ -61,7 +60,6 @@ fun Loading(
             parametersOf(
                 LoadingViewModel.Parameters(
                     update = args.update == true,
-                    diagramFile = ctx.diagramFile,
                     link = args.link,
                 )
             )
