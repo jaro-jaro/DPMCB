@@ -14,14 +14,11 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class CardViewModel(
     private val repo: SpojeRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(

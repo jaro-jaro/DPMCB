@@ -13,13 +13,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 
-@KoinViewModel
 class TimetableViewModel(
     private val repo: SpojeRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(

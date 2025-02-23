@@ -23,15 +23,12 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.days
 
-@KoinViewModel
 class FavouritesViewModel(
     private val repo: SpojeRepository,
     private val onlineRepo: OnlineRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data object Parameters

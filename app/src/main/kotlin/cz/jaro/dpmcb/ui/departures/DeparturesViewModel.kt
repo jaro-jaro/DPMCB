@@ -45,17 +45,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.collections.filterNot as remove
 
-@KoinViewModel
 class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(

@@ -33,7 +33,6 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.intellij.lang.annotations.Language
-import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
 private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -45,7 +44,6 @@ fun interface UserOnlineManager {
         .asRepeatingStateFlow(coroutineScope, started = SharingStarted.Lazily)
 }
 
-@Single
 class OnlineRepository(
     private val repo: SpojeRepository,
     onlineManager: UserOnlineManager,

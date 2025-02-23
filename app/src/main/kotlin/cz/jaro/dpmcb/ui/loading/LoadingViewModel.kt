@@ -64,13 +64,12 @@ import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.koin.core.annotation.InjectedParam
 import java.io.File
 
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val db: AppDatabase,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
     data class Parameters(
         val update: Boolean,

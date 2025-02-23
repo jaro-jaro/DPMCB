@@ -143,10 +143,8 @@ dependencies {
 
     // Insert-Koin
     implementation(libs.koin.android)
-    implementation(libs.koin.annotations)
     implementation(libs.koin.navigation)
     implementation(libs.koin.compose)
-    ksp(libs.koin.annotations.ksp)
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)

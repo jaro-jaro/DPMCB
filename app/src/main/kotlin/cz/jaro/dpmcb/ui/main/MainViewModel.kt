@@ -24,18 +24,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class MainViewModel(
     private val repo: SpojeRepository,
     private val detailsOpener: DetailsOpener,
     private val appUpdater: AppUpdater,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(

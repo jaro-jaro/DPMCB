@@ -28,15 +28,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class FindBusViewModel(
     private val repo: SpojeRepository,
     private val onlineRepository: OnlineRepository,
-    @InjectedParam private val date: LocalDate,
+    private val date: LocalDate,
 ) : ViewModel() {
     lateinit var navigate: NavigateFunction
 

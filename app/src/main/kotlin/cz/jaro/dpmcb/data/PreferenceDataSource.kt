@@ -16,10 +16,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
-@Single
 class PreferenceDataSource(
     private val dataStore: DataStore<Preferences>,
 ) {
