@@ -10,19 +10,16 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
-import cz.jaro.dpmcb.data.helperclasses.asRepeatingStateFlow
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.OnlineTimetable
 import cz.jaro.dpmcb.data.jikord.Transmitter
 import cz.jaro.dpmcb.data.jikord.toOnlineConn
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -34,15 +31,6 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.intellij.lang.annotations.Language
 import kotlin.time.Duration.Companion.seconds
-
-private val coroutineScope = CoroutineScope(Dispatchers.IO)
-
-fun interface UserOnlineManager {
-    fun isOnline(): Boolean
-
-    val isOnline: StateFlow<Boolean> get() = ({ isOnline() })
-        .asRepeatingStateFlow(coroutineScope, started = SharingStarted.Lazily)
-}
 
 class OnlineRepository(
     private val repo: SpojeRepository,
