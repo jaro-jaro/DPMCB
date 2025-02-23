@@ -50,7 +50,6 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import kotlinx.coroutines.Job
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.io.File
 
 @Composable
 fun Loading(
@@ -63,8 +62,6 @@ fun Loading(
                 LoadingViewModel.Parameters(
                     update = args.update == true,
                     diagramFile = ctx.diagramFile,
-                    dataFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
-                    sequencesFile = File(ctx.cacheDir, "kurzy.jaro"),
                     link = args.link,
                 )
             )

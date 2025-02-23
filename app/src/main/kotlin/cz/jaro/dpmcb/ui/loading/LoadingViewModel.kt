@@ -75,8 +75,6 @@ class LoadingViewModel(
     data class Parameters(
         val update: Boolean,
         val diagramFile: File,
-        val dataFile: File,
-        val sequencesFile: File,
         val link: String?,
     )
 
@@ -186,9 +184,9 @@ class LoadingViewModel(
         return localVersion < newestVersion
     }
 
-    private suspend fun downloadFile(ref: StorageReference, file: File): File {
+    private suspend fun File.downloadFile(ref: StorageReference) {
 
-        val task = ref.getFile(file)
+        val task = ref.getFile(this)
 
         task.addOnFailureListener {
             throw it
@@ -202,8 +200,29 @@ class LoadingViewModel(
         }
 
         task.await()
+    }
 
-        return file
+    private suspend fun downloadText(ref: StorageReference): String {
+
+        var result = ""
+
+        val task = ref.getStream { _, input ->
+            result += input.readBytes().decodeToString()
+        }
+
+        task.addOnFailureListener {
+            throw it
+        }
+        task.addOnProgressListener { snapshot ->
+            _state.update {
+                require(it is LoadingState.Loading)
+                it.copy(progress = snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount)
+            }
+        }
+
+        task.await()
+
+        return result
     }
 
     private suspend fun downloadNewData(): Unit? {
@@ -256,23 +275,13 @@ class LoadingViewModel(
             val diagramRef = storage.reference.child("schema.svg")
             val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
 
-            val dataFile = params.dataFile
-
-            val json = downloadFile(
-                ref = dataRef,
-                file = dataFile,
-            ).readText()
+            val json = downloadText(dataRef)
 
             _state.value = LoadingState.Loading(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/5)", progress = 0F,
             )
 
-            val sequencesFile = params.sequencesFile
-
-            val json2 = downloadFile(
-                ref = sequencesRef,
-                file = sequencesFile,
-            ).readText()
+            val json2 = downloadText(sequencesRef)
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
@@ -328,12 +337,7 @@ class LoadingViewModel(
             val sequencesRef = storage.reference.child("kurzy3.json")
             val diagramRef = storage.reference.child("schema.svg")
 
-            val dataFile = params.dataFile
-
-            val json = downloadFile(
-                ref = changesRef,
-                file = dataFile,
-            ).readText()
+            val json = downloadText(changesRef)
 
             val manyChanges = Json.parseToJsonElement(json).jsonObject
 
@@ -380,12 +384,7 @@ class LoadingViewModel(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)", progress = 0F,
             )
 
-            val sequencesFile = params.sequencesFile
-
-            val json2 = downloadFile(
-                ref = sequencesRef,
-                file = sequencesFile,
-            ).readText()
+            val json2 = downloadText(sequencesRef)
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
@@ -483,7 +482,7 @@ class LoadingViewModel(
         Firebase.remoteConfig.fetchAndActivate().await()
     }
 
-    private suspend fun downloadDiagram(schemaRef: StorageReference) = downloadFile(schemaRef, params.diagramFile)
+    private suspend fun downloadDiagram(schemaRef: StorageReference) = params.diagramFile.downloadFile(schemaRef)
 
     private inline fun Map<Table, Map<String, List<List<String>>>>.exctractData(
         connsWithSequence: List<BusName>,
