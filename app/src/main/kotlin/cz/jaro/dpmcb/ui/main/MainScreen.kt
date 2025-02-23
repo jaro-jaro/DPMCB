@@ -361,7 +361,7 @@ fun MainScreen(
 
                     var open by remember { mutableStateOf(false) }
 
-                    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts || supportsSharing)
+                    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts() || supportsSharing())
                         IconButton(onClick = {
                             open = !open
                         }) {
@@ -390,7 +390,7 @@ fun MainScreen(
                             },
                         )
 
-                        if (supportsSharing) {
+                        if (supportsSharing()) {
                             val shareManager = shareManager
                             DropdownMenuItem(
                                 text = {
@@ -406,7 +406,7 @@ fun MainScreen(
                             )
                         }
 
-                        if (supportsShortcuts) {
+                        if (supportsShortcuts()) {
                             val shortcutCreator = shortcutCreator
 
                             var show by remember { mutableStateOf(false) }

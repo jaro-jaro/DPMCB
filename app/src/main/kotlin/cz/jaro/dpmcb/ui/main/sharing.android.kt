@@ -16,7 +16,7 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 
-const val supportsSharing = true
+fun supportsSharing() = true
 
 val shareManager: ShareManager
     @Composable get() {

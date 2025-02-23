@@ -11,7 +11,7 @@ import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 
-const val supportsShortcuts = true
+fun supportsShortcuts() = true
 
 val shortcutCreator: ShortcutCreator
     @Composable
