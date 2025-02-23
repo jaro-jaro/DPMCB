@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cz.jaro.dpmcb.ui.main.DetailsOpener
+import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
+import cz.jaro.dpmcb.ui.map.DiagramManager
 import org.koin.dsl.module
 
 val platformModule = module(true) {
@@ -15,5 +17,6 @@ val platformModule = module(true) {
         }
     }
     single { UserOnlineManager(get()) }
-    single<DetailsOpener> { DetailsOpener(get()) }
+    single { DetailsOpener(get()) }
+    single<DiagramManager> { AndroidDiagramManager(get()) }
 }

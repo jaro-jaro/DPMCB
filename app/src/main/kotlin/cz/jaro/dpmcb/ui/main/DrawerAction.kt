@@ -14,12 +14,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import kotlinx.datetime.LocalDate
 
 enum class DrawerAction(
     val label: String,
     val icon: ImageVector,
     val multiselect: Boolean,
+    val hide: Boolean = false,
     val route: ((LocalDate) -> Route)? = null,
 ) {
     /*Connection(
@@ -81,6 +83,7 @@ enum class DrawerAction(
     LinesMap(
         label = "Schéma linek",
         icon = Icons.Default.Map,
+        hide = !supportsLineDiagram(),
         multiselect = true,
         route = { Route.Map(it) }
     ),

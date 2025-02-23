@@ -63,7 +63,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -614,21 +613,21 @@ fun DrawerItem(
 ) = when (action) {
     DrawerAction.Feedback -> Feedback(isOnline, action)
 
-    else -> {
-        NavigationDrawerItem(
-            label = {
-                Text(action.label)
-            },
-            icon = {
-                IconWithTooltip(action.icon, action.label)
-            },
-            selected = AppState.selected == action,
-            onClick = {
-                onEvent(MainEvent.DrawerItemClicked(action))
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-    }
+    else if action.hide -> {}
+
+    else -> NavigationDrawerItem(
+        label = {
+            Text(action.label)
+        },
+        icon = {
+            IconWithTooltip(action.icon, action.label)
+        },
+        selected = AppState.selected == action,
+        onClick = {
+            onEvent(MainEvent.DrawerItemClicked(action))
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
 }
 
 @Composable
@@ -639,7 +638,6 @@ private fun Feedback(
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
-    val ctx = LocalContext.current
 
     if (showDialog) AlertDialog(
         onDismissRequest = {
