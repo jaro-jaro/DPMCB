@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class MainViewModel(
     private val repo: SpojeRepository,
     private val detailsOpener: DetailsOpener,
     private val appUpdater: AppUpdater,
+    private val cardManager: CardManager,
     private val params: Parameters,
 ) : ViewModel() {
 
@@ -131,7 +133,7 @@ class MainViewModel(
                     }
                     updateDrawerState { false }
                 }
-                MainEvent.RemoveCard -> repo.changeCard(false)
+                MainEvent.RemoveCard -> cardManager.removeCard()
                 MainEvent.ToggleDrawer -> updateDrawerState { !it }
                 MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
                 MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
@@ -141,10 +143,10 @@ class MainViewModel(
 
     private fun NavBackStackEntry.date(): LocalDate = getRoute()?.date ?: SystemClock.todayHere()
 
-    val state = combine(isOnline, isOnlineModeEnabled, repo.hasCard, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
+    val state = combine(isOnline, isOnlineModeEnabled, cardManager.card, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
         MainState(
             onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
-            hasCard = hasCard,
+            hasCard = hasCard != null,
             date = currentBackStackEntry.date(),
         )
     }.stateIn(

@@ -33,8 +33,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val updater = AppUpdater(this)
+        val cardManager: CardManager = AndroidCardManager(this)
         loadKoinModules(module(createdAtStart = true) {
             single { updater }
+            single { cardManager }
         })
 
         val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }

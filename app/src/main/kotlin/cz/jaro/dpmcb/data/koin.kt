@@ -36,20 +36,20 @@ val commonModule = module(true) {
         get<AppDatabase>().dao()
     }
     single {
-        SpojeRepository(get(), get(), get(), get())
+        SpojeRepository(get(), get(), get())
     }
     single {
         PreferenceDataSource(get())
     }
     single { OnlineRepository(get(), get(), get()) } bind UserOnlineManager::class
     viewModel { BusViewModel(get(), get(), it.get(), it.get()) }
-    viewModel { CardViewModel(get(), it.get()) }
+    viewModel { CardViewModel(get()) }
     viewModel { ChooserViewModel(get(), it.get()) }
     viewModel { DeparturesViewModel(get(), get(), it.get()) }
     viewModel { FavouritesViewModel(get(), get(), it.get()) }
     viewModel { FindBusViewModel(get(), get(), it.get()) }
     viewModel { LoadingViewModel(get(), get(), get(), it.get()) }
-    viewModel { MainViewModel(get(), get(), get(), it.get()) }
+    viewModel { MainViewModel(get(), get(), get(), get(), it.get()) }
     viewModel { NowRunningViewModel(get(), get(), it.get()) }
     viewModel { SequenceViewModel(get(), get(), it.get()) }
     viewModel { SettingsViewModel(get(), get(), it.get()) }

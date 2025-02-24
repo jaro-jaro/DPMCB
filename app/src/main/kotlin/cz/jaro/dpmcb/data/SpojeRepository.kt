@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.data
 
-import android.app.Application
-import android.net.Uri
 import com.google.firebase.Firebase
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
@@ -99,14 +97,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
-import java.io.File
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
 
 class SpojeRepository(
-    ctx: Application,
     onlineManager: UserOnlineManager,
     private val localDataSource: Dao,
     private val preferenceDataSource: PreferenceDataSource,
@@ -164,10 +160,6 @@ class SpojeRepository(
     val recents: Flow<List<BusName>> = preferenceDataSource.recents
 
     val version = preferenceDataSource.version
-
-    val hasCard = preferenceDataSource.hasCard
-
-    val cardFile = File(ctx.filesDir, "prukazka.jpg")
 
     init {
         scope.launch {
@@ -584,10 +576,6 @@ class SpojeRepository(
         preferenceDataSource.changeDepartures(value)
     }
 
-    suspend fun changeCard(value: Boolean) {
-        preferenceDataSource.changeCard(value)
-    }
-
     suspend fun changeFavourite(part: PartOfConn) {
         preferenceDataSource.changeFavourites { favourites ->
             (listOf(part) + favourites).distinctBy { it.busName }
@@ -733,16 +721,6 @@ class SpojeRepository(
             filteredCodes noneAre Runs -> true
             filteredCodes filter Runs anySatisfies date -> true
             else -> false
-        }
-    }
-
-    private val contentResolver = ctx.contentResolver
-
-    fun copyFile(oldUri: Uri, newFile: File) {
-        contentResolver.openInputStream(oldUri)!!.use { input ->
-            newFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
         }
     }
 

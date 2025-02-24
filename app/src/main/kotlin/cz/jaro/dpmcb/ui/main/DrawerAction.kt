@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.ui.card.supportsCard
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import kotlinx.datetime.LocalDate
@@ -78,6 +79,7 @@ enum class DrawerAction(
         label = "Průkazka",
         icon = Icons.Default.QrCode,
         multiselect = true,
+        hide = !supportsCard(),
         route = { Route.Card(it) }
     ),
     LinesMap(

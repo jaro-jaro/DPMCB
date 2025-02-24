@@ -108,6 +108,7 @@ import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import cz.jaro.dpmcb.ui.sequence.Sequence
 import cz.jaro.dpmcb.ui.settings.Settings
+import cz.jaro.dpmcb.ui.theme.dpmcb
 import cz.jaro.dpmcb.ui.timetable.Timetable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -489,7 +490,7 @@ fun MainScreen(
 
                 },
                 colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFD73139),
+                    containerColor = dpmcb,
                     navigationIconContentColor = Color.Transparent,
                     actionIconContentColor = Color.White,
                 ) else TopAppBarDefaults.topAppBarColors()

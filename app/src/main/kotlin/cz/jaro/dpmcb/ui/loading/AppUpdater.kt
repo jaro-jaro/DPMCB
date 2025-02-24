@@ -26,10 +26,6 @@ import javax.net.ssl.HttpsURLConnection
 class AppUpdater(
     ctx: ComponentActivity,
 ) {
-    init {
-        println(ctx)
-        println(ctx.packageManager)
-    }
     private val packageManager = ctx.packageManager
     private val filesDir = ctx.filesDir
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
