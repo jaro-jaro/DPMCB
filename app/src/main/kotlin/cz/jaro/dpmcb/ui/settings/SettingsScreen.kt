@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.settings
 
-import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -69,6 +68,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
+import cz.jaro.dpmcb.ui.theme.areDynamicColorsSupported
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -283,7 +283,7 @@ private fun LazyListScope.settings(
             .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+        val dynamicColorsSupported = areDynamicColorsSupported()
         val options = remember {
             buildList {
                 if (dynamicColorsSupported) add("Dynamické")
