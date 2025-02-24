@@ -18,7 +18,7 @@ import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 
 fun supportsSharing() = true
 
-val shareManager: ShareManager
+val screenShareManager: ScreenShareManager
     @Composable get() {
         var deeplink2 by remember { mutableStateOf("") }
 
@@ -36,7 +36,7 @@ val shareManager: ShareManager
             }
         }
 
-        return ShareManager { state ->
+        return ScreenShareManager { state ->
             val deeplink = "https://jaro-jaro.github.io/DPMCB/${AppState.route}"
             deeplink2 = "https://jaro-jaro.github.io/DPMCB/${AppState.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
             ctx.startActivity(Intent.createChooser(Intent().apply {
@@ -62,3 +62,5 @@ val shareManager: ShareManager
             })
         }
     }
+
+

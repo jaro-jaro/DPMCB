@@ -1,5 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-fun interface ShareManager {
-    fun share(state: MainState)
+fun interface ScreenShareManager {
+    fun shareScreen(state: MainState)
 }

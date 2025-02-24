@@ -391,13 +391,13 @@ fun MainScreen(
                         )
 
                         if (supportsSharing()) {
-                            val shareManager = shareManager
+                            val shareManager = screenShareManager
                             DropdownMenuItem(
                                 text = {
                                     Text("Sdílet")
                                 },
                                 onClick = {
-                                    shareManager.share(state)
+                                    shareManager.shareScreen(state)
                                     open = false
                                 },
                                 leadingIcon = {
