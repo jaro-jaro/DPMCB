@@ -4,8 +4,6 @@ import LocationSearcher
 import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.gitlab.mvysny.konsumexml.textRecursively
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
@@ -50,7 +48,7 @@ class OnlineRepository(
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 return@withContext null
             }
 
@@ -61,7 +59,7 @@ class OnlineRepository(
                 json.decodeFromString<MapData>(text.string())
             } catch (e: SerializationException) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 null
             }
         }
@@ -120,7 +118,7 @@ class OnlineRepository(
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 return@withContext null
             }
 
@@ -160,7 +158,7 @@ class OnlineRepository(
                     )
                 } catch (e: KonsumerException) {
                     e.printStackTrace()
-                    Firebase.crashlytics.recordException(e)
+                    recordException(e)
                     null
                 }
             }

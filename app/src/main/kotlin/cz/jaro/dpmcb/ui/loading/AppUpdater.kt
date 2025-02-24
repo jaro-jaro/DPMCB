@@ -10,8 +10,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
+import cz.jaro.dpmcb.data.recordException
 import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +108,7 @@ suspend fun latestAppVersion(): String? = withContext(Dispatchers.IO) {
         Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
     } catch (e: IOException) {
         e.printStackTrace()
-        Firebase.crashlytics.recordException(e)
+        recordException(e)
         return@withContext null
     }
 

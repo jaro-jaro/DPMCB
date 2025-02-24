@@ -38,8 +38,6 @@ import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -48,6 +46,7 @@ import cz.jaro.dpmcb.data.helperclasses.allTrue
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.recordException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -89,7 +88,7 @@ class OblibeneWidget : GlanceAppWidget() {
                                     val a = repo.favouriteBus(cast.busName, SystemClock.todayHere())
                                     Triple(a.first, a.second, cast)
                                 } catch (e: Exception) {
-                                    Firebase.crashlytics.recordException(e)
+                                    recordException(e)
                                     return@state OblibeneWidgetState.Error
                                 }
                             }

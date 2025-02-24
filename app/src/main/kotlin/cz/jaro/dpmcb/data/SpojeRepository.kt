@@ -122,7 +122,7 @@ class SpojeRepository(
             remoteConfig.fetchAndActivate().await()
     } catch (e: FirebaseRemoteConfigException) {
         e.printStackTrace()
-        Firebase.crashlytics.recordException(e)
+        recordException(e)
         try {
             remoteConfig.activate().await()
         } catch (_: FirebaseRemoteConfigException) {

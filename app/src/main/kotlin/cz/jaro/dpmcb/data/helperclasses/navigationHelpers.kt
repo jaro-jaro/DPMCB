@@ -5,8 +5,8 @@ package cz.jaro.dpmcb.data.helperclasses
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
+import cz.jaro.dpmcb.data.log
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.SuperRoute
 
@@ -27,8 +27,8 @@ inline val NavHostController.navigateWithOptionsFunction: NavigateWithOptionsFun
             this.navigate(route.work(), navOptions)
         } catch (e: IllegalStateException) {
             e.printStackTrace()
-            Firebase.crashlytics.log("Pokus o navigaci na $route")
-            Firebase.crashlytics.recordException(e)
+            log("Pokus o navigaci na $route")
+            recordException(e)
         }
     }
 
