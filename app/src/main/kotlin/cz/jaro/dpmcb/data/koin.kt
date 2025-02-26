@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data
 
-import android.content.Context
-import androidx.room.Room
-import cz.jaro.dpmcb.data.database.AppDatabase
+import app.cash.sqldelight.db.SqlDriver
+import cz.jaro.dpmcb.Database
+import cz.jaro.dpmcb.data.database.createDatabase
 import cz.jaro.dpmcb.ui.bus.BusViewModel
 import cz.jaro.dpmcb.ui.card.CardViewModel
 import cz.jaro.dpmcb.ui.chooser.ChooserViewModel
@@ -28,15 +28,15 @@ val commonModule = module(true) {
             .create(OnlineApi::class.java)
     }
     single {
-        Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
-            .fallbackToDestructiveMigration()
-            .build()
-    }
-    factory {
-        get<AppDatabase>().dao()
+        val driver = get<SqlDriver>()
+        Database.Schema.create(driver)
+        createDatabase(driver)
     }
     single {
-        SpojeRepository(get(), get(), get())
+        get<Database>().spojeQueries
+    }
+    single {
+        SpojeRepository(get(), get(), get(), get())
     }
     single {
         PreferenceDataSource(get())
@@ -55,4 +55,3 @@ val commonModule = module(true) {
     viewModel { SettingsViewModel(get(), get(), it.get()) }
     viewModel { TimetableViewModel(get(), it.get()) }
 }
-

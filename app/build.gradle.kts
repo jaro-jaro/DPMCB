@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.gradle)
+    alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
@@ -63,18 +63,14 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    applicationVariants.all {
-        kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
-    }
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.generateKotlin", "true")
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("cz.jaro.dpmcb")
+        }
+    }
 }
 
 dependencies {
@@ -133,10 +129,10 @@ dependencies {
     // 3rd-party
     implementation(libs.compose.material3.datetime.pickers)
 
-    // Jetpack Room
-    implementation(libs.androidx.jetpack.room)
-    implementation(libs.androidx.jetpack.room.runtime)
-    ksp(libs.androidx.jetpack.room.compiler)
+    // SQLDelight
+    implementation(libs.sqldelight.runtime)
+    implementation(libs.sqldelight.android)
+    implementation(libs.sqldelight.coroutines)
 
     // Jetpack Preferences DataStore
     implementation(libs.androidx.datastore)

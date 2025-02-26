@@ -1,4 +1,4 @@
-package cz.jaro.dpmcb.data.entities.types
+package cz.jaro.dpmcb.data.entities
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

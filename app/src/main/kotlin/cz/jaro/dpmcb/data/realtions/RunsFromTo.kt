@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data.realtions
 
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.TimeCodeType
 import kotlinx.datetime.LocalDate
 
 data class RunsFromTo(
