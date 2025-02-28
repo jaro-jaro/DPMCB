@@ -221,7 +221,8 @@ fun DeparturesScreen(
                 }
             }
         }
-    }
+    },
+    contentWindowInsets = WindowInsets(0)
 ) {
     Column(
         modifier = Modifier
