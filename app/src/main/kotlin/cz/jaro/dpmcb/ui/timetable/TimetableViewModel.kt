@@ -6,7 +6,6 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
@@ -28,13 +27,13 @@ class TimetableViewModel(
     )
 
     private val list = suspend {
-        repo.timetable(params.lineNumber, params.stop, params.nextStop, date).sortedBy { it.departure }
+        repo.timetable(params.lineNumber, params.stop, params.nextStop, params.date).sortedBy { it.departure }
     }.asFlow()
 
     val state = list.combine(repo.showLowFloor) { list, showLowFloor ->
         TimetableState.Success(
             data = list,
-            date = date,
+            date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
             nextStop = params.nextStop,
@@ -44,7 +43,7 @@ class TimetableViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = TimetableState.Loading(
-            date = date,
+            date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
             nextStop = params.nextStop,
@@ -69,7 +68,7 @@ class TimetableViewModel(
         }
         is TimetableEvent.GoToBus -> params.navigate(
             Route.Bus(
-                date = date,
+                date = params.date,
                 busName = e.bus,
             )
         )
