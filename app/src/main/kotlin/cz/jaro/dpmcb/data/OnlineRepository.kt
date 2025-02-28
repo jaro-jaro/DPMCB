@@ -1,17 +1,13 @@
 package cz.jaro.dpmcb.data
 
 import LocationSearcher
-import android.content.Context
 import com.gitlab.mvysny.konsumexml.KonsumerException
 import com.gitlab.mvysny.konsumexml.konsumeXml
 import com.gitlab.mvysny.konsumexml.textRecursively
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
-import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -32,20 +28,18 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.intellij.lang.annotations.Language
-import org.koin.core.annotation.Single
 import kotlin.time.Duration.Companion.seconds
 
-@Single
 class OnlineRepository(
     private val repo: SpojeRepository,
-    private val ctx: Context,
+    onlineManager: UserOnlineManager,
     private val onlineApi: OnlineApi,
-) {
+) : UserOnlineManager by onlineManager {
     private val scope = MainScope()
 
     private suspend fun getAllConns() =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
                 onlineApi.mapData(
@@ -54,7 +48,7 @@ class OnlineRepository(
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 return@withContext null
             }
 
@@ -65,7 +59,7 @@ class OnlineRepository(
                 json.decodeFromString<MapData>(text.string())
             } catch (e: SerializationException) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 null
             }
         }
@@ -89,7 +83,7 @@ class OnlineRepository(
     private suspend fun getStopIndex(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val result = LocationSearcher.search(
                 busName = busName
             )
@@ -115,7 +109,7 @@ class OnlineRepository(
     private suspend fun getTimetable(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
-            if (!ctx.isOnline) return@withContext null
+            if (!isOnline()) return@withContext null
             val response = try {
                 onlineApi.timetable(
                     headers = headers,
@@ -124,7 +118,7 @@ class OnlineRepository(
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
-                Firebase.crashlytics.recordException(e)
+                recordException(e)
                 return@withContext null
             }
 
@@ -164,7 +158,7 @@ class OnlineRepository(
                     )
                 } catch (e: KonsumerException) {
                     e.printStackTrace()
-                    Firebase.crashlytics.recordException(e)
+                    recordException(e)
                     null
                 }
             }

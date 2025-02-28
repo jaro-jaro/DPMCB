@@ -32,9 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App.Companion.selected
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.toRegNum
@@ -71,8 +69,8 @@ fun Favourites(
         }
     },
 ) {
-    title = R.string.app_name
-    selected = DrawerAction.Favourites
+    AppState.title = "Lepší DPMCB"
+    AppState.selected = DrawerAction.Favourites
 
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.navigateFunction

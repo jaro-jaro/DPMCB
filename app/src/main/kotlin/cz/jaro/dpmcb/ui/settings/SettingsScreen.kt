@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.ui.settings
 
-import android.os.Build
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -44,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
@@ -56,22 +53,22 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
+import cz.jaro.dpmcb.ui.theme.areDynamicColorsSupported
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -85,8 +82,8 @@ fun Settings(
         parametersOf(SettingsViewModel.Parameters)
     },
 ) {
-    App.title = R.string.settings
-    App.selected = DrawerAction.Settings
+    AppState.title = "Nastavení"
+    AppState.selected = DrawerAction.Settings
 
     LaunchedEffect(Unit) {
         viewModel.superNavigate = superNavController.superNavigateFunction
@@ -286,7 +283,7 @@ private fun LazyListScope.settings(
             .padding(vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val dynamicColorsSupported = remember { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+        val dynamicColorsSupported = areDynamicColorsSupported()
         val options = remember {
             buildList {
                 if (dynamicColorsSupported) add("Dynamické")
@@ -404,7 +401,7 @@ private fun LazyListScope.settings(
 
 @Composable
 private fun TextWithLink(text: AnnotatedString) {
-    val context = LocalContext.current
+    val openWebsite = openWebsiteLauncher
     var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
     Text(
@@ -414,10 +411,7 @@ private fun TextWithLink(text: AnnotatedString) {
                 layoutResult?.let { layoutResult ->
                     val offset = layoutResult.getOffsetForPosition(pos)
                     text.getStringAnnotations(tag = "link", start = offset, end = offset).firstOrNull()?.let { stringRange ->
-                        CustomTabsIntent.Builder()
-                            .setShowTitle(true)
-                            .build()
-                            .launchUrl(context, stringRange.item.toUri())
+                        openWebsite(stringRange.item)
                     }
                 }
             }

@@ -2,8 +2,6 @@ package cz.jaro.dpmcb.ui.favourites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -15,6 +13,7 @@ import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,15 +22,12 @@ import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.days
 
-@KoinViewModel
 class FavouritesViewModel(
     private val repo: SpojeRepository,
     private val onlineRepo: OnlineRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data object Parameters
@@ -58,7 +54,7 @@ class FavouritesViewModel(
                         val bus = try {
                             repo.favouriteBus(favourite.busName, SystemClock.todayHere())
                         } catch (e: Exception) {
-                            Firebase.crashlytics.recordException(e)
+                            recordException(e)
                             return@zip null
                         }
                         FavouriteResult(onlineConn, bus.first, bus.second, repo.doesConnRunAt(favourite.busName), favourite)
@@ -84,7 +80,7 @@ class FavouritesViewModel(
                         val bus = try {
                             repo.favouriteBus(recent, SystemClock.todayHere())
                         } catch (e: Exception) {
-                            Firebase.crashlytics.recordException(e)
+                            recordException(e)
                             return@zip null
                         }
                         RecentResult(onlineConn, bus.first, bus.second, repo.doesConnRunAt(recent))

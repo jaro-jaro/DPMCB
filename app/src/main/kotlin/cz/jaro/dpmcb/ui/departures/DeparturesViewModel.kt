@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
 import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -44,17 +45,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.collections.filterNot as remove
 
-@KoinViewModel
 class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
@@ -97,7 +95,7 @@ class DeparturesViewModel(
 
     @SuppressLint("RestrictedApi")
     private fun changeCurrentRoute(info: DeparturesInfo) {
-        App.route = Route.Departures(
+        AppState.route = Route.Departures(
             stop = params.stop,
             time = info.time.toSimpleTime(),
             line = info.lineFilter,

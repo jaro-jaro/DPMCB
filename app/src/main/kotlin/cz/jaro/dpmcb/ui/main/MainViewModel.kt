@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import kotlinx.coroutines.Dispatchers
@@ -24,18 +25,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class MainViewModel(
     private val repo: SpojeRepository,
     private val detailsOpener: DetailsOpener,
     private val appUpdater: AppUpdater,
-    @InjectedParam private val params: Parameters,
+    private val cardManager: CardManager,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
@@ -110,7 +109,7 @@ class MainViewModel(
                 while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
                 try {
                     withContext(Dispatchers.Main) {
-                        App.selected = null
+                        AppState.selected = null
                         navGraph()?.nodes
 
                         confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
@@ -127,14 +126,14 @@ class MainViewModel(
             when (e) {
                 is MainEvent.DrawerItemClicked -> {
                     if (e.action.multiselect)
-                        App.selected = e.action
+                        AppState.selected = e.action
 
                     e.action.route?.let {
                         navigate(it(params.currentBackStackEntry.first().date()))
                     }
                     updateDrawerState { false }
                 }
-                MainEvent.RemoveCard -> repo.changeCard(false)
+                MainEvent.RemoveCard -> cardManager.removeCard()
                 MainEvent.ToggleDrawer -> updateDrawerState { !it }
                 MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
                 MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
@@ -144,10 +143,10 @@ class MainViewModel(
 
     private fun NavBackStackEntry.date(): LocalDate = getRoute()?.date ?: SystemClock.todayHere()
 
-    val state = combine(isOnline, isOnlineModeEnabled, repo.hasCard, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
+    val state = combine(isOnline, isOnlineModeEnabled, cardManager.card, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
         MainState(
             onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
-            hasCard = hasCard,
+            hasCard = hasCard != null,
             date = currentBackStackEntry.date(),
         )
     }.stateIn(

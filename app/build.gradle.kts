@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.gradle)
+    alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
@@ -46,8 +46,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility(JavaVersion.VERSION_17)
-        targetCompatibility(JavaVersion.VERSION_17)
+        isCoreLibraryDesugaringEnabled = true
+
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -63,18 +65,14 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-    applicationVariants.all {
-        kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
-    }
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.generateKotlin", "true")
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("cz.jaro.dpmcb")
+        }
+    }
 }
 
 dependencies {
@@ -100,11 +98,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     // Firebase
-    implementation(libs.firebase.common)
     // Realtime Databse
     implementation(libs.firebase.database)
     // In-App Messaging
-    implementation(libs.firebase.inappmessaging.display)
+//    implementation(libs.firebase.inappmessaging.display)
     // Storage
     implementation(libs.firebase.storage)
     // Crashlytics
@@ -133,20 +130,18 @@ dependencies {
     // 3rd-party
     implementation(libs.compose.material3.datetime.pickers)
 
-    // Jetpack Room
-    implementation(libs.androidx.jetpack.room)
-    implementation(libs.androidx.jetpack.room.runtime)
-    ksp(libs.androidx.jetpack.room.compiler)
+    // SQLDelight
+    implementation(libs.sqldelight.runtime)
+    implementation(libs.sqldelight.android)
+    implementation(libs.sqldelight.coroutines)
 
     // Jetpack Preferences DataStore
     implementation(libs.androidx.datastore)
 
     // Insert-Koin
     implementation(libs.koin.android)
-    implementation(libs.koin.annotations)
     implementation(libs.koin.navigation)
     implementation(libs.koin.compose)
-    ksp(libs.koin.annotations.ksp)
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization)
@@ -168,4 +163,8 @@ dependencies {
 
     // ChNT
     implementation(libs.androidx.browser)
+}
+
+dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

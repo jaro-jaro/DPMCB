@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.departures
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -73,9 +72,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.navigateWithOptionsFunction
@@ -136,8 +133,8 @@ fun Departures(
         )
     }
 ) {
-    title = R.string.departures
-    App.selected = DrawerAction.Departures
+    AppState.title = "Odjezdy"
+    AppState.selected = DrawerAction.Departures
 
     LifecycleResumeEffect(Unit) {
         val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
@@ -181,7 +178,6 @@ fun Departures(
     )
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeparturesScreen(
@@ -230,7 +226,7 @@ fun DeparturesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding()
+            .padding(it)
     ) {
         Row(
             modifier = Modifier

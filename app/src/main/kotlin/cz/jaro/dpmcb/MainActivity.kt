@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb
 
+
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,12 +14,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.ui.card.AndroidCardManager
+import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.Loading
 import cz.jaro.dpmcb.ui.main.Main
 import cz.jaro.dpmcb.ui.main.SuperRoute.Loading
 import cz.jaro.dpmcb.ui.main.SuperRoute.Main
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
@@ -32,8 +36,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val updater = AppUpdater(this)
+        val cardManager: CardManager = AndroidCardManager(this, get())
         loadKoinModules(module(createdAtStart = true) {
             single { updater }
+            single { cardManager }
         })
 
         val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }

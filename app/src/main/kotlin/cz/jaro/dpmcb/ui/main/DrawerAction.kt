@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DepartureBoard
 import androidx.compose.material.icons.filled.FastForward
@@ -12,33 +11,34 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.graphics.vector.ImageVector
-import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.ui.card.supportsCard
 import cz.jaro.dpmcb.ui.chooser.ChooserType
+import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import kotlinx.datetime.LocalDate
 
-
 enum class DrawerAction(
-    @StringRes val label: Int,
+    val label: String,
     val icon: ImageVector,
     val multiselect: Boolean,
+    val hide: Boolean = false,
     val route: ((LocalDate) -> Route)? = null,
 ) {
     /*Connection(
-        R.string.vyhledat_spojeni,
-        Icons.Default.Timeline,
-        true,
-        route = { Route.Spojeni(it) }
+        label = "Vyhledat spojení",
+        icon = Icons.Default.Timeline,
+        multiselect = true,
+        route = { Route.Connection(it) }
     ),*/
     Favourites(
-        label = R.string.favourites,
+        label = "Oblíbené spoje",
         icon = Icons.Default.Star,
         multiselect = true,
         route = { Route.Favourites },
     ),
     Departures(
-        label = R.string.departures,
+        label = "Odjezdy",
         icon = Icons.Default.DepartureBoard,
         multiselect = true,
         route = {
@@ -51,13 +51,13 @@ enum class DrawerAction(
         }
     ),
     NowRunning(
-        label = R.string.now_running,
+        label = "Právě jedoucí",
         icon = Icons.Default.FastForward,
         multiselect = true,
         route = { Route.NowRunning() }
     ),
     Timetable(
-        label = R.string.timetable,
+        label = "Jízdní řády",
         icon = Icons.Default.FormatListNumbered,
         multiselect = true,
         route = {
@@ -70,31 +70,33 @@ enum class DrawerAction(
         }
     ),
     FindBus(
-        label = R.string.find_bus_by_id,
+        label = "Najít spoj",
         icon = Icons.Default.Search,
         multiselect = true,
         route = { Route.FindBus(it) }
     ),
     TransportCard(
-        label = R.string.card,
+        label = "Průkazka",
         icon = Icons.Default.QrCode,
         multiselect = true,
+        hide = !supportsCard(),
         route = { Route.Card(it) }
     ),
     LinesMap(
-        label = R.string.lines_map,
+        label = "Schéma linek",
         icon = Icons.Default.Map,
+        hide = !supportsLineDiagram(),
         multiselect = true,
         route = { Route.Map(it) }
     ),
     Settings(
-        label = R.string.settings,
+        label = "Nastavení",
         icon = Icons.Default.Settings,
         multiselect = false,
         route = { Route.Settings },
     ),
     Feedback(
-        label = R.string.feedback,
+        label = "Zpětná vazba",
         icon = Icons.Default.Stars,
         multiselect = false,
     ),

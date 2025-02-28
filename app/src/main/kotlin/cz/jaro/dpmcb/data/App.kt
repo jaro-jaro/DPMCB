@@ -2,34 +2,21 @@ package cz.jaro.dpmcb.data
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.datastore.dataStoreFile
-import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.room.Room
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.database.AppDatabase
-import cz.jaro.dpmcb.ui.loading.LoadingViewModel
-import cz.jaro.dpmcb.ui.main.DrawerAction
-import cz.jaro.dpmcb.ui.settings.SettingsViewModel
-import org.koin.android.ext.koin.androidContext
-import org.koin.android.ext.koin.androidLogger
-import org.koin.androidx.viewmodel.dsl.viewModel
-import org.koin.core.context.startKoin
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import cz.jaro.dpmcb.Database
+import cz.jaro.dpmcb.ui.main.DetailsOpener
+import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
+import cz.jaro.dpmcb.ui.map.DiagramManager
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.initialize
+import org.koin.dsl.bind
 import org.koin.dsl.module
-import org.koin.ksp.generated.defaultModule
-import retrofit2.Retrofit
 
 class App : Application() {
-
-    companion object {
-        var route by mutableStateOf("favourites")
-        var title by mutableIntStateOf(R.string.app_name)
-        var selected by mutableStateOf(null as DrawerAction?)
-    }
 
     init {
         System.setProperty(
@@ -49,50 +36,36 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin {
-            androidLogger()
-            androidContext(this@App)
-            modules(module(true) {
-                single {
-                    PreferenceDataStoreFactory.create(
-                        migrations = listOf(
-                            SharedPreferencesMigration({
-                                get<Context>().getSharedPreferences("PREFS_DPMCB_JARO", Context.MODE_PRIVATE)
-                            }),
-                            DataStoreMigrationConnName(),
-                        )
-                    ) {
-                        get<Context>().dataStoreFile("DPMCB_DataStore.preferences_pb")
-                    }
+        val ctx = this
+        initKoin(module(true) {
+            single { this@App } bind Context::class
+            single { Firebase.initialize(get<Context>())!! }
+            single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
+            single {
+                PreferenceDataStoreFactory.create(
+                    migrations = listOf()
+                ) {
+                    ctx.dataStoreFile("DPMCB_DataStore.preferences_pb")
                 }
-                single {
-                    Retrofit.Builder()
-                        .baseUrl("https://mpvnet.cz/Jikord/")
-                        .build()
-                        .create(OnlineApi::class.java)
-                }
-                single {
-                    Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "databaaaaze")
-                        .fallbackToDestructiveMigration()
-                        .build()
-                }
-                factory {
-                    get<AppDatabase>().dao()
-                }
-                single {
-                    SpojeRepository(get(), get(), get())
-                }
-                single {
-                    PreferenceDataSource(get())
-                }
-                viewModel { params ->
-                    LoadingViewModel(get(), get(), params.get())
-                }
-                viewModel { params ->
-                    SettingsViewModel(get(), get(), params.get())
-                }
-            })
-            defaultModule()
+            }
+            single { UserOnlineManager(ctx) }
+            single { DetailsOpener(ctx) }
+            single<DiagramManager> { AndroidDiagramManager(ctx) }
+        })
+    }
+}
+
+private fun platformModule(ctx: App) = module(true) {
+    single<FirebaseApp> { Firebase.initialize(get<Context>())!! }
+    single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
+    single {
+        PreferenceDataStoreFactory.create(
+            migrations = listOf()
+        ) {
+            ctx.dataStoreFile("DPMCB_DataStore.preferences_pb")
         }
     }
+    single { UserOnlineManager(ctx) }
+    single { DetailsOpener(ctx) }
+    single<DiagramManager> { AndroidDiagramManager(ctx) }
 }

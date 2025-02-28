@@ -1,14 +1,5 @@
 package cz.jaro.dpmcb.ui.main
 
-import android.app.PendingIntent
-import android.content.Intent
-import android.content.pm.ShortcutInfo
-import android.content.pm.ShortcutManager
-import android.graphics.drawable.Icon.createWithResource
-import android.os.Build
-import android.service.chooser.ChooserAction
-import android.widget.Toast
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -72,37 +63,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.Firebase
-import com.google.firebase.analytics.analytics
-import com.google.firebase.analytics.logEvent
-import com.google.firebase.database.database
-import cz.jaro.dpmcb.BuildConfig
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
-import cz.jaro.dpmcb.data.helperclasses.isOnline
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
-import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -111,26 +91,31 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
-import cz.jaro.dpmcb.ui.loading.AppUpdater
+import cz.jaro.dpmcb.ui.main.MainState.OnlineStatus
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import cz.jaro.dpmcb.ui.sequence.Sequence
 import cz.jaro.dpmcb.ui.settings.Settings
+import cz.jaro.dpmcb.ui.theme.dpmcb
 import cz.jaro.dpmcb.ui.timetable.Timetable
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.analytics.analytics
+import dev.gitlive.firebase.analytics.logEvent
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.core.scope.Scope
 
 val localDateTypePair = typePair(
     parseValue = {
@@ -271,7 +256,7 @@ fun Main(
         withContext(Dispatchers.IO) {
             navController.currentBackStackEntryFlow.collect { entry ->
                 if (entry.destination.route == null) return@collect
-                App.route = entry.generateRouteWithArgs() ?: ""
+                AppState.route = entry.generateRouteWithArgs() ?: ""
             }
         }
     }
@@ -340,7 +325,7 @@ fun MainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(App.title))
+                    Text(AppState.title)
                 },
                 navigationIcon = {
                     IconButton(
@@ -356,10 +341,10 @@ fun MainScreen(
                 },
                 actions = {
                     val time by nowFlow.collectAsStateWithLifecycle()
-                    if (App.selected != DrawerAction.TransportCard)
+                    if (AppState.selected != DrawerAction.TransportCard)
                         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 
-                    if (App.selected != DrawerAction.TransportCard) IconButton(onClick = {
+                    if (AppState.selected != DrawerAction.TransportCard) IconButton(onClick = {
                         if (state.onlineStatus is MainState.OnlineStatus.Online)
                             onEvent(MainEvent.ToggleOnlineMode)
                     }) {
@@ -375,32 +360,13 @@ fun MainScreen(
                     }
 
                     var open by remember { mutableStateOf(false) }
-                    var show by remember { mutableStateOf(false) }
-                    var includeDate by remember { mutableStateOf(true) }
-                    var label by remember { mutableStateOf("") }
-                    var deeplink2 by remember { mutableStateOf("") }
 
-                    val ctx = LocalContext.current
-                    val shortcutManager = ctx.getSystemService(ShortcutManager::class.java)!!
-                    val res = ctx.resources
-
-                    IconButton(onClick = {
-                        open = !open
-                    }) {
-                        IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
-                    }
-
-                    LaunchedEffect(Unit) {
-                        for (e in BroadcastReceiver.clicked) when (e) {
-                            BroadcastReceiver.TYPE_REMOVE_DATE -> {
-                                ctx.startActivity(Intent.createChooser(Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, deeplink2)
-                                    type = "text/uri-list"
-                                }, "Sdílet"))
-                            }
+                    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts() || supportsSharing())
+                        IconButton(onClick = {
+                            open = !open
+                        }) {
+                            IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
                         }
-                    }
 
                     DropdownMenu(
                         expanded = open,
@@ -411,7 +377,7 @@ fun MainScreen(
                             focusable = false
                         ),
                     ) {
-                        if (App.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
+                        if (AppState.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
                             text = {
                                 Text("Odstranit QR kód")
                             },
@@ -424,135 +390,107 @@ fun MainScreen(
                             },
                         )
 
-                        DropdownMenuItem(
-                            text = {
-                                Text("Sdílet")
-                            },
-                            onClick = {
-                                val deeplink = "https://jaro-jaro.github.io/DPMCB/${App.route}"
-                                deeplink2 = "https://jaro-jaro.github.io/DPMCB/${App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
-                                ctx.startActivity(Intent.createChooser(Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, deeplink)
-                                    type = "text/uri-list"
-                                }, "Sdílet").apply {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-                                        putExtra(
-                                            Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
-                                                ChooserAction.Builder(
-                                                    createWithResource(ctx, R.drawable.baseline_today_24),
-                                                    "Odstranit z odkazu datum",
-                                                    PendingIntent.getBroadcast(
-                                                        ctx,
-                                                        5,
-                                                        BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
-                                                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                                                    ),
-                                                ).build()
-                                            )
-                                        )
-                                })
-                                open = false
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Share, null)
-                            },
-                        )
+                        if (supportsSharing()) {
+                            val shareManager = screenShareManager
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Sdílet")
+                                },
+                                onClick = {
+                                    shareManager.shareScreen(state)
+                                    open = false
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Share, null)
+                                },
+                            )
+                        }
 
-                        DropdownMenuItem(
-                            text = {
-                                Text("Připnout zkratku na domovskou obrazovku")
-                            },
-                            onClick = {
-                                label = res.getString(App.title)
-                                open = false
-                                show = true
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.PushPin, null)
-                            },
-                        )
+                        if (supportsShortcuts()) {
+                            val shortcutCreator = shortcutCreator
+
+                            var show by remember { mutableStateOf(false) }
+                            var includeDate by remember { mutableStateOf(true) }
+                            var label by remember { mutableStateOf("") }
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Připnout zkratku na domovskou obrazovku")
+                                },
+                                onClick = {
+                                    label = AppState.title
+                                    open = false
+                                    show = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.PushPin, null)
+                                },
+                            )
+                            if (show) AlertDialog(
+                                onDismissRequest = {
+                                    show = false
+                                },
+                                title = {
+                                    Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
+                                },
+                                icon = {
+                                    Icon(Icons.Default.PushPin, null)
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        shortcutCreator.createShortcut(includeDate, label, state)
+                                        show = false
+                                    }) {
+                                        Text("Přidat")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = {
+                                        show = false
+                                    }) {
+                                        Text("Zrušit")
+                                    }
+                                },
+                                text = {
+                                    Column(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = label,
+                                            onValueChange = {
+                                                label = it
+                                            },
+                                            Modifier
+                                                .fillMaxWidth(),
+                                            label = {
+                                                Text("Titulek")
+                                            },
+                                        )
+                                        Row(
+                                            Modifier.padding(top = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Switch(checked = includeDate, onCheckedChange = {
+                                                includeDate = it
+                                            })
+                                            Text(
+                                                "Ponechat datum ve zkratce", Modifier
+                                                    .clickable {
+                                                        includeDate = !includeDate
+                                                    }
+                                                    .padding(start = 8.dp))
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
 
-                    if (show) AlertDialog(
-                        onDismissRequest = {
-                            show = false
-                        },
-                        title = {
-                            Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
-                        },
-                        icon = {
-                            Icon(Icons.Default.PushPin, null)
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                if (shortcutManager.isRequestPinShortcutSupported) {
-
-                                    val route = if (includeDate) App.route else App.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")
-
-                                    val pinShortcutInfo = ShortcutInfo
-                                        .Builder(ctx, "$route-$label")
-                                        .setShortLabel(label)
-                                        .setLongLabel(label)
-                                        .setIcon(
-                                            createWithResource(
-                                                ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
-                                            )
-                                        )
-                                        .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/$route".toUri()))
-                                        .build()
-
-                                    shortcutManager.requestPinShortcut(pinShortcutInfo, null)
-                                }
-                                show = false
-                            }) {
-                                Text("Přidat")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = {
-                                show = false
-                            }) {
-                                Text("Zrušit")
-                            }
-                        },
-                        text = {
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = label,
-                                    onValueChange = {
-                                        label = it
-                                    },
-                                    Modifier
-                                        .fillMaxWidth(),
-                                    label = {
-                                        Text("Titulek")
-                                    },
-                                )
-                                Row(
-                                    Modifier.padding(top = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Switch(checked = includeDate, onCheckedChange = {
-                                        includeDate = it
-                                    })
-                                    Text(
-                                        "Ponechat datum ve zkratce", Modifier
-                                            .clickable {
-                                                includeDate = !includeDate
-                                            }
-                                            .padding(start = 8.dp))
-                                }
-                            }
-                        }
-                    )
                 },
-                colors = if (App.title == R.string.empty) TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFD73139),
+                colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
+                    containerColor = dpmcb,
                     navigationIconContentColor = Color.Transparent,
                     actionIconContentColor = Color.White,
                 ) else TopAppBarDefaults.topAppBarColors()
@@ -575,14 +513,14 @@ fun MainScreen(
                                 onEvent(MainEvent.UpdateData)
                             }
                         ) {
-                            Text(stringResource(id = R.string.yes))
+                            Text("Ano")
                         }
                     },
                     title = {
-                        Text(stringResource(id = R.string.data_update))
+                        Text("Aktualizace JŘ")
                     },
                     text = {
-                        Text(stringResource(id = R.string.do_you_want_to_update))
+                        Text("Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?")
                     },
                     dismissButton = {
                         TextButton(
@@ -590,7 +528,7 @@ fun MainScreen(
                                 showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.no))
+                            Text("Ne")
                         }
                     },
                 )
@@ -623,7 +561,7 @@ fun MainScreen(
                                 onEvent(MainEvent.UpdateApp { loading = it })
                             }
                         ) {
-                            Text(stringResource(id = R.string.yes))
+                            Text("Ano")
                         }
                     },
                     title = {
@@ -638,7 +576,7 @@ fun MainScreen(
                                 showDialog = false
                             }
                         ) {
-                            Text(stringResource(id = R.string.no))
+                            Text("Ne")
                         }
                     },
                 )
@@ -652,6 +590,7 @@ fun MainScreen(
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
+                                isOnline = state.onlineStatus is OnlineStatus.Online,
                                 action = action,
                                 onEvent = onEvent,
                             )
@@ -669,36 +608,37 @@ fun MainScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerItem(
+    isOnline: Boolean,
     action: DrawerAction,
     onEvent: (MainEvent) -> Unit,
 ) = when (action) {
-    DrawerAction.Feedback -> Feedback(action)
+    DrawerAction.Feedback -> Feedback(isOnline, action)
 
-    else -> {
-        NavigationDrawerItem(
-            label = {
-                Text(stringResource(action.label))
-            },
-            icon = {
-                IconWithTooltip(action.icon, stringResource(action.label))
-            },
-            selected = App.selected == action,
-            onClick = {
-                onEvent(MainEvent.DrawerItemClicked(action))
-            },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
-    }
+    else if action.hide -> {}
+
+    else -> NavigationDrawerItem(
+        label = {
+            Text(action.label)
+        },
+        icon = {
+            IconWithTooltip(action.icon, action.label)
+        },
+        selected = AppState.selected == action,
+        onClick = {
+            onEvent(MainEvent.DrawerItemClicked(action))
+        },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun Feedback(
+    isOnline: Boolean,
     action: DrawerAction,
 ) {
     var rating by rememberSaveable { mutableIntStateOf(-1) }
     var showDialog by rememberSaveable { mutableStateOf(false) }
-    val ctx = LocalContext.current
 
     if (showDialog) AlertDialog(
         onDismissRequest = {
@@ -708,10 +648,13 @@ private fun Feedback(
             Text("Ohodnotit aplikaci")
         },
         confirmButton = {
+            val scope = rememberCoroutineScope()
             TextButton(onClick = {
                 val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-                val ref = database.getReference("hodnoceni")
-                ref.push().setValue("${rating + 1}/5")
+                val ref = database.reference("hodnoceni")
+                scope.launch {
+                    ref.push().setValue("${rating + 1}/5")
+                }
                 rating = -1
                 showDialog = false
             }) {
@@ -733,11 +676,9 @@ private fun Feedback(
                     }
                 }
                 Text("Chcete něco dodat? Prosím, obraťte se na náš GitHub, kde s vámi můžeme jednoduše komunikovat, nebo nás kontaktujte osobně. :)")
+                val openWebsite = openWebsiteLauncher
                 TextButton(onClick = {
-                    CustomTabsIntent.Builder()
-                        .setShowTitle(true)
-                        .build()
-                        .launchUrl(ctx, "https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148".toUri())
+                    openWebsite("https://github.com/jaro-jaro/DPMCB/discussions/133#discussion-5045148")
                 }) {
                     Text(text = "Přejít na GitHub")
                 }
@@ -746,17 +687,15 @@ private fun Feedback(
     )
     NavigationDrawerItem(
         label = {
-            Text(stringResource(action.label))
+            Text(action.label)
         },
         icon = {
-            IconWithTooltip(action.icon, stringResource(action.label))
+            IconWithTooltip(action.icon, action.label)
         },
         selected = false,
         onClick = {
-            if (ctx.isOnline)
+            if (isOnline)
                 showDialog = true
-            else
-                Toast.makeText(ctx, "Jste offline!", Toast.LENGTH_SHORT).show()
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )

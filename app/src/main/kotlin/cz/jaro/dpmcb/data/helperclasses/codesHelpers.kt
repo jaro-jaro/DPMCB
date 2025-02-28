@@ -1,11 +1,10 @@
 package cz.jaro.dpmcb.data.helperclasses
 
-import cz.jaro.dpmcb.data.entities.Validity
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Runs
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
+import cz.jaro.dpmcb.data.entities.TimeCodeType
+import cz.jaro.dpmcb.data.entities.TimeCodeType.DoesNotRun
+import cz.jaro.dpmcb.data.entities.TimeCodeType.Runs
+import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsAlso
+import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -55,7 +54,7 @@ fun filterTimeCodesAndMakeReadable(timeCodes: List<RunsFromTo>) = timeCodes.remo
         } + dates.joinToString()
     }
 
-fun validityString(validity: Validity) = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}"
+fun validityString(validity: cz.jaro.dpmcb.data.database.entities.Validity) = "JŘ linky platí od ${validity.validFrom.asString()} do ${validity.validTo.asString()}"
 
 fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
     .split(" ")

@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.ui.now_running
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -11,7 +11,7 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.shortLine
-import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
@@ -30,15 +30,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalTime
-import org.koin.android.annotation.KoinViewModel
-import org.koin.core.annotation.InjectedParam
 import kotlin.time.Duration.Companion.seconds
 
-@KoinViewModel
 class NowRunningViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    @InjectedParam private val params: Parameters,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
@@ -56,7 +53,7 @@ class NowRunningViewModel(
 
     private fun changeCurrentRoute() {
         try {
-            App.route = Route.NowRunning(
+            AppState.route = Route.NowRunning(
                 filters = filters.value,
                 type = type.value,
             ).generateRouteWithArgs(getNavDestination() ?: return)

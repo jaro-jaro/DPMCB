@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.card
 
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -17,18 +16,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.theme.dpmcb
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 @Suppress("unused")
 @Composable
@@ -36,24 +33,16 @@ fun Card(
     args: Route.Card,
     navController: NavHostController,
     superNavController: NavHostController,
+    viewModel: CardViewModel = koinViewModel(),
 ) {
-    App.title = R.string.empty
-    App.selected = DrawerAction.TransportCard
-
-    val launcher = rememberResultLauncher(ActivityResultContracts.PickVisualMedia())
-
-    val viewModel: CardViewModel = koinViewModel {
-        parametersOf(CardViewModel.Parameters(
-            pickMediaLauncher = launcher
-        ))
-    }
+    AppState.title = ""
+    AppState.selected = DrawerAction.TransportCard
 
     val hasCard by viewModel.hasCard.collectAsStateWithLifecycle()
     val card by viewModel.card.collectAsStateWithLifecycle()
 
     if (hasCard != null) CardScreen(
         card = card,
-        hasCard = hasCard!!,
         addCard = viewModel::addCard,
     )
 }
@@ -61,29 +50,29 @@ fun Card(
 @Composable
 fun CardScreen(
     card: ImageBitmap?,
-    hasCard: Boolean,
     addCard: () -> Unit,
 ) {
     Box(
-        Modifier.background(Color(0xFFD73139)).fillMaxSize()
+        Modifier
+            .background(dpmcb)
+            .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom))
     ) {
-        if (!hasCard || card == null) {
-            Button(
-                onClick = {
-                    addCard()
-                },
-                Modifier.padding(16.dp)
-            ) {
-                Text("Přidat průkazku")
-            }
-        } else {
+        if (card == null) Button(
+            onClick = {
+                addCard()
+            },
+            Modifier.padding(16.dp)
+        ) {
+            Text("Přidat průkazku")
+        } else
             Image(
                 bitmap = card,
                 contentDescription = null,
-                Modifier.fillMaxWidth().padding(all = 8.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(all = 8.dp),
                 contentScale = ContentScale.Fit,
             )
-        }
     }
 }

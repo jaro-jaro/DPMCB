@@ -522,3 +522,5 @@ val md_theme_dark_outlineVariant_magenta = Color(0xFF4E444B)
 val md_theme_dark_scrim_magenta = Color(0xFF000000)
 
 val seed_magenta = Color(0xFFFF00FF)
+
+val dpmcb = Color(0xFFD73139)

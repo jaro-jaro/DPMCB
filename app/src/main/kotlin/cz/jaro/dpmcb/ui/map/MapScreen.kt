@@ -19,15 +19,14 @@ import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import coil.size.Dimension
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App
-import cz.jaro.dpmcb.data.helperclasses.diagramFile
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.coil.ZoomableAsyncImage
 import me.saket.telephoto.zoomable.rememberZoomableImageState
 import me.saket.telephoto.zoomable.rememberZoomableState
+import org.koin.compose.koinInject
 
 @Suppress("unused")
 @Composable
@@ -36,14 +35,18 @@ fun Map(
     navController: NavHostController,
     superNavController: NavHostController,
 ) {
-    App.title = R.string.lines_map
-    App.selected = DrawerAction.LinesMap
+    AppState.title = "Schéma linek"
+    AppState.selected = DrawerAction.LinesMap
 
-    MapScreen()
+    MapScreen(
+        diagramData = koinInject<DiagramManager>().imageData
+    )
 }
 
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    diagramData: Any?
+) {
     val context = LocalContext.current
     val imageLoader = remember {
         ImageLoader.Builder(context)
@@ -59,7 +62,7 @@ fun MapScreen() {
     ) {
         ZoomableAsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(context.diagramFile)
+                .data(diagramData)
                 .crossfade(true)
                 .size(width = Dimension(4000), height = Dimension.Undefined)
                 .build(),

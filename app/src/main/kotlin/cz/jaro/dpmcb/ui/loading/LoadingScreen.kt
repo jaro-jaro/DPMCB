@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.helperclasses.diagramFile
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.two
@@ -50,8 +49,6 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import kotlinx.coroutines.Job
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.core.scope.Scope
-import java.io.File
 
 @Composable
 fun Loading(
@@ -63,9 +60,6 @@ fun Loading(
             parametersOf(
                 LoadingViewModel.Parameters(
                     update = args.update == true,
-                    diagramFile = ctx.diagramFile,
-                    dataFile = File(ctx.cacheDir, "jr-dpmcb.jaro"),
-                    sequencesFile = File(ctx.cacheDir, "kurzy.jaro"),
                     link = args.link,
                 )
             )

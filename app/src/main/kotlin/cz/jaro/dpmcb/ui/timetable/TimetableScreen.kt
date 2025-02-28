@@ -45,9 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App.Companion.selected
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.ui.common.DateSelector
@@ -63,8 +61,8 @@ fun Timetable(
     navController: NavHostController,
     superNavController: NavHostController,
 ) {
-    title = R.string.timetable
-    selected = DrawerAction.Timetable
+    AppState.title = "Jízdní řády"
+    AppState.selected = DrawerAction.Timetable
 
     val viewModel: TimetableViewModel = koinViewModel {
         parametersOf(

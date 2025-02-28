@@ -35,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,9 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
-import cz.jaro.dpmcb.data.App.Companion.selected
-import cz.jaro.dpmcb.data.App.Companion.title
+import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -76,17 +73,17 @@ fun Chooser(
         )
     },
 ) {
-    title = when (args.type) {
-        ChooserType.Stops -> R.string.departures
-        ChooserType.Lines -> R.string.timetable
-        ChooserType.LineStops -> R.string.timetable
-        ChooserType.NextStop -> R.string.timetable
-        ChooserType.ReturnStop1 -> R.string.vyhledat_spojeni
-        ChooserType.ReturnStop2 -> R.string.vyhledat_spojeni
-        ChooserType.ReturnLine -> R.string.departures
-        ChooserType.ReturnStop -> R.string.departures
+    AppState.title = when (args.type) {
+        ChooserType.Stops -> "Odjezdy"
+        ChooserType.Lines -> "Jízdní řády"
+        ChooserType.LineStops -> "Jízdní řády"
+        ChooserType.NextStop -> "Jízdní řády"
+        ChooserType.ReturnStop1 -> "Vyhledat spojení"
+        ChooserType.ReturnStop2 -> "Vyhledat spojení"
+        ChooserType.ReturnLine -> "Odjezdy"
+        ChooserType.ReturnStop -> "Odjezdy"
     }
-    selected = when (args.type) {
+    AppState.selected = when (args.type) {
         ChooserType.Lines,
         ChooserType.LineStops,
         ChooserType.NextStop,
@@ -145,23 +142,21 @@ fun ChooserScreen(
                 if (state.info.isNotBlank()) Text(text = state.info, Modifier.padding(vertical = 8.dp))
 
                 Text(
-                    text = stringResource(
-                        id = when (state.type) {
+                    text = when (state.type) {
                             ChooserType.Stops,
                             ChooserType.LineStops,
                             ChooserType.ReturnStop,
                             ChooserType.ReturnStop1,
                             ChooserType.ReturnStop2,
-                                -> R.string.vyberte_zastavku
+                                -> "Vyberte zastávku"
 
                             ChooserType.Lines,
                             ChooserType.ReturnLine,
-                                -> R.string.vyberte_linku
+                                -> "Vyberte linku"
 
                             ChooserType.NextStop,
-                                -> R.string.vyberte_dalsi_zastávku
-                        }
-                    ),
+                                -> "Vyberte příští zastávku"
+                        },
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 20.sp,
                 )

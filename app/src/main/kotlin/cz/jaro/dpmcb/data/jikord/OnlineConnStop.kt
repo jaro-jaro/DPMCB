@@ -1,9 +1,8 @@
 package cz.jaro.dpmcb.data.jikord
 
 import com.gitlab.mvysny.konsumexml.Konsumer
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
 import cz.jaro.dpmcb.data.helperclasses.toTime
+import cz.jaro.dpmcb.data.recordException
 import kotlinx.datetime.LocalTime
 
 data class OnlineConnStop(
@@ -24,7 +23,7 @@ fun Konsumer.OnlineConnStop(): OnlineConnStop? {
             delay = children[3].toInt(),
         )
     } catch (e: RuntimeException) {
-        Firebase.crashlytics.recordException(e)
+        recordException(e)
         return null
     }
 }

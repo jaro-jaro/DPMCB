@@ -20,7 +20,7 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class com.google.firebase.database.GenericTypeIndicator
+-keep class dev.gitlive.firebase.database.GenericTypeIndicator
 
 # With R8 full mode generic signatures are stripped for classes that are not
 # kept. Suspend functions are wrapped in continuations where the type argument

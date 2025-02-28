@@ -15,15 +15,13 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.serialization.decodeArguments
 import androidx.navigation.serialization.generateRouteWithArgs
 import androidx.navigation.toRoute
-import com.google.firebase.Firebase
-import com.google.firebase.crashlytics.crashlytics
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.typeMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.serializer
-import kotlin.reflect.KClass
 
 inline fun <reified T : Route> NavGraphBuilder.route(
     crossinline content: @Composable AnimatedVisibilityScope.(T) -> Unit,
@@ -41,7 +39,7 @@ inline fun <reified T : Route> NavGraphBuilder.route(
             it.toRoute<T>()
         } catch (e: SerializationException) {
             e.printStackTrace()
-            Firebase.crashlytics.recordException(e)
+            recordException(e)
             null
         }
         if (args != null) content(args)
@@ -58,7 +56,7 @@ private val NavBackStackEntry.route
         }?.serializer()?.decodeArguments(arguments ?: Bundle(), destination.typeMap())
     } catch (e: SerializationException) {
         e.printStackTrace()
-        Firebase.crashlytics.recordException(e)
+        recordException(e)
         null
     }
 
