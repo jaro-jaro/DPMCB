@@ -1,16 +1,7 @@
 package cz.jaro.dpmcb.ui.loading
 
-import androidx.annotation.Keep
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Firebase
-import com.google.firebase.FirebaseException
-import com.google.firebase.database.GenericTypeIndicator
-import com.google.firebase.database.database
-import com.google.firebase.remoteconfig.remoteConfig
-import com.google.firebase.remoteconfig.remoteConfigSettings
-import com.google.firebase.storage.StorageReference
-import com.google.firebase.storage.storage
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.entities.Conn
@@ -23,10 +14,14 @@ import cz.jaro.dpmcb.data.database.entities.Stop
 import cz.jaro.dpmcb.data.database.entities.TimeCode
 import cz.jaro.dpmcb.data.database.entities.Validity
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Direction
+import cz.jaro.dpmcb.data.entities.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.Table
+import cz.jaro.dpmcb.data.entities.TimeCodeType
+import cz.jaro.dpmcb.data.entities.TimeCodeType.Companion.runs
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.invalid
@@ -34,10 +29,6 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.entities.Direction
-import cz.jaro.dpmcb.data.entities.Direction.Companion.invoke
-import cz.jaro.dpmcb.data.entities.TimeCodeType
-import cz.jaro.dpmcb.data.entities.TimeCodeType.Companion.runs
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.noCode
@@ -51,7 +42,18 @@ import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.FirebaseException
+import dev.gitlive.firebase.database.database
+import dev.gitlive.firebase.remoteconfig.remoteConfig
+import dev.gitlive.firebase.storage.StorageReference
+import dev.gitlive.firebase.storage.storage
 import io.github.z4kn4fein.semver.toVersion
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.onDownload
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +61,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDate
@@ -75,11 +76,13 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
+import kotlin.time.Duration.Companion.hours
 
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val queries: SpojeQueries,
     private val diagramManager: DiagramManager,
+    firebase: FirebaseApp,
     private val params: Parameters,
 ) : ViewModel() {
     data class Parameters(
@@ -164,18 +167,16 @@ class LoadingViewModel(
         }
     }
 
-    @Keep
-    object TI : GenericTypeIndicator<Int>()
+    private val database = Firebase.database(firebase)
 
     private suspend fun isDataUpdateNeeded(): Boolean {
         val localVersion = repo.version.first()
 
-        val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val reference = database.getReference("data${META_DATA_VERSION}/verze")
+        val reference = database.reference("data${META_DATA_VERSION}/verze")
 
         val onlineVersion = viewModelScope.async {
             withTimeoutOrNull(3_000) {
-                reference.get().await().getValue(TI)
+                reference.valueEvents.first().value<Int>()
             } ?: -2
         }
 
@@ -193,28 +194,17 @@ class LoadingViewModel(
         return localVersion < newestVersion
     }
 
-    private suspend fun downloadText(ref: StorageReference): String {
+    private val client = HttpClient()
 
-        var result = ""
-
-        val task = ref.getStream { _, input ->
-            result += input.readBytes().decodeToString()
-        }
-
-        task.addOnFailureListener {
-            throw it
-        }
-        task.addOnProgressListener { snapshot ->
-            _state.update {
-                require(it is LoadingState.Loading)
-                it.copy(progress = snapshot.bytesTransferred.toFloat() / snapshot.totalByteCount)
+    private suspend fun downloadText(ref: StorageReference) =
+        client.get(ref.getDownloadUrl()) {
+            onDownload { bytesSentTotal, contentLength ->
+                _state.update {
+                    require(it is LoadingState.Loading)
+                    it.copy(progress = bytesSentTotal.toFloat() / contentLength)
+                }
             }
-        }
-
-        task.await()
-
-        return result
-    }
+        }.bodyAsText()
 
     private suspend fun downloadNewData(): Unit? {
 
@@ -229,13 +219,13 @@ class LoadingViewModel(
 
         val storage = Firebase.storage
         val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-        val versionRef = database.getReference("data${META_DATA_VERSION}/verze")
-        val newVersion = versionRef.get().await().getValue(TI) ?: -1
+        val versionRef = database.reference("data${META_DATA_VERSION}/verze")
+        val newVersion = versionRef.valueEvents.first().value<Int>()
         val currentVersion = repo.version.first()
 
         val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
         val doFullUpdate = (currentVersion + 1 != newVersion) || try {
-            changesRef.downloadUrl.await()
+            changesRef.getDownloadUrl()
             false
         } catch (_: FirebaseException) {
             true
@@ -486,13 +476,14 @@ class LoadingViewModel(
         return Unit
     }
 
+    private val remoteConfig = Firebase.remoteConfig(firebase)
+
     private suspend fun resetRemoteConfig() {
-        Firebase.remoteConfig.reset().await()
-        val configSettings = remoteConfigSettings {
-            minimumFetchIntervalInSeconds = 3600
+        remoteConfig.reset()
+        remoteConfig.settings {
+            minimumFetchInterval = 1.hours
         }
-        Firebase.remoteConfig.setConfigSettingsAsync(configSettings)
-        Firebase.remoteConfig.fetchAndActivate().await()
+        remoteConfig.fetchAndActivate()
     }
 
     private inline fun Map<Table, Map<String, List<List<String>>>>.exctractData(

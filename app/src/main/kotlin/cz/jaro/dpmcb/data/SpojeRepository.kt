@@ -1,11 +1,6 @@
 package cz.jaro.dpmcb.data
 
 import app.cash.sqldelight.db.SqlDriver
-import com.google.firebase.Firebase
-import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
-import com.google.firebase.remoteconfig.get
-import com.google.firebase.remoteconfig.remoteConfig
-import com.google.firebase.remoteconfig.remoteConfigSettings
 import cz.jaro.dpmcb.Database
 import cz.jaro.dpmcb.data.database.entities.SpojeQueries
 import cz.jaro.dpmcb.data.database.list
@@ -18,6 +13,10 @@ import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.SequenceModifiers
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Table
+import cz.jaro.dpmcb.data.entities.TimeCodeType.DoesNotRun
+import cz.jaro.dpmcb.data.entities.TimeCodeType.Runs
+import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsAlso
+import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.entities.changePart
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.generic
@@ -31,10 +30,6 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.typeChar
-import cz.jaro.dpmcb.data.entities.TimeCodeType.DoesNotRun
-import cz.jaro.dpmcb.data.entities.TimeCodeType.Runs
-import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsAlso
-import cz.jaro.dpmcb.data.entities.TimeCodeType.RunsOnly
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.anyAre
@@ -70,6 +65,11 @@ import cz.jaro.dpmcb.data.realtions.sequence.Sequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.tuples.Quadruple
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.remoteconfig.FirebaseRemoteConfigException
+import dev.gitlive.firebase.remoteconfig.get
+import dev.gitlive.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -91,11 +91,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import kotlin.collections.filterNot
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.collections.filterNot as remove
@@ -105,25 +105,25 @@ class SpojeRepository(
     private val localDataSource: SpojeQueries,
     private val driver: SqlDriver,
     private val preferenceDataSource: PreferenceDataSource,
+    firebase: FirebaseApp,
 ) : UserOnlineManager by onlineManager {
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    private val remoteConfig = Firebase.remoteConfig
+    private val remoteConfig = Firebase.remoteConfig(firebase)
 
     private suspend fun getConfigActive() = try {
-        val configSettings = remoteConfigSettings {
-            minimumFetchIntervalInSeconds = 3600
+        remoteConfig.settings {
+            minimumFetchInterval = 1.hours
         }
-        remoteConfig.setConfigSettingsAsync(configSettings)
         if (!isOnline())
-            remoteConfig.activate().await()
+            remoteConfig.activate()
         else
-            remoteConfig.fetchAndActivate().await()
+            remoteConfig.fetchAndActivate()
     } catch (e: FirebaseRemoteConfigException) {
         e.printStackTrace()
         recordException(e)
         try {
-            remoteConfig.activate().await()
+            remoteConfig.activate()
         } catch (_: FirebaseRemoteConfigException) {
             false
         }
@@ -132,17 +132,17 @@ class SpojeRepository(
     private val configActive = ::getConfigActive.asFlow()
 
     private val sequenceTypes = configActive.map {
-        Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"].asString())
+        Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"])
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
     suspend fun SequenceModifiers.type() = typeChar()?.let { sequenceTypes.first()[it] }
 
     private val sequenceConnections = configActive.map {
-        Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"].asString()).map { Pair(it[0], it[1]) }
+        Json.decodeFromString<List<List<SequenceCode>>>(remoteConfig["sequenceConnections"]).map { Pair(it[0], it[1]) }
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
     private val dividedSequencesWithMultipleBuses = configActive.map {
-        Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"].asString())
+        Json.decodeFromString<List<SequenceCode>>(remoteConfig["dividedSequencesWithMultipleBuses"])
     }//.stateIn(scope, SharingStarted.Eagerly, null)
 
     private val _onlineMode = MutableStateFlow(Settings().autoOnline)

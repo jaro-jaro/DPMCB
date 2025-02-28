@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import android.app.Application
+import android.content.Context
 import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import app.cash.sqldelight.db.SqlDriver
@@ -9,8 +10,10 @@ import cz.jaro.dpmcb.Database
 import cz.jaro.dpmcb.ui.main.DetailsOpener
 import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
 import cz.jaro.dpmcb.ui.map.DiagramManager
-import org.koin.android.ext.koin.androidLogger
-import org.koin.core.context.startKoin
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
+import dev.gitlive.firebase.initialize
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 class App : Application() {
@@ -34,15 +37,26 @@ class App : Application() {
         super.onCreate()
 
         val ctx = this
-        startKoin {
-            androidLogger()
-            modules(commonModule)
-            modules(platformModule(ctx))
-        }
+        initKoin(module(true) {
+            single { this@App } bind Context::class
+            single { Firebase.initialize(get<Context>())!! }
+            single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
+            single {
+                PreferenceDataStoreFactory.create(
+                    migrations = listOf()
+                ) {
+                    ctx.dataStoreFile("DPMCB_DataStore.preferences_pb")
+                }
+            }
+            single { UserOnlineManager(ctx) }
+            single { DetailsOpener(ctx) }
+            single<DiagramManager> { AndroidDiagramManager(ctx) }
+        })
     }
 }
 
 private fun platformModule(ctx: App) = module(true) {
+    single<FirebaseApp> { Firebase.initialize(get<Context>())!! }
     single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
     single {
         PreferenceDataStoreFactory.create(

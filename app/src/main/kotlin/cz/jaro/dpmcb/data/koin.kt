@@ -16,9 +16,19 @@ import cz.jaro.dpmcb.ui.sequence.SequenceViewModel
 import cz.jaro.dpmcb.ui.settings.SettingsViewModel
 import cz.jaro.dpmcb.ui.timetable.TimetableViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
-import org.koin.dsl.bind
+import org.koin.core.KoinApplication
+import org.koin.core.context.startKoin
+import org.koin.core.module.KoinApplicationDslMarker
+import org.koin.core.module.Module
 import org.koin.dsl.module
 import retrofit2.Retrofit
+
+@KoinApplicationDslMarker
+fun initKoin(platformSpecificModule: Module): KoinApplication {
+    return startKoin {
+        modules(platformSpecificModule, commonModule)
+    }
+}
 
 val commonModule = module(true) {
     single {
@@ -36,19 +46,19 @@ val commonModule = module(true) {
         get<Database>().spojeQueries
     }
     single {
-        SpojeRepository(get(), get(), get(), get())
+        SpojeRepository(get(), get(), get(), get(), get())
     }
     single {
         PreferenceDataSource(get())
     }
-    single { OnlineRepository(get(), get(), get()) } bind UserOnlineManager::class
+    single { OnlineRepository(get(), get(), get()) }
     viewModel { BusViewModel(get(), get(), it.get(), it.get()) }
     viewModel { CardViewModel(get()) }
     viewModel { ChooserViewModel(get(), it.get()) }
     viewModel { DeparturesViewModel(get(), get(), it.get()) }
     viewModel { FavouritesViewModel(get(), get(), it.get()) }
     viewModel { FindBusViewModel(get(), get(), it.get()) }
-    viewModel { LoadingViewModel(get(), get(), get(), it.get()) }
+    viewModel { LoadingViewModel(get(), get(), get(), get(), it.get()) }
     viewModel { MainViewModel(get(), get(), get(), get(), it.get()) }
     viewModel { NowRunningViewModel(get(), get(), it.get()) }
     viewModel { SequenceViewModel(get(), get(), it.get()) }

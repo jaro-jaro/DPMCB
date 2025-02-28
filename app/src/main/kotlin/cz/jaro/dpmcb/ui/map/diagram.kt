@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.map
 
-import com.google.firebase.storage.StorageReference
+import dev.gitlive.firebase.storage.StorageReference
 
 interface DiagramManager {
     suspend fun downloadDiagram(

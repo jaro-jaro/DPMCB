@@ -46,8 +46,10 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility(JavaVersion.VERSION_17)
-        targetCompatibility(JavaVersion.VERSION_17)
+        isCoreLibraryDesugaringEnabled = true
+
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -96,11 +98,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     // Firebase
-    implementation(libs.firebase.common)
     // Realtime Databse
     implementation(libs.firebase.database)
     // In-App Messaging
-    implementation(libs.firebase.inappmessaging.display)
+//    implementation(libs.firebase.inappmessaging.display)
     // Storage
     implementation(libs.firebase.storage)
     // Crashlytics
@@ -162,4 +163,8 @@ dependencies {
 
     // ChNT
     implementation(libs.androidx.browser)
+}
+
+dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

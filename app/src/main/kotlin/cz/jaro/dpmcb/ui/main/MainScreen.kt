@@ -70,10 +70,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.google.firebase.Firebase
-import com.google.firebase.analytics.analytics
-import com.google.firebase.analytics.logEvent
-import com.google.firebase.database.database
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
@@ -110,6 +106,10 @@ import cz.jaro.dpmcb.ui.sequence.Sequence
 import cz.jaro.dpmcb.ui.settings.Settings
 import cz.jaro.dpmcb.ui.theme.dpmcb
 import cz.jaro.dpmcb.ui.timetable.Timetable
+import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.analytics.analytics
+import dev.gitlive.firebase.analytics.logEvent
+import dev.gitlive.firebase.database.database
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -648,10 +648,13 @@ private fun Feedback(
             Text("Ohodnotit aplikaci")
         },
         confirmButton = {
+            val scope = rememberCoroutineScope()
             TextButton(onClick = {
                 val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
-                val ref = database.getReference("hodnoceni")
-                ref.push().setValue("${rating + 1}/5")
+                val ref = database.reference("hodnoceni")
+                scope.launch {
+                    ref.push().setValue("${rating + 1}/5")
+                }
                 rating = -1
                 showDialog = false
             }) {
