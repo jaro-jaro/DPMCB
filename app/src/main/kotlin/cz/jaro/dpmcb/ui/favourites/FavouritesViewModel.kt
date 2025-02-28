@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.days
@@ -60,6 +61,9 @@ class FavouritesViewModel(
                         FavouriteResult(onlineConn, bus.first, bus.second, repo.doesConnRunAt(favourite.busName), favourite)
                     }.filterNotNull()
                 }
+                .onEmpty {
+                    emit(emptyList())
+                }
         }
         .flattenConcat()
         .map { buses ->
@@ -85,6 +89,9 @@ class FavouritesViewModel(
                         }
                         RecentResult(onlineConn, bus.first, bus.second, repo.doesConnRunAt(recent))
                     }.filterNotNull()
+                }
+                .onEmpty {
+                    emit(emptyList())
                 }
         }
         .flattenConcat()
