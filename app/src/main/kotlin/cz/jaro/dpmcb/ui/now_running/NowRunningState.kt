@@ -3,54 +3,31 @@ package cz.jaro.dpmcb.ui.now_running
 import cz.jaro.dpmcb.data.entities.ShortLine
 
 sealed interface NowRunningState {
-
-    data object IsNotToday : NowRunningState
-
-    data object Offline : NowRunningState
+    val type: NowRunningType
 
     data class LoadingLines(
         override val type: NowRunningType,
-    ) : HasType
+    ) : NowRunningState
 
-    data object NoLines : NowRunningState
+    data object NoLines : NowRunningState {
+        override val type: NowRunningType = NowRunningType.Line
+    }
 
-    sealed interface HasFilters : HasType {
+    sealed interface LinesLoaded : NowRunningState {
         val lineNumbers: List<ShortLine>
         val filters: List<ShortLine>
-    }
-
-    sealed interface HasType : NowRunningState {
-        val type: NowRunningType
-    }
-
-    sealed interface HasNotRunning : NowRunningState {
-        val nowNotRunning: NowRunningResults<*>
     }
 
     data class Loading(
         override val lineNumbers: List<ShortLine>,
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
-    ) : HasFilters, HasType
-
-    data class NothingRunsToday(
-        override val lineNumbers: List<ShortLine>,
-        override val filters: List<ShortLine>,
-        override val type: NowRunningType,
-    ) : HasFilters, HasType
-
-    data class NothingRunningNow(
-        override val lineNumbers: List<ShortLine>,
-        override val filters: List<ShortLine>,
-        override val type: NowRunningType,
-        override val nowNotRunning: NowRunningResults<*>,
-    ) : HasFilters, HasType, HasNotRunning
+    ) : LinesLoaded
 
     data class OK(
         override val lineNumbers: List<ShortLine>,
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
-        override val nowNotRunning: NowRunningResults<*>,
         val result: NowRunningResults<*>,
-    ) : HasFilters, HasType, HasNotRunning
+    ) : LinesLoaded
 }
