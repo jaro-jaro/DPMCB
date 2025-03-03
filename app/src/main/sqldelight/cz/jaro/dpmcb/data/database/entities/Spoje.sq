@@ -465,13 +465,13 @@ TimeCodesOfSeq AS (
     JOIN `SeqOfConn` ON `SeqOfConn`.`line` = `TimeCode`.`line` AND `SeqOfConn`.`connNumber` = `TimeCode`.`connNumber`
     JOIN CountOfConnsInSequence c ON c.`sequence` = `SeqOfConn`.`sequence`
     WHERE `SeqOfConn`.`group` IN :groups
-    GROUP BY `validFrom` || `validTo` || `type`, `SeqOfConn`.`sequence`
+    GROUP BY `validFrom` || `validTo` || `type`, `SeqOfConn`.`sequence`, `TimeCode`.`tab`
     HAVING COUNT(DISTINCT `SeqOfConn`.`connNumber`) = c.`count`
     ORDER BY `SeqOfConn`.`sequence`, `type`, `validTo`, `validFrom`
 ),
 TimeCodesCountOfSeq AS (
     SELECT DISTINCT `sequence`, COUNT(*) `count` FROM TimeCodesOfSeq `TimeCode`
-    GROUP BY `sequence`
+    GROUP BY `sequence`, `tab`
 ),
 TodayRunningSequences AS (
     SELECT DISTINCT `TimeCode`.`sequence` FROM TimeCodesOfSeq `TimeCode`
@@ -493,7 +493,7 @@ TodayRunningSequences AS (
             AND :date <= `TimeCode`.`validTo`
         )
     ))
-    GROUP BY `TimeCode`.`sequence`
+    GROUP BY `TimeCode`.`sequence`, `TimeCode`.`tab`
     HAVING (
         `TimeCode`.`runs2`
         AND COUNT(*) >= 1
