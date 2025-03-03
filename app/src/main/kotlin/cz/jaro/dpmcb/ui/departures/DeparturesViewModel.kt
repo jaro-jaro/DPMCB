@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
 import androidx.navigation.navOptions
-import cz.jaro.dpmcb.data.App
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -347,7 +346,7 @@ class DeparturesViewModel(
                 via = info.value.stopFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
-                date = info.value.date,
+                date = e.date,
             )
         )
 
