@@ -21,7 +21,6 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCodeType
-import cz.jaro.dpmcb.data.entities.Value
 import cz.jaro.dpmcb.data.entities.VehicleType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -29,9 +28,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlin.reflect.KClass
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
 
 fun createDatabase(driver: SqlDriver) = Database(
     driver = driver,
@@ -91,13 +87,6 @@ val IntAdapter = ColumnAdapter<Long, Int>(
     getValue = Int::toLong,
 )
 
-val <T : Value<P>, P> KClass<T>.valueClassAdapter: ColumnAdapter<T, P>
-    @Suppress("UNCHECKED_CAST")
-    get() = ColumnAdapter<P, T>(
-        constructor = primaryConstructor!! as (P) -> T,
-        getValue = memberProperties.find { it.name == "value" }!!.getter as (T) -> P
-    )
-
 fun <P, T : Any> ColumnAdapter(
     constructor: (P) -> T,
     getValue: (T) -> P,
@@ -110,11 +99,11 @@ val BusNumberAdapter = IntAdapter
 val StopNumberAdapter = IntAdapter
 val SequenceGroupAdapter = IntAdapter
 
-val TableAdapter = Table::class.valueClassAdapter
-val LongLineAdapter = LongLine::class.valueClassAdapter
-val ShortLineAdapter = ShortLine::class.valueClassAdapter
-val BusNameAdapter = BusName::class.valueClassAdapter
-val SequenceCodeAdapter = SequenceCode::class.valueClassAdapter
+val TableAdapter = ColumnAdapter(::Table) { it.value }
+val LongLineAdapter = ColumnAdapter(::LongLine) { it.value }
+val ShortLineAdapter = ColumnAdapter(::ShortLine) { it.value }
+val BusNameAdapter = ColumnAdapter(::BusName) { it.value }
+val SequenceCodeAdapter = ColumnAdapter(::SequenceCode) { it.value }
 
 val TimeCodeTypeAdapter = EnumColumnAdapter<TimeCodeType>()
 val VehicleTypeAdapter = EnumColumnAdapter<VehicleType>()
