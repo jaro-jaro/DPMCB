@@ -7,14 +7,12 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.shortLine
-import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -35,7 +33,7 @@ import kotlin.time.Duration.Companion.seconds
 class NowRunningViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    private val params: Parameters,
+    params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
@@ -48,8 +46,6 @@ class NowRunningViewModel(
 
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
-    private val loading = MutableStateFlow(true)
-
 
     private fun changeCurrentRoute() {
         try {
@@ -69,7 +65,7 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.ChangeType -> {
-            type.value = e.typ
+            type.value = e.type
             changeCurrentRoute()
         }
 
@@ -84,8 +80,7 @@ class NowRunningViewModel(
 
     private val oneWayLines = viewModelScope.async { repo.oneWayLines() }
 
-    private val list = onlineRepo.nowRunningBuses().map { onlineConns ->
-        loading.value = true
+    private val onlineList = onlineRepo.nowRunningBuses().map { onlineConns ->
         val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
         val oneWayLines = repo.oneWayLines()
         onlineConns
@@ -106,67 +101,15 @@ class NowRunningViewModel(
                     sequence = bus.sequence,
                 )
             }
-            .also { loading.value = false }
     }
 
-    private val nowRunning = list.combine(type) { it, type ->
-        when (type) {
-            NowRunningType.RegN -> it
-                .sortedWith(
-                    compareBy { it.vehicle }
-                )
-                .map(RunningConnPlus::toRunningVehicle)
-                .toResult()
-
-            NowRunningType.Line -> it
-                .sortedWith(
-                    compareBy<RunningConnPlus> { it.lineNumber }
-                        .thenBy { it.direction }
-                        .thenBy { it.destination }
-                        .thenBy { it.indexOnLine }
-                        .thenByDescending { it.nextStopTime }
-                )
-                .groupByPair({ it.lineNumber to it.destination }, RunningConnPlus::toRunningBus)
-                .map(::RunningLineInDirection)
-                .toResult()
-
-            NowRunningType.Delay -> it
-                .sortedWith(
-                    compareByDescending<RunningConnPlus> { it.delay }
-                        .thenBy { it.lineNumber }
-                        .thenBy { it.direction }
-                        .thenBy { it.destination }
-                        .thenBy { it.indexOnLine }
-                        .thenByDescending { it.nextStopTime }
-                )
-                .map(RunningConnPlus::toRunningDelayedBus)
-                .toResult()
-        }
-    }
-
-    private val filteredResult = nowRunning.combine(filters) { result, filters ->
-        when (result) {
-            is NowRunningResults.RegN -> result.copy(list = result.list.filter { filters.isEmpty() || it.lineNumber in filters })
-            is NowRunningResults.Lines -> result.copy(list = result.list.filter { filters.isEmpty() || it.lineNumber in filters })
-            is NowRunningResults.Delay -> result.copy(list = result.list.filter { filters.isEmpty() || it.lineNumber in filters })
+    private val filteredOnlineList = onlineList.combine(filters) { list, filters ->
+        list.filter {
+            filters.isEmpty() || it.lineNumber in filters
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    private val lineNumbers = repo::lineNumbersToday.asFlow()
-
-    private val nowNotRunningBuses = combine(repo.nowRunningOrNot, nowRunning, filters) { nowRunning, result, filters ->
-        val reallyRunning = when (result) {
-            is NowRunningResults.RegN -> result.list.mapNotNull { it.sequence }
-            is NowRunningResults.Lines -> result.list.flatMap { it.buses }.mapNotNull { it.sequence }
-            is NowRunningResults.Delay -> result.list.mapNotNull { it.sequence }
-        }
-
-        nowRunning.filter { (seq, bus) ->
-            seq !in reallyRunning && (bus.shortLine() in filters || filters.isEmpty())
-        }.map { it.second }
-    }
-
-    private val notRunningList = nowNotRunningBuses.map { busNames ->
+    private val offlineList = repo.nowRunningOrNot.map { busNames ->
         val oneWayLines = oneWayLines.await()
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
@@ -187,105 +130,102 @@ class NowRunningViewModel(
             }
     }
 
-    private val nowNotRunning = notRunningList.combine(type) { it, type ->
-        when (type) {
-            NowRunningType.RegN -> it
-                .sortedWith(
-                    compareBy<RunningConnPlus> { it.lineNumber }
-                        .thenBy { it.direction }
-                        .thenBy { it.destination }
-                        .thenBy { it.indexOnLine }
-                        .thenByDescending { it.nextStopTime }
-                )
-                .map(RunningConnPlus::toRunningVehicle)
-                .toResult()
-
-            NowRunningType.Line -> it
-                .sortedWith(
-                    compareBy<RunningConnPlus> { it.lineNumber }
-                        .thenBy { it.direction }
-                        .thenBy { it.destination }
-                        .thenBy { it.indexOnLine }
-                        .thenByDescending { it.nextStopTime }
-                )
-                .groupByPair({ it.lineNumber to it.destination }, RunningConnPlus::toRunningBus)
-                .map(::RunningLineInDirection)
-                .toResult()
-
-            NowRunningType.Delay -> it
-                .sortedWith(
-                    compareBy<RunningConnPlus> { it.lineNumber }
-                        .thenBy { it.direction }
-                        .thenBy { it.destination }
-                        .thenBy { it.indexOnLine }
-                        .thenByDescending { it.nextStopTime }
-                )
-                .map(RunningConnPlus::toRunningDelayedBus)
-                .toResult()
+    private val filteredOfflineList = offlineList.combine(filters) { list, filters ->
+        list.filter {
+            filters.isEmpty() || it.lineNumber in filters
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    val state =
-        combine(
-            lineNumbers, filteredResult, loading,
-            repo.hasAccessToMap, filters, type, nowNotRunning
-        ) {
-                lineNumbers, result, listIsLoading,
-                isOnline, filters, type, nowNotRunning,
-            ->
-            when {
-//                false -> NowRunningState.IsNotToday
-                !isOnline -> NowRunningState.Offline
-                lineNumbers.isEmpty() -> NowRunningState.NoLines
-                result == null/* || listIsLoading*/ -> NowRunningState.Loading(lineNumbers, filters, type)
-                nowNotRunning == null -> NowRunningState.OK(lineNumbers, filters, type, NowRunningResults.Lines(emptyList()), result)
-                result.list.isNotEmpty() -> NowRunningState.OK(lineNumbers, filters, type, nowNotRunning, result)
-                nowNotRunning.list.isEmpty() -> NowRunningState.NothingRunsToday(lineNumbers, filters, type)
-                else -> NowRunningState.NothingRunningNow(lineNumbers, filters, type, nowNotRunning)
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
+    private val result = combine(filteredOfflineList, filteredOnlineList, type) { offline, online, type ->
+        if (offline == null && online == null) null
+        else when (type) {
+            NowRunningType.RegN -> NowRunningResults.RegN(resultListRegN(online.orEmpty()), offline = resultListRegN(offline.orEmpty()))
+            NowRunningType.Line -> NowRunningResults.Lines(resultListLine(online.orEmpty()), offline = resultListLine(offline.orEmpty()))
+            NowRunningType.Delay -> NowRunningResults.Delay(resultListDelay(online.orEmpty()), offline = resultListDelay(offline.orEmpty()))
+        }
+    }
 
-    private fun RunningLineInDirection(it: Triple<ShortLine, String, List<RunningBus>>) = RunningLineInDirection(
-        lineNumber = it.first,
-        destination = it.second,
-        buses = it.third,
+    private val lineNumbers = repo::lineNumbersToday.asFlow()
+
+    val state = combine(
+        lineNumbers, filters, type, result
+    ) { lineNumbers, filters, type, result ->
+        when {
+            lineNumbers.isEmpty() -> NowRunningState.NoLines
+            result == null -> NowRunningState.Loading(lineNumbers, filters, type)
+            else -> NowRunningState.OK(lineNumbers, filters, type, result)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
+}
+
+private fun resultListDelay(list: List<RunningConnPlus>) = list
+    .sortedWith(
+        compareByDescending<RunningConnPlus> { it.delay }
+            .thenBy { it.lineNumber }
+            .thenBy { it.direction }
+            .thenBy { it.destination }
+            .thenBy { it.indexOnLine }
+            .thenByDescending { it.nextStopTime }
+    )
+    .map(RunningConnPlus::toRunningDelayedBus)
+
+private fun resultListLine(list: List<RunningConnPlus>) = list
+    .sortedWith(
+        compareBy<RunningConnPlus> { it.lineNumber }
+            .thenBy { it.direction }
+            .thenBy { it.destination }
+            .thenBy { it.indexOnLine }
+            .thenByDescending { it.nextStopTime }
+    )
+    .groupByPair({ it.lineNumber to it.destination }, RunningConnPlus::toRunningBus)
+    .map(::RunningLineInDirection)
+
+private fun resultListRegN(list: List<RunningConnPlus>) = list
+    .sortedWith(
+        compareBy { it.vehicle }
+    )
+    .map(RunningConnPlus::toRunningVehicle)
+
+private fun RunningLineInDirection(it: Triple<ShortLine, String, List<RunningBus>>) = RunningLineInDirection(
+    lineNumber = it.first,
+    destination = it.second,
+    buses = it.third,
+)
+
+data class RunningConnPlus(
+    val busName: BusName,
+    val nextStopName: String,
+    val nextStopTime: LocalTime,
+    val delay: Float?,
+    val indexOnLine: Int,
+    val direction: Direction,
+    val lineNumber: ShortLine,
+    val destination: String,
+    val vehicle: RegistrationNumber,
+    val sequence: SequenceCode?,
+) {
+    fun toRunningDelayedBus() = RunningDelayedBus(
+        busName = busName,
+        delay = delay,
+        lineNumber = lineNumber,
+        destination = destination,
+        sequence = sequence,
     )
 
-    data class RunningConnPlus(
-        val busName: BusName,
-        val nextStopName: String,
-        val nextStopTime: LocalTime,
-        val delay: Float?,
-        val indexOnLine: Int,
-        val direction: Direction,
-        val lineNumber: ShortLine,
-        val destination: String,
-        val vehicle: RegistrationNumber,
-        val sequence: SequenceCode?,
-    ) {
-        fun toRunningDelayedBus() = RunningDelayedBus(
-            busName = busName,
-            delay = delay,
-            lineNumber = lineNumber,
-            destination = destination,
-            sequence = sequence,
-        )
+    fun toRunningVehicle() = RunningVehicle(
+        busName = busName,
+        lineNumber = lineNumber,
+        destination = destination,
+        vehicle = vehicle,
+        sequence = sequence,
+    )
 
-        fun toRunningVehicle() = RunningVehicle(
-            busName = busName,
-            lineNumber = lineNumber,
-            destination = destination,
-            vehicle = vehicle,
-            sequence = sequence,
-        )
-
-        fun toRunningBus() = RunningBus(
-            busName = busName,
-            nextStopName = nextStopName,
-            nextStopTime = nextStopTime,
-            delay = delay,
-            vehicle = vehicle,
-            sequence = sequence,
-        )
-    }
+    fun toRunningBus() = RunningBus(
+        busName = busName,
+        nextStopName = nextStopName,
+        nextStopTime = nextStopTime,
+        delay = delay,
+        vehicle = vehicle,
+        sequence = sequence,
+    )
 }

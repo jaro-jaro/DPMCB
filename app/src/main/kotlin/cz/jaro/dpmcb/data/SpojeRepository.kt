@@ -34,6 +34,7 @@ import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.anyAre
 import cz.jaro.dpmcb.data.helperclasses.anySatisfies
+import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.filter
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.noneAre
@@ -44,6 +45,7 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.helperclasses.withCache
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -72,16 +74,12 @@ import dev.gitlive.firebase.remoteconfig.get
 import dev.gitlive.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -89,7 +87,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
@@ -180,15 +177,11 @@ class SpojeRepository(
         if (tablesByDate.isEmpty()) return null
         if (tablesByDate.size == 1) return tablesByDate.first()
 
-        val sortedTablesByDate = tablesByDate.sortedByDescending { it.validFrom }
-
         val tablesByDateAndRestriction =
-            if (sortedTablesByDate.none { it.hasRestriction })
-                sortedTablesByDate
-            else
-                sortedTablesByDate.filter { it.hasRestriction }
+            if (tablesByDate.none { it.hasRestriction }) tablesByDate
+            else tablesByDate.filter { it.hasRestriction }
 
-        return tablesByDateAndRestriction.first()
+        return tablesByDateAndRestriction.maxBy { it.validFrom }
     }
 
     private suspend fun nowUsedTable(date: LocalDate, lineNumber: LongLine) = _tables.getOrPut(lineNumber) { mutableMapOf() }.getOrPut(date) {
@@ -250,7 +243,7 @@ class SpojeRepository(
     private suspend fun allGroups(date: LocalDate) =
         localDataSource.allSequences().list().map { seq ->
             nowUsedGroup(date, seq)
-        }.filterNot { it.isInvalid() } + SequenceGroup.invalid
+        }.distinct().filterNot { it.isInvalid() } + SequenceGroup.invalid
 
     init {
         scope.launch(Dispatchers.IO) {
@@ -385,42 +378,37 @@ class SpojeRepository(
             }
     } ?: emptyList()
 
-    val nowRunningOrNot = channelFlow<List<Pair<SequenceCode, BusName>>> {
-        coroutineScope {
-            while (currentCoroutineContext().isActive) {
-                launch {
-                    send(
-                        localDataSource.lastStopTimesOfConnsInSequences(
-                            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
-                                .filter {
-                                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
-                                }
-                                .map { it.sequence },
-                            groups = allGroups(SystemClock.todayHere()),
-                            tabs = allTables(SystemClock.todayHere()),
-                        ).list()
-                            .groupBy { it.sequence }
-                            .mapValues { (_, a) ->
-                                (a.groupBy ({
-                                    it.connName
-                                }) { it.time!! }).toList().sortedBy { it.second.single() }.find {
-                                    SystemClock.timeHere() <= it.second.single()
-                                }?.first ?: error("This should never happen")
-                            }
-                            .toList()
-                            .sortedWith(Comparator.comparing({ it.first }, getSequenceComparator()))
-                    )
-                }
-                delay(30.seconds)
-            }
-        }
-    }
+    val nowRunningOrNot = ::getNowRunningOrNot
+        .asRepeatingFlow(30.seconds)
         .flowOn(Dispatchers.IO)
         .shareIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(5.seconds),
             replay = 1
         )
+
+    private suspend fun getNowRunningOrNot() =
+        localDataSource.lastStopTimesOfConnsInSequences(
+            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
+                .work()
+                .filter {
+                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
+                }
+                .map { it.sequence },
+            groups = allGroups(SystemClock.todayHere()),
+            tabs = allTables(SystemClock.todayHere()),
+        ).list()
+            .groupBy { it.sequence }
+            .values
+            .map { stopByBus ->
+                stopByBus
+                    .groupBy({ it.connName }, { it.time!! })
+                    .map { (k, v) -> k to v.single() }
+                    .sortedBy { it.second }
+                    .find {
+                        SystemClock.timeHere() <= it.second
+                    }?.first ?: error("This should never happen")
+            }
 
     suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
         val conns = localDataSource.coreBusOfSequence(nowUsedGroup(date, seq), seq.value).list()

@@ -110,12 +110,12 @@ inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspe
 
 
 @OptIn(ExperimentalTypeInference::class)
-fun <T> Flow<T>.compare(initial: T, @BuilderInference comparation: suspend (oldValue: T, newValue: T) -> T): Flow<T> {
+fun <T> Flow<T>.compare(initial: T, @BuilderInference compare: suspend (oldValue: T, newValue: T) -> T): Flow<T> {
     var oldValue: T = initial
     return flow {
         emit(oldValue)
         collect { newValue ->
-            oldValue = comparation(oldValue, newValue)
+            oldValue = compare(oldValue, newValue)
             emit(oldValue)
         }
     }
