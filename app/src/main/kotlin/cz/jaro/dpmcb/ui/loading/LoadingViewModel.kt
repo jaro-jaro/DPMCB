@@ -12,7 +12,6 @@ import cz.jaro.dpmcb.data.database.entities.SeqOfConn
 import cz.jaro.dpmcb.data.database.entities.SpojeQueries
 import cz.jaro.dpmcb.data.database.entities.Stop
 import cz.jaro.dpmcb.data.database.entities.TimeCode
-import cz.jaro.dpmcb.data.database.entities.Validity
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.entities.Direction.Companion.invoke
@@ -64,18 +63,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.serializer
 import kotlin.time.Duration.Companion.hours
 
 class LoadingViewModel(
@@ -102,8 +95,14 @@ class LoadingViewModel(
     val settings = repo.settings
 
     @Serializable
+    data class GroupValidity(
+        val validFrom: LocalDate,
+        val validTo: LocalDate,
+    )
+
+    @Serializable
     data class Group(
-        val validity: @Serializable(with = ValiditySerializer::class) cz.jaro.dpmcb.data.entities.Validity,
+        val validity: GroupValidity,
         val sequences: Map<SequenceCode, List<BusName>>,
     )
 
@@ -629,26 +628,6 @@ class LoadingViewModel(
     }
 
     private inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
-}
-
-object ValiditySerializer : KSerializer<Validity> {
-    private val serializer = serializer<Pair<LocalDate, LocalDate>>()
-
-    @OptIn(ExperimentalSerializationApi::class)
-    override val descriptor: SerialDescriptor
-        get() = SerialDescriptor("Validity", serializer.descriptor)
-
-    override fun serialize(encoder: Encoder, value: Validity) {
-        encoder.encodeSerializableValue(serializer, value.validFrom to value.validTo)
-    }
-
-    override fun deserialize(decoder: Decoder): Validity {
-        val pair = decoder.decodeSerializableValue(serializer)
-        return Validity(
-            pair.first,
-            pair.second,
-        )
-    }
 }
 
 private val ConnStop.time get() = departure ?: arrival
