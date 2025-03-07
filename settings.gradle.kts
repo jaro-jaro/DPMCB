@@ -18,5 +18,5 @@ dependencyResolutionManagement {
         maven(url = "https://jitpack.io")
     }
 }
-include(":app")
+include(":composeApp")
 rootProject.name = "Lepší DPMCB"
