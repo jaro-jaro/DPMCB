@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.departures
 
-import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavDestination
@@ -10,6 +9,7 @@ import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
@@ -92,7 +92,6 @@ class DeparturesViewModel(
         }
     }
 
-    @SuppressLint("RestrictedApi")
     private fun changeCurrentRoute(info: DeparturesInfo) {
         AppState.route = Route.Departures(
             stop = params.stop,

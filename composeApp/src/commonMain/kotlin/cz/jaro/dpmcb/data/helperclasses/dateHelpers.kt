@@ -37,6 +37,7 @@ fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(th
         DayOfWeek.FRIDAY -> "v pátek"
         DayOfWeek.SATURDAY -> "v sobotu"
         DayOfWeek.SUNDAY -> "v neděli"
+        else -> error("")
     }
 
     else -> asString()
@@ -54,6 +55,7 @@ fun LocalDate.toCzechAccusative() = when (SystemClock.todayHere().durationUntil(
         DayOfWeek.FRIDAY -> "pátek"
         DayOfWeek.SATURDAY -> "sobotu"
         DayOfWeek.SUNDAY -> "neděli"
+        else -> error("")
     }
 
     else -> asString()

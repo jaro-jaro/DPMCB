@@ -1,12 +1,10 @@
 @file:OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
-@file:SuppressLint("RestrictedApi")
 
 package cz.jaro.dpmcb.ui.common
 
-import android.annotation.SuppressLint
-import android.os.Bundle
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.runtime.Composable
+import androidx.core.bundle.Bundle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraphBuilder
@@ -22,6 +20,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.serializer
+import kotlin.jvm.JvmName
 
 inline fun <reified T : Route> NavGraphBuilder.route(
     crossinline content: @Composable AnimatedVisibilityScope.(T) -> Unit,

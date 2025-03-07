@@ -10,9 +10,9 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.jvm.JvmName
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.pow
@@ -81,7 +81,7 @@ object LocationSearcher {
         data object NoTransmitters : SearchResult
     }
 
-    fun search(
+    suspend fun search(
         busName: BusName,
         onDownload: () -> Unit = {},
     ): SearchResult {
@@ -205,16 +205,15 @@ object LocationSearcher {
         explicitNulls = false
     }
 
-    private fun getMapDataPerConnName(busName: BusName): MapData? {
-        val data = runBlocking {
-            client.post("https://mpvnet.cz/jikord/map/getRoute") {
-                header("accept", "application/json, text/javascript, */*; q=0.01")
-                header("accept-language", "en-US,en;q=0.9,cs-CZ;q=0.8,cs;q=0.7")
-                header("content-type", "application/json; charset=UTF-8")
-                header("Referer", "https://mpvnet.cz/jikord/map")
-                setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","carrier":0,"cat":2,"trajectory":true}""")
-            }.bodyAsText()
-        }
+    private suspend fun getMapDataPerConnName(busName: BusName): MapData? {
+        val data = client.post("https://mpvnet.cz/jikord/map/getRoute") {
+            header("accept", "application/json, text/javascript, */*; q=0.01")
+            header("accept-language", "en-US,en;q=0.9,cs-CZ;q=0.8,cs;q=0.7")
+            header("content-type", "application/json; charset=UTF-8")
+            header("Referer", "https://mpvnet.cz/jikord/map")
+            setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","carrier":0,"cat":2,"trajectory":true}""")
+        }.bodyAsText()
+
         if (data == "null") return null
         return json.decodeFromString(data)
     }

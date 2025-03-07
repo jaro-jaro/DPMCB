@@ -15,6 +15,7 @@ import androidx.navigation.toRoute
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.ui.card.AndroidCardManager
 import cz.jaro.dpmcb.ui.card.CardManager
+import cz.jaro.dpmcb.ui.loading.AndroidAppUpdater
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.Loading
 import cz.jaro.dpmcb.ui.main.Main
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        val updater = AppUpdater(this)
+        val updater = AndroidAppUpdater(this)
         val cardManager: CardManager = AndroidCardManager(this, get())
         loadKoinModules(module(createdAtStart = true) {
             single { updater }

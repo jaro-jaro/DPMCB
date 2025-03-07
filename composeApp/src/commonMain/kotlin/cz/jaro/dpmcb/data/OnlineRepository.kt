@@ -4,6 +4,7 @@ import com.fleeksoft.ksoup.Ksoup
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.jikord.MapData
@@ -29,7 +30,6 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import org.intellij.lang.annotations.Language
 import kotlin.time.Duration.Companion.seconds
 
 class OnlineRepository(
@@ -117,7 +117,7 @@ class OnlineRepository(
             val response = try {
                 client.post("$baseUrl/mapapi/timetable") {
                     headers.appendAll(requestHeaders)
-                    setBody(json("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}"""))
+                    setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -143,8 +143,6 @@ class OnlineRepository(
                 )
             }
         else null
-
-    private fun json(@Language("json") text: String) = text
 
     private val connsFlow: SharedFlow<List<OnlineConn>> = ::getAllConns
         .asRepeatingFlow(5.seconds)

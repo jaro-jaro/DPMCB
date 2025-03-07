@@ -3,7 +3,7 @@
 appVersionCode = "10700004"
 appVersionName = "1.7.0-alpha.4"
 #                 M.m.p-b    .v
-android-compileSdk = "34"
+android-compileSdk = "35"
 android-minSdk = "26"
 androidx-appcompat = "1.7.0"
 androidx-lifecycle = "2.8.4"

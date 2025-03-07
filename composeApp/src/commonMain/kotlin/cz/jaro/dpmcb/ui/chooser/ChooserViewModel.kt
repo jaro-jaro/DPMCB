@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.sorted
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import java.text.Normalizer
 
 class ChooserViewModel(
     private val repo: SpojeRepository,
@@ -50,7 +50,7 @@ class ChooserViewModel(
             ChooserType.ReturnStop1,
             ChooserType.ReturnStop2,
             ChooserType.ReturnStop,
-                -> repo.stopNames(params.date).sortedBy { Normalizer.normalize(it, Normalizer.Form.NFD) }
+                -> repo.stopNames(params.date).sortedBy { it.normalize() }
 
             ChooserType.LineStops,
                 -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct()
@@ -129,7 +129,7 @@ class ChooserViewModel(
         is ChooserEvent.ClickedOnListItem -> done(e.item)
     }
 
-    private fun String.removeNSM() = Normalizer.normalize(this, Normalizer.Form.NFD).replace("\\p{Mn}+".toRegex(), "")
+    private fun String.removeNSM() = normalize().replace("\\p{Mn}+".toRegex(), "")
 
     private fun done(
         result: String,
@@ -209,3 +209,21 @@ class ChooserViewModel(
     val state =
         list.map(::ChooserState).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChooserState())
 }
+
+private fun String.normalize() = this
+    .replace("ě", "eˇ")
+    .replace("š", "sˇ")
+    .replace("č", "cˇ")
+    .replace("ř", "rˇ")
+    .replace("ž", "zˇ")
+    .replace("ý", "y'")
+    .replace("á", "a'")
+    .replace("í", "i'")
+    .replace("é", "e'")
+    .replace("ó", "o'")
+    .replace("ů", "u°")
+    .replace("ú", "u'")
+    .replace("ď", "dˇ")
+    .replace("ǧ", "gˇ")
+    .replace("ň", "nˇ")
+    .replace("ť", "tˇ")
