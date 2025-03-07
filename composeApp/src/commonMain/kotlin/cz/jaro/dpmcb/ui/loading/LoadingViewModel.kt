@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.noCode
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
@@ -626,8 +627,6 @@ class LoadingViewModel(
                 Quintuple(connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable)
             }
     }
-
-    private inline fun <reified T> String.fromJson(): T = Json.decodeFromString<T>(this)
 }
 
 private val ConnStop.time get() = departure ?: arrival
