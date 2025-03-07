@@ -6,12 +6,19 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
+import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.OnlineTimetable
 import cz.jaro.dpmcb.data.jikord.Transmitter
 import cz.jaro.dpmcb.data.jikord.toOnlineConn
+import io.ktor.client.HttpClient
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.util.StringValues
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,38 +30,38 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.intellij.lang.annotations.Language
 import kotlin.time.Duration.Companion.seconds
 
 class OnlineRepository(
     private val repo: SpojeRepository,
     onlineManager: UserOnlineManager,
-    private val onlineApi: OnlineApi,
 ) : UserOnlineManager by onlineManager {
     private val scope = MainScope()
+
+    private val client = HttpClient()
+    private val baseUrl = "https://mpvnet.cz/Jikord"
 
     private suspend fun getAllConns() =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
             if (!isOnline()) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
-                onlineApi.mapData(
-                    headers = headers,
-                    body = data.toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
-                )
+                client.post("$baseUrl/map/mapData") {
+                    headers.appendAll(requestHeaders)
+                    setBody(data)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 recordException(e)
                 return@withContext null
             }
 
-            if (response.code() != 200) return@withContext null
+            if (response.status != HttpStatusCode.OK) return@withContext null
 
-            val text = response.body() ?: return@withContext null
+            val text = response.bodyAsText()
             try {
-                json.decodeFromString<MapData>(text.string())
+                text.fromJson<MapData>(json)
             } catch (e: SerializationException) {
                 e.printStackTrace()
                 recordException(e)
@@ -63,7 +70,7 @@ class OnlineRepository(
         }
             ?.transmitters
             ?.filter {
-                it.cn?.startsWith("325") ?: false
+                it.cn?.startsWith("325") == true
             }
             ?.map(Transmitter::toOnlineConn)
             ?: emptyList()
@@ -96,38 +103,35 @@ class OnlineRepository(
         }
         else null
 
-    private val headers = mapOf(
-        "authority" to "mpvnet.cz",
-        "accept" to "application/json, text/javascript, */*; q=0.01",
-        "content" to "type: application/json; charset=UTF-8",
-        "origin" to "https://mpvnet.cz",
-        "referer" to "https://mpvnet.cz/jikord/map",
-    )
+    private val requestHeaders = StringValues.build {
+        append("authority", "mpvnet.cz")
+        append("accept", "application/json, text/javascript, */*; q=0.01")
+        append("content", "type: application/json; charset=UTF-8")
+        append("origin", "https://mpvnet.cz")
+        append("referer", "https://mpvnet.cz/jikord/map")
+    }
 
     private suspend fun getTimetable(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
             if (!isOnline()) return@withContext null
             val response = try {
-                onlineApi.timetable(
-                    headers = headers,
-                    body = json("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""")
-                        .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull()),
-                )
+                client.post("$baseUrl/mapapi/timetable") {
+                    headers.appendAll(requestHeaders)
+                    setBody(json("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}"""))
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 recordException(e)
                 return@withContext null
             }
 
-            if (response.code() != 200) return@withContext null
+            if (response.status != HttpStatusCode.OK) return@withContext null
 
-            val text = response.body() ?: return@withContext null
-
-            text.string()
+            response.bodyAsText()
         }
             ?.ifBlank { null }
-            ?.let { Ksoup.parse(it) }
+            ?.let(Ksoup::parse)
             ?.run {
                 val stops = getElementsByTag("div").single()
                     .getElementsByTag("table").single()

@@ -21,7 +21,6 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.KoinApplicationDslMarker
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import retrofit2.Retrofit
 
 @KoinApplicationDslMarker
 fun initKoin(platformSpecificModule: Module): KoinApplication {
@@ -31,12 +30,6 @@ fun initKoin(platformSpecificModule: Module): KoinApplication {
 }
 
 val commonModule = module(true) {
-    single {
-        Retrofit.Builder()
-            .baseUrl("https://mpvnet.cz/Jikord/")
-            .build()
-            .create(OnlineApi::class.java)
-    }
     single {
         val driver = get<SqlDriver>()
         Database.Schema.create(driver)
@@ -51,7 +44,7 @@ val commonModule = module(true) {
     single {
         PreferenceDataSource(get())
     }
-    single { OnlineRepository(get(), get(), get()) }
+    single { OnlineRepository(get(), get()) }
     viewModel { BusViewModel(get(), get(), it.get(), it.get()) }
     viewModel { CardViewModel(get()) }
     viewModel { ChooserViewModel(get(), it.get()) }
