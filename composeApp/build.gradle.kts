@@ -163,6 +163,13 @@ dependencies {
 
     // ChNT
     implementation(libs.androidx.browser)
+
+    // Multiplatform Settings
+    implementation(libs.multiplatform.settings)
+    implementation(libs.multiplatform.settings.coroutines)
+
+    // Multiplatform Settings
+    implementation(libs.multiplatform.settings.make.observable)
 }
 
 dependencies {

@@ -1,36 +1,34 @@
 package cz.jaro.dpmcb.data
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
+import com.russhwolf.settings.coroutines.getIntOrNullStateFlow
+import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
+import com.russhwolf.settings.set
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.helperclasses.fromJson
+import cz.jaro.dpmcb.data.helperclasses.mapState
+import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.time.Duration.Companion.seconds
 
+@OptIn(ExperimentalSettingsApi::class)
 class PreferenceDataSource(
-    private val dataStore: DataStore<Preferences>,
+    private val data: ObservableSettings,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    object PreferenceKeys {
-        val VERSION = intPreferencesKey("verze")
-        val FAVOURITES = stringPreferencesKey("oblibene_useky")
-        val RECENTS = stringPreferencesKey("recents")
-        val LOW_FLOOR = booleanPreferencesKey("nizkopodlaznost")
-        val DEPARTURES = booleanPreferencesKey("odjezdy")
-        val SETTINGS = stringPreferencesKey("nastaveni")
-        val CARD = booleanPreferencesKey("prukazka")
+    object Keys {
+        const val VERSION = "verze"
+        const val FAVOURITES = "oblibene_useky"
+        const val RECENTS = "recents"
+        const val LOW_FLOOR = "nizkopodlaznost"
+        const val DEPARTURES = "odjezdy"
+        const val SETTINGS = "nastaveni"
+        const val CARD = "prukazka"
     }
 
     object DefaultValues {
@@ -47,76 +45,73 @@ class PreferenceDataSource(
         ignoreUnknownKeys = true
     }
 
-    val settings = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.SETTINGS]?.let { json.decodeFromString<Settings>(it) } ?: DefaultValues.SETTINGS
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), DefaultValues.SETTINGS)
-
-    suspend fun changeSettings(update: (Settings) -> Settings) {
-        dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.SETTINGS]?.let { json.decodeFromString(it) } ?: DefaultValues.SETTINGS
-            preferences[PreferenceKeys.SETTINGS] = Json.encodeToString(update(lastValue))
+    val settings = data
+        .getStringOrNullStateFlow(scope, Keys.SETTINGS)
+        .mapState(scope) {
+            it?.fromJson<Settings>(json) ?: DefaultValues.SETTINGS
         }
+
+    fun changeSettings(update: (Settings) -> Settings) {
+        data[Keys.SETTINGS] = update(settings.value).toJson(json)
     }
 
-    val version = dataStore.data.map {
-        it[PreferenceKeys.VERSION] ?: DefaultValues.VERSION
-    }
-
-    suspend fun changeVersion(value: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferenceKeys.VERSION] = value
+    val version = data
+        .getIntOrNullStateFlow(scope, Keys.VERSION)
+        .mapState(scope) {
+            it ?: DefaultValues.VERSION
         }
+
+    fun changeVersion(value: Int) {
+        data[Keys.VERSION] = value
     }
 
-    val favourites = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString<List<PartOfConn>>(it) } ?: DefaultValues.FAVOURITES
-    }
-
-    suspend fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
-        dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.FAVOURITES]?.let { Json.decodeFromString(it) } ?: DefaultValues.FAVOURITES
-            preferences[PreferenceKeys.FAVOURITES] = Json.encodeToString(update(lastValue))
+    val favourites = data
+        .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
+        .mapState(scope) {
+            it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES
         }
+
+    fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
+        data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
     }
 
-    val recents = dataStore.data.map { preferences ->
-        preferences[PreferenceKeys.RECENTS]?.let { Json.decodeFromString<List<BusName>>(it) } ?: DefaultValues.RECENTS
-    }
-
-    suspend fun changeRecents(update: (List<BusName>) -> List<BusName>) {
-        dataStore.edit { preferences ->
-            val lastValue = preferences[PreferenceKeys.RECENTS]?.let { Json.decodeFromString(it) } ?: DefaultValues.RECENTS
-            preferences[PreferenceKeys.RECENTS] = Json.encodeToString(update(lastValue))
+    val recents = data
+        .getStringOrNullStateFlow(scope, Keys.RECENTS)
+        .mapState(scope) {
+            it?.fromJson<List<BusName>>(json) ?: DefaultValues.RECENTS
         }
+
+    fun changeRecents(update: (List<BusName>) -> List<BusName>) {
+        data[Keys.RECENTS] = update(recents.value).toJson(json)
     }
 
-    val lowFloor = dataStore.data.map {
-        it[PreferenceKeys.LOW_FLOOR] ?: DefaultValues.LOW_FLOOR
-    }
-
-    suspend fun changeLowFloor(value: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferenceKeys.LOW_FLOOR] = value
+    val lowFloor = data
+        .getBooleanOrNullStateFlow(scope, Keys.LOW_FLOOR)
+        .mapState(scope) {
+            it ?: DefaultValues.LOW_FLOOR
         }
+
+    fun changeLowFloor(value: Boolean) {
+        data[Keys.LOW_FLOOR] = value
     }
 
-    val departures = dataStore.data.map {
-        it[PreferenceKeys.DEPARTURES] ?: DefaultValues.DEPARTURES
-    }
-
-    suspend fun changeDepartures(value: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferenceKeys.DEPARTURES] = value
+    val departures = data
+        .getBooleanOrNullStateFlow(scope, Keys.DEPARTURES)
+        .mapState(scope) {
+            it ?: DefaultValues.DEPARTURES
         }
+
+    fun changeDepartures(value: Boolean) {
+        data[Keys.DEPARTURES] = value
     }
 
-    val hasCard = dataStore.data.map {
-        it[PreferenceKeys.CARD] ?: DefaultValues.CARD
-    }
-
-    suspend fun changeCard(value: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferenceKeys.CARD] = value
+    val hasCard = data
+        .getBooleanOrNullStateFlow(scope, Keys.CARD)
+        .mapState(scope) {
+            it ?: DefaultValues.CARD
         }
+
+    fun changeCard(value: Boolean) {
+        data[Keys.CARD] = value
     }
 }

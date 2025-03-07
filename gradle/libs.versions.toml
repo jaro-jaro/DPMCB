@@ -36,6 +36,7 @@ ksoup = "0.1.2"
 transportation-consumer = "3.0.0"
 #firebase-inappmessaging-display = "21.0.1"
 desugar_jdk_libs = "2.1.5"
+multiplatform-settings = "1.2.0"
 
 [libraries]
 aalto-xml = { module = "com.fasterxml:aalto-xml", version.ref = "aalto-xml" }
@@ -83,6 +84,9 @@ ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
 ksoup-network = { module = "com.fleeksoft.ksoup:ksoup-network", version.ref = "ksoup" }
 transportation-consumer = { group = "com.google.android.libraries.mapsplatform.transportation", name = "transportation-consumer", version.ref = "transportation-consumer" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
+multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatform-settings" }
+multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform-settings-make-observable", version.ref = "multiplatform-settings" }
 
 [plugins]
 android-gradle = { id = "com.android.application", version.ref = "android-gradle-plugin" }
