@@ -196,9 +196,21 @@ android {
         }
     }
     buildTypes {
-        getByName("release") {
+        release {
             isMinifyEnabled = true
             isShrinkResources = true
+
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+
+            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
+            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
         }
     }
     compileOptions {
