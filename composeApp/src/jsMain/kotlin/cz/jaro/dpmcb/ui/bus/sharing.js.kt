@@ -5,15 +5,13 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 
-fun interface BusShareManager {
-    fun shareBus()
-}
-
 @Composable
-expect fun busShareManager(
+actual fun busShareManager(
     state: BusState.Exists,
     graphicsLayerWhole: GraphicsLayer,
     graphicsLayerPart: GraphicsLayer,
     part: PartOfConn,
-    editPart: MutateFunction<PartOfConn>,
-): BusShareManager
+    editPart: MutateFunction<PartOfConn>
+): BusShareManager {
+    TODO("Not yet implemented")
+}

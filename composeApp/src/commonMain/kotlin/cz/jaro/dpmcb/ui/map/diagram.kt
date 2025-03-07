@@ -12,3 +12,5 @@ interface DiagramManager {
 
     fun checkDiagram(): Boolean
 }
+
+expect fun supportsLineDiagram(): Boolean

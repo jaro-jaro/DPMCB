@@ -11,9 +11,9 @@ import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 
-fun supportsShortcuts() = true
+actual fun supportsShortcuts() = true
 
-val shortcutCreator: ShortcutCreator
+actual val shortcutCreator: ShortcutCreator
     @Composable
     get() {
         val ctx = LocalContext.current

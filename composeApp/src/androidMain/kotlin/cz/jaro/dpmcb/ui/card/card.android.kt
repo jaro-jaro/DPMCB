@@ -61,4 +61,4 @@ class AndroidCardManager(
     }.stateIn(scope, SharingStarted.WhileSubscribed(5.seconds), null)
 }
 
-fun supportsCard() = true
+actual fun supportsCard() = true

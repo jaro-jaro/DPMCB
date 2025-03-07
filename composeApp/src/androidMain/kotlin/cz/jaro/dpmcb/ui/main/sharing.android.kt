@@ -16,9 +16,9 @@ import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 
-fun supportsSharing() = true
+actual fun supportsSharing() = true
 
-val screenShareManager: ScreenShareManager
+actual val screenShareManager: ScreenShareManager
     @Composable get() {
         var deeplink2 by remember { mutableStateOf("") }
 
@@ -62,5 +62,3 @@ val screenShareManager: ScreenShareManager
             })
         }
     }
-
-

@@ -10,3 +10,5 @@ interface CardManager {
 
     val card: StateFlow<ImageBitmap?>
 }
+
+expect fun supportsCard(): Boolean

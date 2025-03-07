@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 
-val openWebsiteLauncher: (url: String) -> Unit
+actual val openWebsiteLauncher: (url: String) -> Unit
     @Composable
     get() {
         val intent =

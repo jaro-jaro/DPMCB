@@ -1,22 +1,31 @@
-@file:Suppress("UnstableApiUsage")
+rootProject.name = "DPMCB"
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
+        mavenCentral()
         gradlePluginPortal()
-        google()
-        mavenCentral()
     }
 }
+
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google()
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
         mavenCentral()
-        maven { url = uri("https://dl.bintray.com/kotlin/kotlin-eap") }
-        maven { url = uri("https://jcenter.bintray.com") }
-        maven { url = uri("https://androidx.dev/storage/compose-compiler/repository/") }
-        maven(url = "https://jitpack.io")
     }
 }
+
 include(":composeApp")
-rootProject.name = "Lepší DPMCB"

@@ -35,4 +35,4 @@ class AndroidDiagramManager(ctx: Context) : DiagramManager {
     override fun checkDiagram() = diagramFile.exists()
 }
 
-fun supportsLineDiagram() = true
+actual fun supportsLineDiagram() = true

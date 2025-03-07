@@ -1,12 +1,11 @@
 package cz.jaro.dpmcb
 
-
 import android.content.Intent
-import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import androidx.core.bundle.Bundle
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -19,8 +18,7 @@ import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.Loading
 import cz.jaro.dpmcb.ui.main.Main
-import cz.jaro.dpmcb.ui.main.SuperRoute.Loading
-import cz.jaro.dpmcb.ui.main.SuperRoute.Main
+import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
@@ -50,12 +48,12 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 NavHost(
                     navController = navController,
-                    startDestination = Loading(link = uri),
+                    startDestination = SuperRoute.Loading(link = uri),
                 ) {
-                    composable<Main> {
+                    composable<SuperRoute.Main> {
                         Main(navController, it.toRoute())
                     }
-                    composable<Loading> {
+                    composable<SuperRoute.Loading> {
                         Loading(navController, it.toRoute())
                     }
                 }

@@ -17,21 +17,6 @@ import org.koin.dsl.module
 
 class App : Application() {
 
-    init {
-        System.setProperty(
-            "org.apache.poi.javax.xml.stream.XMLInputFactory",
-            "com.fasterxml.aalto.stax.InputFactoryImpl"
-        )
-        System.setProperty(
-            "org.apache.poi.javax.xml.stream.XMLOutputFactory",
-            "com.fasterxml.aalto.stax.OutputFactoryImpl"
-        )
-        System.setProperty(
-            "org.apache.poi.javax.xml.stream.XMLEventFactory",
-            "com.fasterxml.aalto.stax.EventFactoryImpl"
-        )
-    }
-
     override fun onCreate() {
         super.onCreate()
 
@@ -40,6 +25,7 @@ class App : Application() {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
             single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
+            single { get<Context>().getSharedPreferences("prefs-dpmcb", MODE_PRIVATE) }
             single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
             single { UserOnlineManager(ctx) }
             single { DetailsOpener(ctx) }
