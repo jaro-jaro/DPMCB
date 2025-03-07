@@ -1,9 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import LocationSearcher
-import com.gitlab.mvysny.konsumexml.KonsumerException
-import com.gitlab.mvysny.konsumexml.konsumeXml
-import com.gitlab.mvysny.konsumexml.textRecursively
+import com.fleeksoft.ksoup.Ksoup
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
@@ -92,7 +90,7 @@ class OnlineRepository(
                 is LocationSearcher.SearchResult.FoundMore -> result.options.map { it.stopsFromStart }
                 is LocationSearcher.SearchResult.NotFound,
                 is LocationSearcher.SearchResult.NoData,
-                is LocationSearcher.SearchResult.NoTransmitters
+                is LocationSearcher.SearchResult.NoTransmitters,
                     -> null
             }
         }
@@ -129,38 +127,17 @@ class OnlineRepository(
             text.string()
         }
             ?.ifBlank { null }
-            //                        ?.replace("<tr class=\"tAlignCentre\"><td>&darr;</td><td><hr></td><td><hr></td><td><hr></td></tr>", "")
-            ?.replace("&darr;", "")
-            ?.replace("<hr>", "")
-            ?.konsumeXml()
+            ?.let { Ksoup.parse(it) }
             ?.run {
-                try {
-                    var line = null as Int?
-                    OnlineTimetable(
-                        stops = child("div") {
-                            child("table") {
-                                child("tr") {
-                                    childrenText("th")
-                                }
-                                var i = -1
-                                children("tr") {
-                                    i++
-                                    if (attributes.getValueOrNull("class") == "tAlignCentre") {
-                                        line = i
-                                        textRecursively()
-                                        null
-                                    } else
-                                        OnlineConnStop()
-                                }.filterNotNull()
-                            }
-                        },
-                        nextStopIndex = line,
-                    )
-                } catch (e: KonsumerException) {
-                    e.printStackTrace()
-                    recordException(e)
-                    null
-                }
+                val stops = getElementsByTag("div").single()
+                    .getElementsByTag("table").single()
+                    .getElementsByTag("tr").drop(1)
+                OnlineTimetable(
+                    stops = stops.filterNot { it ->
+                        it.hasClass("tAlignCentre")
+                    }.map(::OnlineConnStop),
+                    nextStopIndex = stops.indexOfFirst { it.hasClass("tAlignCentre") },
+                )
             }
         else null
 

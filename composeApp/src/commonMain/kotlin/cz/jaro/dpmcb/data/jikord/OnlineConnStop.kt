@@ -1,8 +1,7 @@
 package cz.jaro.dpmcb.data.jikord
 
-import com.gitlab.mvysny.konsumexml.Konsumer
+import com.fleeksoft.ksoup.nodes.Element
 import cz.jaro.dpmcb.data.helperclasses.toTime
-import cz.jaro.dpmcb.data.recordException
 import kotlinx.datetime.LocalTime
 
 data class OnlineConnStop(
@@ -12,18 +11,12 @@ data class OnlineConnStop(
     val delay: Int,
 )
 
-fun Konsumer.OnlineConnStop(): OnlineConnStop? {
-    try {
-        checkCurrent("tr")
-        val children = childrenText("td", 4, 4)
-        return OnlineConnStop(
-            name = children[0],
-            platform = children[1],
-            scheduledTime = children[2].toTime(),
-            delay = children[3].toInt(),
-        )
-    } catch (e: RuntimeException) {
-        recordException(e)
-        return null
-    }
+fun OnlineConnStop(row: Element): OnlineConnStop {
+    val children = row.getElementsByTag("td").map { it.text() }
+    return OnlineConnStop(
+        name = children[0],
+        platform = children[1],
+        scheduledTime = children[2].toTime(),
+        delay = children[3].toInt(),
+    )
 }
