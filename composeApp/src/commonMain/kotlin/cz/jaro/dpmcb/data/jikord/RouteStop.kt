@@ -1,4 +1,6 @@
-package cz.jaro.dpmcb.data.jikordimport kotlinx.serialization.Serializable
+package cz.jaro.dpmcb.data.jikord
+
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class RouteStop(

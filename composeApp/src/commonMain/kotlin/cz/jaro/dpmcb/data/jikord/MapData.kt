@@ -1,8 +1,5 @@
 package cz.jaro.dpmcb.data.jikord
 
-
-import RegionBorder
-import RouteStop
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.data.jikord
 
-
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
