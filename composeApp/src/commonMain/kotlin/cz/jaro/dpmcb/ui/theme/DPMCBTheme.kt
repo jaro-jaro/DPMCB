@@ -46,7 +46,6 @@ val LocalIsDarkThemeUsed = staticCompositionLocalOf<Boolean> { error("Compositio
 @Composable
 fun DPMCBTheme(
     settings: Settings,
-    doTheThing: Boolean = true,
     content: @Composable () -> Unit,
 ) = DPMCBTheme(
     useDarkTheme = settings.darkMode(),

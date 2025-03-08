@@ -3,6 +3,9 @@ package cz.jaro.dpmcb.data.database
 import app.cash.sqldelight.ColumnAdapter
 import app.cash.sqldelight.EnumColumnAdapter
 import app.cash.sqldelight.Query
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOne
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.db.SqlDriver
 import cz.jaro.dpmcb.Database
@@ -24,7 +27,6 @@ import cz.jaro.dpmcb.data.entities.TimeCodeType
 import cz.jaro.dpmcb.data.entities.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.IO
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -125,9 +127,9 @@ val LocalTimeAdapter = ColumnAdapter(
 )
 
 
-suspend fun <T : Any> Query<T>.list() = withContext(Dispatchers.IO) { asFlow().first().executeAsList() }
-suspend fun <T : Any> Query<T>.one() = withContext(Dispatchers.IO) { asFlow().first().executeAsOne() }
-suspend fun <T : Any> Query<T>.oneOrNull() = withContext(Dispatchers.IO) { asFlow().first().executeAsOneOrNull() }
-fun <T : Any> Query<T>.listAsFlow() = asFlow().map { executeAsList() }
-fun <T : Any> Query<T>.oneAsFlow() = asFlow().map { executeAsOne() }
-fun <T : Any> Query<T>.oneOrNullAsFlow() = asFlow().map { executeAsOneOrNull() }
+suspend fun <T : Any> Query<T>.list() = withContext(Dispatchers.IO) { awaitAsList() }
+suspend fun <T : Any> Query<T>.one() = withContext(Dispatchers.IO) { awaitAsOne() }
+suspend fun <T : Any> Query<T>.oneOrNull() = withContext(Dispatchers.IO) { awaitAsOneOrNull() }
+fun <T : Any> Query<T>.listAsFlow() = asFlow().map { awaitAsList() }
+fun <T : Any> Query<T>.oneAsFlow() = asFlow().map { awaitAsOne() }
+fun <T : Any> Query<T>.oneOrNullAsFlow() = asFlow().map { awaitAsOneOrNull() }

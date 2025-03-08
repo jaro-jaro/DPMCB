@@ -28,6 +28,7 @@ kotlin = "2.1.0"
 kotlinx-coroutines = "1.9.0"
 kotlinx-serialization = "1.7.3"
 semver = "2.0.0"
+webWorkerDriver = "2.0.2"
 zoomable = "0.11.2"
 ksoup = "0.1.2"
 transportation-consumer = "3.0.0"
@@ -63,6 +64,7 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
 firebase-config = { group = "dev.gitlive", name = "firebase-config", version.ref = "firebase" }
+web-worker-driver = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "webWorkerDriver" }
 zoomable-image-coil = { module = "me.saket.telephoto:zoomable-image-coil", version.ref = "zoomable" }
 ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
 ksoup-network = { module = "com.fleeksoft.ksoup:ksoup-network", version.ref = "ksoup" }

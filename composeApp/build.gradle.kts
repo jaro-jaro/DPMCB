@@ -83,6 +83,10 @@ kotlin {
 
             // Multiplatform Settings
             implementation(libs.multiplatform.settings.make.observable)
+
+            // SQLDelight
+            implementation(libs.web.worker.driver)
+            implementation(devNpm("copy-webpack-plugin", "9.1.0"))
         }
         commonMain.dependencies {
             // Kotlin reflection
@@ -162,6 +166,7 @@ sqldelight {
     databases {
         create("Database") {
             packageName.set("cz.jaro.dpmcb")
+            generateAsync.set(true)
         }
     }
 }

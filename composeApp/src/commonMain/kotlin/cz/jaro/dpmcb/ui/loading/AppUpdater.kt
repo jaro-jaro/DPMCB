@@ -8,7 +8,7 @@ import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-interface AppUpdater {
+fun interface AppUpdater {
     fun updateApp(
         loadingDialog: (String?) -> Unit,
     )
