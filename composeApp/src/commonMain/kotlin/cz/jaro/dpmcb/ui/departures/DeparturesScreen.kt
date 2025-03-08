@@ -15,16 +15,21 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -35,13 +40,17 @@ import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
@@ -50,7 +59,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerColors
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -64,14 +78,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import com.marosseleng.compose.material3.datetimepickers.time.ui.dialog.TimePickerDialog
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -105,8 +121,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.toJavaLocalTime
-import kotlinx.datetime.toKotlinLocalTime
+import kotlinx.datetime.LocalTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration
@@ -253,33 +268,39 @@ fun DeparturesScreen(
                 },
             )
             var showDialog by rememberSaveable { mutableStateOf(false) }
-            if (showDialog) TimePickerDialog(
-                onDismissRequest = {
-                    showDialog = false
-                },
-                onTimeChange = {
-                    onEvent(ChangeTime(it.toKotlinLocalTime()))
-                    showDialog = false
-                },
-                title = {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Změnit čas")
-                        TextButton(
-                            onClick = {
-                                onEvent(ChangeTime(now))
-                                showDialog = false
-                            }
-                        ) {
-                            Text("Teď")
-                        }
-                    }
-                },
-                initialTime = state.info.time.toJavaLocalTime(),
+            val timeState = rememberTimePickerState(
+                initialHour = state.info.time.hour,
+                initialMinute = state.info.time.minute,
+                is24Hour = true,
             )
+            if (showDialog) TimePickerDialog(
+                onDismissRequest = { showDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        val time = LocalTime(timeState.hour, timeState.minute)
+                        onEvent(ChangeTime(time))
+                    }) { Text("OK") }
+                },
+                dismissButton = { TextButton({ showDialog = false }) { Text("Zrušit") } },
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Změnit čas")
+                    TextButton(
+                        onClick = {
+                            onEvent(ChangeTime(now))
+                            showDialog = false
+                        }
+                    ) {
+                        Text("Teď")
+                    }
+                }
+                TimePicker(timeState)
+            }
 
             TextButton(
                 onClick = {
@@ -634,5 +655,53 @@ fun Duration.asString(): String {
         hours == 0L -> "$minutes min"
         minutes == 0 -> "$hours hod"
         else -> "$hours hod $minutes min"
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissButton: @Composable (() -> Unit)? = null,
+    shape: Shape = DatePickerDefaults.shape,
+    tonalElevation: Dp = DatePickerDefaults.TonalElevation,
+    colors: TimePickerColors = TimePickerDefaults.colors(),
+    properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    content: @Composable ColumnScope.() -> Unit
+) = BasicAlertDialog(
+    onDismissRequest = onDismissRequest,
+    modifier = modifier.wrapContentHeight(),
+    properties = properties
+) {
+    Surface(
+        modifier = Modifier
+            .requiredWidth(360.0.dp)
+            .heightIn(max = 40.0.dp),
+        shape = shape,
+        color = colors.containerColor,
+        tonalElevation = tonalElevation,
+    ) {
+        Column(verticalArrangement = Arrangement.SpaceBetween) {
+            content()
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(bottom = 8.dp, end = 6.dp)
+            ) {
+                val mergedStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
+                CompositionLocalProvider(
+                    LocalContentColor provides MaterialTheme.colorScheme.primary,
+                    LocalTextStyle provides mergedStyle,
+                ) {
+                    Row(modifier = Modifier.height(40.dp).fillMaxWidth()) {
+                        dismissButton?.invoke()
+                        Spacer(modifier = Modifier.weight(1f))
+                        confirmButton()
+                    }
+                }
+            }
+        }
     }
 }

@@ -80,7 +80,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -95,6 +94,7 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asString
+import cz.jaro.dpmcb.data.helperclasses.awaitFrame
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleContainer
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleText
 import cz.jaro.dpmcb.data.helperclasses.toDelay
@@ -109,7 +109,6 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
-import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -272,7 +271,6 @@ fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
             Modifier.padding(horizontal = 8.dp),
         )
         val openWebsite = openWebsiteLauncher
-        val context = LocalContext.current
         if (showInfoButton) IconWithTooltip(
             Icons.Default.Info,
             "Zobrazit informace o voze",

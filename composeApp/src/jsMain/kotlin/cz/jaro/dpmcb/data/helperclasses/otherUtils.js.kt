@@ -8,3 +8,4 @@ import kotlinx.coroutines.Dispatchers
 actual val Dispatchers.IO: CoroutineDispatcher
     get() = Main
 actual val isDebug = BuildKonfig.versionName.toVersion(strict = false).isPreRelease
+actual suspend fun awaitFrame() = Unit
