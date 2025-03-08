@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.encodeURL
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.card.CardManager
@@ -25,8 +26,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
 
 class MainViewModel(
@@ -47,12 +46,12 @@ class MainViewModel(
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
-            URLEncoder.encode(it, StandardCharsets.UTF_8.toString())
+            it.encodeURL()
         }
         val args = segments.getOrNull(1)?.split("&")?.joinToString("&") { argument ->
             argument.split("=").let {
                 val name = it[0]
-                val value = URLEncoder.encode(it[1], StandardCharsets.UTF_8.toString())
+                val value = it[1].encodeURL()
                 "$name=$value"
             }
         }?.let { "?$it" } ?: ""
