@@ -2,18 +2,14 @@ package cz.jaro.dpmcb.ui.departures
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavDestination
-import androidx.navigation.navOptions
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
-import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
-import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.now
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -25,6 +21,7 @@ import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
@@ -65,8 +62,7 @@ class DeparturesViewModel(
     )
 
     lateinit var scroll: suspend (Int) -> Unit
-    lateinit var navigate: NavigateWithOptionsFunction
-    lateinit var getNavDestination: () -> NavDestination?
+    lateinit var navigator: Navigator
 
     private val _info = MutableStateFlow(
         DeparturesInfo(
@@ -101,7 +97,7 @@ class DeparturesViewModel(
             onlyDepartures = info.justDepartures,
             simple = info.compactMode,
             date = info.date,
-        ).generateRouteWithArgs(getNavDestination() ?: return)
+        ).generateRouteWithArgs(navigator.getNavDestination() ?: return)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -215,7 +211,7 @@ class DeparturesViewModel(
 
     fun onEvent(e: DeparturesEvent) = when (e) {
         is DeparturesEvent.GoToBus -> {
-            navigate(
+            navigator.navigate(
                 Route.Bus(
                     info.value.date,
                     e.bus.busName,
@@ -225,7 +221,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.GoToTimetable -> {
             e.bus.nextStop?.let {
-                navigate(
+                navigator.navigate(
                     Route.Timetable(
                         lineNumber = e.bus.lineNumber,
                         stop = params.stop,
@@ -313,7 +309,7 @@ class DeparturesViewModel(
             Unit
         }
 
-        DeparturesEvent.NextDay -> navigate(
+        DeparturesEvent.NextDay -> navigator.navigate(
             Route.Departures(
                 stop = params.stop,
                 time = SimpleTime(0, 0),
@@ -325,7 +321,7 @@ class DeparturesViewModel(
             )
         )
 
-        DeparturesEvent.PreviousDay -> navigate(
+        DeparturesEvent.PreviousDay -> navigator.navigate(
             Route.Departures(
                 stop = params.stop,
                 time = SimpleTime(23, 59),
@@ -337,7 +333,7 @@ class DeparturesViewModel(
             )
         )
 
-        is DeparturesEvent.ChangeDate -> navigate(
+        is DeparturesEvent.ChangeDate -> navigator.navigate(
             Route.Departures(
                 stop = params.stop,
                 time = info.value.time.toSimpleTime(),
@@ -349,20 +345,9 @@ class DeparturesViewModel(
             )
         )
 
-        DeparturesEvent.ChangeLine -> navigate(
-            Route.Chooser(info.value.date, ChooserType.ReturnLine),
-            navOptions {
-                launchSingleTop = true
-            }
-        )
-
-        DeparturesEvent.ChangeStop -> navigate(Route.Chooser(date, ChooserType.Stops))
-        DeparturesEvent.ChangeVia -> navigate(
-            Route.Chooser(date, ChooserType.ReturnStop),
-            navOptions {
-                launchSingleTop = true
-            },
-        )
+        DeparturesEvent.ChangeLine -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnLine))
+        DeparturesEvent.ChangeStop -> navigator.navigate(Route.Chooser(date, ChooserType.Stops))
+        DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(date, ChooserType.ReturnStop))
     }
 
     init {

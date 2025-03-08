@@ -78,7 +78,6 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
-import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
@@ -223,6 +222,7 @@ fun Main(
     }
 
     val scope = rememberCoroutineScope()
+    val navigator = rememberNavigator(navController)
 
     LaunchedEffect(Unit) {
         viewModel.navGraph = {
@@ -238,7 +238,7 @@ fun Main(
                 drawerState.close()
             }
         }
-        viewModel.navigate = navController.navigateFunction
+        viewModel.navigator = navigator
         viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.updateDrawerState = { mutate ->
             val newValue = mutate(drawerState.isOpen)
@@ -294,17 +294,17 @@ fun Main(
                 )
             },
         ) {
-            route<Route.Favourites> { Favourites(args = it, navController, superNavController) }
-            route<Route.Chooser> { Chooser(args = it, navController, superNavController) }
-            route<Route.Departures> { Departures(args = it, navController, superNavController) }
-            route<Route.NowRunning> { NowRunning(args = it, navController, superNavController) }
-            route<Route.Timetable> { Timetable(args = it, navController, superNavController) }
-            route<Route.Bus> { Bus(args = it, navController, superNavController) }
-            route<Route.Sequence> { Sequence(args = it, navController, superNavController) }
-            route<Route.Card> { Card(args = it, navController, superNavController) }
-            route<Route.Map> { Map(args = it, navController, superNavController) }
-            route<Route.FindBus> { FindBus(args = it, navController, superNavController) }
-            route<Route.Settings> { Settings(args = it, navController, superNavController) }
+            route<Route.Favourites> { Favourites(args = it, navigator, superNavController) }
+            route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
+            route<Route.Departures> { Departures(args = it, navigator, superNavController) }
+            route<Route.NowRunning> { NowRunning(args = it, navigator, superNavController) }
+            route<Route.Timetable> { Timetable(args = it, navigator, superNavController) }
+            route<Route.Bus> { Bus(args = it, navigator, superNavController) }
+            route<Route.Sequence> { Sequence(args = it, navigator, superNavController) }
+            route<Route.Card> { Card(args = it, navigator, superNavController) }
+            route<Route.Map> { Map(args = it, navigator, superNavController) }
+            route<Route.FindBus> { FindBus(args = it, navigator, superNavController) }
+            route<Route.Settings> { Settings(args = it, navigator, superNavController) }
         }
     }
 }

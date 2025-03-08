@@ -45,6 +45,7 @@ import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeFilter
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeType
@@ -54,7 +55,7 @@ import kotlin.time.Duration.Companion.minutes
 @Composable
 fun NowRunning(
     args: Route.NowRunning,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: NowRunningViewModel = viewModel(
         NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type)
@@ -64,8 +65,7 @@ fun NowRunning(
     AppState.selected = DrawerAction.NowRunning
 
     LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateFunction
-        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
+        viewModel.navigator = navigator
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

@@ -42,13 +42,14 @@ import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 
 @Suppress("unused")
 @Composable
 fun Bus(
     args: Route.Bus,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: BusViewModel = viewModel(args.lineNumber / args.busNumber, args.date),
 ) {
@@ -56,7 +57,7 @@ fun Bus(
     AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateWithOptionsFunction
+        viewModel.navigator = navigator
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

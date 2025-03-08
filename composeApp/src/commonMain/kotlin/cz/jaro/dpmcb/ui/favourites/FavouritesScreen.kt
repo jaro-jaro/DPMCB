@@ -38,7 +38,6 @@ import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
@@ -48,6 +47,7 @@ import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -58,7 +58,7 @@ import kotlin.time.Duration.Companion.minutes
 @Suppress("unused")
 fun Favourites(
     args: Route.Favourites,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: FavouritesViewModel = viewModel(),
 ) {
@@ -66,7 +66,7 @@ fun Favourites(
     AppState.selected = DrawerAction.Favourites
 
     LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateFunction
+        viewModel.navigator = navigator
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

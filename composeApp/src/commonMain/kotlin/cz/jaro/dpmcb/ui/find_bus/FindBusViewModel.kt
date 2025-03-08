@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.find_bus
 
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
@@ -17,8 +16,8 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +34,7 @@ class FindBusViewModel(
     private val onlineRepository: OnlineRepository,
     private val date: LocalDate,
 ) : ViewModel() {
-    lateinit var navigate: NavigateFunction
+    lateinit var navigator: Navigator
 
     private val result = MutableStateFlow<FindBusResult>(FindBusResult.None)
 
@@ -69,7 +68,7 @@ class FindBusViewModel(
         )
     )
 
-    private fun confirm(busName: BusName) = navigate(
+    private fun confirm(busName: BusName) = navigator.navigate(
         Route.Bus(
             date = date,
             busName = busName,
@@ -152,14 +151,14 @@ class FindBusViewModel(
                 else -> onEvent(FindBusEvent.ConfirmName)
             }
 
-        is FindBusEvent.SelectSequence -> navigate(
+        is FindBusEvent.SelectSequence -> navigator.navigate(
             Route.Sequence(
                 date = date,
                 sequence = e.seq,
             )
         )
 
-        is FindBusEvent.ChangeDate -> navigate(
+        is FindBusEvent.ChangeDate -> navigator.navigate(
             Route.FindBus(
                 date = e.date,
             )
@@ -173,3 +172,5 @@ private fun BusName.isValid() = value.contains("/")
         && value.substringBefore("/").isDigitsOnly()
         && value.substringAfter("/").isNotEmpty()
         && value.substringAfter("/").isDigitsOnly()
+
+fun CharSequence.isDigitsOnly() = Regex("^[0-9]*$").matches(this)

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
@@ -23,8 +24,9 @@ class TimetableViewModel(
         val stop: String,
         val nextStop: String,
         val date: LocalDate,
-        val navigate: NavigateFunction,
     )
+
+    lateinit var navigator: Navigator
 
     private val list = suspend {
         repo.timetable(params.lineNumber, params.stop, params.nextStop, params.date).sortedBy { it.departure }
@@ -52,7 +54,7 @@ class TimetableViewModel(
     )
 
     fun onEvent(e: TimetableEvent) = when(e) {
-        is TimetableEvent.ChangeDate -> params.navigate(
+        is TimetableEvent.ChangeDate -> navigator.navigate(
             Route.Timetable(
                 lineNumber = params.lineNumber,
                 stop = params.stop,
@@ -66,7 +68,7 @@ class TimetableViewModel(
             }
             Unit
         }
-        is TimetableEvent.GoToBus -> params.navigate(
+        is TimetableEvent.GoToBus -> navigator.navigate(
             Route.Bus(
                 date = params.date,
                 busName = e.bus,

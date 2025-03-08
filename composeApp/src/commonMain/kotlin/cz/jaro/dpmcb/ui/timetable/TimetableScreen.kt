@@ -31,6 +31,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,18 +47,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
-import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 
 @Suppress("unused")
 @Composable
 fun Timetable(
     args: Route.Timetable,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: TimetableViewModel = viewModel(
         TimetableViewModel.Parameters(
@@ -65,12 +66,15 @@ fun Timetable(
             stop = args.stop,
             nextStop = args.nextStop,
             date = args.date,
-            navigate = navController.navigateFunction,
         )
     ),
 ) {
     AppState.title = "Jízdní řády"
     AppState.selected = DrawerAction.Timetable
+
+    LaunchedEffect(Unit) {
+        viewModel.navigator = navigator
+    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

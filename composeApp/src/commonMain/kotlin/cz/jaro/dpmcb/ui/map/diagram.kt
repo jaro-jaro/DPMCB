@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.map
 
+import androidx.compose.runtime.Composable
 import dev.gitlive.firebase.storage.StorageReference
 
 interface DiagramManager {
@@ -14,3 +15,6 @@ interface DiagramManager {
 }
 
 expect fun supportsLineDiagram(): Boolean
+
+@Composable
+expect fun ShowDiagram(diagramData: Any?)

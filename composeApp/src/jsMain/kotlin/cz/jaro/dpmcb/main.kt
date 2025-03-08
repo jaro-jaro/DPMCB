@@ -21,6 +21,7 @@ import dev.gitlive.firebase.storage.StorageReference
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.skiko.wasm.onWasmReady
+import org.koin.compose.KoinContext
 import org.w3c.dom.Worker
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class)
@@ -72,7 +73,9 @@ fun main() {
         CanvasBasedWindow(
             title = "Gymceska",
         ) {
-            SuperMainContent(repo, link)
+            KoinContext(koinApp.koin) {
+                SuperMainContent(repo, link)
+            }
         }
     }
 }

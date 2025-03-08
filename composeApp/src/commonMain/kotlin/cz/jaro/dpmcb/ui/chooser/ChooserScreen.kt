@@ -43,14 +43,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.viewModel
-import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.TextField
 import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -58,7 +57,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun Chooser(
     args: Route.Chooser,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: ChooserViewModel = viewModel(
         ChooserViewModel.Parameters(
@@ -96,11 +95,7 @@ fun Chooser(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateFunction
-        viewModel.navigateBack = { it: ChooserResult ->
-            navController.previousBackStackEntry?.savedStateHandle?.set("result", it)
-            navController.popBackStack()
-        }
+        viewModel.navigator = navigator
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -108,7 +103,7 @@ fun Chooser(
     ChooserScreen(
         state = state,
         onEvent = viewModel::onEvent,
-        navigateUp = navController::navigateUp,
+        navigateUp = navigator::navigateUp,
     )
 }
 

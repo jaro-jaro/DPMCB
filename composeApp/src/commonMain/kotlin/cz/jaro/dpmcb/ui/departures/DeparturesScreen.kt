@@ -114,6 +114,7 @@ import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.LineDoesNot
 import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRunsAtAll
 import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRunsHere
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
@@ -132,7 +133,7 @@ import kotlin.time.Duration.Companion.minutes
 @Composable
 fun Departures(
     args: Route.Departures,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: DeparturesViewModel = viewModel(
         DeparturesViewModel.Parameters(
@@ -150,13 +151,12 @@ fun Departures(
     AppState.selected = DrawerAction.Departures
 
     LifecycleResumeEffect(Unit) {
-        val result = navController.currentBackStackEntry?.savedStateHandle?.get<ChooserResult>("result")
+        val result = navigator.getResult<ChooserResult>()
 
         if (result != null) viewModel.onEvent(WentBack(result))
 
         onPauseOrDispose {
-            if (navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) == true)
-                navController.currentBackStackEntry?.savedStateHandle?.remove<ChooserResult>("result")
+            navigator.clearResult<ChooserResult>()
         }
     }
 
@@ -170,8 +170,7 @@ fun Departures(
             delay(500)
             listState.scrollToItem(it)
         }
-        viewModel.navigate = navController.navigateWithOptionsFunction
-        viewModel.getNavDestination = { navController.currentBackStackEntry?.destination }
+        viewModel.navigator = navigator
     }
 
     LaunchedEffect(listState) {

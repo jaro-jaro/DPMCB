@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.Navigator
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.viewModel
@@ -46,13 +47,14 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.TextField
 import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 
 @Suppress("unused")
 @Composable
 fun FindBus(
     args: Route.FindBus,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: FindBusViewModel = viewModel(args.date),
 ) {
@@ -60,7 +62,7 @@ fun FindBus(
     AppState.selected = DrawerAction.FindBus
 
     LaunchedEffect(Unit) {
-        viewModel.navigate = navController.navigateFunction
+        viewModel.navigator = navigator
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

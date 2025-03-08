@@ -65,6 +65,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
@@ -75,7 +76,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun Settings(
     args: Route.Settings,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: SettingsViewModel = viewModel(),
 ) {

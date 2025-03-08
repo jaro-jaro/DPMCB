@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -14,6 +13,7 @@ import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
 import cz.jaro.dpmcb.data.recordException
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,12 +30,12 @@ class FavouritesViewModel(
     private val onlineRepo: OnlineRepository,
 ) : ViewModel() {
 
-    lateinit var navigate: NavigateFunction
+    lateinit var navigator: Navigator
 
     fun onEvent(e: FavouritesEvent) {
         when (e) {
             is FavouritesEvent.NavToBus -> {
-                navigate(Route.Bus(e.nextWillRun ?: SystemClock.todayHere(), e.name))
+                navigator.navigate(Route.Bus(e.nextWillRun ?: SystemClock.todayHere(), e.name))
             }
         }
     }

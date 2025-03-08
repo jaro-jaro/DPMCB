@@ -6,8 +6,8 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
@@ -97,7 +97,7 @@ class MainViewModel(
     lateinit var confirmDeeplink: (String) -> Unit
     lateinit var navGraph: () -> NavGraph?
     lateinit var updateDrawerState: MutateFunction<Boolean>
-    lateinit var navigate: NavigateFunction
+    lateinit var navigator: Navigator
     lateinit var superNavigate: SuperNavigateFunction
 
     init {
@@ -110,7 +110,7 @@ class MainViewModel(
                 try {
                     withContext(Dispatchers.Main) {
                         AppState.selected = null
-                        navGraph()?.nodes
+                        navGraph()
 
                         confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                     }
@@ -129,7 +129,7 @@ class MainViewModel(
                         AppState.selected = e.action
 
                     e.action.route?.let {
-                        navigate(it(params.currentBackStackEntry.first().date()))
+                        navigator.navigate(it(params.currentBackStackEntry.first().date()))
                     }
                     updateDrawerState { false }
                 }

@@ -9,10 +9,9 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
-import cz.jaro.dpmcb.data.helperclasses.NavigateBackFunction
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.ui.common.ChooserResult
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,8 +36,7 @@ class ChooserViewModel(
         val date: LocalDate,
     )
 
-    lateinit var navigate: NavigateFunction
-    lateinit var navigateBack: NavigateBackFunction<ChooserResult>
+    lateinit var navigator: Navigator
 
     private val originalList = suspend {
         when (params.type) {
@@ -116,7 +114,7 @@ class ChooserViewModel(
     }
 
     fun onEvent(e: ChooserEvent) = when (e) {
-        is ChooserEvent.ChangeDate -> navigate(
+        is ChooserEvent.ChangeDate -> navigator.navigate(
             Route.Chooser(
                 lineNumber = params.lineNumber,
                 stop = params.stop,
@@ -134,14 +132,14 @@ class ChooserViewModel(
     private fun done(
         result: String,
     ) = when (params.type) {
-        ChooserType.Stops -> navigate(
+        ChooserType.Stops -> navigator.navigate(
             Route.Departures(
                 stop = result,
                 date = params.date,
             )
         )
 
-        ChooserType.Lines -> navigate(
+        ChooserType.Lines -> navigator.navigate(
             Route.Chooser(
                 lineNumber = result.toShortLine(),
                 stop = null,
@@ -154,7 +152,7 @@ class ChooserViewModel(
             viewModelScope.launch(Dispatchers.IO) {
                 repo.nextStopNames(params.lineNumber, result, params.date).let { stops: List<String> ->
                     withContext(Dispatchers.Main) {
-                        navigate(
+                        navigator.navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
@@ -176,7 +174,7 @@ class ChooserViewModel(
             Unit
         }
 
-        ChooserType.NextStop -> navigate(
+        ChooserType.NextStop -> navigator.navigate(
             Route.Timetable(
                 lineNumber = params.lineNumber,
                 stop = params.stop!!,
@@ -189,7 +187,7 @@ class ChooserViewModel(
         ChooserType.ReturnStop2,
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
-            -> navigateBack(ChooserResult(result, params.type))
+            -> navigator.navigateBackWithResult(ChooserResult(result, params.type))
     }
 
     fun ChooserState(

@@ -13,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toRegNum
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
@@ -24,6 +25,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -51,7 +53,7 @@ class SequenceViewModel(
         val date: LocalDate,
     )
 
-    lateinit var navigate: (Route) -> Unit
+    lateinit var navigator: Navigator
 
     private val info: Flow<SequenceState> = suspend info@{
         val sequence = repo.sequence(params.sequence, params.date)
@@ -186,11 +188,11 @@ class SequenceViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
 
     fun onEvent(e: SequenceEvent) = when (e) {
-        is SequenceEvent.BusClick -> navigate(Route.Bus(params.date, e.busName))
-        is SequenceEvent.SequenceClick -> navigate(Route.Sequence(params.date, e.sequence))
+        is SequenceEvent.BusClick -> navigator.navigate(Route.Bus(params.date, e.busName))
+        is SequenceEvent.SequenceClick -> navigator.navigate(Route.Sequence(params.date, e.sequence))
         is SequenceEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.nextStop))
+            is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.nextStop))
         }
 
         is SequenceEvent.FindBus -> {
@@ -231,6 +233,6 @@ class SequenceViewModel(
             Unit
         }
 
-        is SequenceEvent.ChangeDate -> navigate(Route.Sequence(e.date, params.sequence))
+        is SequenceEvent.ChangeDate -> navigator.navigate(Route.Sequence(e.date, params.sequence))
     }
 }

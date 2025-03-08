@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.now_running
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavDestination
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -11,13 +10,13 @@ import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.NavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,8 +40,7 @@ class NowRunningViewModel(
         val type: NowRunningType,
     )
 
-    lateinit var navigate: NavigateFunction
-    lateinit var getNavDestination: () -> NavDestination?
+    lateinit var navigator: Navigator
 
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
@@ -52,7 +50,7 @@ class NowRunningViewModel(
             AppState.route = Route.NowRunning(
                 filters = filters.value,
                 type = type.value,
-            ).generateRouteWithArgs(getNavDestination() ?: return)
+            ).generateRouteWithArgs(navigator.getNavDestination() ?: return)
         } catch (_: IllegalStateException) {
             return
         }
@@ -70,11 +68,11 @@ class NowRunningViewModel(
         }
 
         is NowRunningEvent.NavToBus -> {
-            navigate(Route.Bus(date = SystemClock.todayHere(), busName = e.busName))
+            navigator.navigate(Route.Bus(date = SystemClock.todayHere(), busName = e.busName))
         }
 
         is NowRunningEvent.NavToSeq -> {
-            navigate(Route.Sequence(date = SystemClock.todayHere(), sequence = e.seq))
+            navigator.navigate(Route.Sequence(date = SystemClock.todayHere(), sequence = e.seq))
         }
     }
 

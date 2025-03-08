@@ -6,20 +6,18 @@ import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.helperclasses.IO
-import cz.jaro.dpmcb.data.helperclasses.NavigateWithOptionsFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
-import cz.jaro.dpmcb.data.helperclasses.invoke
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.localDateTypePair
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +43,7 @@ class BusViewModel(
     private val date: LocalDate,
 ) : ViewModel() {
 
-    lateinit var navigate: NavigateWithOptionsFunction
+    lateinit var navigator: Navigator
 
     private val info: Flow<BusState> = combine(repo.favourites, repo.hasAccessToMap) { favourites, online ->
         val exists = repo.doesBusExist(busName)
@@ -110,7 +108,7 @@ class BusViewModel(
     fun onEvent(e: BusEvent) = when (e) {
         is BusEvent.ChangeDate -> {
             viewModelScope.launch {
-                navigate(Route.Bus(e.date, busName))
+                navigator.navigate(Route.Bus(e.date, busName))
             }
             Unit
         }
@@ -125,7 +123,7 @@ class BusViewModel(
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
-                navigate(Route.Bus(state.date, state.nextBus), popUpTo<Route.Bus>())
+                navigator.navigate(Route.Bus(state.date, state.nextBus), true)
             }
             Unit
         }
@@ -133,7 +131,7 @@ class BusViewModel(
         BusEvent.PreviousBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.previousBus != null) {
-                navigate(Route.Bus(state.date, state.previousBus), popUpTo<Route.Bus>())
+                navigator.navigate(Route.Bus(state.date, state.previousBus), true)
             }
             Unit
         }
@@ -148,14 +146,14 @@ class BusViewModel(
         BusEvent.ShowSequence -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null) {
-                navigate(Route.Sequence(date = date, state.sequence))
+                navigator.navigate(Route.Sequence(date = date, state.sequence))
             }
             Unit
         }
 
         is BusEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
+            is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
         }
     }
 

@@ -24,6 +24,7 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
+import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.dpmcb
 
@@ -31,7 +32,7 @@ import cz.jaro.dpmcb.ui.theme.dpmcb
 @Composable
 fun Card(
     args: Route.Card,
-    navController: NavHostController,
+    navigator: Navigator,
     superNavController: NavHostController,
     viewModel: CardViewModel = viewModel(),
 ) {
