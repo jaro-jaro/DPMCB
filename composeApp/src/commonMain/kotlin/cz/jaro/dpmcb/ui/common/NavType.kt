@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.common
 
-import android.os.Bundle
+import androidx.core.bundle.Bundle
 import androidx.navigation.NavType
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

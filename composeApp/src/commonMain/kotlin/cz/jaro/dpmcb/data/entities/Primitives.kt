@@ -5,6 +5,7 @@ import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import kotlinx.serialization.Serializable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.jvm.JvmInline
 
 typealias SequenceID = Int
 typealias StopNumber = Int
@@ -38,7 +39,7 @@ typealias BusNumber = Int
 
 @Serializable
 @JvmInline
-value class BusName(override val value: String) : Value<String>, java.io.Serializable {
+value class BusName(override val value: String) : Value<String> {
     override fun toString() = value
 }
 

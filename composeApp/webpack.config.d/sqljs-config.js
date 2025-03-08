@@ -3,6 +3,8 @@ config.resolve = {
         fs: false,
         path: false,
         crypto: false,
+        zlib: false,
+        os: false,
     }
 };
 

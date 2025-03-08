@@ -41,6 +41,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
+import cz.jaro.dpmcb.ui.common.fetch
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
@@ -52,10 +53,6 @@ import dev.gitlive.firebase.remoteconfig.remoteConfig
 import dev.gitlive.firebase.storage.StorageReference
 import dev.gitlive.firebase.storage.storage
 import io.github.z4kn4fein.semver.toVersion
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.onDownload
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +75,7 @@ class LoadingViewModel(
     private val repo: SpojeRepository,
     private val queries: SpojeQueries,
     private val diagramManager: DiagramManager,
-    firebase: FirebaseApp,
+    private val firebase: FirebaseApp,
     private val params: Parameters,
 ) : ViewModel() {
     data class Parameters(
@@ -194,17 +191,12 @@ class LoadingViewModel(
         return localVersion < newestVersion
     }
 
-    private val client = HttpClient()
-
-    private suspend fun downloadText(ref: StorageReference) =
-        client.get(ref.getDownloadUrl()) {
-            onDownload { bytesSentTotal, contentLength ->
-                _state.update {
-                    require(it is LoadingState.Loading)
-                    it.copy(progress = bytesSentTotal.toFloat() / contentLength)
-                }
-            }
-        }.bodyAsText()
+    private suspend fun downloadText(ref: StorageReference) = fetch(ref.getDownloadUrl()) { progress ->
+        _state.update {
+            require(it is LoadingState.Loading)
+            it.copy(progress = progress)
+        }
+    }
 
     private suspend fun downloadNewData(): Unit? {
 
@@ -217,8 +209,8 @@ class LoadingViewModel(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)"
         )
 
-        val storage = Firebase.storage
-        val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+        val storage = Firebase.storage(firebase)
+        val database = Firebase.database(firebase)
         val versionRef = database.reference("data${META_DATA_VERSION}/verze")
         val newVersion = versionRef.valueEvents.first().value<Int>()
         val currentVersion = repo.version.first()
@@ -249,7 +241,6 @@ class LoadingViewModel(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
             )
 
-            queries.clearAll()
             repo.reset()
 
             _state.value = LoadingState.Loading(

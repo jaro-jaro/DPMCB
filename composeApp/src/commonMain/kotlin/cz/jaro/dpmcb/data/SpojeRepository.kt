@@ -75,6 +75,8 @@ import dev.gitlive.firebase.remoteconfig.get
 import dev.gitlive.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -238,7 +240,7 @@ class SpojeRepository(
     }
 
     private suspend fun allTables(date: LocalDate) =
-        localDataSource.allLineNumbers().list().mapNotNull { lineNumber ->
+        localDataSource.allLineNumbers().also(::println).list().also(::println).mapNotNull { lineNumber ->
             nowUsedTable(date, lineNumber)
         }
 
@@ -530,16 +532,18 @@ class SpojeRepository(
     ) {
         preferenceDataSource.changeVersion(version)
 
-        Database.Schema.create(driver)
+        Database.Schema.create(driver).await()
 
         localDataSource.transaction {
-            connStops.forEach { localDataSource.insertConnStop(it) }
-            stops.forEach { localDataSource.insertStop(it) }
-            timeCodes.forEach { localDataSource.insertTimeCode(it) }
-            lines.forEach { localDataSource.insertLine(it) }
-            conns.forEach { localDataSource.insertConn(it) }
-            seqGroups.forEach { localDataSource.insertSeqGroup(it) }
-            seqOfConns.forEach { localDataSource.insertSeqOfConn(it) }
+            listOf(
+                connStops.map { scope.async { localDataSource.insertConnStop(it) } },
+                stops.map { scope.async { localDataSource.insertStop(it) } },
+                timeCodes.map { scope.async { localDataSource.insertTimeCode(it) } },
+                lines.map { scope.async { localDataSource.insertLine(it) } },
+                conns.map { scope.async { localDataSource.insertConn(it) } },
+                seqGroups.map { scope.async { localDataSource.insertSeqGroup(it) } },
+                seqOfConns.map { scope.async { localDataSource.insertSeqOfConn(it) } },
+            ).flatten().awaitAll()
         }
     }
 
@@ -762,7 +766,10 @@ class SpojeRepository(
         }
     }
 
-    fun reset() {
+    suspend fun reset() {
+        Database.Schema.create(driver).await()
+        localDataSource.clearAll()
+        Database.Schema.create(driver).await()
         sequencesMap.clear()
         _tables.clear()
     }

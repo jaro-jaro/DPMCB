@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.data.tuples
 
-import java.io.Serializable
-
 
 /**
  * Represents six values
@@ -29,7 +27,7 @@ data class Sextuplet<out A, out B, out C, out D, out E, out F>(
     val fourth: D,
     val fifth: E,
     val sixth: F,
-) : Serializable {
+) {
 
     /**
      * Returns string representation of the [Sextuplet] including its [first], [second], [third], [fourth], [fifth] and [sixth] values.

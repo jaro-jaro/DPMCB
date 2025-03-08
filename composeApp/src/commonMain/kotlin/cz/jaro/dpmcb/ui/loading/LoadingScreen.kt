@@ -91,9 +91,10 @@ fun LoadingScreen(
                 Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                DownloadButton(onEvent)
                 val time by nowFlow.collectAsStateWithLifecycle()
                 Text(
                     text = "${time.hour.two()}:${time.minute.two()}:${time.second.two()}",
@@ -140,16 +141,7 @@ fun LoadingScreen(
 
                 LoadingState.Error -> {
                     Text("Zdá se, ža vaše jizdní řády uložené v zařízení jsou poškozené!")
-                    TextButton(
-                        onClick = {
-                            onEvent(LoadingEvent.DownloadDataIfError)
-                        },
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Icon(Icons.Default.Download, null, Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text("Stáhnout nové JŘ")
-                    }
+                    DownloadButton(onEvent)
                 }
 
                 LoadingState.Offline -> {
@@ -157,5 +149,19 @@ fun LoadingScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DownloadButton(onEvent: (LoadingEvent) -> Job) {
+    TextButton(
+        onClick = {
+            onEvent(LoadingEvent.DownloadDataIfError)
+        },
+        contentPadding = ButtonDefaults.TextButtonContentPadding,
+    ) {
+        Icon(Icons.Default.Download, null, Modifier.size(ButtonDefaults.IconSize))
+        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        Text("Stáhnout nové JŘ")
     }
 }

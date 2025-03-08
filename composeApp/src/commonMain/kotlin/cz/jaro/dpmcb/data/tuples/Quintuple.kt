@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.data.tuples
 
-import java.io.Serializable
 
 
 /**
@@ -26,7 +25,7 @@ data class Quintuple<out A, out B, out C, out D, out E>(
     val third: C,
     val fourth: D,
     val fifth: E,
-) : Serializable {
+) {
 
     /**
      * Returns string representation of the [Quintuple] including its [first], [second], [third], [fourth] and [fifth] values.

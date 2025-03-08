@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.data
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
-import app.cash.sqldelight.db.SqlDriver
 import cz.jaro.dpmcb.Database
 import cz.jaro.dpmcb.data.database.createDatabase
 import cz.jaro.dpmcb.ui.bus.BusViewModel
@@ -17,7 +16,7 @@ import cz.jaro.dpmcb.ui.now_running.NowRunningViewModel
 import cz.jaro.dpmcb.ui.sequence.SequenceViewModel
 import cz.jaro.dpmcb.ui.settings.SettingsViewModel
 import cz.jaro.dpmcb.ui.timetable.TimetableViewModel
-import org.koin.compose.getKoin
+import org.koin.compose.LocalKoinApplication
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.KoinApplicationDslMarker
@@ -35,9 +34,7 @@ fun initKoin(
 
 val commonModule = module(true) {
     single {
-        val driver = get<SqlDriver>()
-        Database.Schema.create(driver)
-        createDatabase(driver)
+        createDatabase(get())
     }
     single {
         get<Database>().spojeQueries
@@ -65,6 +62,6 @@ val commonModule = module(true) {
 
 @Composable
 inline fun <reified VM : ViewModel> viewModel(vararg params: Any? = arrayOf()): VM {
-    val koin = getKoin()
+    val koin = LocalKoinApplication.current
     return androidx.lifecycle.viewmodel.compose.viewModel<VM>(initializer = { koin.get<VM> { parametersOf(*params) } })
 }

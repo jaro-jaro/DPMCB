@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.data.helperclasses
 
+import kotlin.jvm.JvmName
+
 
 @JvmName("withCache1")
 inline fun <I, O> withCache(crossinline function: (I) -> O): (I) -> O {

@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.data.tuples
 
-import java.io.Serializable
-
 
 /**
  * Represents a quadrivium of values
@@ -23,7 +21,7 @@ data class Quadruple<out A, out B, out C, out D>(
     val second: B,
     val third: C,
     val fourth: D,
-) : Serializable {
+) {
 
     /**
      * Returns string representation of the [Quadruple] including its [first], [second], [third] and [fourth] values.

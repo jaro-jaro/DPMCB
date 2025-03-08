@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.CanvasBasedWindow
 import app.cash.sqldelight.db.SqlDriver
@@ -21,10 +22,12 @@ import dev.gitlive.firebase.storage.StorageReference
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.skiko.wasm.onWasmReady
-import org.koin.compose.KoinContext
+import org.koin.compose.LocalKoinApplication
+import org.koin.compose.LocalKoinScope
+import org.koin.core.annotation.KoinInternalApi
 import org.w3c.dom.Worker
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)
 fun main() {
     val location = window.location.hash.removePrefix("#") + window.location.search
 
@@ -34,7 +37,7 @@ fun main() {
                 null, FirebaseOptions(
                     apiKey = "AIzaSyA9O1-nYFEmY0pszqGV5AyXPvJLIsuwvFg",
                     authDomain = "dpmcb-jaro.firebaseapp.com",
-                    databaseUrl = "https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app",
+                    databaseUrl = "https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/",
                     projectId = "dpmcb-jaro",
                     storageBucket = "dpmcb-jaro.appspot.com",
                     gcmSenderId = "867578529394",
@@ -73,7 +76,10 @@ fun main() {
         CanvasBasedWindow(
             title = "Gymceska",
         ) {
-            KoinContext(koinApp.koin) {
+            CompositionLocalProvider(
+                LocalKoinApplication provides koinApp.koin,
+                LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
+            ) {
                 SuperMainContent(repo, link)
             }
         }

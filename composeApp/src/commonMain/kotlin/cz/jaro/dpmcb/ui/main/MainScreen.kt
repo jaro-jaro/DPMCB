@@ -115,6 +115,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import org.koin.compose.LocalKoinApplication
 
 val localDateTypePair = typePair(
     parseValue = {
@@ -647,8 +648,9 @@ private fun Feedback(
         },
         confirmButton = {
             val scope = rememberCoroutineScope()
+            val koin = LocalKoinApplication.current
             TextButton(onClick = {
-                val database = Firebase.database("https://dpmcb-jaro-default-rtdb.europe-west1.firebasedatabase.app/")
+                val database = Firebase.database(app = koin.get())
                 val ref = database.reference("hodnoceni")
                 scope.launch {
                     ref.push().setValue("${rating + 1}/5")

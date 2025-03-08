@@ -13,11 +13,10 @@ androidx-activity-compose = "1.10.1"
 androidx-core = "1.15.0"
 androidx-jetpack-glance = "1.1.1"
 androidx-navigation = "2.8.0-alpha10"
-sqldelight = "2.0.0"
+sqldelight = "2.0.2"
 androidx-lifecycle-compose = "2.8.4"
 browser = "1.8.0"
 coil = "2.2.2"
-compose-material3-datetime-pickers = "0.7.2"
 google-services = "4.4.2"
 firebase = "2.1.0"
 firebase-crashlytics-plugin = "3.0.3"
@@ -50,7 +49,6 @@ sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.re
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle-compose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
-compose-material3-datetime-pickers = { module = "com.marosseleng.android:compose-material3-datetime-pickers", version.ref = "compose-material3-datetime-pickers" }
 firebase-analytics = { group = "dev.gitlive", name = "firebase-analytics", version.ref = "firebase" }
 #firebase-inappmessaging-display = { module = "com.google.firebase:firebase-inappmessaging-display", version.ref = "firebase-inappmessaging-display" }
 firebase-crashlytics = { group = "dev.gitlive", name = "firebase-crashlytics", version.ref = "firebase" }

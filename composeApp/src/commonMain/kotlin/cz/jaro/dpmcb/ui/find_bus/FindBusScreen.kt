@@ -38,9 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import androidx.navigation.Navigator
 import cz.jaro.dpmcb.data.AppState
-import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip

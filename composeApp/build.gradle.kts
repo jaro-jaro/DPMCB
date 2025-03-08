@@ -76,6 +76,9 @@ kotlin {
             // Activity
             implementation(libs.androidx.activity.compose)
 
+            // ChNT
+            implementation(libs.androidx.browser)
+
             implementation(libs.transportation.consumer)
         }
         jsMain.dependencies {
@@ -121,8 +124,6 @@ kotlin {
             // Material
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
-            // 3rd-party
-            implementation(libs.compose.material3.datetime.pickers)
 
             // Jetpack Navigation
             implementation(libs.androidx.navigation.compose)
@@ -147,9 +148,6 @@ kotlin {
             // Web scaping
             implementation(libs.ksoup)
             implementation(libs.ksoup.network)
-
-            // ChNT
-            implementation(libs.androidx.browser)
 
             // Multiplatform Settings
             implementation(libs.multiplatform.settings)
