@@ -533,13 +533,13 @@ class SpojeRepository(
         Database.Schema.create(driver)
 
         localDataSource.transaction {
-            connStops.forEach(localDataSource::insertConnStop)
-            stops.forEach(localDataSource::insertStop)
-            timeCodes.forEach(localDataSource::insertTimeCode)
-            lines.forEach(localDataSource::insertLine)
-            conns.forEach(localDataSource::insertConn)
-            seqGroups.forEach(localDataSource::insertSeqGroup)
-            seqOfConns.forEach(localDataSource::insertSeqOfConn)
+            connStops.forEach { localDataSource.insertConnStop(it) }
+            stops.forEach { localDataSource.insertStop(it) }
+            timeCodes.forEach { localDataSource.insertTimeCode(it) }
+            lines.forEach { localDataSource.insertLine(it) }
+            conns.forEach { localDataSource.insertConn(it) }
+            seqGroups.forEach { localDataSource.insertSeqGroup(it) }
+            seqOfConns.forEach { localDataSource.insertSeqOfConn(it) }
         }
     }
 

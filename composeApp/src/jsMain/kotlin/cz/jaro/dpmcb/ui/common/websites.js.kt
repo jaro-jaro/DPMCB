@@ -1,4 +1,6 @@
 package cz.jaro.dpmcb.ui.common
 
+import kotlinx.browser.window
+
 actual val openWebsiteLauncher: (String) -> Unit
-    get() = TODO("Not yet implemented")
+    get() = { window.open(it, "_blank"); }

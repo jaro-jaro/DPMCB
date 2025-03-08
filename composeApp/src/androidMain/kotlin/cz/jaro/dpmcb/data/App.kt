@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data
 
 import android.app.Application
 import android.content.Context
+import app.cash.sqldelight.async.coroutines.synchronous
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import com.russhwolf.settings.ObservableSettings
@@ -23,7 +24,7 @@ class App : Application() {
         initKoin(true) {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
-            single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
+            single<SqlDriver> { AndroidSqliteDriver(Database.Schema.synchronous(), ctx, "test.db") }
             single { get<Context>().getSharedPreferences("prefs-dpmcb", MODE_PRIVATE) }
             single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
             single { UserOnlineManager(ctx) }

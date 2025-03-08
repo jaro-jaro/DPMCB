@@ -1,9 +1,9 @@
 package cz.jaro.dpmcb.data
 
 actual fun log(message: String) {
-    TODO("Not yet implemented")
+    console.log(message)
 }
 
 actual fun recordException(throwable: Throwable) {
-    TODO("Not yet implemented")
+    console.error(throwable.stackTraceToString())
 }

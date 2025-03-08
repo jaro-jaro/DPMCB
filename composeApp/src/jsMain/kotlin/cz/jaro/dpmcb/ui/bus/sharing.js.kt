@@ -12,6 +12,4 @@ actual fun busShareManager(
     graphicsLayerPart: GraphicsLayer,
     part: PartOfConn,
     editPart: MutateFunction<PartOfConn>
-): BusShareManager {
-    TODO("Not yet implemented")
-}
+): BusShareManager = error("Not supported")
