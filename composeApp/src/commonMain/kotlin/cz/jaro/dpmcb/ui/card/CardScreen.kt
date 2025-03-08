@@ -22,10 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.dpmcb
-import org.koin.androidx.compose.koinViewModel
 
 @Suppress("unused")
 @Composable
@@ -33,7 +33,7 @@ fun Card(
     args: Route.Card,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: CardViewModel = koinViewModel(),
+    viewModel: CardViewModel = viewModel(),
 ) {
     AppState.title = ""
     AppState.selected = DrawerAction.TransportCard

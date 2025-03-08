@@ -28,10 +28,7 @@ import kotlin.time.Duration.Companion.days
 class FavouritesViewModel(
     private val repo: SpojeRepository,
     private val onlineRepo: OnlineRepository,
-    private val params: Parameters,
 ) : ViewModel() {
-
-    data object Parameters
 
     lateinit var navigate: NavigateFunction
 

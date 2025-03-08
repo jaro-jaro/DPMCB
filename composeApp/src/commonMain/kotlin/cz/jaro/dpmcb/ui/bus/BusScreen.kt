@@ -34,6 +34,7 @@ import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.helperclasses.navigateWithOptionsFunction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
@@ -42,8 +43,6 @@ import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
 
 @Suppress("unused")
 @Composable
@@ -51,12 +50,7 @@ fun Bus(
     args: Route.Bus,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: BusViewModel = run {
-        val navigate = navController.navigateWithOptionsFunction
-        koinViewModel {
-            ParametersHolder(mutableListOf(args.lineNumber / args.busNumber, navigate, args.date))
-        }
-    },
+    viewModel: BusViewModel = viewModel(args.lineNumber / args.busNumber, args.date),
 ) {
     AppState.title = "Detail spoje"
     AppState.selected = DrawerAction.FindBus

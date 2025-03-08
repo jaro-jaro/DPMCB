@@ -50,27 +50,26 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import cz.jaro.dpmcb.ui.theme.areDynamicColorsSupported
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Suppress("unused")
 @Composable
@@ -78,9 +77,7 @@ fun Settings(
     args: Route.Settings,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: SettingsViewModel = koinViewModel {
-        parametersOf(SettingsViewModel.Parameters)
-    },
+    viewModel: SettingsViewModel = viewModel(),
 ) {
     AppState.title = "Nastavení"
     AppState.selected = DrawerAction.Settings
@@ -159,7 +156,7 @@ fun SettingsScreen(
         }
     }
     textItem("Aktuální verze dat: ${state.dataMetaVersion}.${state.dataVersion}")
-    textItem("Aktuální verze aplikace: ${state.version}${if (BuildConfig.DEBUG) "-DEBUG" else ""}")
+    textItem("Aktuální verze aplikace: ${state.version}${if (isDebug) "-DEBUG" else ""}")
 
     textItem("")
 

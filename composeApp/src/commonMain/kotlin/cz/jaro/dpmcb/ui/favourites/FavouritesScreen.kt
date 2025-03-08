@@ -28,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -44,14 +43,14 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.datetime.LocalTime
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
@@ -61,13 +60,7 @@ fun Favourites(
     args: Route.Favourites,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: FavouritesViewModel = run {
-        koinViewModel {
-            parametersOf(
-                FavouritesViewModel.Parameters
-            )
-        }
-    },
+    viewModel: FavouritesViewModel = viewModel(),
 ) {
     AppState.title = "Lepší DPMCB"
     AppState.selected = DrawerAction.Favourites

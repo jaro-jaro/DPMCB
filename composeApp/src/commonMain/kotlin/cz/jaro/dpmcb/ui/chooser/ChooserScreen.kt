@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
@@ -38,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,14 +45,14 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.TextField
 import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Suppress("unused")
 @Composable
@@ -62,16 +60,14 @@ fun Chooser(
     args: Route.Chooser,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: ChooserViewModel = koinViewModel {
-        parametersOf(
-            ChooserViewModel.Parameters(
-                type = args.type,
-                lineNumber = args.lineNumber,
-                stop = args.stop,
-                date = args.date,
-            )
+    viewModel: ChooserViewModel = viewModel(
+        ChooserViewModel.Parameters(
+            type = args.type,
+            lineNumber = args.lineNumber,
+            stop = args.stop,
+            date = args.date,
         )
-    },
+    ),
 ) {
     AppState.title = when (args.type) {
         ChooserType.Stops -> "Odjezdy"
@@ -143,20 +139,20 @@ fun ChooserScreen(
 
                 Text(
                     text = when (state.type) {
-                            ChooserType.Stops,
-                            ChooserType.LineStops,
-                            ChooserType.ReturnStop,
-                            ChooserType.ReturnStop1,
-                            ChooserType.ReturnStop2,
-                                -> "Vyberte zastávku"
+                        ChooserType.Stops,
+                        ChooserType.LineStops,
+                        ChooserType.ReturnStop,
+                        ChooserType.ReturnStop1,
+                        ChooserType.ReturnStop2,
+                            -> "Vyberte zastávku"
 
-                            ChooserType.Lines,
-                            ChooserType.ReturnLine,
-                                -> "Vyberte linku"
+                        ChooserType.Lines,
+                        ChooserType.ReturnLine,
+                            -> "Vyberte linku"
 
-                            ChooserType.NextStop,
-                                -> "Vyberte příští zastávku"
-                        },
+                        ChooserType.NextStop,
+                            -> "Vyberte příští zastávku"
+                    },
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 20.sp,
                 )
@@ -169,7 +165,7 @@ fun ChooserScreen(
                 }
             )
         }
-        val imeVisible = WindowInsets.isImeVisible
+        val imeVisible = isImeVisible
         var wasShown by remember { mutableStateOf(false) }
         LaunchedEffect(imeVisible) {
             when {

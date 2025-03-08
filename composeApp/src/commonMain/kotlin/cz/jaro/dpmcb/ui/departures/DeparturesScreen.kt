@@ -81,6 +81,7 @@ import cz.jaro.dpmcb.data.helperclasses.now
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.common.DateSelector
@@ -106,8 +107,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.toJavaLocalTime
 import kotlinx.datetime.toKotlinLocalTime
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration
@@ -120,19 +119,17 @@ fun Departures(
     args: Route.Departures,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: DeparturesViewModel = koinViewModel {
-        parametersOf(
-            DeparturesViewModel.Parameters(
-                stop = args.stop,
-                time = args.time.takeUnless { it.isInvalid() }?.toLocalTime() ?: now,
-                line = args.line.takeUnless { it.isInvalid() },
-                via = args.via,
-                onlyDepartures = args.onlyDepartures,
-                simple = args.simple,
-                date = args.date,
-            )
+    viewModel: DeparturesViewModel = viewModel(
+        DeparturesViewModel.Parameters(
+            stop = args.stop,
+            time = args.time.takeUnless { it.isInvalid() }?.toLocalTime() ?: now,
+            line = args.line.takeUnless { it.isInvalid() },
+            via = args.via,
+            onlyDepartures = args.onlyDepartures,
+            simple = args.simple,
+            date = args.date,
         )
-    }
+    ),
 ) {
     AppState.title = "Odjezdy"
     AppState.selected = DrawerAction.Departures

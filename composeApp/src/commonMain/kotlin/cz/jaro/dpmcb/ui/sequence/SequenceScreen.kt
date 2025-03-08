@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.sequence
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,6 +41,7 @@ import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
@@ -50,8 +50,6 @@ import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 @Suppress("unused")
 @Composable
@@ -59,14 +57,12 @@ fun Sequence(
     args: Route.Sequence,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: SequenceViewModel = koinViewModel {
-        parametersOf(
-            SequenceViewModel.Parameters(
-                sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
-                date = args.date,
-            )
+    viewModel: SequenceViewModel = viewModel(
+        SequenceViewModel.Parameters(
+            sequence = SequenceCode("${args.sequenceNumber}/${args.lineAndModifiers}"),
+            date = args.date,
         )
-    },
+    ),
 ) {
     AppState.title = "Detail kurzu"
     AppState.selected = DrawerAction.FindBus
@@ -83,7 +79,6 @@ fun Sequence(
     )
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SequenceScreen(

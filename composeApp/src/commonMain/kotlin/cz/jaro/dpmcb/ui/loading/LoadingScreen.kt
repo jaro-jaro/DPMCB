@@ -34,37 +34,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
+import dpmcb.composeapp.generated.resources.Res
+import dpmcb.composeapp.generated.resources.logo_jaro_black
+import dpmcb.composeapp.generated.resources.logo_jaro_white
 import kotlinx.coroutines.Job
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun Loading(
     navController: NavHostController,
     args: SuperRoute.Loading,
-    viewModel: LoadingViewModel = run {
-        val ctx = LocalContext.current
-        koinViewModel {
-            parametersOf(
-                LoadingViewModel.Parameters(
-                    update = args.update == true,
-                    link = args.link,
-                )
-            )
-        }
-    },
+    viewModel: LoadingViewModel = viewModel(
+        LoadingViewModel.Parameters(
+            update = args.update == true,
+            link = args.link,
+        )
+    ),
 ) {
     LaunchedEffect(Unit) {
         viewModel.navigate = navController.superNavigateFunction
@@ -116,7 +111,7 @@ fun LoadingScreen(
         ) {
             Image(
                 painter = painterResource(
-                    if (LocalIsDarkThemeUsed.current) R.drawable.logo_jaro_black else R.drawable.logo_jaro_white
+                    if (LocalIsDarkThemeUsed.current) Res.drawable.logo_jaro_black else Res.drawable.logo_jaro_white
                 ),
                 contentDescription = "Logo JARO",
                 contentScale = ContentScale.FillWidth,

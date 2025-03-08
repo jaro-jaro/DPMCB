@@ -75,6 +75,7 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
@@ -83,6 +84,7 @@ import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -114,8 +116,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 val localDateTypePair = typePair(
     parseValue = {
@@ -195,14 +195,12 @@ fun Main(
     superNavController: NavHostController,
     args: SuperRoute.Main,
     navController: NavHostController = rememberNavController(),
-    viewModel: MainViewModel = koinViewModel {
-        parametersOf(
-            MainViewModel.Parameters(
-                link = args.link,
-                currentBackStackEntry = navController.currentBackStackEntryFlow,
-            )
+    viewModel: MainViewModel = viewModel(
+        MainViewModel.Parameters(
+            link = args.link,
+            currentBackStackEntry = navController.currentBackStackEntryFlow,
         )
-    },
+    ),
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 

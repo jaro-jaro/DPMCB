@@ -13,7 +13,6 @@ import cz.jaro.dpmcb.ui.map.DiagramManager
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.initialize
 import org.koin.dsl.bind
-import org.koin.dsl.module
 
 class App : Application() {
 
@@ -21,7 +20,7 @@ class App : Application() {
         super.onCreate()
 
         val ctx = this
-        initKoin(module(true) {
+        initKoin(true) {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
             single<SqlDriver> { AndroidSqliteDriver(Database.Schema, ctx, "test.db") }
@@ -30,6 +29,6 @@ class App : Application() {
             single { UserOnlineManager(ctx) }
             single { DetailsOpener(ctx) }
             single<DiagramManager> { AndroidDiagramManager(ctx) }
-        })
+        }
     }
 }

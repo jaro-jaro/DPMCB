@@ -40,14 +40,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.TextField
 import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.ParametersHolder
 
 @Suppress("unused")
 @Composable
@@ -55,9 +54,7 @@ fun FindBus(
     args: Route.FindBus,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: FindBusViewModel = koinViewModel {
-        ParametersHolder(mutableListOf(args.date))
-    },
+    viewModel: FindBusViewModel = viewModel(args.date),
 ) {
     AppState.title = "Najít spoj"
     AppState.selected = DrawerAction.FindBus

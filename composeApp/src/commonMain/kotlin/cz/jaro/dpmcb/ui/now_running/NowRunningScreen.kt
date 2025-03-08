@@ -43,12 +43,11 @@ import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.toDelay
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeFilter
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeType
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
@@ -57,11 +56,9 @@ fun NowRunning(
     args: Route.NowRunning,
     navController: NavHostController,
     superNavController: NavHostController,
-    viewModel: NowRunningViewModel = run {
-        koinViewModel {
-            parametersOf(NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type))
-        }
-    },
+    viewModel: NowRunningViewModel = viewModel(
+        NowRunningViewModel.Parameters(filters = args.filters.toList(), type = args.type)
+    ),
 ) {
     AppState.title = "Právě jedoucí"
     AppState.selected = DrawerAction.NowRunning

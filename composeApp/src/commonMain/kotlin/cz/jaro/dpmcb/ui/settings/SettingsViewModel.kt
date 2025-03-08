@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.BuildConfig
+import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
@@ -19,17 +19,14 @@ import kotlin.time.Duration.Companion.seconds
 class SettingsViewModel(
     private val repo: SpojeRepository,
     private val appUpdater: AppUpdater,
-    private val params: Parameters,
 ) : ViewModel() {
-
-    data object Parameters
 
     lateinit var superNavigate: SuperNavigateFunction
 
     val state = combine(repo.settings, repo.version, repo.isOnline) { settings, version, isOnline ->
         SettingsState(
             settings = settings,
-            version = BuildConfig.VERSION_NAME,
+            version = BuildKonfig.versionName,
             dataVersion = version,
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
             isOnline = isOnline,
