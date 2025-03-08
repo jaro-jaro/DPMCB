@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.ui.loading
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cz.jaro.dpmcb.BuildConfig
+import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.database.entities.Conn
 import cz.jaro.dpmcb.data.database.entities.ConnStop
@@ -28,9 +28,11 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.fromJson
+import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.noCode
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
@@ -184,12 +186,10 @@ class LoadingViewModel(
     }
 
     private suspend fun isAppDataUpdateNeeded(): Boolean {
-        val isDebug = BuildConfig.DEBUG
-
         if (isDebug) return false
 
         val newestVersion = latestAppVersion()?.toVersion(false) ?: return false
-        val localVersion = BuildConfig.VERSION_NAME.toVersion(false)
+        val localVersion = BuildKonfig.versionName.toVersion(false)
 
         return localVersion < newestVersion
     }

@@ -48,11 +48,10 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.navigateFunction
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
+import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 @Suppress("unused")
 @Composable
@@ -60,21 +59,18 @@ fun Timetable(
     args: Route.Timetable,
     navController: NavHostController,
     superNavController: NavHostController,
+    viewModel: TimetableViewModel = viewModel(
+        TimetableViewModel.Parameters(
+            lineNumber = args.lineNumber,
+            stop = args.stop,
+            nextStop = args.nextStop,
+            date = args.date,
+            navigate = navController.navigateFunction,
+        )
+    ),
 ) {
     AppState.title = "Jízdní řády"
     AppState.selected = DrawerAction.Timetable
-
-    val viewModel: TimetableViewModel = koinViewModel {
-        parametersOf(
-            TimetableViewModel.Parameters(
-                lineNumber = args.lineNumber,
-                stop = args.stop,
-                nextStop = args.nextStop,
-                date = args.date,
-                navigate = navController.navigateFunction,
-            )
-        )
-    }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 

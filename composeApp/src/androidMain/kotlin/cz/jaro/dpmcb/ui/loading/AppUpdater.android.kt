@@ -8,10 +8,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
-import cz.jaro.dpmcb.data.recordException
-import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,15 +98,3 @@ suspend fun HttpURLConnection.use(block: suspend (BufferedInputStream) -> Unit) 
     }
 
 class MyFileProvider : FileProvider()
-
-suspend fun latestAppVersion(): String? = withContext(Dispatchers.IO) {
-    val document = try {
-        Ksoup.parseGetRequest("https://raw.githubusercontent.com/jaro-jaro/DPMCB/main/app/version.txt")
-    } catch (e: IOException) {
-        e.printStackTrace()
-        recordException(e)
-        return@withContext null
-    }
-
-    return@withContext document.text()
-}
