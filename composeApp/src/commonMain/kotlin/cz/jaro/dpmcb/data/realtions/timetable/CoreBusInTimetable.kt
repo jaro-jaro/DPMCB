@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.realtions.timetable
 
 import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 

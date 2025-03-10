@@ -13,7 +13,7 @@ androidx-activity-compose = "1.10.1"
 androidx-core = "1.15.0"
 androidx-jetpack-glance = "1.1.1"
 androidx-navigation = "2.8.0-alpha10"
-sqldelight = "2.0.2"
+androidx-jetpack-room = "2.6.1"
 androidx-lifecycle-compose = "2.8.4"
 browser = "1.8.0"
 coil = "2.2.2"
@@ -29,6 +29,7 @@ kotlinx-serialization = "1.7.3"
 semver = "2.0.0"
 webWorkerDriver = "2.0.2"
 zoomable = "0.11.2"
+kotlin-symbol-processing = "2.1.0-1.0.29"
 ksoup = "0.1.2"
 transportation-consumer = "3.0.0"
 #firebase-inappmessaging-display = "21.0.1"
@@ -44,9 +45,9 @@ androidx-browser = { module = "androidx.browser:browser", version.ref = "browser
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-jetpack-glance = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-jetpack-glance" }
 androidx-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref = "androidx-navigation" }
-sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
-sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
-sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+androidx-jetpack-room = { module = "androidx.room:room-ktx", version.ref = "androidx-jetpack-room" }
+androidx-jetpack-room-compiler = { module = "androidx.room:room-compiler", version.ref = "androidx-jetpack-room" }
+androidx-jetpack-room-runtime = { module = "androidx.room:room-runtime", version.ref = "androidx-jetpack-room" }
 androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle-compose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 firebase-analytics = { group = "dev.gitlive", name = "firebase-analytics", version.ref = "firebase" }
@@ -78,7 +79,7 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "kotlin-symbol-processing" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }

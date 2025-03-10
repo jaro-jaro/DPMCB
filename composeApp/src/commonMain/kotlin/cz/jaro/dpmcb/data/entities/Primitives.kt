@@ -12,25 +12,21 @@ typealias StopNumber = Int
 typealias SequenceGroup = Int
 typealias SequenceGroupCompanion = Int.Companion
 
-interface Value<P> {
-    val value: P
-}
-
 @Serializable
 @JvmInline
-value class Table(override val value: String) : Value<String> {
+value class Table(val value: String) {
     override fun toString() = value
 }
 
 @Serializable
 @JvmInline
-value class LongLine(override val value: Long) : Value<Long> {
+value class LongLine(val value: Int) {
     override fun toString() = value.toString()
 }
 
 @Serializable
 @JvmInline
-value class ShortLine(override val value: Long) : Value<Long>, Comparable<ShortLine> {
+value class ShortLine(val value: Int) : Comparable<ShortLine> {
     override fun toString() = value.toString()
     override fun compareTo(other: ShortLine) = value.compareTo(other.value)
 }
@@ -39,20 +35,20 @@ typealias BusNumber = Int
 
 @Serializable
 @JvmInline
-value class BusName(override val value: String) : Value<String> {
+value class BusName(val value: String) {
     override fun toString() = value
 }
 
 @Serializable
 @JvmInline
-value class RegistrationNumber(override val value: Int) : Value<Int>, Comparable<RegistrationNumber> {
+value class RegistrationNumber(val value: Int) : Comparable<RegistrationNumber> {
     override fun compareTo(other: RegistrationNumber) = value.compareTo(other.value)
     override fun toString() = value.atLeastDigits(2)
 }
 
 @Serializable
 @JvmInline
-value class SequenceCode(override val value: String) : Value<String> {
+value class SequenceCode(val value: String) {
     override fun toString() = value
 }
 
@@ -105,6 +101,6 @@ operator fun LongLine.div(number: BusNumber) = BusName(this, number)
 operator fun LongLine.div(number: CharSequence) = this / number.toString().toInt()
 operator fun CharSequence.div(number: CharSequence) = toLongLine() / number
 fun CharSequence.toRegNum() = RegistrationNumber(toString().toInt())
-fun CharSequence.toLongLine() = LongLine(toString().toLong())
-fun CharSequence.toShortLine() = ShortLine(toString().toLong())
+fun CharSequence.toLongLine() = LongLine(toString().toInt())
+fun CharSequence.toShortLine() = ShortLine(toString().toInt())
 fun LongLine.toShortLine() = value.toLastDigits(3).toShortLine()

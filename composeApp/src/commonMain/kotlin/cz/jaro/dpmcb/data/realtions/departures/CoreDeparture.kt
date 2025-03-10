@@ -3,7 +3,7 @@ package cz.jaro.dpmcb.data.realtions.departures
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Table
-import cz.jaro.dpmcb.data.entities.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 

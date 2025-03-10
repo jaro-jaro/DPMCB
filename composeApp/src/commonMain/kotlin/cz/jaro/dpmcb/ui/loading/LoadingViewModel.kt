@@ -4,30 +4,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.database.entities.Conn
-import cz.jaro.dpmcb.data.database.entities.ConnStop
-import cz.jaro.dpmcb.data.database.entities.Line
-import cz.jaro.dpmcb.data.database.entities.SeqGroup
-import cz.jaro.dpmcb.data.database.entities.SeqOfConn
-import cz.jaro.dpmcb.data.database.entities.SpojeQueries
-import cz.jaro.dpmcb.data.database.entities.Stop
-import cz.jaro.dpmcb.data.database.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.Direction
-import cz.jaro.dpmcb.data.entities.Direction.Companion.invoke
+import cz.jaro.dpmcb.data.entities.Conn
+import cz.jaro.dpmcb.data.entities.ConnStop
+import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
+import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
-import cz.jaro.dpmcb.data.entities.TimeCodeType
-import cz.jaro.dpmcb.data.entities.TimeCodeType.Companion.runs
+import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
-import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Companion.runs
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -73,7 +71,6 @@ import kotlin.time.Duration.Companion.hours
 
 class LoadingViewModel(
     private val repo: SpojeRepository,
-    private val queries: SpojeQueries,
     private val diagramManager: DiagramManager,
     private val firebase: FirebaseApp,
     private val params: Parameters,
@@ -336,9 +333,9 @@ class LoadingViewModel(
             val changeDiagram = manyChanges["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
 
             val minusTables = minus
-                .map { Table(LongLine(it.value.substringBefore('-').toLong() + 325_000L), it.number()) } // TODO: Nezávislost dat na předčíslí linky
+                .map { Table(LongLine(it.value.substringBefore('-').toInt() + 325_000), it.number()) } // TODO: Nezávislost dat na předčíslí linky
             val changedTables = changes
-                .map { Table(LongLine(it.key.value.substringBefore('-').toLong() + 325_000L), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
+                .map { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
 
             connStops.addAll(repo.connStops())
             stops.addAll(repo.stops())
@@ -494,7 +491,7 @@ class LoadingViewModel(
         var rowindex = 0F
 
         return this
-            .mapKeys { Table(LongLine(it.key.value.substringBefore('-').toLong() + 325_000L), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
+            .mapKeys { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
             .map { (tab, dataLinky) ->
                 val connStopsOfTable: MutableList<ConnStop> = mutableListOf()
                 val timeCodesOfTable: MutableList<TimeCode> = mutableListOf()
@@ -523,7 +520,7 @@ class LoadingViewModel(
                                     connNumber = row[1].toInt(),
                                     stopIndexOnLine = row[2].toInt(),
                                     stopNumber = row[3].toInt(),
-                                    kmFromStart = row[9].ifEmpty { null }?.toLong() ?: return@radek,
+                                    kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
                                     arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
                                     tab = tab,
@@ -547,8 +544,8 @@ class LoadingViewModel(
                                     timeCodesOfTable += TimeCode(
                                         line = row[0].toLongLine(),
                                         connNumber = row[1].toInt(),
-                                        code = row[3].toLong(),
-                                        termIndex = row[2].toLong(),
+                                        code = row[3].toInt(),
+                                        termIndex = row[2].toInt(),
                                         type = type,
                                         validFrom = row[5].toDateWeirdly(),
                                         validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
@@ -566,7 +563,6 @@ class LoadingViewModel(
                                     validFrom = row[13].toDateWeirdly(),
                                     validTo = row[14].toDateWeirdly(),
                                     tab = tab,
-                                    shortNumber = row[0].toLongLine().toShortLine(),
                                 )
 
                                 TableType.Spoje -> {
@@ -581,10 +577,9 @@ class LoadingViewModel(
                                             .sortedBy { it.stopIndexOnLine }
                                             .filter { it.time != null }
                                             .let { stops ->
-                                                Direction(stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart)
+                                                Direction.invoke(stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart)
                                             },
                                         tab = tab,
-                                        name = row[0].toLongLine() / row[1].toInt(),
                                     ).also { conn ->
                                         val type =
                                             if (timeCodesOfTable.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun
@@ -634,7 +629,7 @@ private fun Map<SequenceGroup, LoadingViewModel.Group>.exctractSequences(): Pair
                     line = bus.line(),
                     connNumber = bus.bus(),
                     sequence = sequenceCode,
-                    orderInSequence = i.toLong(),
+                    orderInSequence = i.toInt(),
                     group = group,
                 )
             }

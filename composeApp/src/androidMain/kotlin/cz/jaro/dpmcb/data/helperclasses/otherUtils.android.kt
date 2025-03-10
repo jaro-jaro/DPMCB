@@ -16,3 +16,4 @@ actual val isDebug: Boolean
 actual suspend fun awaitFrame() { awaitFrame() }
 
 actual fun String.encodeURL(): String = URLEncoder.encode(this, StandardCharsets.UTF_8.toString())
+

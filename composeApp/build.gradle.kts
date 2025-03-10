@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.sqldelight)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.buildkonfig)
@@ -24,7 +24,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
-    
+
     @OptIn(ExperimentalWasmDsl::class)
     js(IR) {
         moduleName = "composeApp"
@@ -44,9 +44,8 @@ kotlin {
         }
         binaries.executable()
     }
-    
+
     sourceSets {
-        
         androidMain.dependencies {
             // Core Android
             implementation(libs.androidx.core)
@@ -67,9 +66,6 @@ kotlin {
             // Insert Koin
             implementation(libs.koin.android)
 
-            // SQLDelight
-            implementation(libs.sqldelight.android)
-
             // Kotlinx Coroutines
             implementation(libs.kotlinx.coroutines.android)
 
@@ -78,6 +74,10 @@ kotlin {
 
             // ChNT
             implementation(libs.androidx.browser)
+
+            // Room
+            implementation(libs.androidx.jetpack.room)
+            implementation(libs.androidx.jetpack.room.runtime)
 
             implementation(libs.transportation.consumer)
         }
@@ -128,10 +128,6 @@ kotlin {
             // Jetpack Navigation
             implementation(libs.androidx.navigation.compose)
 
-            // SQLDelight
-            implementation(libs.sqldelight.runtime)
-            implementation(libs.sqldelight.coroutines)
-
             // Insert Koin
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
@@ -159,16 +155,13 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-receivers")
         freeCompilerArgs.add("-Xwhen-guards")
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 }
 
-sqldelight {
-    databases {
-        create("Database") {
-            packageName.set("cz.jaro.dpmcb")
-            generateAsync.set(true)
-        }
-    }
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
 }
 
 buildkonfig {
@@ -228,8 +221,14 @@ android {
         buildConfig = true
     }
 }
+configurations {
+    implementation.get().exclude(group = "org.jetbrains", module = "annotations")
+}
 
 dependencies {
+    add("kspAndroid", libs.androidx.jetpack.room.compiler)
+    add("kspJs", libs.androidx.jetpack.room.compiler)
+
     debugImplementation(compose.uiTooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

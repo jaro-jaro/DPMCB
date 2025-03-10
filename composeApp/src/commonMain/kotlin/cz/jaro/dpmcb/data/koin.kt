@@ -2,8 +2,6 @@ package cz.jaro.dpmcb.data
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
-import cz.jaro.dpmcb.Database
-import cz.jaro.dpmcb.data.database.createDatabase
 import cz.jaro.dpmcb.ui.bus.BusViewModel
 import cz.jaro.dpmcb.ui.card.CardViewModel
 import cz.jaro.dpmcb.ui.chooser.ChooserViewModel
@@ -34,13 +32,7 @@ fun initKoin(
 
 val commonModule = module(true) {
     single {
-        createDatabase(get())
-    }
-    single {
-        get<Database>().spojeQueries
-    }
-    single {
-        SpojeRepository(get(), get(), get(), get(), get())
+        SpojeRepository(get(), get(), get(), get())
     }
     single {
         PreferenceDataSource(get())
@@ -52,7 +44,7 @@ val commonModule = module(true) {
     factory { DeparturesViewModel(get(), get(), it.get()) }
     factory { FavouritesViewModel(get(), get()) }
     factory { FindBusViewModel(get(), get(), it.get()) }
-    factory { LoadingViewModel(get(), get(), get(), get(), it.get()) }
+    factory { LoadingViewModel(get(), get(), get(), it.get()) }
     factory { MainViewModel(get(), get(), get(), get(), it.get()) }
     factory { NowRunningViewModel(get(), get(), it.get()) }
     factory { SequenceViewModel(get(), get(), it.get()) }

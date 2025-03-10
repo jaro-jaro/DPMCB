@@ -4,7 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Table
-import cz.jaro.dpmcb.data.entities.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 

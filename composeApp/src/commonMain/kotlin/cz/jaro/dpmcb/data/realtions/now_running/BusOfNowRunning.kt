@@ -4,7 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Table
-import cz.jaro.dpmcb.data.entities.Direction
+import cz.jaro.dpmcb.data.entities.types.Direction
 
 data class BusOfNowRunning(
     val connName: BusName,

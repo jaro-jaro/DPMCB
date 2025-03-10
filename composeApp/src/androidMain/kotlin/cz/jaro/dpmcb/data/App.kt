@@ -2,12 +2,11 @@ package cz.jaro.dpmcb.data
 
 import android.app.Application
 import android.content.Context
-import app.cash.sqldelight.async.coroutines.synchronous
-import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import androidx.room.Room
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
-import cz.jaro.dpmcb.Database
+import cz.jaro.dpmcb.data.database.AppDatabase
+import cz.jaro.dpmcb.data.database.DataSource
 import cz.jaro.dpmcb.ui.main.DetailsOpener
 import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
 import cz.jaro.dpmcb.ui.map.DiagramManager
@@ -24,7 +23,12 @@ class App : Application() {
         initKoin(true) {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
-            single<SqlDriver> { AndroidSqliteDriver(Database.Schema.synchronous(), ctx, "test.db") }
+            single<AppDatabase> {
+                Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "db-dpmcb")
+                    .fallbackToDestructiveMigration()
+                    .build()
+            }
+            factory<DataSource> { get<AppDatabase>().dao() }
             single { get<Context>().getSharedPreferences("prefs-dpmcb", MODE_PRIVATE) }
             single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
             single { UserOnlineManager(ctx) }

@@ -6,10 +6,10 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.Direction
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.timeHere

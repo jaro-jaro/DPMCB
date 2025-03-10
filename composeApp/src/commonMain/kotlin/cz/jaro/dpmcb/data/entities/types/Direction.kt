@@ -1,4 +1,4 @@
-package cz.jaro.dpmcb.data.entities
+package cz.jaro.dpmcb.data.entities.types
 
 enum class Direction {
     POSITIVE, NEGATIVE;

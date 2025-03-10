@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.ui.card.AndroidCardManager
 import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AndroidAppUpdater
+import cz.jaro.dpmcb.ui.loading.AppUpdater
 import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
 import org.koin.core.context.loadKoinModules
@@ -24,10 +25,10 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val updater = AndroidAppUpdater(this)
-        val cardManager: CardManager = AndroidCardManager(this, get())
+        val cardManager = AndroidCardManager(this, get())
         loadKoinModules(module(createdAtStart = true) {
-            single { updater }
-            single { cardManager }
+            single<AppUpdater> { updater }
+            single<CardManager> { cardManager }
         })
 
         val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }
