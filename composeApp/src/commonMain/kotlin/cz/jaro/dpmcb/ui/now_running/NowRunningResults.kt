@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.now_running
 
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.helperclasses.work
 
 sealed interface NowRunningResults<T> {
 
@@ -16,7 +15,6 @@ sealed interface NowRunningResults<T> {
             operator fun invoke(online: List<RunningLineInDirection>, offline: List<RunningLineInDirection>) = Lines(
                 online = online,
                 offlineNotOnline = online.flatMap { it.buses.map { it.sequence } }.let { online ->
-                    offline.find { it.lineNumber == ShortLine(2) }.work()
                     offline.map { line -> line.copy(buses = line.buses.filterNot { it.sequence in online }) }
                         .filter { it.buses.isNotEmpty() }
                 },

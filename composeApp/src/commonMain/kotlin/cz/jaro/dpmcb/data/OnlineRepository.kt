@@ -17,7 +17,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.util.StringValues
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -48,6 +50,7 @@ class OnlineRepository(
             val response = try {
                 client.post("$baseUrl/map/mapData") {
                     headers.appendAll(requestHeaders)
+                    contentType(ContentType.Application.Json)
                     setBody(data)
                 }
             } catch (e: Exception) {
@@ -117,6 +120,7 @@ class OnlineRepository(
             val response = try {
                 client.post("$baseUrl/mapapi/timetable") {
                     headers.appendAll(requestHeaders)
+                    contentType(ContentType.Application.Json)
                     setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""")
                 }
             } catch (e: Exception) {

@@ -389,7 +389,6 @@ class SpojeRepository(
     private suspend fun getNowRunningOrNot() =
         localDataSource.lastStopTimesOfConnsInSequences(
             todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
-                .work()
                 .filter {
                     it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
                 }
