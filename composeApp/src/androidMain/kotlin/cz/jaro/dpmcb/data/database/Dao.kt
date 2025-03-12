@@ -33,7 +33,7 @@ import kotlinx.datetime.LocalTime
 
 @Suppress("AndroidUnresolvedRoomSqlReference")
 @Dao
-interface Dao : DataSource {
+interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """

@@ -6,7 +6,8 @@ import androidx.room.Room
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
 import cz.jaro.dpmcb.data.database.AppDatabase
-import cz.jaro.dpmcb.data.database.SpojeDatabase
+import cz.jaro.dpmcb.data.database.SpojeDataSource
+import cz.jaro.dpmcb.data.database.SpojeQueries
 import cz.jaro.dpmcb.ui.main.DetailsOpener
 import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
 import cz.jaro.dpmcb.ui.map.DiagramManager
@@ -23,12 +24,11 @@ class App : Application() {
         initKoin(true) {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
-            single<SpojeDatabase> {
+            single<SpojeDataSource> {
                 Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "db-dpmcb")
                     .fallbackToDestructiveMigration()
                     .build().let {
-                        object : SpojeDatabase {
-                            override fun dataSource() = it.dataSource()
+                        object : SpojeDataSource, SpojeQueries by it.dataSource() {
                             override fun clearAllTables() = it.clearAllTables()
                         }
                     }

@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.data.database
 
-interface SpojeDatabase {
-    fun dataSource(): DataSource
-
+interface SpojeDataSource : SpojeQueries {
     fun clearAllTables()
 }

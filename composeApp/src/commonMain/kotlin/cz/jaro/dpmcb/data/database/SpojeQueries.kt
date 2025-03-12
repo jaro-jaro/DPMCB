@@ -26,7 +26,7 @@ import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
-interface DataSource {
+interface SpojeQueries {
 
     suspend fun findLongLine(line: ShortLine): LongLine
 
