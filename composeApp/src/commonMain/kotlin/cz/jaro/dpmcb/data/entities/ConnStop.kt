@@ -1,9 +1,9 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
+import cz.jaro.dpmcb.data.database.Entity
 import kotlinx.datetime.LocalTime
 
-@Entity(primaryKeys = ["tab", "connNumber", "stopIndexOnLine"])
+@Entity("", [], false, primaryKeys = ["tab", "connNumber", "stopIndexOnLine"], [], [])
 data class ConnStop(
 // Primary keys
     val tab: Table,

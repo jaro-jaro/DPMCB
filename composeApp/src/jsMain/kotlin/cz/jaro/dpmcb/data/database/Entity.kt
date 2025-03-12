@@ -1,4 +1,4 @@
-package androidx.room
+package cz.jaro.dpmcb.data.database
 
 actual annotation class Entity(
     actual val tableName: String,

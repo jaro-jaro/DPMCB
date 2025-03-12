@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
+import cz.jaro.dpmcb.data.database.Entity
 
-@Entity(primaryKeys = ["tab", "stopNumber"])
+@Entity("", [], false, primaryKeys = ["tab", "stopNumber"], [], [])
 data class Stop(
 // Primary keys
     val tab: Table,

@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
+import cz.jaro.dpmcb.data.database.Entity
 
-@Entity(primaryKeys = ["line", "connNumber", "sequence", "group"])
+@Entity("", [], false, primaryKeys = ["line", "connNumber", "sequence", "group"], [], [])
 data class SeqOfConn(
 // Primary keys
     val line: LongLine,

@@ -1,10 +1,10 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
+import cz.jaro.dpmcb.data.database.Entity
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 
-@Entity(primaryKeys = ["tab", "connNumber", "code", "termIndex"])
+@Entity("", [], false, primaryKeys = ["tab", "connNumber", "code", "termIndex"], [], [])
 data class TimeCode(
 // Primary keys
     val tab: Table,
