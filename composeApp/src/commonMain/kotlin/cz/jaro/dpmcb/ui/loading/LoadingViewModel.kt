@@ -615,7 +615,6 @@ class LoadingViewModel(
     }
 }
 
-private val ConnStop.time get() = departure ?: arrival
 
 private fun Map<SequenceGroup, LoadingViewModel.Group>.exctractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
     map { (group, groupData) ->

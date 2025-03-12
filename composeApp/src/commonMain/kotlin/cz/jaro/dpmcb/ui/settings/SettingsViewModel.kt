@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
 class SettingsViewModel(
@@ -40,11 +39,6 @@ class SettingsViewModel(
             superNavigate(SuperRoute.Loading(null, true), popUpTo<SuperRoute.Main>())
         }
 
-        is SettingsEvent.EditSettings -> {
-            viewModelScope.launch {
-                repo.editSettings(e.edit)
-            }
-            Unit
-        }
+        is SettingsEvent.EditSettings -> repo.editSettings(e.edit)
     }
 }

@@ -22,7 +22,7 @@ import kotlinx.datetime.LocalTime
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun dao(): Dao
+    abstract fun dataSource(): Dao
 
     companion object {
         class Converters {

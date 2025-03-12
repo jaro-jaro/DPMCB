@@ -293,9 +293,7 @@ class DeparturesViewModel(
                 it.copy(
                     justDepartures = !it.justDepartures
                 ).also {
-                    viewModelScope.launch {
-                        repo.changeDepartures(it.justDepartures)
-                    }
+                    repo.changeDepartures(it.justDepartures)
                 }
             }
         }

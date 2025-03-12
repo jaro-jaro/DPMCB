@@ -113,12 +113,7 @@ class BusViewModel(
             Unit
         }
 
-        is BusEvent.ChangeFavourite -> {
-            viewModelScope.launch {
-                repo.changeFavourite(e.newFavourite)
-            }
-            Unit
-        }
+        is BusEvent.ChangeFavourite -> repo.changeFavourite(e.newFavourite)
 
         BusEvent.NextBus -> {
             val state = state.value
@@ -136,12 +131,7 @@ class BusViewModel(
             Unit
         }
 
-        BusEvent.RemoveFavourite -> {
-            viewModelScope.launch {
-                repo.removeFavourite(busName)
-            }
-            Unit
-        }
+        BusEvent.RemoveFavourite -> repo.removeFavourite(busName)
 
         BusEvent.ShowSequence -> {
             val state = state.value

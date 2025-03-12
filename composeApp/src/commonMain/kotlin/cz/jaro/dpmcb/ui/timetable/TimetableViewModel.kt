@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 class TimetableViewModel(
@@ -61,12 +60,7 @@ class TimetableViewModel(
                 date = e.date,
             )
         )
-        is TimetableEvent.EditShowLowFloor -> {
-            viewModelScope.launch {
-                repo.changeLowFloor(e.value)
-            }
-            Unit
-        }
+        is TimetableEvent.EditShowLowFloor -> repo.changeLowFloor(e.value)
         is TimetableEvent.GoToBus -> navigator.navigate(
             Route.Bus(
                 date = params.date,

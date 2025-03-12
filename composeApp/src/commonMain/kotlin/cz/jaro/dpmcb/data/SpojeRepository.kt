@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data
 
-import cz.jaro.dpmcb.data.database.DataSource
+import cz.jaro.dpmcb.data.database.SpojeDatabase
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
@@ -46,7 +46,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.helperclasses.withCache
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -100,11 +99,13 @@ import kotlin.collections.filterNot as remove
 
 class SpojeRepository(
     onlineManager: UserOnlineManager,
-    private val localDataSource: DataSource,
+    private val db: SpojeDatabase,
     private val preferenceDataSource: PreferenceDataSource,
     firebase: FirebaseApp,
 ) : UserOnlineManager by onlineManager {
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    private val localDataSource = db.dataSource()
 
     private val remoteConfig = Firebase.remoteConfig(firebase)
 
@@ -159,8 +160,8 @@ class SpojeRepository(
 
     init {
         scope.launch {
-            preferenceDataSource.settings.collect { nastaveni ->
-                _onlineMode.value = nastaveni.autoOnline
+            preferenceDataSource.settings.collect { settings ->
+                _onlineMode.value = settings.autoOnline
             }
         }
     }
@@ -545,31 +546,31 @@ class SpojeRepository(
         _onlineMode.update { mode }
     }
 
-    suspend fun editSettings(update: (Settings) -> Settings) {
+    fun editSettings(update: (Settings) -> Settings) {
         preferenceDataSource.changeSettings(update)
     }
 
-    suspend fun changeLowFloor(value: Boolean) {
+    fun changeLowFloor(value: Boolean) {
         preferenceDataSource.changeLowFloor(value)
     }
 
-    suspend fun changeDepartures(value: Boolean) {
+    fun changeDepartures(value: Boolean) {
         preferenceDataSource.changeDepartures(value)
     }
 
-    suspend fun changeFavourite(part: PartOfConn) {
+    fun changeFavourite(part: PartOfConn) {
         preferenceDataSource.changeFavourites { favourites ->
             (listOf(part) + favourites).distinctBy { it.busName }
         }
     }
 
-    suspend fun removeFavourite(name: BusName) {
+    fun removeFavourite(name: BusName) {
         preferenceDataSource.changeFavourites { favourites ->
             favourites - favourites.first { it.busName == name }
         }
     }
 
-    suspend fun pushRecentBus(bus: BusName) {
+    fun pushRecentBus(bus: BusName) {
         preferenceDataSource.changeRecents { recents ->
             (listOf(bus) + recents).distinct().take(settings.value.recentBusesCount)
         }
@@ -746,8 +747,8 @@ class SpojeRepository(
         }
     }
 
-    suspend fun reset() {
-//        localDataSource.clearAll() TODO!
+    fun reset() {
+        db.clearAllTables()
         sequencesMap.clear()
         _tables.clear()
     }
