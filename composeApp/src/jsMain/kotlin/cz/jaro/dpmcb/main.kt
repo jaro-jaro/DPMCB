@@ -3,13 +3,13 @@ package cz.jaro.dpmcb
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.CanvasBasedWindow
-import app.cash.sqldelight.db.SqlDriver
-import app.cash.sqldelight.driver.worker.WebWorkerDriver
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.StorageSettings
 import com.russhwolf.settings.observable.makeObservable
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.UserOnlineManager
+import cz.jaro.dpmcb.data.database.SpojeDataSource
+import cz.jaro.dpmcb.data.database.SupabaseDataSource
 import cz.jaro.dpmcb.data.initKoin
 import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AppUpdater
@@ -19,13 +19,14 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
 import dev.gitlive.firebase.storage.StorageReference
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.skiko.wasm.onWasmReady
 import org.koin.compose.LocalKoinApplication
 import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
-import org.w3c.dom.Worker
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)
 fun main() {
@@ -46,27 +47,33 @@ fun main() {
                 )
             )
         }
+        single {
+            createSupabaseClient(
+                supabaseUrl = "https://ygbqqztfvcnqxxbqvxwb.supabase.co",
+                supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnYnFxenRmdmNucXh4YnF2eHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1ODgyNDksImV4cCI6MjA1NzE2NDI0OX0.6e2CrFnDrBAV-GN_rwt8l9TbC-qfQaiMdbYemUcRYUY"
+            ) {
+                install(Postgrest)
+            }
+        }
+        single<SpojeDataSource> { SupabaseDataSource(get()) }
         single { UserOnlineManager { true } }
         single { StorageSettings().makeObservable() }
-        single<SqlDriver> {
-            WebWorkerDriver(
-                Worker(
-                    js("""new URL("@cashapp/sqldelight-sqljs-worker/sqljs.worker.js", import.meta.url)""")
-                )
-            )
-        }
         single { DetailsOpener {} }
-        single<DiagramManager> { object : DiagramManager {
-            override suspend fun downloadDiagram(reference: StorageReference, progress: (Float) -> Unit) = Unit
-            override val imageData = null
-            override fun checkDiagram() = true
-        } }
+        single<DiagramManager> {
+            object : DiagramManager {
+                override suspend fun downloadDiagram(reference: StorageReference, progress: (Float) -> Unit) = Unit
+                override val imageData = null
+                override fun checkDiagram() = true
+            }
+        }
         single { AppUpdater {} }
-        single { object : CardManager {
-            override fun loadCard() = Unit
-            override fun removeCard() = Unit
-            override val card = MutableStateFlow(null)
-        } }
+        single {
+            object : CardManager {
+                override fun loadCard() = Unit
+                override fun removeCard() = Unit
+                override val card = MutableStateFlow(null)
+            }
+        }
     }
 
     val repo = koinApp.koin.get<SpojeRepository>()

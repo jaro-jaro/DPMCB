@@ -532,6 +532,8 @@ class SpojeRepository(
         ds.insertSeqOfConns(*seqOfConns.toTypedArray())
     }
 
+    val needsToDownloadData get() = ds.needsToDownloadData
+
     suspend fun connStops() = ds.connStops()
     suspend fun stops() = ds.stops()
     suspend fun timeCodes() = ds.timeCodes()

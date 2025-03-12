@@ -4,9 +4,9 @@ import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.recordException
-import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.io.IOException
 
 fun interface AppUpdater {
     fun updateApp(

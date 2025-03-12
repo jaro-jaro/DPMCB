@@ -30,6 +30,7 @@ class App : Application() {
                     .build().let {
                         object : SpojeDataSource, SpojeQueries by it.dataSource() {
                             override fun clearAllTables() = it.clearAllTables()
+                            override val needsToDownloadData = true
                         }
                     }
             }

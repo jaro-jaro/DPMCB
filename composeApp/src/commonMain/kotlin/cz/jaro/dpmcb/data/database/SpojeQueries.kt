@@ -102,19 +102,19 @@ interface SpojeQueries {
     suspend fun allLineNumbers(): List<LongLine>
 
     suspend fun allSequences(): List<SequenceCode>
-    suspend fun insertConnStops(vararg connStops: ConnStop)
-    suspend fun insertStops(vararg stops: Stop)
-    suspend fun insertTimeCodes(vararg timeCodes: TimeCode)
-    suspend fun insertLines(vararg lines: Line)
-    suspend fun insertConns(vararg conns: Conn)
-    suspend fun insertSeqOfConns(vararg seqsOfBuses: SeqOfConn)
-    suspend fun insertSeqGroups(vararg seqGroups: SeqGroup)
+    suspend fun insertConnStops(vararg connStops: ConnStop) {}
+    suspend fun insertStops(vararg stops: Stop) {}
+    suspend fun insertTimeCodes(vararg timeCodes: TimeCode) {}
+    suspend fun insertLines(vararg lines: Line) {}
+    suspend fun insertConns(vararg conns: Conn) {}
+    suspend fun insertSeqOfConns(vararg seqsOfBuses: SeqOfConn) {}
+    suspend fun insertSeqGroups(vararg seqGroups: SeqGroup) {}
 
-    suspend fun connStops(): List<ConnStop>
-    suspend fun stops(): List<Stop>
-    suspend fun timeCodes(): List<TimeCode>
-    suspend fun lines(): List<Line>
-    suspend fun conns(): List<Conn>
-    suspend fun seqOfConns(): List<SeqOfConn>
-    suspend fun seqGroups(): List<SeqGroup>
+    suspend fun connStops(): List<ConnStop> = emptyList()
+    suspend fun stops(): List<Stop> = emptyList()
+    suspend fun timeCodes(): List<TimeCode> = emptyList()
+    suspend fun lines(): List<Line> = emptyList()
+    suspend fun conns(): List<Conn> = emptyList()
+    suspend fun seqOfConns(): List<SeqOfConn> = emptyList()
+    suspend fun seqGroups(): List<SeqGroup> = emptyList()
 }

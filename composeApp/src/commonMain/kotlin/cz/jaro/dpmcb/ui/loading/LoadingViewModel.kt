@@ -105,6 +105,10 @@ class LoadingViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            if (!repo.needsToDownloadData) {
+                goToApp()
+            }
+
             try {
                 params.update || repo.version.first() == -1
             } catch (e: Exception) {
@@ -129,19 +133,20 @@ class LoadingViewModel(
 
 
             if (!repo.isOnline.value || !repo.settings.value.checkForUpdates) {
-                while (!::navigate.isInitialized) Unit
-                withContext(Dispatchers.Main) {
-                    navigate(SuperRoute.Main(params.link), popUpTo<SuperRoute.Loading>())
-                }
+                goToApp()
                 return@launch
             }
 
             _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
-            while (!::navigate.isInitialized) Unit
-            withContext(Dispatchers.Main) {
-                navigate(SuperRoute.Main(params.link, isDataUpdateNeeded(), isAppDataUpdateNeeded()), popUpTo<SuperRoute.Loading>())
-            }
+            goToApp()
+        }
+    }
+
+    private suspend fun goToApp() {
+        while (!::navigate.isInitialized) Unit
+        withContext(Dispatchers.Main) {
+            navigate(SuperRoute.Main(params.link), popUpTo<SuperRoute.Loading>())
         }
     }
 
