@@ -101,8 +101,6 @@ class FindBusViewModel(
         }
     }
 
-    val isOnline = repo.isOnline
-
     fun onEvent(e: FindBusEvent): Unit = when (e) {
         FindBusEvent.ConfirmLine -> {
             if (line.text.length == 6)
@@ -119,7 +117,7 @@ class FindBusViewModel(
         }
 
         FindBusEvent.ConfirmVehicle -> {
-            if (!isOnline.value)
+            if (!repo.isOnline())
                 result.value = FindBusResult.Offline
             else
                 findBusByRegN(vehicle.text.toRegNum()) {

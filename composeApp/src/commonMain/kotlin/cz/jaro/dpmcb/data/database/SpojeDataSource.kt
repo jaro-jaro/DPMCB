@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.database
 
 interface SpojeDataSource : SpojeQueries {
-    fun clearAllTables() {}
+    suspend fun clearAllTables() {}
 
     val needsToDownloadData: Boolean
 }

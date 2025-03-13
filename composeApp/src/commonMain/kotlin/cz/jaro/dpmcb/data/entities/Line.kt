@@ -4,9 +4,11 @@ import cz.jaro.dpmcb.data.database.Entity
 import cz.jaro.dpmcb.data.entities.types.LineType
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmName
 
 @Entity("", [], false, primaryKeys = ["tab"], [], [])
+@Serializable
 data class Line(
 // Primary keys
     val tab: Table,

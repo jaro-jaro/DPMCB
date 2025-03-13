@@ -2,9 +2,11 @@ package cz.jaro.dpmcb.data.entities
 
 import cz.jaro.dpmcb.data.database.Entity
 import cz.jaro.dpmcb.data.entities.types.Direction
+import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmName
 
 @Entity("", [], false, primaryKeys = ["tab", "connNumber"], [], [])
+@Serializable
 data class Conn(
 // Primary keys
     val tab: Table,

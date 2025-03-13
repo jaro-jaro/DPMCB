@@ -25,7 +25,6 @@ import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Companion.runs
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -105,10 +104,6 @@ class LoadingViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            if (!repo.needsToDownloadData) {
-                goToApp()
-            }
-
             try {
                 params.update || repo.version.first() == -1
             } catch (e: Exception) {
@@ -118,7 +113,7 @@ class LoadingViewModel(
                 return@launch
             }
 
-            if (params.update || repo.version.first() == -1) {
+            if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
                 downloadNewData() ?: return@launch
             }
 
@@ -132,21 +127,21 @@ class LoadingViewModel(
             }
 
 
-            if (!repo.isOnline.value || !repo.settings.value.checkForUpdates) {
+            if (!repo.needsToDownloadData || !repo.isOnline() || !repo.settings.value.checkForUpdates) {
                 goToApp()
                 return@launch
             }
 
             _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
-            goToApp()
+            goToApp(isDataUpdateNeeded(), isAppDataUpdateNeeded())
         }
     }
 
-    private suspend fun goToApp() {
+    private suspend fun goToApp(isDataUpdateNeeded: Boolean = false, isAppDataUpdateNeeded: Boolean = false) {
         while (!::navigate.isInitialized) Unit
         withContext(Dispatchers.Main) {
-            navigate(SuperRoute.Main(params.link), popUpTo<SuperRoute.Loading>())
+            navigate(SuperRoute.Main(params.link, isDataUpdateNeeded, isAppDataUpdateNeeded), popUpTo<SuperRoute.Loading>())
         }
     }
 
@@ -202,7 +197,7 @@ class LoadingViewModel(
 
     private suspend fun downloadNewData(): Unit? {
 
-        if (!repo.isOnline.value) {
+        if (!repo.isOnline()) {
             _state.value = LoadingState.Offline
             return null
         }
@@ -223,7 +218,7 @@ class LoadingViewModel(
             false
         } catch (_: FirebaseException) {
             true
-        }
+        } || !repo.needsToDownloadData
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -465,7 +460,11 @@ class LoadingViewModel(
             seqOfConns = seqOfConns.distinctBy { Quadruple(it.line, it.connNumber, it.sequence, it.group) },
             seqGroups = seqGroups.distinctBy { it.group },
             version = newVersion,
-        )
+        ) { progress ->
+            _state.update {
+                (it as LoadingState.Loading).copy(progress = progress)
+            }
+        }
         return Unit
     }
 
@@ -555,7 +554,6 @@ class LoadingViewModel(
                                         validFrom = row[5].toDateWeirdly(),
                                         validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
                                         tab = tab,
-                                        runs2 = type.runs,
                                     )
                                 }
 
@@ -597,7 +595,6 @@ class LoadingViewModel(
                                             validFrom = noCode,
                                             validTo = noCode,
                                             tab = conn.tab,
-                                            runs2 = type.runs,
                                         )
                                         if (conn.name !in connsWithSequence) addConnToSequence(conn)
                                     }

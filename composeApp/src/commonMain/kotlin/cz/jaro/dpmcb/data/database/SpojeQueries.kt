@@ -102,13 +102,13 @@ interface SpojeQueries {
     suspend fun allLineNumbers(): List<LongLine>
 
     suspend fun allSequences(): List<SequenceCode>
-    suspend fun insertConnStops(vararg connStops: ConnStop) {}
-    suspend fun insertStops(vararg stops: Stop) {}
-    suspend fun insertTimeCodes(vararg timeCodes: TimeCode) {}
-    suspend fun insertLines(vararg lines: Line) {}
-    suspend fun insertConns(vararg conns: Conn) {}
-    suspend fun insertSeqOfConns(vararg seqsOfBuses: SeqOfConn) {}
-    suspend fun insertSeqGroups(vararg seqGroups: SeqGroup) {}
+    suspend fun insertConnStops(connStops: List<ConnStop>) {}
+    suspend fun insertStops(stops: List<Stop>) {}
+    suspend fun insertTimeCodes(timeCodes: List<TimeCode>) {}
+    suspend fun insertLines(lines: List<Line>) {}
+    suspend fun insertConns(conns: List<Conn>) {}
+    suspend fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>) {}
+    suspend fun insertSeqGroups(seqGroups: List<SeqGroup>) {}
 
     suspend fun connStops(): List<ConnStop> = emptyList()
     suspend fun stops(): List<Stop> = emptyList()

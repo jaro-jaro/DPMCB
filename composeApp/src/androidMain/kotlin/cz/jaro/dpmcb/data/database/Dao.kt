@@ -468,25 +468,25 @@ interface Dao : SpojeQueries {
     override suspend fun allSequences(): List<SequenceCode>
 
     @Insert
-    override suspend fun insertConnStops(vararg connStops: ConnStop)
+    override suspend fun insertConnStops(connStops: List<ConnStop>)
 
     @Insert
-    override suspend fun insertStops(vararg stops: Stop)
+    override suspend fun insertStops(stops: List<Stop>)
 
     @Insert
-    override suspend fun insertTimeCodes(vararg timeCodes: TimeCode)
+    override suspend fun insertTimeCodes(timeCodes: List<TimeCode>)
 
     @Insert
-    override suspend fun insertLines(vararg lines: Line)
+    override suspend fun insertLines(lines: List<Line>)
 
     @Insert
-    override suspend fun insertConns(vararg conns: Conn)
+    override suspend fun insertConns(conns: List<Conn>)
 
     @Insert
-    override suspend fun insertSeqOfConns(vararg seqsOfBuses: SeqOfConn)
+    override suspend fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>)
 
     @Insert
-    override suspend fun insertSeqGroups(vararg seqGroups: SeqGroup)
+    override suspend fun insertSeqGroups(seqGroups: List<SeqGroup>)
 
     @Query("SELECT * FROM connstop")
     override suspend fun connStops(): List<ConnStop>

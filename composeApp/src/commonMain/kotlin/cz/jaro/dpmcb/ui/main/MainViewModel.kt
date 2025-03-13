@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.encodeURL
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -20,8 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -120,40 +119,38 @@ class MainViewModel(
         }
     }
 
-    fun onEvent(e: MainEvent) =
-        viewModelScope.launch {
-            when (e) {
-                is MainEvent.DrawerItemClicked -> {
-                    if (e.action.multiselect)
-                        AppState.selected = e.action
+    val currentBackStackEntry = params.currentBackStackEntry
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
 
-                    e.action.route?.let {
-                        navigator.navigate(it(params.currentBackStackEntry.first().date()))
-                    }
-                    updateDrawerState { false }
-                }
-                MainEvent.RemoveCard -> cardManager.removeCard()
-                MainEvent.ToggleDrawer -> updateDrawerState { !it }
-                MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
-                MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
-                is MainEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
+    fun onEvent(e: MainEvent) = when (e) {
+        is MainEvent.DrawerItemClicked -> {
+            if (e.action.multiselect)
+                AppState.selected = e.action
+
+            e.action.route?.let {
+                navigator.navigate(it(currentBackStackEntry.value.date()))
             }
+            updateDrawerState { false }
         }
 
-    private fun NavBackStackEntry.date(): LocalDate = getRoute()?.date ?: SystemClock.todayHere()
+        MainEvent.RemoveCard -> cardManager.removeCard()
+        MainEvent.ToggleDrawer -> updateDrawerState { !it }
+        MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
+        MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
+        is MainEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
+    }
 
-    val state = combine(isOnline, isOnlineModeEnabled, cardManager.card, params.currentBackStackEntry) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
+    private fun NavBackStackEntry?.date(): LocalDate = this?.getRoute()?.date ?: SystemClock.todayHere()
+
+    val state = combineStates(
+        viewModelScope, isOnline, isOnlineModeEnabled, cardManager.card, currentBackStackEntry
+    ) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
         MainState(
             onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
             hasCard = hasCard != null,
             date = currentBackStackEntry.date(),
         )
-    }.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5.seconds),
-        MainState(
-            onlineStatus = OnlineStatus(isOnline.value, isOnlineModeEnabled.value),
-        )
-    )
+    }
 
     private fun OnlineStatus(isOnline: Boolean, isOnlineModeEnabled: Boolean): MainState.OnlineStatus =
         if (!isOnline) MainState.OnlineStatus.Offline

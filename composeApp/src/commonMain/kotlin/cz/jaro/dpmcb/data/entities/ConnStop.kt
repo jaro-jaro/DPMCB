@@ -2,8 +2,10 @@ package cz.jaro.dpmcb.data.entities
 
 import cz.jaro.dpmcb.data.database.Entity
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.Serializable
 
 @Entity("", [], false, primaryKeys = ["tab", "connNumber", "stopIndexOnLine"], [], [])
+@Serializable
 data class ConnStop(
 // Primary keys
     val tab: Table,

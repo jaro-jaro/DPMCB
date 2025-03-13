@@ -1,15 +1,20 @@
 package cz.jaro.dpmcb.data.database
 
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SeqGroup
+import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
+import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.helperclasses.toJsonElement
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
@@ -21,103 +26,64 @@ import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.rpc
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 class SupabaseDataSource(
     private val supabase: SupabaseClient,
 ) : SpojeDataSource {
     override val needsToDownloadData = false
 
+    private suspend fun query(function: String, parameters: Map<String, JsonElement> = emptyMap()) =
+        supabase.postgrest.rpc(function.lowercase(), JsonObject(parameters))
+
+    private inline val <reified T> T.j get() = toJsonElement()
+
     override suspend fun findLongLine(line: ShortLine): LongLine =
-        supabase.postgrest.rpc("findLongLine", mapOf("line" to line)).decodeSingle()
+        query("findLongLine", mapOf("line" to line.j)).decodeSingle()
 
-    override suspend fun stopNames(tabs: List<Table>): List<String> {
-        return supabase.postgrest.rpc("stopNames", mapOf("tabs" to tabs)).decodeList()
-    }
+    override suspend fun stopNames(tabs: List<Table>): List<String> =
+        query("stopNames", mapOf("tabs" to tabs.j)).decodeList()
 
-    override suspend fun lineNumbers(tabs: List<Table>): List<ShortLine> {
-        return supabase.postgrest.rpc("lineNumbers", mapOf("tabs" to tabs)).decodeList()
-    }
+    override suspend fun lineNumbers(tabs: List<Table>): List<ShortLine> =
+        query("lineNumbers", mapOf("tabs" to tabs.j)).decodeList()
 
-    override suspend fun allLineNumbers(): List<LongLine> {
-        return supabase.postgrest.rpc("allLineNumbers").decodeList()
-    }
+    override suspend fun allLineNumbers(): List<LongLine> =
+        query("allLineNumbers").decodeList()
 
-    override suspend fun nextStops(
-        line: LongLine,
-        thisStop: String,
-        tab: Table,
-    ): List<String> {
-        return supabase.postgrest.rpc("findNextStops", mapOf("line" to line, "thisStop" to thisStop, "tab" to tab)).decodeList()
-    }
+    override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String> =
+        query("nextStops", mapOf("line" to line.j, "thisStop" to thisStop.j, "tab" to tab.j)).decodeList()
 
-    override suspend fun connStopsOnLineWithNextStopAtDate(
-        stop: String,
-        nextStop: String,
-        date: LocalDate,
-        tab: Table,
-    ): List<CoreBusInTimetable> {
-        return supabase.postgrest.rpc("findConnStopsOnLineWithNextStopAtDate", mapOf("stop" to stop, "nextStop" to nextStop, "date" to date, "tab" to tab)).decodeList()
-    }
+    override suspend fun connStopsOnLineWithNextStopAtDate(stop: String, nextStop: String, date: LocalDate, tab: Table): List<CoreBusInTimetable> =
+        query("connStopsOnLineWithNextStopAtDate", mapOf("stop" to stop.j, "nextStop" to nextStop.j, "date" to date.j, "tab" to tab.j)).decodeList()
 
-    override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> {
-        return supabase.postgrest.rpc("findStopNamesOfLine", mapOf("line" to line, "tab" to tab)).decodeList()
-    }
+    override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> =
+        query("stopNamesOfLine", mapOf("line" to line.j, "tab" to tab.j)).decodeList()
 
-    override suspend fun coreBus(
-        connName: BusName,
-        groups: List<SequenceGroup>,
-        tab: Table,
-    ): List<CoreBus> {
-        return supabase.postgrest.rpc("findLongLine", mapOf("connName" to connName, "groups" to groups, "tab" to tab)).decodeList()
-    }
+    override suspend fun coreBus(connName: BusName, groups: List<SequenceGroup>, tab: Table): List<CoreBus> =
+        query("coreBus", mapOf("connName" to connName.j, "groups" to groups.j, "tab" to tab.j)).decodeList()
 
-    override suspend fun codes(
-        connName: BusName,
-        tab: Table,
-    ): List<CodesOfBus> {
-        return supabase.postgrest.rpc("findCodes", mapOf("connName" to connName, "tab" to tab)).decodeList()
-    }
+    override suspend fun codes(connName: BusName, tab: Table): List<CodesOfBus> =
+        query("codes", mapOf("connName" to connName.j, "tab" to tab.j)).decodeList()
 
-    override suspend fun coreBusOfSequence(
-        seq: SequenceCode,
-        group: SequenceGroup?,
-    ): List<CoreBusOfSequence> {
-        return supabase.postgrest.rpc("findCoreBusOfSequence", mapOf("seq" to seq, "group" to group)).decodeList()
-    }
+    override suspend fun coreBusOfSequence(seq: SequenceCode, group: SequenceGroup?): List<CoreBusOfSequence> =
+        query("coreBusOfSequence", mapOf("seq" to seq.j, "group" to group.j)).decodeList()
 
-    override suspend fun connsOfSeq(
-        seq: SequenceCode,
-        group: SequenceGroup?,
-        tabs: List<Table>,
-    ): List<BusName> {
-        return supabase.postgrest.rpc("findConnsOfSeq", mapOf("seq" to seq, "group" to group, "tabs" to tabs)).decodeList()
-    }
+    override suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName> =
+        query("connsOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.j)).decodeList()
 
-    override suspend fun firstConnOfSeq(
-        seq: SequenceCode,
-        group: SequenceGroup?,
-        tabs: List<Table>,
-    ): BusName {
-        return supabase.postgrest.rpc("findFirstConnOfSeq", mapOf("seq" to seq, "group" to group, "tabs" to tabs)).decodeSingle()
-    }
+    override suspend fun firstConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName =
+        query("firstConnOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.j)).decodeSingle()
 
-    override suspend fun lastConnOfSeq(
-        seq: SequenceCode,
-        group: SequenceGroup?,
-        tabs: List<Table>,
-    ): BusName {
-        return supabase.postgrest.rpc("findLastConnOfSeq", mapOf("seq" to seq, "group" to group, "tabs" to tabs)).decodeSingle()
-    }
+    override suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName =
+        query("lastConnOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.j)).decodeSingle()
 
-    override suspend fun departures(
-        stop: String,
-        tabs: List<Table>,
-    ): List<CoreDeparture> {
-        return supabase.postgrest.rpc("findDepartures", mapOf("stop" to stop, "tabs" to tabs)).decodeList()
-    }
+    override suspend fun departures(stop: String, tabs: List<Table>): List<CoreDeparture> =
+        query("departures", mapOf("stop" to stop.j, "tabs" to tabs.j)).decodeList()
 
     override suspend fun findSequences(
         sequence1: String,
@@ -126,74 +92,83 @@ class SupabaseDataSource(
         sequence4: String,
         sequence5: String,
         sequence6: String,
-    ): List<SequenceCode> {
-        return supabase.postgrest.rpc("findSequences", mapOf("sequence1" to sequence1, "sequence2" to sequence2, "sequence3" to sequence3, "sequence4" to sequence4, "sequence5" to sequence5, "sequence6" to sequence6)).decodeList()
-    }
+    ): List<SequenceCode> =
+        query(
+            "findSequences",
+            mapOf(
+                "sequence1" to sequence1.j,
+                "sequence2" to sequence2.j,
+                "sequence3" to sequence3.j,
+                "sequence4" to sequence4.j,
+                "sequence5" to sequence5.j,
+                "sequence6" to sequence6.j
+            )
+        ).decodeList()
 
     override suspend fun lastStopTimesOfConnsInSequences(
         todayRunningSequences: List<SequenceCode>,
         groups: List<SequenceGroup>,
         tabs: List<Table>,
-    ): Map<SequenceCode, Map<BusName, LocalTime>> {
-        return supabase.postgrest.rpc("findLastStopTimesOfConnsInSequences", mapOf("todayRunningSequences" to todayRunningSequences, "groups" to groups, "tabs" to tabs)).decodeSingle()
-    }
+    ): Map<SequenceCode, Map<BusName, LocalTime>> =
+        query("lastStopTimesOfConnsInSequences", mapOf("todayRunningSequences" to todayRunningSequences.j, "groups" to groups.j, "tabs" to tabs.j)).decodeSingle()
 
-    override suspend fun nowRunningBuses(
-        connNames: List<BusName>,
-        groups: List<SequenceGroup>,
-        tabs: List<Table>,
-    ): Map<BusOfNowRunning, List<StopOfNowRunning>> {
-        return supabase.postgrest.rpc("findNowRunningBuses", mapOf("connNames" to connNames, "groups" to groups, "tabs" to tabs)).decodeSingle()
-    }
+    override suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusOfNowRunning, List<StopOfNowRunning>> =
+        query("nowRunningBuses", mapOf("connNames" to connNames.j, "groups" to groups.j, "tabs" to tabs.j)).decodeSingle()
 
     override suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
         date: LocalDate,
         tabs: List<Table>,
         groups: List<SequenceGroup>,
-    ): Map<TimeOfSequence, Map<BusName, List<CodesOfBus>>> {
-        return supabase.postgrest.rpc("findFixedCodesOfTodayRunningSequencesAccordingToTimeCodes", mapOf("date" to date, "tabs" to tabs, "groups" to groups)).decodeSingle()
+    ): Map<TimeOfSequence, Map<BusName, List<CodesOfBus>>> =
+        query("fixedCodesOfTodayRunningSequencesAccordingToTimeCodes", mapOf("date" to date.j, "tabs" to tabs.j, "groups" to groups.j)).decodeSingle()
+
+    override suspend fun oneDirectionLines(): List<LongLine> =
+        query("oneDirectionLines").decodeList()
+
+    override suspend fun connStops(connNames: List<BusName>, tabs: List<Table>): Map<BusName, List<StopOfDeparture>> =
+        query("connStops", mapOf("connNames" to connNames.j, "tabs" to tabs.j)).decodeSingle()
+
+    override suspend fun connStops(): List<ConnStop> =
+        query("connStops").decodeList()
+
+    override suspend fun hasRestriction(tab: Table): Boolean =
+        query("hasRestriction", mapOf("tab" to tab.j)).decodeSingle()
+
+    override suspend fun validity(tab: Table): Validity =
+        query("validity", mapOf("tab" to tab.j)).decodeSingle()
+
+    override suspend fun doesConnExist(connName: BusName): String? =
+        query("doesConnExist", mapOf("connName" to connName.j)).decodeSingle()
+
+    override suspend fun lineTables(line: LongLine): List<Line> =
+        query("lineTables", mapOf("line" to line.j)).decodeList()
+
+    override suspend fun seqGroups(seq: SequenceCode): List<SeqGroup> =
+        query("seqGroups", mapOf("seq" to seq.j)).decodeList()
+
+    override suspend fun seqGroups(): List<SeqGroup> =
+        query("seqGroups").decodeList()
+
+    override suspend fun allSequences(): List<SequenceCode> =
+        query("allSequences").decodeList()
+
+    private val json = Json {
+        encodeDefaults = true
     }
 
-    override suspend fun oneDirectionLines(): List<LongLine> {
-        return supabase.postgrest.rpc("findOneDirectionLines").decodeList()
+    private suspend inline fun <reified T : Any> insert(rows: List<T>) {
+        val modified = rows.map {
+            it.toJsonElement(json).jsonObject.mapKeys { (k, _) -> k.lowercase() }
+        }
+        val name = T::class.simpleName!!
+        supabase.postgrest.from(name).upsert(modified)
     }
 
-    override suspend fun connStops(
-        connNames: List<BusName>,
-        tabs: List<Table>,
-    ): Map<BusName, List<StopOfDeparture>> {
-        return supabase.postgrest.rpc("findConnStops", mapOf("connNames" to connNames, "tabs" to tabs)).decodeSingle()
-    }
-
-    override suspend fun connStops(): List<ConnStop> {
-        return supabase.postgrest.rpc("findConnStops").decodeList()
-    }
-
-    override suspend fun hasRestriction(tab: Table): Boolean {
-        return supabase.postgrest.rpc("hasRestriction", mapOf("tab" to tab)).decodeSingle()
-    }
-
-    override suspend fun validity(tab: Table): Validity {
-        return supabase.postgrest.rpc("findValidity", mapOf("tab" to tab)).decodeSingle()
-    }
-
-    override suspend fun doesConnExist(connName: BusName): String? {
-        return supabase.postgrest.rpc("doesConnExist", mapOf("connName" to connName)).decodeSingle()
-    }
-
-    override suspend fun lineTables(line: LongLine): List<Line> {
-        return supabase.postgrest.rpc("findLineTables", mapOf("line" to line)).decodeList()
-    }
-
-    override suspend fun seqGroups(seq: SequenceCode): List<SeqGroup> {
-        return supabase.postgrest.rpc("findSeqGroups", mapOf("seq" to seq)).decodeList()
-    }
-
-    override suspend fun seqGroups(): List<SeqGroup> {
-        return supabase.postgrest.rpc("findSeqGroups").decodeList()
-    }
-
-    override suspend fun allSequences(): List<SequenceCode> {
-        return supabase.postgrest.rpc("findAllSequences").decodeList()
-    }
+    override suspend fun insertConnStops(connStops: List<ConnStop>) = insert(connStops)
+    override suspend fun insertStops(stops: List<Stop>) = insert(stops)
+    override suspend fun insertTimeCodes(timeCodes: List<TimeCode>) = insert(timeCodes)
+    override suspend fun insertLines(lines: List<Line>) = insert(lines)
+    override suspend fun insertConns(conns: List<Conn>) = insert(conns)
+    override suspend fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>) = insert(seqsOfBuses)
+    override suspend fun insertSeqGroups(seqGroups: List<SeqGroup>) = insert(seqGroups)
 }

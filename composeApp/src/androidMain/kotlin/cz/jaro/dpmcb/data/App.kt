@@ -29,7 +29,7 @@ class App : Application() {
                     .fallbackToDestructiveMigration()
                     .build().let {
                         object : SpojeDataSource, SpojeQueries by it.dataSource() {
-                            override fun clearAllTables() = it.clearAllTables()
+                            override suspend fun clearAllTables() = it.clearAllTables()
                             override val needsToDownloadData = true
                         }
                     }

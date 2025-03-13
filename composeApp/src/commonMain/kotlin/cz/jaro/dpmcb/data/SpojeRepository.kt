@@ -520,16 +520,25 @@ class SpojeRepository(
         seqGroups: List<SeqGroup>,
         seqOfConns: List<SeqOfConn>,
         version: Int,
+        progress: (Float) -> Unit,
     ) {
         preferenceDataSource.changeVersion(version)
 
-        ds.insertConnStops(*connStops.toTypedArray())
-        ds.insertStops(*stops.toTypedArray())
-        ds.insertTimeCodes(*timeCodes.toTypedArray())
-        ds.insertLines(*lines.toTypedArray())
-        ds.insertConns(*conns.toTypedArray())
-        ds.insertSeqGroups(*seqGroups.toTypedArray())
-        ds.insertSeqOfConns(*seqOfConns.toTypedArray())
+        val insertChunkFunctions = listOf(
+            connStops.chunked(1000).map { suspend { ds.insertConnStops(it) } },
+            stops.chunked(1000).map { suspend { ds.insertStops(it) } },
+            timeCodes.chunked(1000).map { suspend { ds.insertTimeCodes(it) } },
+            lines.chunked(1000).map { suspend { ds.insertLines(it) } },
+            conns.chunked(1000).map { suspend { ds.insertConns(it) } } ,
+            seqGroups.chunked(1000).map { suspend { ds.insertSeqGroups(it) } },
+            seqOfConns.chunked(1000).map { suspend { ds.insertSeqOfConns(it) } },
+        ).flatten()
+        val chunkCount = insertChunkFunctions.size.toFloat()
+
+        insertChunkFunctions.forEachIndexed { i, insertChunk ->
+            progress(i / chunkCount)
+            insertChunk()
+        }
     }
 
     val needsToDownloadData get() = ds.needsToDownloadData
@@ -747,7 +756,7 @@ class SpojeRepository(
         }
     }
 
-    fun reset() {
+    suspend fun reset() {
         ds.clearAllTables()
         sequencesMap.clear()
         _tables.clear()
