@@ -53,7 +53,9 @@ class SupabaseDataSource(
         query("lineNumbers", mapOf("tabs" to tabs.j)).decodeList()
 
     override suspend fun allLineNumbers(): List<LongLine> =
-        query("allLineNumbers").decodeList()
+        query("allLineNumbers").decodeAs<List<Map<String, LongLine>>>().map {
+    it["number"]!!
+}
 
     override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String> =
         query("nextStops", mapOf("line" to line.j, "thisStop" to thisStop.j, "tab" to tab.j)).decodeList()
