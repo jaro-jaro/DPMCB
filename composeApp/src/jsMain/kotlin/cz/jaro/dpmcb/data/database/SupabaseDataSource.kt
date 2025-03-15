@@ -152,7 +152,9 @@ class SupabaseDataSource(
         query("seqGroups").decodeList()
 
     override suspend fun allSequences(): List<SequenceCode> =
-        query("allSequences").decodeList()
+        query("allSequences").decodeAs<List<Map<String, SequenceCode>>>().map {
+    it["number"]!!
+}
 
     private val json = Json {
         encodeDefaults = true
