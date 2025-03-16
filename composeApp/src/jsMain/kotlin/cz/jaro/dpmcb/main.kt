@@ -22,7 +22,7 @@ import dev.gitlive.firebase.storage.StorageReference
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.postgrest.Auth
+import io.github.jan.supabase.auth.Auth
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
