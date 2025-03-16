@@ -22,6 +22,7 @@ import dev.gitlive.firebase.storage.StorageReference
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.Auth
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +58,7 @@ fun main() {
                 supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnYnFxenRmdmNucXh4YnF2eHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1ODgyNDksImV4cCI6MjA1NzE2NDI0OX0.6e2CrFnDrBAV-GN_rwt8l9TbC-qfQaiMdbYemUcRYUY"
             ) {
                 install(Postgrest)
+                install(Auth)
             }.also {
                 CoroutineScope(Dispatchers.Default).launch {
                     it.auth.signInAnonymously()
