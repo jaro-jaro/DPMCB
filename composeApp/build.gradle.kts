@@ -89,6 +89,7 @@ kotlin {
 
             // Supabase
             implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.auth)
         }
         commonMain.dependencies {
             // Kotlin reflection
