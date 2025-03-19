@@ -7,7 +7,10 @@ import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class CoreBus(
     val lowFloor: Boolean,
     val line: LongLine,
@@ -21,5 +24,6 @@ data class CoreBus(
     val type: TimeCodeType,
     val from: LocalDate,
     val to: LocalDate,
+    @SerialName("seqGroup")
     val group: SequenceGroup,
 )

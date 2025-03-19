@@ -54,12 +54,14 @@ import org.jetbrains.compose.resources.painterResource
 fun Loading(
     navController: NavHostController,
     args: SuperRoute.Loading,
-    viewModel: LoadingViewModel = viewModel(
+    viewModel: LoadingViewModel = viewModel<LoadingViewModel>(
         LoadingViewModel.Parameters(
             update = args.update == true,
             link = args.link,
         )
-    ),
+    ).also {
+        it.navigate = navController.superNavigateFunction
+    },
 ) {
     LaunchedEffect(viewModel, navController) {
         viewModel.navigate = navController.superNavigateFunction

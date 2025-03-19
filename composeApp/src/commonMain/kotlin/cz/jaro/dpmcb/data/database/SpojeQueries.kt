@@ -95,9 +95,7 @@ interface SpojeQueries {
 
     suspend fun doesConnExist(connName: BusName): String?
 
-    suspend fun lineTables(line: LongLine): List<Line>
-
-    suspend fun seqGroups(seq: SequenceCode): List<SeqGroup>
+    suspend fun seqGroupsPerSequence(): Map<SequenceCode, List<SeqGroup>>
 
     suspend fun allLineNumbers(): List<LongLine>
 
@@ -113,7 +111,7 @@ interface SpojeQueries {
     suspend fun connStops(): List<ConnStop> = emptyList()
     suspend fun stops(): List<Stop> = emptyList()
     suspend fun timeCodes(): List<TimeCode> = emptyList()
-    suspend fun lines(): List<Line> = emptyList()
+    suspend fun lines(): List<Line>
     suspend fun conns(): List<Conn> = emptyList()
     suspend fun seqOfConns(): List<SeqOfConn> = emptyList()
     suspend fun seqGroups(): List<SeqGroup> = emptyList()

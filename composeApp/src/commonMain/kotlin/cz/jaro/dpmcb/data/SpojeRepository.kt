@@ -73,6 +73,7 @@ import dev.gitlive.firebase.remoteconfig.get
 import dev.gitlive.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -166,10 +167,10 @@ class SpojeRepository(
 
     private val _tables = mutableMapOf<LongLine, MutableMap<LocalDate, Table?>>()
 
-    private suspend fun _nowUsedTable(date: LocalDate, lineNumber: LongLine): Line? {
-        val allTables = ds.lineTables(lineNumber)
+    val allTables = scope.async { ds.lines() }
 
-        val tablesByDate = allTables.filter {
+    private suspend fun _nowUsedTable(date: LocalDate, lineNumber: LongLine): Line? {
+        val tablesByDate = allTables.await().filter { it.number == lineNumber }.filter {
             it.validFrom <= date && date <= it.validTo
         }
 
@@ -189,10 +190,11 @@ class SpojeRepository(
 
     private val _groups = mutableMapOf<SequenceCode, MutableMap<LocalDate, SequenceGroup?>>()
 
-    private suspend fun _nowUsedGroup(date: LocalDate, seq: SequenceCode): SeqGroup? {
-        val allGroups = ds.seqGroups(seq)
+    private val allGroups = scope.async { ds.seqGroupsPerSequence() }
 
-        val groupsByDate = allGroups.filter {
+    private suspend fun _nowUsedGroup(date: LocalDate, seq: SequenceCode): SeqGroup? {
+
+        val groupsByDate = allGroups.await().getValue(seq).filter {
             it.validFrom <= date && date <= it.validTo
         }
 
@@ -245,9 +247,11 @@ class SpojeRepository(
 
     init {
         scope.launch(Dispatchers.IO) {
+            allGroups.await()
             allGroups(SystemClock.todayHere())
         }
         scope.launch(Dispatchers.IO) {
+            allTables.await()
             allTables(SystemClock.todayHere())
         }
     }

@@ -46,7 +46,7 @@ kotlin {
     }
 
     sourceSets {
-        androidMain.dependencies {
+        androidMain.get().dependencies {
             // Core Android
             implementation(libs.androidx.core)
 
@@ -81,7 +81,7 @@ kotlin {
 
             implementation(libs.transportation.consumer)
         }
-        jsMain.dependencies {
+        jsMain.get().dependencies {
             implementation(compose.html.core)
 
             // Multiplatform Settings
@@ -91,7 +91,7 @@ kotlin {
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.auth)
         }
-        commonMain.dependencies {
+        commonMain.get().dependencies {
             // Kotlin reflection
             implementation(kotlin("reflect"))
 
@@ -225,7 +225,6 @@ configurations {
 
 dependencies {
     add("kspAndroid", libs.androidx.jetpack.room.compiler)
-    add("kspJs", libs.androidx.jetpack.room.compiler)
 
     debugImplementation(compose.uiTooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)

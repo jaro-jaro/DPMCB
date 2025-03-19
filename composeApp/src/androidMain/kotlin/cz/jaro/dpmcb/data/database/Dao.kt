@@ -438,20 +438,12 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
-        SELECT * FROM Line
-        WHERE number = :line;
-        """
-    )
-    override suspend fun lineTables(line: LongLine): List<Line>
-
-    @Query(
-        """
         SELECT DISTINCT SeqGroup.* FROM SeqGroup
         JOIN SeqOfConn ON SeqOfConn.`group` = SeqGroup.`group`
-        WHERE SeqOfConn.sequence = :seq;
+        GROUP BY SeqOfConn.`sequence`;
         """
     )
-    override suspend fun seqGroups(seq: SequenceCode): List<SeqGroup>
+    override suspend fun seqGroupsPerSequence(): Map<SequenceCode, List<SeqGroup>>
 
     @Query(
         """

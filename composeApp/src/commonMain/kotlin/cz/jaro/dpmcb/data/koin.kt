@@ -31,12 +31,8 @@ fun initKoin(
 }
 
 val commonModule = module(true) {
-    single {
-        SpojeRepository(get(), get(), get(), get())
-    }
-    single {
-        PreferenceDataSource(get())
-    }
+    single { SpojeRepository(get(), get(), get(), get()) }
+    single { PreferenceDataSource(get()) }
     single { OnlineRepository(get(), get()) }
     factory { BusViewModel(get(), get(), it.get(), it.get()) }
     factory { CardViewModel(get()) }

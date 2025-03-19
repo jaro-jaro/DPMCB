@@ -16,13 +16,14 @@ import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.main.DetailsOpener
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import dev.gitlive.firebase.Firebase
+import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
 import dev.gitlive.firebase.storage.StorageReference
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.auth.Auth
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,11 +35,11 @@ import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)
-fun main() {
+fun main() = try {
     val location = window.location.hash.removePrefix("#") + window.location.search
 
     val koinApp = initKoin {
-        single {
+        single<FirebaseApp> {
             Firebase.initialize(
                 null, FirebaseOptions(
                     apiKey = "AIzaSyA9O1-nYFEmY0pszqGV5AyXPvJLIsuwvFg",
@@ -66,9 +67,9 @@ fun main() {
             }
         }
         single<SpojeDataSource> { SupabaseDataSource(get()) }
-        single { UserOnlineManager { true } }
+        single<UserOnlineManager> { UserOnlineManager { true } }
         single { StorageSettings().makeObservable() }
-        single { DetailsOpener {} }
+        single<DetailsOpener> { DetailsOpener {} }
         single<DiagramManager> {
             object : DiagramManager {
                 override suspend fun downloadDiagram(reference: StorageReference, progress: (Float) -> Unit) = Unit
@@ -76,8 +77,8 @@ fun main() {
                 override fun checkDiagram() = true
             }
         }
-        single { AppUpdater {} }
-        single {
+        single<AppUpdater> { AppUpdater {} }
+        single<CardManager> {
             object : CardManager {
                 override fun loadCard() = Unit
                 override fun removeCard() = Unit
@@ -101,4 +102,6 @@ fun main() {
             }
         }
     }
+} catch (e: Exception) {
+    e.printStackTrace()
 }
