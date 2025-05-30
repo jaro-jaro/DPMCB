@@ -67,6 +67,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -111,6 +112,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.analytics.analytics
 import dev.gitlive.firebase.analytics.logEvent
 import dev.gitlive.firebase.database.database
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -226,19 +228,10 @@ fun Main(
     val navigator = rememberNavigator(navController)
 
     LaunchedEffect(Unit) {
-        viewModel.navGraph = {
-            try {
-                navController.graph
-            } catch (_: IllegalStateException) {
-                null
-            }
-        }
-        viewModel.confirmDeeplink = { path ->
-            navController.navigateToRouteFunction(path)
-            scope.launch(Dispatchers.Main) {
-                drawerState.close()
-            }
-        }
+        viewModel.confirmDeeplink(
+            confirmDeeplink(navController, scope, drawerState),
+            navController.navGraphOrNull(),
+        )
         viewModel.navigator = navigator
         viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.updateDrawerState = { mutate ->
@@ -307,6 +300,25 @@ fun Main(
             route<Route.FindBus> { FindBus(args = it, navigator, superNavController) }
             route<Route.Settings> { Settings(args = it, navigator, superNavController) }
         }
+    }
+}
+
+private fun confirmDeeplink(
+    navController: NavHostController,
+    scope: CoroutineScope,
+    drawerState: DrawerState,
+): (String) -> Unit = { path ->
+    navController.navigateToRouteFunction(path)
+    scope.launch(Dispatchers.Main) {
+        drawerState.close()
+    }
+}
+
+private fun NavHostController.navGraphOrNull(): () -> NavGraph? = {
+    try {
+        graph
+    } catch (_: IllegalStateException) {
+        null
     }
 }
 

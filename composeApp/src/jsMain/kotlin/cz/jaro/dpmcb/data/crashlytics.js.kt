@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.data
 
-actual fun log(message: String) {
+actual fun log(message: Any?) {
     console.log(message)
 }
 

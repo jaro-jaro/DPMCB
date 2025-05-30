@@ -18,11 +18,14 @@ data class CoreBus(
     val fixedCodes: String,
     val stopFixedCodes: String,
     val connStopFixedCodes: String,
+    @SerialName("time_")
     val time: LocalTime,
     val name: String,
     val connName: BusName,
     val type: TimeCodeType,
+    @SerialName("validfrom")
     val from: LocalDate,
+    @SerialName("validto")
     val to: LocalDate,
     @SerialName("seqGroup")
     val group: SequenceGroup,

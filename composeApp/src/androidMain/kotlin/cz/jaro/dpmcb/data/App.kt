@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.ui.map.DiagramManager
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.initialize
 import org.koin.dsl.bind
+import org.koin.dsl.module
 
 class App : Application() {
 
@@ -21,7 +22,7 @@ class App : Application() {
         super.onCreate()
 
         val ctx = this
-        initKoin(true) {
+        val androidModule = module(true) {
             single { this@App } bind Context::class
             single { Firebase.initialize(get<Context>())!! }
             single<SpojeDataSource> {
@@ -40,5 +41,6 @@ class App : Application() {
             single { DetailsOpener(ctx) }
             single<DiagramManager> { AndroidDiagramManager(ctx) }
         }
+        initKoin(androidModule)
     }
 }

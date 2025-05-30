@@ -92,29 +92,28 @@ class MainViewModel(
         else -> plus("?time=99:99")
     }
 
-    lateinit var confirmDeeplink: (String) -> Unit
-    lateinit var navGraph: () -> NavGraph?
     lateinit var updateDrawerState: MutateFunction<Boolean>
     lateinit var navigator: Navigator
     lateinit var superNavigate: SuperNavigateFunction
 
-    init {
-        params.link?.let {
-            viewModelScope.launch(Dispatchers.IO) {
-                val link = params.link.removePrefix("/DPMCB/")
-                if (link == "app-details") detailsOpener.openAppDetails()
-                val url = encodeLink(link)
-                while (!::confirmDeeplink.isInitialized || !::navGraph.isInitialized || navGraph() == null) Unit
-                try {
-                    withContext(Dispatchers.Main) {
-                        AppState.selected = null
-                        navGraph()
+    fun confirmDeeplink(
+        confirmDeeplink: (String) -> Unit,
+        navGraph: () -> NavGraph?,
+    ) = params.link?.let {
+        viewModelScope.launch(Dispatchers.IO) {
+            val link = params.link.removePrefix("/DPMCB/")
+            if (link == "app-details") detailsOpener.openAppDetails()
+            val url = encodeLink(link)
+            while (navGraph() == null) Unit
+            try {
+                withContext(Dispatchers.Main) {
+                    AppState.selected = null
+                    navGraph()
 
-                        confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
-                    }
-                } catch (e: IllegalArgumentException) {
-                    e.printStackTrace()
+                    confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                 }
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
             }
         }
     }

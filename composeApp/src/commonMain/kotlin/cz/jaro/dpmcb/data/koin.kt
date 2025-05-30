@@ -18,16 +18,15 @@ import org.koin.compose.LocalKoinApplication
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.KoinApplicationDslMarker
+import org.koin.core.module.Module
 import org.koin.core.parameter.parametersOf
-import org.koin.dsl.ModuleDeclaration
 import org.koin.dsl.module
 
 @KoinApplicationDslMarker
 fun initKoin(
-    createdAtStart: Boolean = false,
-    platformSpecificModuleDeclaration: ModuleDeclaration,
+    platformSpecificModule: Module,
 ): KoinApplication = startKoin {
-    modules(module(createdAtStart, platformSpecificModuleDeclaration), commonModule)
+    modules(platformSpecificModule, commonModule)
 }
 
 val commonModule = module(true) {

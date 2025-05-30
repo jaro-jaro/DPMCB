@@ -26,9 +26,11 @@ fun SuperMainContent(
             startDestination = SuperRoute.Loading(link = link),
         ) {
             composable<SuperRoute.Main> {
+//                Text("Ahojda")
                 Main(navController, it.toRoute())
             }
             composable<SuperRoute.Loading> {
+//                Text("Ahoooooj")
                 Loading(navController, it.toRoute())
             }
         }

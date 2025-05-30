@@ -20,7 +20,6 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.util.StringValues
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -30,9 +29,17 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
+
+@Serializable
+data class ProxyBody(
+    val url: String,
+    val data: String,
+    val headers: Map<String, String>,
+)
 
 class OnlineRepository(
     private val repo: SpojeRepository,
@@ -41,17 +48,21 @@ class OnlineRepository(
     private val scope = MainScope()
 
     private val client = HttpClient()
-    private val baseUrl = "https://mpvnet.cz/Jikord"
+    private val jikordUrl = "https://mpvnet.cz/Jikord"
+    private val proxyUrl = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/cors-proxy"
 
     private suspend fun getAllConns() =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
             if (!isOnline()) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
-                client.post("$baseUrl/map/mapData") {
-                    headers.appendAll(requestHeaders)
+                client.post(proxyUrl) {
                     contentType(ContentType.Application.Json)
-                    setBody(data)
+                    setBody(Json.encodeToString(ProxyBody(
+                        url = "$jikordUrl/map/mapData",
+                        data = data,
+                        headers = requestHeaders,
+                    )))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -105,23 +116,26 @@ class OnlineRepository(
         }
         else null
 
-    private val requestHeaders = StringValues.build {
-        append("authority", "mpvnet.cz")
-        append("accept", "application/json, text/javascript, */*; q=0.01")
-        append("content", "type: application/json; charset=UTF-8")
-        append("origin", "https://mpvnet.cz")
-        append("referer", "https://mpvnet.cz/jikord/map")
-    }
+    private val requestHeaders = mapOf(
+        "authority" to "mpvnet.cz",
+        "accept" to "application/json, text/javascript, */*; q=0.01",
+        "content-type" to "application/json; charset=UTF-8",
+        "origin" to "https://mpvnet.cz",
+        "referer" to "https://mpvnet.cz/jikord/map",
+    )
 
     private suspend fun getTimetable(busName: BusName) =
         if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
             if (!isOnline()) return@withContext null
             val response = try {
-                client.post("$baseUrl/mapapi/timetable") {
-                    headers.appendAll(requestHeaders)
+                client.post(proxyUrl) {
                     contentType(ContentType.Application.Json)
-                    setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""")
+                    setBody(Json.encodeToString(ProxyBody(
+                        url = "$jikordUrl/mapapi/timetable",
+                        data = """{"num1":"${busName.line()}","num2":"${busName.bus()}","cat":"2"}""",
+                        headers = requestHeaders,
+                    )))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -153,7 +167,7 @@ class OnlineRepository(
         .flowOn(Dispatchers.IO)
         .shareIn(
             scope = scope,
-            started = SharingStarted.WhileSubscribed(),
+            started = SharingStarted.Lazily,
             replay = 1
         )
 

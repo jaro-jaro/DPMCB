@@ -6,10 +6,11 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.Transmitter
 import io.ktor.client.HttpClient
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.jvm.JvmName
@@ -206,12 +207,19 @@ object LocationSearcher {
     }
 
     private suspend fun getMapDataPerConnName(busName: BusName): MapData? {
-        val data = client.post("https://mpvnet.cz/jikord/map/getRoute") {
-            header("accept", "application/json, text/javascript, */*; q=0.01")
-            header("accept-language", "en-US,en;q=0.9,cs-CZ;q=0.8,cs;q=0.7")
-            header("content-type", "application/json; charset=UTF-8")
-            header("Referer", "https://mpvnet.cz/jikord/map")
-            setBody("""{"num1":"${busName.line()}","num2":"${busName.bus()}","carrier":0,"cat":2,"trajectory":true}""")
+        val data = client.post("https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/cors-proxy") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(ProxyBody(
+                url = "https://mpvnet.cz/jikord/map/getRoute",
+                data = """{"num1":"${busName.line()}","num2":"${busName.bus()}","carrier":0,"cat":2,"trajectory":true}""",
+                headers = mapOf(
+                    "authority" to "mpvnet.cz",
+                    "accept" to "application/json, text/javascript, */*; q=0.01",
+                    "content-type" to "application/json; charset=UTF-8",
+                    "origin" to "https://mpvnet.cz",
+                    "referer" to "https://mpvnet.cz/jikord/map",
+                ),
+            )))
         }.bodyAsText()
 
         if (data == "null") return null

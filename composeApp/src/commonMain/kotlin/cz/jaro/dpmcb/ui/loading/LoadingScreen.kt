@@ -60,11 +60,11 @@ fun Loading(
             link = args.link,
         )
     ).also {
-        it.navigate = navController.superNavigateFunction
+        it.setNavigate(navController.superNavigateFunction)
     },
 ) {
     LaunchedEffect(viewModel, navController) {
-        viewModel.navigate = navController.superNavigateFunction
+        viewModel.setNavigate(navController.superNavigateFunction)
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()

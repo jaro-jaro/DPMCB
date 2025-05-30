@@ -81,6 +81,7 @@ import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
 import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
+import cz.jaro.dpmcb.ui.main.supportsSharing
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
@@ -558,21 +559,23 @@ fun ColumnScope.CodesAndShare(
         }
         Spacer(Modifier.weight(1F))
 
-        val shareManager = busShareManager(
-            state = state,
-            graphicsLayerWhole = graphicsLayerWhole,
-            graphicsLayerPart = graphicsLayerPart,
-            part = part,
-            editPart = editPart,
-        )
+        if (supportsSharing()) {
+            val shareManager = busShareManager(
+                state = state,
+                graphicsLayerWhole = graphicsLayerWhole,
+                graphicsLayerPart = graphicsLayerPart,
+                part = part,
+                editPart = editPart,
+            )
 
-        TextButton(
-            onClick = shareManager::shareBus,
-            contentPadding = ButtonDefaults.TextButtonWithIconContentPadding
-        ) {
-            Text("Sdílet")
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-            IconWithTooltip(Icons.Filled.Share, null, Modifier.size(ButtonDefaults.IconSize))
+            TextButton(
+                onClick = shareManager::shareBus,
+                contentPadding = ButtonDefaults.TextButtonWithIconContentPadding
+            ) {
+                Text("Sdílet")
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                IconWithTooltip(Icons.Filled.Share, null, Modifier.size(ButtonDefaults.IconSize))
+            }
         }
     }
 

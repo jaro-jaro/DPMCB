@@ -33,12 +33,11 @@ import org.jetbrains.skiko.wasm.onWasmReady
 import org.koin.compose.LocalKoinApplication
 import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
+import org.koin.dsl.module
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)
 fun main() = try {
-    val location = window.location.hash.removePrefix("#") + window.location.search
-
-    val koinApp = initKoin {
+    val webModule = module(false) {
         single<FirebaseApp> {
             Firebase.initialize(
                 null, FirebaseOptions(
@@ -86,19 +85,20 @@ fun main() = try {
             }
         }
     }
+    val koinApp = initKoin(webModule)
 
     val repo = koinApp.koin.get<SpojeRepository>()
 
-    val link = window.location.run { href.removePrefix("${protocol}://${host}") }
+    val link = window.location.hash.removePrefix("#") + window.location.search
     onWasmReady {
         CanvasBasedWindow(
-            title = "Gymceska",
+            title = "Lepší DPMCB",
         ) {
             CompositionLocalProvider(
                 LocalKoinApplication provides koinApp.koin,
                 LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
             ) {
-                SuperMainContent(repo, link)
+                SuperMainContent(repo, link.takeUnless { it.isBlank() })
             }
         }
     }

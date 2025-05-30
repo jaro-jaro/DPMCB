@@ -7,6 +7,6 @@ actual fun recordException(throwable: Throwable) {
     Firebase.crashlytics.recordException(throwable)
 }
 
-actual fun log(message: String) {
-    Firebase.crashlytics.log(message)
+actual fun log(message: Any?) {
+    Firebase.crashlytics.log(message.toString())
 }

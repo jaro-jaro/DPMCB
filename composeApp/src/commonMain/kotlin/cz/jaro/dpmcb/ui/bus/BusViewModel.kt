@@ -15,6 +15,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -102,7 +103,7 @@ class BusViewModel(
                     }
             },
             date = date,
-        )
+        ).also(::println)
     }
 
     fun onEvent(e: BusEvent) = when (e) {
@@ -172,7 +173,7 @@ class BusViewModel(
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex
             else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
-        }
+        }.work(1)
     }
 
     private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments) { info, state, now, traveledSegments ->
@@ -212,6 +213,6 @@ class BusViewModel(
                     //onlineState.onlineTimetable.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },
                 ) else null
             ) else null
-        )
+        ).work(3)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)
 }

@@ -232,11 +232,11 @@ class SpojeRepository(
             .keys
 
     private suspend fun nowRunningSequencesOrNot(datum: LocalDate) = sequencesMap.getOrPut(datum) {
-        nowRunningSequencesOrNotInternal(datum)
+        nowRunningSequencesOrNotInternal(datum).also(::log)
     }
 
     private suspend fun allTables(date: LocalDate) =
-        ds.allLineNumbers().also(::println).also(::println).mapNotNull { lineNumber ->
+        ds.allLineNumbers().mapNotNull { lineNumber ->
             nowUsedTable(date, lineNumber)
         }
 
@@ -246,14 +246,14 @@ class SpojeRepository(
         }.distinct().filterNot { it.isInvalid() } + SequenceGroup.invalid
 
     init {
-        scope.launch(Dispatchers.IO) {
-            allGroups.await()
-            allGroups(SystemClock.todayHere())
-        }
-        scope.launch(Dispatchers.IO) {
-            allTables.await()
-            allTables(SystemClock.todayHere())
-        }
+//        scope.launch(Dispatchers.IO) {
+//            allGroups.await()
+//            allGroups(SystemClock.todayHere())
+//        }
+//        scope.launch(Dispatchers.IO) {
+//            allTables.await()
+//            allTables(SystemClock.todayHere())
+//        }
     }
 
     suspend fun stopNames(datum: LocalDate) = ds.stopNames(allTables(datum))

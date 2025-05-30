@@ -84,7 +84,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -165,7 +164,7 @@ fun Departures(
     val listState = rememberLazyListState(info.scrollIndex)
 
     LaunchedEffect(Unit) {
-        viewModel.scroll = {
+        viewModel.setScroll {
             delay(500)
             listState.scrollToItem(it)
         }

@@ -61,7 +61,7 @@ class DeparturesViewModel(
         val simple: Boolean?,
     )
 
-    lateinit var scroll: suspend (Int) -> Unit
+    private lateinit var scroll: suspend (Int) -> Unit
     lateinit var navigator: Navigator
 
     private val _info = MutableStateFlow(
@@ -168,7 +168,9 @@ class DeparturesViewModel(
                     info.justDepartures && (it.nextStop == null || it.stopType == StopType.GetOffOnly)
                 }
                 .also { filteredList ->
+                    println(lastState)
                     if (lastState == null) return@also
+                    println(lastState)
                     if (lastState.time == info.time && lastState.justDepartures == info.justDepartures && lastState.stopFilter == info.stopFilter && lastState.lineFilter == info.lineFilter) return@also
                     if (filteredList.isEmpty()) return@also
                     viewModelScope.launch(Dispatchers.Main) {
@@ -348,16 +350,19 @@ class DeparturesViewModel(
         DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(date, ChooserType.ReturnStop))
     }
 
-    init {
+    fun setScroll(scroll: suspend (Int) -> Unit) {
+        this.scroll = scroll
         viewModelScope.launch(Dispatchers.IO) {
-            while (state.value is DeparturesState.Loading) Unit
-            if (state.value !is DeparturesState.Runs) return@launch
-            while (!::scroll.isInitialized) Unit
-            withContext(Dispatchers.Main) {
-                val list = (state.value as DeparturesState.Runs).departures
-                scroll(
-                    list.home(params.time)
-                )
+            state.collect {
+                if (state.value is DeparturesState.Loading) return@collect
+                if (state.value !is DeparturesState.Runs) throw RuntimeException("End")
+                withContext(Dispatchers.Main) {
+                    val list = (state.value as DeparturesState.Runs).departures
+                    scroll(
+                        list.home(params.time)
+                    )
+                }
+                throw RuntimeException("End")
             }
         }
     }

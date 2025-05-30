@@ -78,7 +78,14 @@ class LoadingViewModel(
         val link: String?,
     )
 
-    lateinit var navigate: SuperNavigateFunction
+    private val navigate = MutableStateFlow<SuperNavigateFunction?>(null)
+    private val goTo = MutableStateFlow(null as SuperRoute?)
+
+    fun setNavigate(navigate: SuperNavigateFunction) {
+        this.navigate.value = navigate
+        println("Setting navigate")
+        tryNavigate()
+    }
 
     companion object {
         const val META_DATA_VERSION = 5
@@ -128,20 +135,29 @@ class LoadingViewModel(
             _state.value = LoadingState.Loading("hjvfg")
 
             if (!repo.needsToDownloadData || !repo.isOnline() || !repo.settings.value.checkForUpdates) {
-                goToApp()
+                goTo.value = SuperRoute.Main(params.link)
+                withContext(Dispatchers.Main) {
+                    println("Navigating offline")
+                    tryNavigate()
+                }
                 return@launch
             }
 
             _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
-            goToApp(isDataUpdateNeeded(), isAppDataUpdateNeeded())
+            goTo.value = SuperRoute.Main(params.link, isDataUpdateNeeded(), isAppUpdateNeeded())
+            withContext(Dispatchers.Main) {
+                println("Navigating online")
+                tryNavigate()
+            }
         }
     }
 
-    private suspend fun goToApp(isDataUpdateNeeded: Boolean = false, isAppDataUpdateNeeded: Boolean = false) {
-        while (!::navigate.isInitialized) Unit
-        withContext(Dispatchers.Main) {
-            navigate(SuperRoute.Main(params.link, isDataUpdateNeeded, isAppDataUpdateNeeded), popUpTo<SuperRoute.Loading>())
+    private fun tryNavigate() {
+        println("TryNavigate, ${navigate.value}, ${goTo.value}")
+        if (navigate.value != null && goTo.value != null) {
+            navigate.value!!(goTo.value!!, popUpTo<SuperRoute.Loading>())
+            goTo.value = null
         }
     }
 
@@ -158,7 +174,7 @@ class LoadingViewModel(
     fun onEvent(e: LoadingEvent) = viewModelScope.launch {
         when (e) {
             LoadingEvent.DownloadDataIfError -> withContext(Dispatchers.Main) {
-                navigate(SuperRoute.Loading(link = params.link, update = true), popUpTo<SuperRoute.Loading>())
+                goTo.value = SuperRoute.Loading(link = params.link, update = true)
             }
         }
     }
@@ -179,7 +195,7 @@ class LoadingViewModel(
         return localVersion < onlineVersion.await()
     }
 
-    private suspend fun isAppDataUpdateNeeded(): Boolean {
+    private suspend fun isAppUpdateNeeded(): Boolean {
         if (isDebug) return false
 
         val newestVersion = latestAppVersion()?.toVersion(false) ?: return false
