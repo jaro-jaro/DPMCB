@@ -18,7 +18,7 @@ actual fun Navigator(
             val destination = navController.currentDestination
             val path = route.generateRouteWithArgs(destination ?: return)
             val url = URL(window.location.protocol + window.location.host + "/$path")
-            val pathWithoutSearch = url.pathname.removePrefix("/")
+            val pathWithoutSearch = url.pathname.removePrefix("/") + url.search
             if (replaceCurrentRoute)
                 window.history.replaceState(null, "", "#$pathWithoutSearch")
             else

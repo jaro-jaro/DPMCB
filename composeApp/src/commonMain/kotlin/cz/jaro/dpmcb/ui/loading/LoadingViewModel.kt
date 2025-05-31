@@ -35,6 +35,7 @@ import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.ui.common.fetch
@@ -110,27 +111,27 @@ class LoadingViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-//            try {
-//                params.update || repo.version.first() == -1
-//            } catch (e: Exception) {
-//                recordException(e)
-//                e.printStackTrace()
-//                _state.value = LoadingState.Error
-//                return@launch
-//            }
-//
-//            if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
-//                downloadNewData() ?: return@launch
-//            }
-//
-//            try {
-//                doesEverythingWork()
-//            } catch (e: Exception) {
-//                recordException(e)
-//                e.printStackTrace()
-//                _state.value = LoadingState.Error
-//                return@launch
-//            }
+            try {
+                params.update || repo.version.first() == -1
+            } catch (e: Exception) {
+                recordException(e)
+                e.printStackTrace()
+                _state.value = LoadingState.Error
+                return@launch
+            }
+
+            if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
+                downloadNewData() ?: return@launch
+            }
+
+            try {
+                doesEverythingWork()
+            } catch (e: Exception) {
+                recordException(e)
+                e.printStackTrace()
+                _state.value = LoadingState.Error
+                return@launch
+            }
 
             _state.value = LoadingState.Loading("hjvfg")
 

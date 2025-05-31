@@ -53,9 +53,15 @@ sealed interface Route {
     data class Chooser(
         override val date: LocalDate,
         val type: ChooserType,
-        val lineNumber: ShortLine = ShortLine.invalid,
-        val stop: String? = null,
-    ) : Route
+        val lineNumber: ShortLine,
+        val stop: String?,
+    ) : Route {
+        constructor(
+            date: LocalDate,
+            type: ChooserType,
+            lineNumber: ShortLine = ShortLine.invalid,
+        ) : this(date, type, lineNumber, null)
+    }
 
     @Serializable
     @SerialName("departures")

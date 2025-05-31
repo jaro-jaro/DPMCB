@@ -11,8 +11,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.ui.graphics.vector.ImageVector
-import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.ui.card.supportsCard
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
@@ -44,8 +42,6 @@ enum class DrawerAction(
         route = {
             Route.Chooser(
                 type = ChooserType.Stops,
-                lineNumber = ShortLine.invalid,
-                stop = null,
                 date = it,
             )
         }
@@ -63,8 +59,6 @@ enum class DrawerAction(
         route = {
             Route.Chooser(
                 type = ChooserType.Lines,
-                lineNumber = ShortLine.invalid,
-                stop = null,
                 date = it,
             )
         }

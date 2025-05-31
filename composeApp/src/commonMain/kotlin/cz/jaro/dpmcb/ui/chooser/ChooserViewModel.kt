@@ -142,7 +142,6 @@ class ChooserViewModel(
         ChooserType.Lines -> navigator.navigate(
             Route.Chooser(
                 lineNumber = result.toShortLine(),
-                stop = null,
                 type = ChooserType.LineStops,
                 date = params.date,
             )
