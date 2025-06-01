@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.bundle.Bundle
 import androidx.core.view.WindowCompat
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -12,13 +13,18 @@ import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AndroidAppUpdater
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import org.koin.android.ext.android.get
+import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.android.inject
+import org.koin.compose.LocalKoinApplication
+import org.koin.compose.LocalKoinScope
+import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 
 class MainActivity : ComponentActivity() {
     val repo by inject<SpojeRepository>()
 
+    @OptIn(KoinInternalApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -33,8 +39,15 @@ class MainActivity : ComponentActivity() {
 
         val uri = intent?.action?.equals(Intent.ACTION_VIEW)?.let { intent?.data }?.run { toString().removePrefix("${scheme}://${host}") }
 
+        val koin = getKoin()
+
         setContent {
-            SuperMainContent(repo, uri)
+            CompositionLocalProvider(
+                LocalKoinApplication provides koin,
+                LocalKoinScope provides koin.scopeRegistry.rootScope
+            ) {
+                SuperMainContent(repo, uri)
+            }
         }
     }
 }

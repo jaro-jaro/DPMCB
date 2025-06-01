@@ -11,5 +11,4 @@ data class OnlineBusState(
     val vehicle: RegistrationNumber? = null,
     val confirmedLowFloor: Boolean? = null,
     val nextStopTime: LocalTime? = null,
-    val onlineStopIndex: List<Double>? = null,
 )

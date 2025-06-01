@@ -438,12 +438,12 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
-        SELECT DISTINCT SeqGroup.* FROM SeqGroup
+        SELECT DISTINCT SeqGroup.*, SeqOfConn.`sequence` FROM SeqGroup
         JOIN SeqOfConn ON SeqOfConn.`group` = SeqGroup.`group`
         GROUP BY SeqOfConn.`sequence`;
         """
     )
-    override suspend fun seqGroupsPerSequence(): Map<SequenceCode, List<SeqGroup>>
+    override suspend fun seqGroupsPerSequence(): Map<@MapColumn("sequence") SequenceCode, List<SeqGroup>>
 
     @Query(
         """

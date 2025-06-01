@@ -176,6 +176,7 @@ class LoadingViewModel(
         when (e) {
             LoadingEvent.DownloadDataIfError -> withContext(Dispatchers.Main) {
                 goTo.value = SuperRoute.Loading(link = params.link, update = true)
+                tryNavigate()
             }
         }
     }

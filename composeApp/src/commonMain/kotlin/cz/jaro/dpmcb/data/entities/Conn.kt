@@ -1,22 +1,19 @@
 package cz.jaro.dpmcb.data.entities
 
-import cz.jaro.dpmcb.data.database.Entity
 import cz.jaro.dpmcb.data.entities.types.Direction
-import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmName
 
-@Entity("", [], false, primaryKeys = ["tab", "connNumber"], [], [])
-@Serializable
-data class Conn(
-// Primary keys
-    val tab: Table,
-    val connNumber: BusNumber,
-// Other
-    val line: LongLine,
-    val fixedCodes: String,
-    val direction: Direction,
+expect class Conn(
+    tab: Table,
+    connNumber: BusNumber,
+    line: LongLine,
+    fixedCodes: String,
+    direction: Direction,
 ) {
-    @get:JvmName("getName")
-    var name = BusName(line, connNumber)
+    val tab: Table
+    val connNumber: BusNumber
+    val line: LongLine
+    val fixedCodes: String
+    val direction: Direction
+    var name: BusName
         internal set
 }

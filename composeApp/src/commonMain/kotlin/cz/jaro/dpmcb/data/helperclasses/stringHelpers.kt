@@ -25,8 +25,8 @@ operator fun CharSequence.times(times: Int) = buildString {
     }
 }
 
-context(StringBuilder) @Suppress("CONTEXT_RECEIVERS_DEPRECATED")
-operator fun String.unaryPlus(): StringBuilder = append(this)
+context(builder: StringBuilder)
+operator fun String.unaryPlus() = builder.append(this)
 
 
 inline fun <reified T> String.fromJson(json: Json = Json): T = json.decodeFromString<T>(this)

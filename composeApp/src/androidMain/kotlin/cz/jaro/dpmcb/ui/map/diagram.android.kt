@@ -36,7 +36,7 @@ class AndroidDiagramManager(ctx: Context) : DiagramManager {
     ) {
         client.get(reference.getDownloadUrl()) {
             onDownload { bytesSentTotal, contentLength ->
-                progress(bytesSentTotal.toFloat() / contentLength)
+                progress(contentLength?.let { bytesSentTotal.toFloat() / it } ?: 0F)
             }
         }.bodyAsChannel().toInputStream().use { input ->
             diagramFile.outputStream().use { output ->

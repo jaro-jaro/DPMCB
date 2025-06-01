@@ -27,6 +27,6 @@ private val client = HttpClient()
 actual suspend fun fetch(url: String, progress: (Float?) -> Unit) =
     client.get(url) {
         onDownload { bytesSentTotal, contentLength ->
-            progress(bytesSentTotal.toFloat() / contentLength)
+            progress(contentLength?.let { bytesSentTotal.toFloat() / it })
         }
     }.bodyAsText()

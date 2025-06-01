@@ -27,7 +27,7 @@ kotlin {
 
     @OptIn(ExperimentalWasmDsl::class)
     js(IR) {
-        moduleName = "composeApp"
+        outputModuleName = "composeApp"
         browser {
             val rootDirPath = project.rootDir.path
             val projectDirPath = project.projectDir.path
@@ -151,8 +151,10 @@ kotlin {
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-receivers")
+        freeCompilerArgs.add("-Xcontext-parameters")
         freeCompilerArgs.add("-Xwhen-guards")
+        freeCompilerArgs.add("-Xnon-local-break-continue")
+        freeCompilerArgs.add("-Xmulti-dollar-interpolation")
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 }
@@ -182,7 +184,7 @@ android {
     defaultConfig {
         applicationId = "cz.jaro.dpmcb"
         minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = 35
+        targetSdk = 36
         versionCode = libs.versions.appVersionCode.get().toInt()
         versionName = libs.versions.appVersionName.get()
     }

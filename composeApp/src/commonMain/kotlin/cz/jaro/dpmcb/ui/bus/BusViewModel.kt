@@ -147,11 +147,10 @@ class BusViewModel(
         }
     }
 
-    private val onlineState = (if (date == SystemClock.todayHere()) onlineRepo.bus(busName).map { (onlineConn, onlineTimetable, onlineStopIndex) ->
+    private val onlineState = (if (date == SystemClock.todayHere()) onlineRepo.bus(busName).map { (onlineConn, onlineTimetable) ->
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineTimetable = onlineTimetable,
-            onlineStopIndex = onlineStopIndex,
             vehicle = onlineConn?.vehicle,
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
@@ -166,9 +165,7 @@ class BusViewModel(
             info.stops.isEmpty() -> null
             date > SystemClock.todayHere() -> null
             date < SystemClock.todayHere() -> info.stops.lastIndex
-            state.onlineStopIndex?.size == 1 -> state.onlineStopIndex.single().toInt()
-            !state.onlineStopIndex.isNullOrEmpty() -> state.onlineStopIndex.minBy { (info.stops[it.toInt()].time - now).absoluteValue }.toInt()
-//            state.onlineTimetable?.nextStopIndex != null -> state.onlineTimetable.nextStopIndex - 1
+            state.onlineTimetable?.nextStopIndex != null -> state.onlineTimetable.nextStopIndex - 1
             state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
             info.stops.last().time < now -> info.stops.lastIndex
             else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
@@ -180,9 +177,6 @@ class BusViewModel(
         if (info !is BusState.OK) return@combine 0F
 
         if (traveledSegments == null) return@combine 0F
-
-        if (state.onlineStopIndex?.size == 1) state.onlineStopIndex.single()
-        if (!state.onlineStopIndex.isNullOrEmpty()) state.onlineStopIndex.minBy { (info.stops[it.toInt()].time - now).absoluteValue }.toInt()
 
         val departureFromLastStop = info.stops.getOrElse(traveledSegments) { info.stops.last() }.time.plus(state.delay ?: 0.minutes)
 

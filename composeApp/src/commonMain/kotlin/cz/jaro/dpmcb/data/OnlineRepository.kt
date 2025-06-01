@@ -98,23 +98,23 @@ class OnlineRepository(
         explicitNulls = false
     }
 
-    private suspend fun getStopIndex(busName: BusName) =
-        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
-
-            if (!isOnline()) return@withContext null
-            val result = LocationSearcher.search(
-                busName = busName
-            )
-            when (result) {
-                is LocationSearcher.SearchResult.FoundOne -> listOf(result.stopsFromStart)
-                is LocationSearcher.SearchResult.FoundMore -> result.options.map { it.stopsFromStart }
-                is LocationSearcher.SearchResult.NotFound,
-                is LocationSearcher.SearchResult.NoData,
-                is LocationSearcher.SearchResult.NoTransmitters,
-                    -> null
-            }
-        }
-        else null
+//    private suspend fun getStopIndex(busName: BusName) =
+//        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
+//
+//            if (!isOnline()) return@withContext null
+//            val result = LocationSearcher.search(
+//                busName = busName
+//            )
+//            when (result) {
+//                is LocationSearcher.SearchResult.FoundOne -> listOf(result.stopsFromStart)
+//                is LocationSearcher.SearchResult.FoundMore -> result.options.map { it.stopsFromStart }
+//                is LocationSearcher.SearchResult.NotFound,
+//                is LocationSearcher.SearchResult.NoData,
+//                is LocationSearcher.SearchResult.NoTransmitters,
+//                    -> null
+//            }
+//        }
+//        else null
 
     private val requestHeaders = mapOf(
         "authority" to "mpvnet.cz",
@@ -185,20 +185,20 @@ class OnlineRepository(
             )
     }
 
-    private fun stopIndex(busName: BusName) = stopIndexFlowMap.getOrPut(busName) {
-        suspend { getStopIndex(busName) }
-            .asRepeatingFlow(5.seconds)
-            .flowOn(Dispatchers.IO)
-            .shareIn(
-                scope = scope,
-                started = SharingStarted.WhileSubscribed(),
-                replay = 1
-            )
-    }
+//    private fun stopIndex(busName: BusName) = stopIndexFlowMap.getOrPut(busName) {
+//        suspend { getStopIndex(busName) }
+//            .asRepeatingFlow(5.seconds)
+//            .flowOn(Dispatchers.IO)
+//            .shareIn(
+//                scope = scope,
+//                started = SharingStarted.WhileSubscribed(),
+//                replay = 1
+//            )
+//    }
 
     fun bus(name: BusName) =
-        combine(onlineBus(name), timetable(name), stopIndex(name)) { onlineConn, timetable, stopIndex ->
-            Triple(onlineConn, timetable, stopIndex)
+        combine(onlineBus(name), timetable(name)) { onlineConn, timetable ->
+            onlineConn to timetable
         }
 
     fun onlineBus(name: BusName) = nowRunningBuses().map { it.onlineBus(name) }
