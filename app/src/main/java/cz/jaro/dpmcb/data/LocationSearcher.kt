@@ -205,6 +205,8 @@ object LocationSearcher {
     }
 
     private fun getMapDataPerConnName(busName: BusName): MapData? {
+
+        return null
         val data = runBlocking {
             client.post("https://mpvnet.cz/jikord/map/getRoute") {
                 header("accept", "application/json, text/javascript, */*; q=0.01")
