@@ -1,0 +1,13 @@
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+
+package cz.jaro.dpmcb.data.helperclasses
+
+fun <R> work(vararg msg: R?) = run { if (isDebug) println(msg.joinToString()) }
+inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.work(vararg msg: R, transform: T.() -> S): T =
+    also { cz.jaro.dpmcb.data.helperclasses.work(*msg, transform()) }
+
+inline fun <reified T : Any?, reified R : Any?> T.work(vararg msg: R): T = also { work(*msg, transform = { this }) }
+inline fun <reified T : Any?, reified S : Any?> T.work(transform: T.() -> S = { this as S }): T =
+    also { work(*emptyArray<Any?>(), transform = transform) }
+
+inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
