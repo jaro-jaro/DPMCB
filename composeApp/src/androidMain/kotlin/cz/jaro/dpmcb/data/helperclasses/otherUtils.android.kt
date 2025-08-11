@@ -7,6 +7,7 @@ import kotlinx.coroutines.android.awaitFrame
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
 actual val Dispatchers.IO: CoroutineDispatcher
     get() = IO
 

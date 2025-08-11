@@ -18,7 +18,7 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x ./gradlew
       - name: Get version name
-        run: echo "VERSION_NAME=v$(cat ./app/version.txt)" >> $GITHUB_ENV
+        run: echo "VERSION_NAME=v$(cat ./composeApp/version.txt)" >> $GITHUB_ENV
       - name: Write keystore file from content
         run: echo "${{ secrets.keystore }}" | base64 -d > "$GITHUB_WORKSPACE/signing-key.jks"
       - name: Build APK
@@ -36,9 +36,9 @@ jobs:
       - name: Rename APK
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          mv app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/Lepší-DPMCB-DEBUG-branch-$(echo ${BRANCH_NAME//\//\-}).apk"
+          mv composeApp/build/outputs/apk/debug/composeApp-debug.apk "composeApp/build/outputs/apk/debug/Lepší-DPMCB-DEBUG-branch-$(echo ${BRANCH_NAME//\//\-}).apk"
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: composeApp/build/outputs/apk/debug/*.apk
