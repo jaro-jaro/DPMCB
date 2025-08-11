@@ -87,6 +87,8 @@ kotlin {
             implementation(libs.google.firebase.storage)
             // Analytics
             implementation(libs.google.firebase.analytics)
+            // Crashlytics
+            implementation(libs.google.firebase.crashlytics)
             // Remote config
             implementation(libs.google.firebase.config)
         }

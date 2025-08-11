@@ -67,7 +67,7 @@ google-firebase-analytics = { group = "com.google.firebase", name = "firebase-an
 google-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "google-firebase-crashlytics" }
 google-firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "google-firebase-database" }
 google-firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "google-firebase-storage" }
-google-firebase-config = { group = "com.google.firebase", name = "firebase-config", version.ref = "google-firebase-config" }
+google-firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "google-firebase-config" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-compose" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
