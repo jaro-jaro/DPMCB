@@ -92,6 +92,7 @@ import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.now
+import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -114,7 +115,6 @@ import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRuns
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -450,7 +450,7 @@ fun DeparturesScreen(
                     ) {
                         Text(
                             when (state.reason) {
-                                NothingRunsAtAll -> "Přes tuto zastávku ${date.toCzechLocative()} nic nejede"
+                                NothingRunsAtAll -> "Přes tuto zastávku ${state.info.date.toCzechLocative()} nic nejede"
                                 NothingRunsHere -> "Přes tuto zastávku nejede žádný spoj, který bude zastavovat na zastávce ${state.info.stopFilter}"
                                 LineDoesNotRun -> "Přes tuto zastávku nejede žádný spoj linky ${state.info.lineFilter}"
                                 LineDoesNotRunHere -> "Přes tuto zastávku nejede žádný spoj linky ${state.info.lineFilter}, který bude zastavovat na zastávce ${state.info.stopFilter}"
@@ -525,7 +525,9 @@ private fun Card(
             onLongClick = {
                 showDropDown = true
             }
-        )
+        ).onSecondaryClick(Unit) {
+            showDropDown = true
+        }
     ) {
         departureState.nextStop?.let {
             DropdownMenu(

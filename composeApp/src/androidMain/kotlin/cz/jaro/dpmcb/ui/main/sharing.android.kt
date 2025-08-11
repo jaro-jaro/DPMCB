@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cz.jaro.dpmcb.R
@@ -20,7 +20,7 @@ actual fun supportsSharing() = true
 
 actual val screenShareManager: ScreenShareManager
     @Composable get() {
-        var deeplink2 by remember { mutableStateOf("") }
+        var deeplink2 by rememberSaveable { mutableStateOf("") }
 
         val ctx = LocalContext.current
 

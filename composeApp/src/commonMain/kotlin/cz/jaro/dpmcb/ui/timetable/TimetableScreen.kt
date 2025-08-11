@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
@@ -248,6 +249,9 @@ fun ColumnScope.DepartureRow(
                             showDropDown = true
                         }
                     )
+                    .onSecondaryClick(Unit) {
+                        showDropDown = true
+                    }
                     .padding(4.dp)
                     .requiredSizeIn(minHeight = 32.dp, minWidth = 32.dp),
                 contentAlignment = Alignment.Center

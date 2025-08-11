@@ -42,7 +42,7 @@ fun Card(
     val hasCard by viewModel.hasCard.collectAsStateWithLifecycle()
     val card by viewModel.card.collectAsStateWithLifecycle()
 
-    if (hasCard != null) CardScreen(
+    CardScreen(
         card = card,
         addCard = viewModel::addCard,
     )

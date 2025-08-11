@@ -42,13 +42,11 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.serializer
 
 class SupabaseDataSource(
     private val supabase: SupabaseClient,
@@ -140,7 +138,7 @@ class SupabaseDataSource(
         query("connStopsOnLineWithNextStopAtDate", mapOf("stop" to stop.s, "nextStop" to nextStop.s, "date" to date.s, "tabA" to tab.s)).decodeObjectList()
 
     override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> =
-        query("stopNamesOfLine", mapOf("lineA" to line.j, "tabA" to tab.j)).decodeColumnFromTable("stopname")
+        query("stopNamesOfLine", mapOf("lineA" to line.j, "tabA" to tab.s)).decodeColumnFromTable("stopname")
 
     override suspend fun coreBus(connName: BusName, groups: List<SequenceGroup>, tab: Table): List<CoreBus> =
         query("coreBus", mapOf("connName" to connName.s, "groups" to groups.l, "tabA" to tab.s)).decodeObjectList()
@@ -149,7 +147,7 @@ class SupabaseDataSource(
         query("codes", mapOf("connName" to connName.s, "tabA" to tab.s)).decodeObjectList()
 
     override suspend fun coreBusOfSequence(seq: SequenceCode, group: SequenceGroup?): List<CoreBusOfSequence> =
-        query("coreBusOfSequence", mapOf("seq" to seq.j, "group" to group.j)).decodeObjectList()
+        query("coreBusOfSequence", mapOf("seq" to seq.s, "seqgroup" to group.j)).decodeObjectList()
 
     override suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName> =
         query("connsOfSeq", mapOf("seq" to seq.s, "seqGroupA" to group.j, "tabs" to tabs.l)).decodeColumnFromTable("connname")
@@ -168,10 +166,10 @@ class SupabaseDataSource(
         sequence4: String, sequence5: String, sequence6: String,
     ): List<SequenceCode> = query(
         "findSequences", mapOf(
-            "sequence1" to sequence1.j, "sequence2" to sequence2.j, "sequence3" to sequence3.j,
-            "sequence4" to sequence4.j, "sequence5" to sequence5.j, "sequence6" to sequence6.j
+            "sequence1" to sequence1.s, "sequence2" to sequence2.s, "sequence3" to sequence3.s,
+            "sequence4" to sequence4.s, "sequence5" to sequence5.s, "sequence6" to sequence6.s,
         )
-    ).decodeList()
+    ).decodeColumnFromTable("sequence")
 
     override suspend fun lastStopTimesOfConnsInSequences(
         todayRunningSequences: List<SequenceCode>,
@@ -179,7 +177,13 @@ class SupabaseDataSource(
         tabs: List<Table>,
     ): Map<SequenceCode, Map<BusName, LocalTime>> =
         query("lastStopTimesOfConnsInSequences", mapOf("todayRunningSequences" to todayRunningSequences.l, "groups" to groups.l, "tabs" to tabs.l))
-            .decodeWith(MapSerializer(serializer(), MapSerializer(serializer(), serializer())))
+            .decodeAs<JsonArray>()
+            .groupBy { it.jsonObject.getValue("sequence").fromJsonElement<SequenceCode>() }
+            .mapValues { it1 ->
+                it1.value
+                    .groupBy { it.jsonObject.getValue("connname").fromJsonElement<BusName>() }
+                    .mapValues { it.value.single().jsonObject.getValue("time_").fromJsonElement<LocalTime>() }
+            }
 
     override suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusOfNowRunning, List<StopOfNowRunning>> =
         query("nowRunningBuses", mapOf("connNames" to connNames.l, "groups" to groups.l, "tabs" to tabs.l))
@@ -200,8 +204,10 @@ class SupabaseDataSource(
         query("oneDirectionLines").decodeColumnFromTable("line")
 
     override suspend fun connStops(connNames: List<BusName>, tabs: List<Table>): Map<BusName, List<StopOfDeparture>> =
-        query("connStops", mapOf("connNames" to connNames.l, "tabs" to tabs.l))
-            .decodeAs<JsonArray>()
+        connNames.chunked(500).flatMap { chunk ->
+            query("connStops", mapOf("connNames" to chunk.l, "tabs" to tabs.l))
+                .decodeAs<JsonArray>()
+        }
             .groupBy({ it.jsonObject.getValue("connname").fromJsonElement<BusName>() }, { it.fromJsonElement<StopOfDeparture>(json) })
 
     override suspend fun connStops(): List<ConnStop> =
@@ -214,7 +220,7 @@ class SupabaseDataSource(
         query("validity", mapOf("table" to tab.s)).decodeSingleObject()
 
     override suspend fun doesConnExist(connName: BusName): String? =
-        query("doesConnExist", mapOf("connName" to connName.s)).decodeAs()
+        query("doesConnExist", mapOf("connName" to connName.s)).decodeAsOrNull()
 
     override suspend fun lines(): List<Line> =
         select("Line").decodeObjectList()

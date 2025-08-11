@@ -74,7 +74,7 @@ enum class DrawerAction(
         icon = Icons.Default.QrCode,
         multiselect = true,
         hide = !supportsCard(),
-        route = { Route.Card(it) }
+        route = { Route.Card }
     ),
     LinesMap(
         label = "Schéma linek",

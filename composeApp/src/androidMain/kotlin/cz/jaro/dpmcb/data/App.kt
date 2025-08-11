@@ -27,7 +27,7 @@ class App : Application() {
             single { Firebase.initialize(get<Context>())!! }
             single<SpojeDataSource> {
                 Room.databaseBuilder(get<Context>(), AppDatabase::class.java, "db-dpmcb")
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(true)
                     .build().let {
                         object : SpojeDataSource, SpojeQueries by it.dataSource() {
                             override suspend fun clearAllTables() = it.clearAllTables()

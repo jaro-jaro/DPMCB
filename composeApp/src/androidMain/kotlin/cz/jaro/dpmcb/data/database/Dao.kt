@@ -40,7 +40,7 @@ interface Dao : SpojeQueries {
         SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
-        END time, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to`, SeqOfConn.`group` FROM ConnStop
+        END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to`, SeqOfConn.`group` FROM ConnStop
         JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
         JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
         JOIN TimeCode ON TimeCode.tab = ConnStop.tab AND TimeCode.connNumber = ConnStop.connNumber
@@ -76,7 +76,7 @@ interface Dao : SpojeQueries {
         SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, SeqOfConn.sequence, Conn.fixedCodes, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
-        END time, Stop.fixedCodes stopFixedCodes, Line.validFrom, Line.validTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM ConnStop
+        END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, Line.validFrom, Line.validTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM ConnStop
         JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
         JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
         JOIN Line ON Line.tab = Conn.tab AND Line.number = Conn.line

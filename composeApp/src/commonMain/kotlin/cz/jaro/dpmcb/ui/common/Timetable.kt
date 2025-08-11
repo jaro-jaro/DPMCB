@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -36,10 +37,15 @@ import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.inMinutes
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.realtions.favourites.isNotEmpty
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -66,63 +72,60 @@ fun Timetable(
         .padding(12.dp)
 ) {
     val movedNextStopIndex = if (part != null) nextStopIndex?.minus(part.start) else nextStopIndex
-    val filteredStops = if (part != null) stops.filterIndexed { i, _ -> i in part } else stops
+    val filteredStops = if (part != null && part.isNotEmpty()) stops.slice(part.iterator()) else stops
     Column(Modifier.weight(1F)) {
         filteredStops.forEachIndexed { index, stop ->
-            val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
-            TimetableText(
-                text = stop.name,
-                onEvent = onEvent,
-                time = stop.time,
-                stopName = stop.name,
-                nextStop = stop.nextStop,
-                line = stop.line,
-                platform = onlineStop?.platform ?: "",
-                Modifier.fillMaxWidth(1F),
-                color = if (movedNextStopIndex != null && index == movedNextStopIndex)
+            Row(Modifier.fillMaxWidth()) {
+                val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
+                val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
+                val defaultColor = if (movedNextStopIndex != null && index == movedNextStopIndex)
                     MaterialTheme.colorScheme.secondary else LocalContentColor.current
-            )
-        }
-    }
-    Column(Modifier.padding(start = 8.dp)) {
-        filteredStops.forEachIndexed { index, stop ->
-            val color = if (movedNextStopIndex != null && index == movedNextStopIndex)
-                MaterialTheme.colorScheme.secondary else LocalContentColor.current
-            StopTypeIcon(stop.type, color = color)
-        }
-    }
-    Column(Modifier.padding(start = 8.dp)) {
-        filteredStops.forEachIndexed { index, stop ->
-            val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
-            TimetableText(
-                text = stop.time.toString(),
-                onEvent = onEvent,
-                time = stop.time,
-                stopName = stop.name,
-                nextStop = stop.nextStop,
-                line = stop.line,
-                platform = onlineStop?.platform ?: "",
-                Modifier,
-                color = if (movedNextStopIndex != null && index == movedNextStopIndex)
-                    MaterialTheme.colorScheme.secondary else LocalContentColor.current,
-            )
-        }
-    }
-    if (onlineConnStops != null) Column(Modifier.padding(start = 8.dp)) {
-        filteredStops.forEach { stop ->
-            val onlineStop = onlineConnStops.find { it.scheduledTime == stop.time }
-            if (onlineStop != null) TimetableText(
-                text = (stop.time + onlineStop.delay.minutes).toString(),
-                onEvent = onEvent,
-                time = stop.time + onlineStop.delay.minutes,
-                stopName = stop.name,
-                nextStop = stop.nextStop,
-                line = stop.line,
-                platform = onlineStop.platform,
-                Modifier,
-                color = colorOfDelayText(onlineStop.delay.toFloat()),
-            )
-            else Text("", Modifier.defaultMinSize(24.dp, 24.dp))
+
+                @Composable
+                fun TT(
+                    time: LocalTime,
+                    modifier: Modifier = Modifier.padding(start = 8.dp),
+                    boxModifier: Modifier = Modifier,
+                    text: String = time.toString(),
+                    color: Color = defaultColor,
+                ) = TimetableText(
+                    text = text,
+                    onEvent = onEvent,
+                    time = time,
+                    stopName = stop.name,
+                    nextStop = stop.nextStop,
+                    line = stop.line,
+                    platform = onlineStop?.platform ?: "",
+                    modifier,
+                    boxModifier,
+                    color = color,
+                )
+
+                Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically) {
+                    TT(time = stop.time, Modifier, Modifier.weight(1F, fill = false), text = stop.name)
+                    if (stop.type != StopType.Normal) StopTypeIcon(stop.type, Modifier.padding(start = 8.dp), color = defaultColor)
+                }
+                if (stop.arrival != null) TT(time = stop.arrival)
+                if (previousOnlineStop != null && stop.arrival != null) TT(
+                    time = stop.arrival + previousOnlineStop.delay.minutes,
+                    color = colorOfDelayText(previousOnlineStop.delay.toFloat()),
+                )
+                if (stop.arrival != null) Text(
+                    text = "-",
+                    Modifier.defaultMinSize(minHeight = 24.dp).padding(start = 8.dp),
+                    color = defaultColor,
+                )
+                TT(time = stop.time)
+                if (onlineStop != null && stop.arrival != null) TT(
+                    time = stop.time.coerceAtLeast(stop.arrival + onlineStop.delay.minutes),
+                    color = colorOfDelayText(
+                        (stop.arrival + onlineStop.delay.minutes - stop.time).inMinutes.coerceAtLeast(0F)
+                    ),
+                ) else if (onlineStop != null) TT(
+                    time = stop.time + onlineStop.delay.minutes,
+                    color = colorOfDelayText(onlineStop.delay.toFloat()),
+                )
+            }
         }
     }
 
@@ -232,9 +235,10 @@ fun TimetableText(
     line: ShortLine,
     platform: String,
     modifier: Modifier = Modifier,
+    boxModifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
-) = Box {
+) = Box(boxModifier) {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
 
     DropdownMenu(
@@ -299,6 +303,9 @@ fun TimetableText(
                     showDropDown = true
                 },
             )
+            .onSecondaryClick(Unit) {
+                showDropDown = true
+            }
             .defaultMinSize(24.dp, 24.dp),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,

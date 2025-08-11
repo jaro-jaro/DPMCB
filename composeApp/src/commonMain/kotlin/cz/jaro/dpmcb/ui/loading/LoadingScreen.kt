@@ -63,7 +63,7 @@ fun Loading(
         it.setNavigate(navController.superNavigateFunction)
     },
 ) {
-    LaunchedEffect(viewModel, navController) {
+    LaunchedEffect(Unit) {
         viewModel.setNavigate(navController.superNavigateFunction)
     }
 

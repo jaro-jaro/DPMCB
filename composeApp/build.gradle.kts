@@ -1,4 +1,3 @@
-
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -118,6 +117,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             // Lifecycle
             implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.androidx.lifecycle.runtime.compose)
             // Material
             implementation(compose.material3)

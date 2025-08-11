@@ -1,8 +1,9 @@
 package cz.jaro.dpmcb.ui.common
 
-import androidx.core.bundle.Bundle
 import androidx.navigation.NavType
-import kotlinx.serialization.encodeToString
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.write
 import kotlinx.serialization.json.Json
 import kotlin.reflect.typeOf
 
@@ -26,11 +27,11 @@ inline fun <reified T> NavType(
     crossinline serializeAsValue: (T) -> String,
 ) = object : NavType<T>(isNullableAllowed = true) {
 
-    override fun get(bundle: Bundle, key: String): T? =
-        bundle.getString(key)?.let(::parseValue)
+    override fun get(bundle: SavedState, key: String) =
+        bundle.read { getStringOrNull(key)?.let(::parseValue) }
 
-    override fun put(bundle: Bundle, key: String, value: T) =
-        bundle.putString(key, serializeAsValue(value))
+    override fun put(bundle: SavedState, key: String, value: T) =
+        bundle.write { putString(key, serializeAsValue(value)) }
 
     override fun parseValue(value: String) = parseValue(value)
 

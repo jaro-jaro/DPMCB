@@ -26,7 +26,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class MainViewModel(
     private val repo: SpojeRepository,
     private val detailsOpener: DetailsOpener,

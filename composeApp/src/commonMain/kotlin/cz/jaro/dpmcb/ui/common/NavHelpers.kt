@@ -4,7 +4,6 @@ package cz.jaro.dpmcb.ui.common
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.runtime.Composable
-import androidx.core.bundle.Bundle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraphBuilder
@@ -52,7 +51,9 @@ private val NavBackStackEntry.route
     get() = try {
         Route.routes.find {
             it.serializer().descriptor.serialName == destination.route?.split("/", "?", limit = 2)?.first()
-        }?.serializer()?.decodeArguments(arguments ?: Bundle(), destination.typeMap())
+        }?.serializer()?.let { s ->
+            arguments?.let { args -> s.decodeArguments(args, destination.typeMap()) }
+        }
     } catch (e: SerializationException) {
         e.printStackTrace()
         recordException(e)

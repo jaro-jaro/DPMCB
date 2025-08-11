@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.time.ExperimentalTime
 
 sealed interface FavouriteState {
     val busName: BusName
@@ -29,6 +30,7 @@ sealed interface FavouriteState {
         override val nextWillRun: LocalDate?,
     ) : FavouriteState
 
+    @OptIn(ExperimentalTime::class)
     data class Online(
         override val busName: BusName,
         override val line: ShortLine,

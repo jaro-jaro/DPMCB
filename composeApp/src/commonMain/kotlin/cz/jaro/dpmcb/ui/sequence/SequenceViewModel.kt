@@ -41,7 +41,9 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class SequenceViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,

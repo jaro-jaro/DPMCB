@@ -19,9 +19,11 @@ import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.ExperimentalTime
 
 @Serializable
 @SerialName("Route")
+@OptIn(ExperimentalTime::class)
 sealed interface Route {
     val date: LocalDate
 
@@ -44,24 +46,18 @@ sealed interface Route {
 
     @Serializable
     @SerialName("card")
-    data class Card(
-        override val date: LocalDate,
-    ) : Route
+    data object Card : Route {
+        override val date: LocalDate get() = SystemClock.todayHere()
+    }
 
     @Serializable
     @SerialName("chooser")
     data class Chooser(
         override val date: LocalDate,
         val type: ChooserType,
-        val lineNumber: ShortLine,
-        val stop: String?,
-    ) : Route {
-        constructor(
-            date: LocalDate,
-            type: ChooserType,
-            lineNumber: ShortLine = ShortLine.invalid,
-        ) : this(date, type, lineNumber, null)
-    }
+        val lineNumber: ShortLine = ShortLine.invalid,
+        val stop: String? = null,
+    ) : Route
 
     @Serializable
     @SerialName("departures")

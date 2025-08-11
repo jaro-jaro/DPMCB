@@ -23,17 +23,18 @@ import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.main.Route.Favourites.date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -43,8 +44,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 import kotlin.collections.filterNot as remove
 
+@OptIn(ExperimentalTime::class)
 class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
@@ -106,11 +109,22 @@ class DeparturesViewModel(
             if (info.date == SystemClock.todayHere()) onlineRepo.nowRunningBuses() else flowOf(emptyList())
         }
 
-    private val list = onlineConns.combine(info) { onlineConns, info ->
-        repo.departures(info.date, params.stop)
-            .map {
-                it to onlineConns.onlineBus(it.busName)
-            }
+    private val date = info.map { it.date }.distinctUntilChanged()
+
+    private val departures = date.map { date ->
+        repo.departures(date, params.stop)
+    }.distinctUntilChanged()
+
+    private val departuresWithOnline =
+        departures.combine(onlineConns) { departures, onlineConns ->
+            departures
+                .map {
+                    it to onlineConns.onlineBus(it.busName)
+                }
+        }.distinctUntilChanged()
+
+    private val list = combine(departuresWithOnline, date) { departures, date ->
+        departures
             .sortedBy { (stop, onlineConn) ->
                 stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes
             }
@@ -124,7 +138,7 @@ class DeparturesViewModel(
                         .findLast { it.time!! == nextStop }
                         ?.let { it.name to it.time!! }
                 } ?: stop.busStops
-                    .takeIf { info.date == SystemClock.todayHere() }
+                    .takeIf { date == SystemClock.todayHere() }
                     ?.filter { it.time != null }
                     ?.find { SystemClock.timeHere() < it.time!! }
                     ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
@@ -209,7 +223,11 @@ class DeparturesViewModel(
             }
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeparturesState.Loading(info.value, params.stop, repo.hasAccessToMap.value))
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            DeparturesState.Loading(info.value, params.stop, repo.hasAccessToMap.value)
+        )
 
     fun onEvent(e: DeparturesEvent) = when (e) {
         is DeparturesEvent.GoToBus -> {
@@ -346,8 +364,8 @@ class DeparturesViewModel(
         )
 
         DeparturesEvent.ChangeLine -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnLine))
-        DeparturesEvent.ChangeStop -> navigator.navigate(Route.Chooser(date, ChooserType.Stops))
-        DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(date, ChooserType.ReturnStop))
+        DeparturesEvent.ChangeStop -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.Stops))
+        DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnStop))
     }
 
     fun setScroll(scroll: suspend (Int) -> Unit) {
@@ -355,14 +373,14 @@ class DeparturesViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             state.collect {
                 if (state.value is DeparturesState.Loading) return@collect
-                if (state.value !is DeparturesState.Runs) throw RuntimeException("End")
+                if (state.value !is DeparturesState.Runs) Unit//throw RuntimeException("End")
                 withContext(Dispatchers.Main) {
                     val list = (state.value as DeparturesState.Runs).departures
                     scroll(
                         list.home(params.time)
                     )
                 }
-                throw RuntimeException("End")
+                //throw RuntimeException("End")
             }
         }
     }

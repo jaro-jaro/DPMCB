@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,6 +53,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.ExperimentalTime
 
 @Suppress("unused")
 @Composable
@@ -165,7 +167,7 @@ fun ChooserScreen(
         LaunchedEffect(imeVisible) {
             when {
                 imeVisible -> wasShown = true
-                wasShown -> navigateUp()
+                wasShown && AppState.menuState == DrawerValue.Closed -> navigateUp()
             }
         }
         TextField(
@@ -205,7 +207,7 @@ fun ChooserScreen(
                     ChooserType.ReturnLine,
                     ChooserType.ReturnStop,
                         -> ImeAction.Done
-                }
+                },
             ),
             onKeyboardAction = {
                 onEvent(ChooserEvent.Confirm)
@@ -244,6 +246,7 @@ fun ChooserScreen(
     }
 }
 
+@OptIn(ExperimentalTime::class)
 @Preview
 @Composable
 fun ChooserPreview() {

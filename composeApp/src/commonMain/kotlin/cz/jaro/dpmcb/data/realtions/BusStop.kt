@@ -6,6 +6,7 @@ import kotlinx.datetime.LocalTime
 
 data class BusStop(
     val time: LocalTime,
+    val arrival: LocalTime?,
     val name: String,
     val line: ShortLine,
     val nextStop: String?,

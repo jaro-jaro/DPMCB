@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.bus
 
 import android.app.PendingIntent
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -35,14 +36,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
+import cz.jaro.dpmcb.data.realtions.favourites.Empty
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import kotlinx.coroutines.Dispatchers
@@ -59,14 +62,14 @@ actual fun busShareManager(
     part: PartOfConn,
     editPart: MutateFunction<PartOfConn>,
 ): BusShareManager {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val context = LocalContext.current
     var show by remember { mutableStateOf(false) }
     var dropdown by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         for (e in BroadcastReceiver.clicked) when (e) {
-            BroadcastReceiver.TYPE_COPY -> copy(clipboardManager, state)
+            BroadcastReceiver.TYPE_COPY -> copy(clipboard, state)
             BroadcastReceiver.TYPE_ADD_IMAGE -> shareImage(context, state, graphicsLayerWhole.toImageBitmap())
             BroadcastReceiver.TYPE_SHARE_PART -> show = true
         }
@@ -233,6 +236,6 @@ suspend fun shareImage(context: Context, state: BusState.Exists, bitmap: ImageBi
     }, "Sdílet spoj"))
 }
 
-fun copy(clipboardManager: ClipboardManager, state: BusState.Exists) {
-    clipboardManager.setText(AnnotatedString(state.deeplink))
+suspend fun copy(clipboard: Clipboard, state: BusState.Exists) {
+    clipboard.setClipEntry(ClipEntry(ClipData.newRawUri("Odkaz na spoj", state.deeplink.toUri())))
 }

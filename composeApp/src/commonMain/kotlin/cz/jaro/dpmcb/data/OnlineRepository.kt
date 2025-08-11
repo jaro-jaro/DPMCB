@@ -157,7 +157,7 @@ class OnlineRepository(
                     stops = stops.filterNot { it ->
                         it.hasClass("tAlignCentre")
                     }.map(::OnlineConnStop),
-                    nextStopIndex = stops.indexOfFirst { it.hasClass("tAlignCentre") },
+                    nextStopIndex = stops.indexOfFirst { it.hasClass("tAlignCentre") }.takeUnless { it == -1 },
                 )
             }
         else null

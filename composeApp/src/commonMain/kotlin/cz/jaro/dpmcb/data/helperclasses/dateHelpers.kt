@@ -1,4 +1,5 @@
 @file:Suppress("MemberVisibilityCanBePrivate", "unused")
+@file:OptIn(ExperimentalTime::class)
 
 package cz.jaro.dpmcb.data.helperclasses
 
@@ -7,7 +8,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimePeriod
 import kotlinx.datetime.DayOfWeek
@@ -17,13 +17,16 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
 import kotlinx.datetime.atTime
+import kotlinx.datetime.number
 import kotlinx.datetime.periodUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
 fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
     0L -> "dnes"
@@ -37,7 +40,6 @@ fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(th
         DayOfWeek.FRIDAY -> "v pátek"
         DayOfWeek.SATURDAY -> "v sobotu"
         DayOfWeek.SUNDAY -> "v neděli"
-        else -> error("")
     }
 
     else -> asString()
@@ -55,7 +57,6 @@ fun LocalDate.toCzechAccusative() = when (SystemClock.todayHere().durationUntil(
         DayOfWeek.FRIDAY -> "pátek"
         DayOfWeek.SATURDAY -> "sobotu"
         DayOfWeek.SUNDAY -> "neděli"
-        else -> error("")
     }
 
     else -> asString()
@@ -101,7 +102,7 @@ private val LocalTime.Companion.Noon get() = LocalTime(0, 0)
 private fun Duration.truncatedToDays() = inWholeDays.days
 private fun Duration.toDatePeriod() = DatePeriod(days = truncatedToDays().inWholeDays.toInt())
 
-fun LocalDate.asString() = "$dayOfMonth. $monthNumber. $year"
+fun LocalDate.asString() = "$day. ${month.number}. $year"
 
 fun String?.toTimeWeirdly() = (this?.run {
     LocalTime(slice(0..1).toInt(), slice(2..3).toInt())
@@ -134,3 +135,8 @@ val SystemClock get() = Clock.System
 fun Clock.todayHere() = todayIn(DefaultTimeZone)
 fun Clock.timeHere() = timeIn(DefaultTimeZone)
 val DefaultTimeZone get() = TimeZone.currentSystemDefault()
+
+val Duration.inSeconds get() = inWholeMilliseconds / 60F
+val Duration.inMinutes get() = inSeconds / 60F
+val Duration.inHours get() = inMinutes / 60F
+val Duration.inDays get() = inHours / 24F

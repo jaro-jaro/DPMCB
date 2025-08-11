@@ -127,7 +127,7 @@ class ChooserViewModel(
         is ChooserEvent.ClickedOnListItem -> done(e.item)
     }
 
-    private fun String.removeNSM() = normalize().replace("\\p{Mn}+".toRegex(), "")
+    private fun String.removeNSM() = normalize().replace("[ˇ'°]".toRegex(), "")
 
     private fun done(
         result: String,

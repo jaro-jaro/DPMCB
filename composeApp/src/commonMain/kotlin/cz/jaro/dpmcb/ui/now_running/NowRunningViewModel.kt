@@ -28,7 +28,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class NowRunningViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,

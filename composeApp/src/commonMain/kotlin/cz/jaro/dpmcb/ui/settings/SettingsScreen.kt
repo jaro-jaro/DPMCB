@@ -71,6 +71,7 @@ import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import cz.jaro.dpmcb.ui.theme.areDynamicColorsSupported
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.ExperimentalTime
 
 @Suppress("unused")
 @Composable
@@ -95,7 +96,7 @@ fun Settings(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTextApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTextApi::class, ExperimentalTime::class)
 @Composable
 fun SettingsScreen(
     onEvent: (SettingsEvent) -> Unit,

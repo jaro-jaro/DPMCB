@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -36,8 +35,6 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asString
-import cz.jaro.dpmcb.data.helperclasses.rowItem
-import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.viewModel
@@ -50,6 +47,7 @@ import cz.jaro.dpmcb.ui.common.Wheelchair
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import kotlin.time.ExperimentalTime
 
 @Suppress("unused")
 @Composable
@@ -79,7 +77,7 @@ fun Sequence(
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalTime::class)
 @Composable
 fun SequenceScreen(
     state: SequenceState,
@@ -99,7 +97,7 @@ fun SequenceScreen(
         }
 
         is SequenceState.DoesNotExist -> Column(Modifier.fillMaxSize()) {
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                 Spacer(Modifier.weight(1F))
                 DateSelector(
                     date = state.date,
@@ -116,27 +114,23 @@ fun SequenceScreen(
             }
         }
 
-        is SequenceState.OK -> LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            state = lazyListState
-        ) {
-            rowItem(
+        is SequenceState.OK -> Column(Modifier.fillMaxSize()) {
+            Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Name(state.sequenceName)
+                Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically,) {
+                    val i = state.sequenceName.indexOfLast { it == ' ' }
+                    Name(state.sequenceName.substring(i), Modifier.weight(1F, fill = false), prefix = state.sequenceName.substring(0, i))
 
-                if (state.online?.confirmedLowFloor != null) Wheelchair(
-                    lowFloor = state.online.confirmedLowFloor,
-                    confirmedLowFloor = state.online.confirmedLowFloor,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-
-                Spacer(Modifier.weight(1F))
+                    if (state.online?.confirmedLowFloor != null) Wheelchair(
+                        lowFloor = state.online.confirmedLowFloor,
+                        confirmedLowFloor = state.online.confirmedLowFloor,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
 
                 DateSelector(
                     date = state.date,
@@ -146,133 +140,126 @@ fun SequenceScreen(
                 )
             }
 
-            rowItem(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(horizontal = 8.dp),
+                state = lazyListState
             ) {
-                if (state.online != null) DelayBubble(state.online.delayMin)
-                if (state.vehicle != null) Vehicle(state.vehicle)
-                else if (state.date <= SystemClock.todayHere() && state.runsToday) VehicleSearcher(onEvent)
-            }
-
-            if (!state.runsToday) textItem(
-                text = "Tento kurz ${state.date.toCzechLocative()} nejede!",
-                Modifier.padding(bottom = 16.dp),
-            )
-
-            item {
-                state.fixedCodes.forEach {
-                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                state.timeCodes.forEach {
-                    Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(state.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            item {
-                HorizontalDivider(Modifier.fillMaxWidth())
-            }
-
-            state.before.forEach {
                 item {
-                    Connection(onEvent, it)
-                }
-                item {
-                    HorizontalDivider(Modifier.fillMaxWidth())
-                }
-            }
-
-            state.buses.forEach { bus ->
-                stickyHeader {
-                    Surface {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Name("${bus.lineNumber}", subName = "/${bus.busName.bus()}")
-                            Wheelchair(
-                                lowFloor = bus.lowFloor,
-                                confirmedLowFloor = state.online?.confirmedLowFloor?.takeIf { bus.isRunning },
-                                Modifier.padding(start = 8.dp),
-                            )
-
-                            Spacer(Modifier.weight(1F))
-
-                            BusButton(onEvent, bus)
-                        }
-                    }
-                    Surface {
-                        if (bus.isRunning && state.online != null) Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            DelayBubble(state.online.delayMin)
-                            Vehicle(state.vehicle)
-                        }
-                    }
-
-                }
-                item {
-                    OutlinedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        Timetable(
-                            stops = bus.stops,
-                            onEvent = onEvent.fromTimetable,
-                            onlineConnStops = null,
-                            nextStopIndex = null,
-                            showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
-                            traveledSegments = state.traveledSegments,
-                            height = state.height,
-                            isOnline = state.online != null,
-                        )
-                    }
-                }
-                item {
-                    Column(
-                        Modifier
-                            .fillMaxWidth(1F)
-                            .padding(top = 8.dp, start = 8.dp, end = 8.dp)
-                    ) {
-                        bus.fixedCodes.forEach {
-                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        bus.timeCodes.forEach {
-                            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(bus.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                item {
-                    HorizontalDivider(
+                    if (state.online != null || state.vehicle != null || state.date <= SystemClock.todayHere() && state.runsToday) Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp)
+                            .padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (state.online != null) DelayBubble(state.online.delayMin)
+                        if (state.vehicle != null) Vehicle(state.vehicle)
+                        else if (state.date <= SystemClock.todayHere() && state.runsToday) VehicleSearcher(onEvent)
+                    }
+                }
+
+                item {
+                    if (!state.runsToday) Text(
+                        text = "Tento kurz ${state.date.toCzechLocative()} nejede!",
+                        Modifier.padding(bottom = 16.dp),
                     )
                 }
-            }
 
-            stickyHeader { }
-
-            state.after.forEach {
                 item {
-                    Connection(onEvent, it)
+                    state.fixedCodes.forEach {
+                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    state.timeCodes.forEach {
+                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(state.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                state.before.forEach {
+                    item {
+                        Connection(onEvent, it)
+                    }
+                }
+
+                state.buses.forEach { bus ->
+                    stickyHeader {
+                        Surface {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Name("${bus.lineNumber}", suffix = "/${bus.busName.bus()}")
+                                Wheelchair(
+                                    lowFloor = bus.lowFloor,
+                                    confirmedLowFloor = state.online?.confirmedLowFloor?.takeIf { bus.isRunning },
+                                    Modifier.padding(start = 8.dp),
+                                )
+
+                                Spacer(Modifier.weight(1F))
+
+                                BusButton(onEvent, bus)
+                            }
+                        }
+                        Surface {
+                            if (bus.isRunning && state.online != null) Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                DelayBubble(state.online.delayMin)
+                                Vehicle(state.vehicle)
+                            }
+                        }
+                    }
+                    item {
+                        OutlinedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Timetable(
+                                stops = bus.stops,
+                                onEvent = onEvent.fromTimetable,
+                                onlineConnStops = null,
+                                nextStopIndex = null,
+                                showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
+                                traveledSegments = state.traveledSegments,
+                                height = state.height,
+                                isOnline = state.online != null,
+                            )
+                        }
+                    }
+                    item {
+                        if (bus.fixedCodes.any() || bus.timeCodes.any() || bus.lineCode.isNotBlank()) Column(
+                            Modifier
+                                .fillMaxWidth(1F)
+                                .padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                        ) {
+                            bus.fixedCodes.forEach {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            bus.timeCodes.forEach {
+                                Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(bus.lineCode, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                stickyHeader { }
+
+                state.after.forEach {
+                    item {
+                        Connection(onEvent, it)
+                    }
                 }
                 item {
-                    HorizontalDivider(Modifier.fillMaxWidth())
+                    Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
                 }
-            }
-            item {
-                Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
             }
         }
     }

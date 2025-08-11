@@ -53,6 +53,7 @@ import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 @Composable
 @Suppress("unused")
@@ -289,6 +290,7 @@ private val onlinePreviewBus = FavouriteState.Online(
     positionOfCurrentStop = 0,
 )
 
+@OptIn(ExperimentalTime::class)
 private val offlinePreviewBus = FavouriteState.Offline(
     busName = LongLine(325009) / 286,
     line = LongLine(325009).toShortLine(),

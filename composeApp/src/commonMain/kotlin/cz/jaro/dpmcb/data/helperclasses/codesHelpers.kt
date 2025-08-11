@@ -91,7 +91,7 @@ fun isPublicHoliday(datum: LocalDate) = listOf(
     LocalDate(1, 12, 25), // 1. svátek vánoční
     LocalDate(1, 12, 26), // 2. svátek vánoční
 ).any {
-    it.dayOfMonth == datum.dayOfMonth && it.month == datum.month
+    it.day == datum.day && it.month == datum.month
 } || isEaster(datum)
 
 // Je Velký pátek nebo Velikonoční pondělí

@@ -20,6 +20,7 @@ data class CoreBus(
     val connStopFixedCodes: String,
     @SerialName("time_")
     val time: LocalTime,
+    val arrival: LocalTime?,
     val name: String,
     val connName: BusName,
     val type: TimeCodeType,

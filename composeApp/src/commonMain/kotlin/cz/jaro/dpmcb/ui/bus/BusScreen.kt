@@ -32,6 +32,7 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
+import cz.jaro.dpmcb.data.realtions.favourites.Empty
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
@@ -103,7 +104,7 @@ fun BusScreen(
                             .padding(bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
+                        Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
                         Wheelchair(
                             lowFloor = state.lowFloor,
                             confirmedLowFloor = state.online?.running?.confirmedLowFloor,
@@ -144,7 +145,7 @@ fun BusScreen(
                     ) {
                         SequenceRow(onEvent, state.sequenceName, state.nextBus != null, state.previousBus != null)
                         if (state.restriction) Restriction()
-                        if ((state.online == null || state.online.running == null) && state.error) Error()
+                        if ((state.online == null || state.online.running == null) && state.shouldBeOnline) Error()
                         OutlinedCard(
                             modifier = Modifier
                                 .fillMaxWidth()

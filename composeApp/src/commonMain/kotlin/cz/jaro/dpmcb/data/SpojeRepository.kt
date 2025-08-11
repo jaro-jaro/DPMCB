@@ -46,6 +46,7 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.helperclasses.withCache
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -96,8 +97,10 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 import kotlin.collections.filterNot as remove
 
+@OptIn(ExperimentalTime::class)
 class SpojeRepository(
     onlineManager: UserOnlineManager,
     private val ds: SpojeDataSource,
@@ -190,7 +193,7 @@ class SpojeRepository(
 
     private val _groups = mutableMapOf<SequenceCode, MutableMap<LocalDate, SequenceGroup?>>()
 
-    private val allGroups = scope.async { ds.seqGroupsPerSequence() }
+    private val allGroups = scope.async { ds.seqGroupsPerSequence().work() }
 
     private suspend fun _nowUsedGroup(date: LocalDate, seq: SequenceCode): SeqGroup? {
 
@@ -301,6 +304,7 @@ class SpojeRepository(
                 stops = noCodes.mapIndexed { i, it ->
                     BusStop(
                         time = it.time,
+                        arrival = it.arrival.takeIf { a -> a != it.time },
                         name = it.name,
                         line = it.line.toShortLine(),
                         nextStop = noCodes.getOrNull(i + 1)?.name,
@@ -397,16 +401,18 @@ class SpojeRepository(
                 }
                 .map { it.sequence },
             groups = allGroups(SystemClock.todayHere()),
-            tabs = allTables(SystemClock.todayHere()),
+            tabs = allTables(SystemClock.todayHere()).work(),
         )
             .values
             .map { stopByBus ->
                 stopByBus
-                    .toList()
-                    .sortedBy { it.second }
+                    .entries
+                    .sortedBy { it.value }
                     .find {
-                        SystemClock.timeHere() <= it.second
-                    }?.first ?: error("This should never happen")
+                        SystemClock.timeHere() <= it.value
+                    }
+                    ?.key
+                    ?: error("This should never happen")
             }
 
     suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
@@ -443,6 +449,7 @@ class SpojeRepository(
                     noCodes.mapIndexed { i, it ->
                         BusStop(
                             time = it.time,
+                            arrival = it.arrival.takeIf { a -> a != it.time },
                             name = it.name,
                             line = it.line.toShortLine(),
                             nextStop = noCodes.getOrNull(i + 1)?.name,

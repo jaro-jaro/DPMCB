@@ -24,7 +24,9 @@ import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class FavouritesViewModel(
     private val repo: SpojeRepository,
     private val onlineRepo: OnlineRepository,

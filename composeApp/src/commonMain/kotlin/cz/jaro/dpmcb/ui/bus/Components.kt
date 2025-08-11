@@ -71,6 +71,7 @@ import cz.jaro.dpmcb.data.helperclasses.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
+import cz.jaro.dpmcb.data.realtions.favourites.Empty
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -608,7 +609,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Name("${state.lineNumber}", subName = "/${state.busName.bus()}")
+        Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
         Wheelchair(
             lowFloor = state.lowFloor,
             confirmedLowFloor = state.online?.running?.confirmedLowFloor,

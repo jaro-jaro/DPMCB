@@ -67,7 +67,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val diagramManager: DiagramManager,
@@ -276,7 +278,7 @@ class LoadingViewModel(
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
-            sequences.exctractSequences()
+            sequences.extractSequences()
                 .let { (groups, sequences) ->
                     seqGroups += groups
                     seqOfConns += sequences
@@ -296,7 +298,7 @@ class LoadingViewModel(
 
             val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
 
-            data.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            data.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -392,7 +394,7 @@ class LoadingViewModel(
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
-            sequences.exctractSequences()
+            sequences.extractSequences()
                 .let { (groups, sequences) ->
                     seqGroups += groups
                     seqOfConns += sequences
@@ -405,7 +407,7 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            plus.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            plus.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -426,7 +428,7 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            changes.exctractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            changes.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -496,7 +498,7 @@ class LoadingViewModel(
         remoteConfig.fetchAndActivate()
     }
 
-    private inline fun Map<Table, Map<String, List<List<String>>>>.exctractData(
+    private inline fun Map<Table, Map<String, List<List<String>>>>.extractData(
         connsWithSequence: List<BusName>,
         addConnToSequence: (conn: Conn) -> Unit,
     ): List<Quintuple<MutableList<ConnStop>, MutableList<TimeCode>, MutableList<Stop>, MutableList<Line>, MutableList<Conn>>> {
@@ -636,7 +638,7 @@ class LoadingViewModel(
 }
 
 
-private fun Map<SequenceGroup, LoadingViewModel.Group>.exctractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
+private fun Map<SequenceGroup, LoadingViewModel.Group>.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
     map { (group, groupData) ->
         SeqGroup(
             group = group,

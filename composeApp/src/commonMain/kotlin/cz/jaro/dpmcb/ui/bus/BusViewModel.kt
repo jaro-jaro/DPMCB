@@ -15,6 +15,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -31,11 +32,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toDateTimePeriod
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
@@ -82,7 +86,7 @@ class BusViewModel(
             favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,
             traveledSegments = 0,
-            error = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
+            shouldBeOnline = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
             sequence = bus.info.sequence,
             sequenceName = with(repo) { bus.info.sequence?.seqName() },
             previousBus = bus.sequence?.let { seq ->
@@ -141,9 +145,12 @@ class BusViewModel(
             Unit
         }
 
-        is BusEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
+        is BusEvent.TimetableClick -> {
+            e.e.work()
+            when (e.e) {
+                is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
+                is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
+            }
         }
     }
 
@@ -157,18 +164,18 @@ class BusViewModel(
         )
     } else flowOf(OnlineBusState()))
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OnlineBusState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val traveledSegments = combine(info, onlineState, nowFlow) { info, state, now ->
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
             date > SystemClock.todayHere() -> null
-            date < SystemClock.todayHere() -> info.stops.lastIndex
-            state.onlineTimetable?.nextStopIndex != null -> state.onlineTimetable.nextStopIndex - 1
-            state.nextStopTime != null -> info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1
-            info.stops.last().time < now -> info.stops.lastIndex
-            else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
+            date < SystemClock.todayHere() -> info.stops.lastIndex.coerceAtLeast(0).work(3)
+            state?.onlineTimetable?.nextStopIndex != null -> (state.onlineTimetable.nextStopIndex.coerceAtLeast(1) - 1).work(4)
+            state?.nextStopTime != null -> (info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1).work(5)
+            info.stops.last().time < now -> info.stops.lastIndex.coerceAtLeast(0).work(6)
+            else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0).work(7)
         }
     }
 
@@ -178,25 +185,30 @@ class BusViewModel(
 
         if (traveledSegments == null) return@combine 0F
 
-        val departureFromLastStop = info.stops.getOrElse(traveledSegments) { info.stops.last() }.time.plus(state.delay ?: 0.minutes)
+        val delay = state?.delay ?: 0.minutes
 
-        val arrivalToNextStop = state.onlineTimetable?.stops?.getOrNull(traveledSegments + 1)?.let {
-            it.scheduledTime.plus(it.delay.minutes).plus(state.delay ?: 0.seconds)
-        } ?: (info.stops.getOrNull(traveledSegments + 1)?.time?.plus(state.delay ?: 0.minutes))
+        val departureFromLastStop = info.stops.getOrElse(traveledSegments) { info.stops.last() }.time + delay
+
+        val netStopScheduledArrival = info.stops.getOrNull(traveledSegments + 1)?.run { arrival ?: time }
+        val nextOnlineStop = state?.onlineTimetable?.stops?.getOrNull(traveledSegments + 1)
+        val arrivalToNextStop = if (nextOnlineStop != null && netStopScheduledArrival != null)
+            netStopScheduledArrival + nextOnlineStop.delay.minutes + delay.toDateTimePeriod().seconds.seconds
+        else netStopScheduledArrival?.plus(delay)
 
         val length = arrivalToNextStop?.minus(departureFromLastStop) ?: Duration.INFINITE
 
         val passed = (now - departureFromLastStop).coerceAtLeast(Duration.ZERO)
 
-        traveledSegments + (passed.inWholeSeconds / length.inWholeSeconds.toFloat()).coerceIn(0F, 1F)
+        traveledSegments + (passed / length).toFloat().coerceIn(0F, 1F)
     }
 
     val state = combine(info, traveledSegments, lineHeight, onlineState) { info, traveledSegments, lineHeight, onlineState ->
         if (info !is BusState.OK) info
         else info.copy(
+            shouldBeOnline = onlineState != null && info.shouldBeOnline,
             lineHeight = lineHeight,
             traveledSegments = traveledSegments ?: 0,
-            online = if (onlineState.onlineTimetable != null) BusState.OnlineState(
+            online = if (onlineState?.onlineTimetable != null) BusState.OnlineState(
                 onlineConnStops = onlineState.onlineTimetable.stops,
                 running = if (onlineState.delay != null || onlineState.nextStopTime != null) BusState.RunningState(
                     delayMin = onlineState.delay?.inWholeSeconds?.div(60F),

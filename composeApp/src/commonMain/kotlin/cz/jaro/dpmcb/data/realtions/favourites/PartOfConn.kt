@@ -14,9 +14,10 @@ data class PartOfConn(
     operator fun contains(index: Int) = index in iterator()
 
     operator fun iterator() = start..end
-
-    companion object {
-        @Suppress("FunctionName")
-        fun Empty(busName: BusName) = PartOfConn(busName, -1, -1)
-    }
 }
+
+@Suppress("FunctionName")
+fun PartOfConn.Companion.Empty(busName: BusName) = PartOfConn(busName, -1, -1)
+
+fun PartOfConn.isEmpty() = start == -1 && end == -1
+fun PartOfConn.isNotEmpty() = start != -1 || end != -1

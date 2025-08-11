@@ -101,7 +101,6 @@ import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
-import cz.jaro.dpmcb.ui.common.icons.Empty
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
 import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
@@ -110,24 +109,19 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color = LocalContentColor.current) {
     when (stopType) {
-        StopType.Normal -> IconWithTooltip(
-            imageVector = Icons.Default.Empty,
-            contentDescription = null,
-            modifier,
-            tint = color,
-        )
+        StopType.Normal -> Unit
 
         StopType.GetOnOnly -> IconWithTooltip(
             imageVector = Icons.Default.RightHalfDisk,
@@ -328,13 +322,16 @@ fun Wheelchair(
 }
 
 @Composable
-fun Name(name: String, modifier: Modifier = Modifier, subName: String? = null) {
+fun Name(name: String, modifier: Modifier = Modifier, suffix: String? = null, prefix: String? = null) {
     Text(buildAnnotatedString {
+        if (prefix != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append(prefix)
+        }
         withStyle(style = SpanStyle(fontSize = 24.sp)) {
             append(name)
         }
-        if (subName != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
-            append(subName)
+        if (suffix != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
+            append(suffix)
         }
     }, modifier, color = MaterialTheme.colorScheme.primary)
 }
@@ -360,7 +357,7 @@ fun IconWithTooltip(
         }
     },
     state = rememberTooltipState(),
-    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
+    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
 ) {
     Icon(
         imageVector = imageVector,
@@ -377,7 +374,7 @@ else
         tint = tint
     )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun DateSelector(
     date: LocalDate,
@@ -400,7 +397,7 @@ fun DateSelector(
             TextButton(
                 onClick = {
                     showDialog = false
-                    onDateChange(Instant.fromEpochMilliseconds(state.selectedDateMillis!!).toLocalDateTime(TimeZone.UTC).date)
+                    onDateChange(kotlin.time.Instant.Companion.fromEpochMilliseconds(state.selectedDateMillis!!).toLocalDateTime(TimeZone.UTC).date)
                 }
             ) {
                 Text("OK")

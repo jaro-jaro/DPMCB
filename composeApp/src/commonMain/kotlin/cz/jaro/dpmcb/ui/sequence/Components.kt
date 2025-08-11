@@ -31,10 +31,12 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.coroutines.launch
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
-    fun Int.busIndexToListIndex() = 4 + state.before.count() * 2 + this * 4
+    fun Int.busIndexToListIndex() = 3 + state.before.count() + this * 3
 
     val now = remember(state.buses, state.date) {
         if (

@@ -100,7 +100,6 @@ import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
-import cz.jaro.dpmcb.ui.main.MainState.OnlineStatus
 import cz.jaro.dpmcb.ui.map.Map
 import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
@@ -117,19 +116,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import org.koin.compose.LocalKoinApplication
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 val localDateTypePair = typePair(
     parseValue = {
         if (it == "T") SystemClock.todayHere()
         else LocalDate(
             year = it.substring(0..<4).toInt(),
-            monthNumber = it.substring(4..<6).toInt(),
-            dayOfMonth = it.substring(6..<8).toInt(),
+            month = it.substring(4..<6).toInt(),
+            day = it.substring(6..<8).toInt()
         )
     },
     serializeAsValue = {
-        "${it.year.atLeastDigits(4)}${it.monthNumber.atLeastDigits(2)}${it.dayOfMonth.atLeastDigits(2)}"
+        "${it.year.atLeastDigits(4)}${it.month.number.atLeastDigits(2)}${it.day.atLeastDigits(2)}"
     },
 )
 
@@ -177,10 +179,6 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
         localDateTypePair,
     )
 
-    Route.Card::class -> mapOf(
-        localDateTypePair,
-    )
-
     Route.Map::class -> mapOf(
         localDateTypePair,
     )
@@ -219,6 +217,7 @@ fun Main(
     }
 
     val drawerState = rememberDrawerState(DrawerValue.Open) {
+        AppState.menuState = it
         keyboardController?.hide()
 
         true
@@ -379,6 +378,8 @@ fun MainScreen(
                             IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
                         }
 
+                    val shareManager = if (supportsSharing()) screenShareManager else null
+
                     DropdownMenu(
                         expanded = open,
                         onDismissRequest = {
@@ -402,13 +403,12 @@ fun MainScreen(
                         )
 
                         if (supportsSharing()) {
-                            val shareManager = screenShareManager
                             DropdownMenuItem(
                                 text = {
                                     Text("Sdílet")
                                 },
                                 onClick = {
-                                    shareManager.shareScreen(state)
+                                    shareManager?.shareScreen(state)
                                     open = false
                                 },
                                 leadingIcon = {
@@ -601,7 +601,7 @@ fun MainScreen(
                     ) {
                         DrawerAction.entries.forEach { action ->
                             DrawerItem(
-                                isOnline = state.onlineStatus is OnlineStatus.Online,
+                                isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
                                 action = action,
                                 onEvent = onEvent,
                             )

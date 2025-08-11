@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyScopeMarker
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 
+@LazyScopeMarker
 fun LazyListScope.rowItem(
     modifier: Modifier = Modifier,
     key: Any? = null,
@@ -44,6 +46,7 @@ fun LazyListScope.rowItem(
     }
 }
 
+@LazyScopeMarker
 fun LazyListScope.columnItem(
     modifier: Modifier = Modifier,
     key: Any? = null,
@@ -64,6 +67,7 @@ fun LazyListScope.columnItem(
     }
 }
 
+@LazyScopeMarker
 fun LazyListScope.textItem(
     text: String,
     modifier: Modifier = Modifier,

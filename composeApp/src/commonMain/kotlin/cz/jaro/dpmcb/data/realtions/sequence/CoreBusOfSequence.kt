@@ -7,7 +7,10 @@ import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class CoreBusOfSequence(
     val lowFloor: Boolean,
     val line: LongLine,
@@ -15,11 +18,15 @@ data class CoreBusOfSequence(
     val fixedCodes: String,
     val stopFixedCodes: String,
     val connStopFixedCodes: String,
+    @SerialName("time_")
     val time: LocalTime,
+    val arrival: LocalTime?,
     val name: String,
     val connName: BusName,
     val type: TimeCodeType,
+    @SerialName("timeCodeFrom")
     val from: LocalDate,
+    @SerialName("timeCodeTo")
     val to: LocalDate,
     val tab: Table,
     val validFrom: LocalDate,

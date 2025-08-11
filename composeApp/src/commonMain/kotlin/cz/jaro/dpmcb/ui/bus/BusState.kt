@@ -37,7 +37,7 @@ sealed interface BusState {
         val traveledSegments: Int,
         val lineHeight: Float,
         val favourite: PartOfConn?,
-        val error: Boolean,
+        val shouldBeOnline: Boolean,
         override val date: LocalDate,
         val online: OnlineState? = null,
     ) : Exists
