@@ -29,5 +29,6 @@ sealed interface NowRunningState {
         override val filters: List<ShortLine>,
         override val type: NowRunningType,
         val result: NowRunningResults<*>,
+        val isOnline: Boolean,
     ) : LinesLoaded
 }

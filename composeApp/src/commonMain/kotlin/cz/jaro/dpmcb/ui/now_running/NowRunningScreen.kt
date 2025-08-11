@@ -90,30 +90,30 @@ fun NowRunningScreen(
         textAlign = TextAlign.Center
     )
     else Column {
-        Text(
-            "Řadit podle:", modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-        )
-        FlowRow(
-            modifier = Modifier.padding(horizontal = 8.dp),
-        ) {
-            NowRunningType.entries.forEach { type ->
-                FilterChip(
-                    modifier = Modifier
-                        .padding(all = 4.dp),
-                    selected = type == state.type,
-                    onClick = {
-                        onEvent(ChangeType(type))
-                    },
-                    label = { Text(type.label) }
-                )
-            }
-        }
         when (state) {
             is NowRunningState.LoadingLines -> Text(text = "Načítání...")
 
             is NowRunningState.LinesLoaded -> Column {
+                if (state is NowRunningState.OK && state.isOnline) Text(
+                    "Řadit podle:", modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                )
+                if (state is NowRunningState.OK && state.isOnline) FlowRow(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) {
+                    NowRunningType.entries.forEach { type ->
+                        FilterChip(
+                            modifier = Modifier
+                                .padding(all = 4.dp),
+                            selected = type == state.type,
+                            onClick = {
+                                onEvent(ChangeType(type))
+                            },
+                            label = { Text(type.label) }
+                        )
+                    }
+                }
                 Text(
                     "Filtr linek:", modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -139,7 +139,7 @@ fun NowRunningScreen(
                         .padding(horizontal = 8.dp),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    busResult(state, onEvent)
+                    if (state is NowRunningState.OK && state.isOnline) busResult(state, onEvent)
 
                     notRunning(state, onEvent)
                 }
@@ -257,7 +257,7 @@ private fun LazyListScope.notRunning(
     state: NowRunningState.LinesLoaded,
     onEvent: (NowRunningEvent) -> Unit,
 ) = if (state is NowRunningState.OK && state.result.offlineNotOnline.isNotEmpty()) {
-    stickyHeader(key = "NH") {
+    if (state.isOnline) stickyHeader(key = "NH") {
         Surface {
             Text(
                 text = "Jedoucí spoje, které nejsou online:",

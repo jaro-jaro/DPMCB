@@ -47,6 +47,8 @@ class NowRunningViewModel(
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
 
+    private val allowedType = type.combine(repo.hasAccessToMap) { type, isOnline -> if (isOnline) type else NowRunningType.Line }
+
     private fun changeCurrentRoute() {
         try {
             AppState.route = Route.NowRunning(
@@ -136,7 +138,7 @@ class NowRunningViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    private val result = combine(filteredOfflineList, filteredOnlineList, type) { offline, online, type ->
+    private val result = combine(filteredOfflineList, filteredOnlineList, allowedType) { offline, online, type ->
         if (offline == null && online == null) null
         else when (type) {
             NowRunningType.RegN -> NowRunningResults.RegN(resultListRegN(online.orEmpty()), offline = resultListRegN(offline.orEmpty()))
@@ -148,12 +150,12 @@ class NowRunningViewModel(
     private val lineNumbers = repo::lineNumbersToday.asFlow()
 
     val state = combine(
-        lineNumbers, filters, type, result
-    ) { lineNumbers, filters, type, result ->
+        lineNumbers, filters, allowedType, result, repo.hasAccessToMap,
+    ) { lineNumbers, filters, type, result, isOnline ->
         when {
             lineNumbers.isEmpty() -> NowRunningState.NoLines
             result == null -> NowRunningState.Loading(lineNumbers, filters, type)
-            else -> NowRunningState.OK(lineNumbers, filters, type, result)
+            else -> NowRunningState.OK(lineNumbers, filters, type, result, isOnline)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
 }

@@ -203,11 +203,11 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        WITH lastStopTimeOfConn(connName, time) AS (
+        WITH lastStopTimeOfConn(connName, time, tab) AS (
             SELECT DISTINCT Conn.name, CASE
                 WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
                 ELSE ConnStop.departure
-            END FROM ConnStop
+            END, ConnStop.tab FROM ConnStop
             JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
             WHERE (
                 ConnStop.departure IS NOT NULL
@@ -220,9 +220,9 @@ interface Dao : SpojeQueries {
                 ELSE ConnStop.departure
             END)
         )
-        SELECT DISTINCT SeqOfConn.sequence, lastStopTimeOfConn.* FROM Conn
+        SELECT DISTINCT SeqOfConn.sequence, lastStopTimeOfConn.connName, lastStopTimeOfConn.time FROM Conn
         JOIN SeqOfConn ON SeqOfConn.connNumber = Conn.connNumber AND SeqOfConn.line = Conn.line
-        JOIN lastStopTimeOfConn ON lastStopTimeOfConn.connName = Conn.name
+        JOIN lastStopTimeOfConn ON lastStopTimeOfConn.connName = Conn.name AND lastStopTimeOfConn.tab = Conn.tab
         WHERE SeqOfConn.sequence IN (:todayRunningSequences)
         AND SeqOfConn.`group` IN (:groups)
         AND Conn.tab IN (:tabs)
