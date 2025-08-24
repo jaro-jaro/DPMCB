@@ -229,7 +229,7 @@ private fun FavouriteState.CardContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Name("$line", Modifier.padding(end = 8.dp))
-        VehicleIcon(lineTraction, if (isOnline()) vehicleTraction else null)
+        VehicleIcon(lineTraction, if (isOnline()) vehicleTraction else null, Modifier.padding(horizontal = 8.dp))
         if (isOnline()) DelayBubble(delay)
         if (isOnline()) Vehicle(vehicleNumber, vehicleName)
     }

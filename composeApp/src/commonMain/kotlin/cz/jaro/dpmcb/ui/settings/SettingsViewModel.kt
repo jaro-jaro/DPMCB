@@ -29,8 +29,19 @@ class SettingsViewModel(
             dataVersion = version,
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
             isOnline = isOnline,
+            tables = repo.allTables.await().map {
+                LineTable(
+                    shortNumber = it.shortNumber,
+                    tab = it.tab,
+                    validFrom = it.validFrom,
+                    validTo = it.validTo,
+                    route = it.route,
+                    traction = repo.lineTraction(it.number, it.vehicleType),
+                    hasRestriction = it.hasRestriction,
+                )
+            },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false, emptyList()))
 
     fun onEvent(e: SettingsEvent) = when (e) {
         is SettingsEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)

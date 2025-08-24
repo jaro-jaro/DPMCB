@@ -105,7 +105,7 @@ fun BusScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
-                        VehicleIcon(state.lineTraction, state.online?.running?.vehicleTraction)
+                        VehicleIcon(state.lineTraction, state.online?.running?.vehicleTraction, Modifier.padding(horizontal = 8.dp))
 //                        Wheelchair(
 //                            lowFloor = state.lowFloor,
 //                            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
