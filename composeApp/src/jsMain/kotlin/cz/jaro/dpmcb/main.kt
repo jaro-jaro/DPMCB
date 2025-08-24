@@ -2,7 +2,7 @@ package cz.jaro.dpmcb
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeViewport
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.StorageSettings
 import com.russhwolf.settings.observable.makeObservable
@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.initKoin
 import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.main.DetailsOpener
+import cz.jaro.dpmcb.ui.main.setAppTitle
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
@@ -89,9 +90,8 @@ fun main() = try {
 
     val link = window.location.hash.removePrefix("#") + window.location.search
     onWasmReady {
-        CanvasBasedWindow(
-            title = "Lepší DPMCB",
-        ) {
+        setAppTitle("Lepší DPMCB")
+        ComposeViewport {
             CompositionLocalProvider(
                 LocalKoinApplication provides koinApp.koin,
                 LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
