@@ -275,7 +275,12 @@ fun backgroundColorFor(contentColor: Color) =
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun VehicleIcon(lineTraction: Traction, vehicleTraction: Traction?, modifier: Modifier = Modifier) {
+fun VehicleIcon(
+    lineTraction: Traction,
+    vehicleTraction: Traction? = null,
+    modifier: Modifier = Modifier,
+    colorOverride: Color? = null,
+) {
     val icon = remember(vehicleTraction, lineTraction) {
         when (vehicleTraction ?: lineTraction) {
             Traction.Electro -> Res.drawable.ebus
@@ -300,8 +305,9 @@ fun VehicleIcon(lineTraction: Traction, vehicleTraction: Traction?, modifier: Mo
             Traction.Trolleybus -> "Trolejbus"
             Traction.Other -> null
         },
-        modifier.size(48.dp).padding(horizontal = 8.dp),
+        modifier.size(48.dp),
         tint = when {
+            colorOverride != null -> colorOverride
             vehicleTraction != null && !vehicleTraction.isTypeOf(lineTraction) ->
                 MaterialTheme.colorScheme.error
 
@@ -323,9 +329,9 @@ fun VI(lineTraction: Traction, vehicleTraction: Traction) = Row(verticalAlignmen
 fun IconsPreview() = Surface {
     Column(Modifier.width(IntrinsicSize.Min)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Icon(Icons.Default.WifiOff, null, Modifier.size(48.dp).padding(horizontal = 8.dp))
+            Icon(Icons.Default.WifiOff, null, Modifier.size(48.dp))
             Icon(Icons.AutoMirrored.Default.ArrowRightAlt, null)
-            Icon(Icons.Default.Wifi, null, Modifier.size(48.dp).padding(horizontal = 8.dp))
+            Icon(Icons.Default.Wifi, null, Modifier.size(48.dp))
         }
         VI(Traction.Electro, Traction.Electro)
         VI(Traction.Electro, Traction.Diesel)

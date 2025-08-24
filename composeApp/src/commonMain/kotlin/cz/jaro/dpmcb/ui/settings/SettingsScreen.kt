@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,11 +26,15 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +53,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -57,12 +63,14 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.asString
 import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.viewModel
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -157,6 +165,57 @@ fun SettingsScreen(
             }
         }
     }
+
+    textItem("")
+
+    item {
+        var shown by remember { mutableStateOf(false) }
+        FilledTonalButton(onClick = { shown = true }) {
+            Text("Zobrazit platnosti jednotlivých JŘ")
+        }
+        if (shown) AlertDialog(
+            onDismissRequest = { shown = false },
+            confirmButton = {
+                TextButton(onClick = { shown = false }) { Text("Ok") }
+            },
+            text = {
+                LazyColumn {
+                    items(state.tables) {
+                        ListItem(
+                            headlineContent = { Text(it.shortNumber.toString()) },
+                            supportingContent = { Text(it.route) },
+                            overlineContent = {
+                                Row(Modifier.fillMaxWidth()) {
+                                    Text(it.tab.toString())
+                                    Text(
+                                        "${it.validFrom.asString()} - ${it.validTo.asString()}",
+                                        Modifier.weight(1F),
+                                        textAlign = TextAlign.End,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            },
+                            leadingContent = {
+                                VehicleIcon(
+                                    it.traction,
+                                    colorOverride = if (it.hasRestriction) MaterialTheme.colorScheme.error else null
+                                )
+                            },
+                            colors = if (it.hasRestriction) ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                headlineColor = MaterialTheme.colorScheme.error,
+                                overlineColor = MaterialTheme.colorScheme.error,
+                                supportingColor = MaterialTheme.colorScheme.error,
+                            ) else ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            ),
+                        )
+                    }
+                }
+            },
+        )
+    }
+
     textItem("Aktuální verze dat: ${state.dataMetaVersion}.${state.dataVersion}")
     textItem("Aktuální verze aplikace: ${state.version}${if (isDebug) "-DEBUG" else ""}")
 
@@ -435,6 +494,7 @@ private fun SettingsPreview() {
                     dataVersion = 5,
                     dataMetaVersion = 1,
                     isOnline = false,
+                    tables = emptyList(),
                 )
             )
         }
