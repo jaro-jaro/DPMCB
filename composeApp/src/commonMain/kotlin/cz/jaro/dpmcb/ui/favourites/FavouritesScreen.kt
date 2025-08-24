@@ -37,6 +37,7 @@ import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.rowItem
@@ -46,6 +47,7 @@ import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Vehicle
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -227,6 +229,7 @@ private fun FavouriteState.CardContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Name("$line", Modifier.padding(end = 8.dp))
+        VehicleIcon(lineTraction, if (isOnline()) vehicleTraction else null)
         if (isOnline()) DelayBubble(delay)
         if (isOnline()) Vehicle(vehicleNumber, vehicleName)
     }
@@ -279,9 +282,11 @@ private fun FavouriteState.Stop(
 private val onlinePreviewBus = FavouriteState.Online(
     busName = LongLine(325009) / 92,
     line = LongLine(325009).toShortLine(),
+    lineTraction = Traction.Trolleybus,
     delay = 1.36F,
     vehicleNumber = "02".toRegNum(),
     vehicleName = "Rába",
+    vehicleTraction = Traction.Trolleybus,
     originStopName = "Suché Vrbné",
     originStopTime = LocalTime(7, 46),
     currentStopName = "Pětidomí",
@@ -295,6 +300,7 @@ private val onlinePreviewBus = FavouriteState.Online(
 private val offlinePreviewBus = FavouriteState.Offline(
     busName = LongLine(325009) / 286,
     line = LongLine(325009).toShortLine(),
+    lineTraction = Traction.Trolleybus,
     originStopName = "Suché Vrbné",
     originStopTime = LocalTime(14, 58),
     destinationStopName = "U Hvízdala",

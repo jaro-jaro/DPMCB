@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -14,6 +15,7 @@ import kotlin.time.ExperimentalTime
 sealed interface FavouriteState {
     val busName: BusName
     val line: ShortLine
+    val lineTraction: Traction
     val originStopName: String
     val originStopTime: LocalTime
     val destinationStopName: String
@@ -23,6 +25,7 @@ sealed interface FavouriteState {
     data class Offline(
         override val busName: BusName,
         override val line: ShortLine,
+        override val lineTraction: Traction,
         override val originStopName: String,
         override val originStopTime: LocalTime,
         override val destinationStopName: String,
@@ -34,9 +37,11 @@ sealed interface FavouriteState {
     data class Online(
         override val busName: BusName,
         override val line: ShortLine,
+        override val lineTraction: Traction,
         val delay: Float,
         val vehicleNumber: RegistrationNumber?,
         val vehicleName: String?,
+        val vehicleTraction: Traction?,
         override val originStopName: String,
         override val originStopTime: LocalTime,
         val currentStopName: String,

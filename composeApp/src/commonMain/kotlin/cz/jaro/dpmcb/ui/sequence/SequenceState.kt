@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.sequence
 
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import kotlinx.datetime.LocalDate
 
 sealed interface SequenceState {
@@ -23,12 +24,14 @@ sealed interface SequenceState {
         val timeCodes: List<String>,
         val fixedCodes: List<String>,
         val lineCode: String,
+        val lineTraction: Traction?,
         val runsToday: Boolean,
         val height: Float,
         val traveledSegments: Int,
         val date: LocalDate,
         val vehicleNumber: RegistrationNumber?,
         val vehicleName: String?,
+        val vehicleTraction: Traction?,
         val online: OnlineState? = null,
     ) : SequenceState
 

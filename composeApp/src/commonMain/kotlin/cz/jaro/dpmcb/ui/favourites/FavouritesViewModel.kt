@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -103,10 +104,12 @@ class FavouritesViewModel(
     private suspend fun RecentResult.toState() =
         if (online?.delayMin != null) FavouriteState.Online(
             busName = info.connName,
-            line = info.line,
+            line = info.line.toShortLine(),
+            lineTraction = repo.lineTraction(info.line, info.vehicleType),
             delay = online.delayMin,
             vehicleNumber = online.vehicle,
             vehicleName = online.vehicle?.let(repo::vehicleName),
+            vehicleTraction = online.vehicle?.let(repo::vehicleTraction) ?: repo.lineTraction(info.line, info.vehicleType),
             originStopName = stops.first().name,
             originStopTime = stops.first().time,
             currentStopName = stops.last { it.time == online.nextStop }.name,
@@ -117,7 +120,8 @@ class FavouritesViewModel(
         )
         else FavouriteState.Offline(
             busName = info.connName,
-            line = info.line,
+            line = info.line.toShortLine(),
+            lineTraction = repo.lineTraction(info.line, info.vehicleType),
             originStopName = stops.first().name,
             originStopTime = stops.first().time,
             destinationStopName = stops.last().name,
@@ -128,10 +132,12 @@ class FavouritesViewModel(
     private suspend fun FavouriteResult.toState() =
         if (online?.delayMin != null) FavouriteState.Online(
             busName = info.connName,
-            line = info.line,
+            line = info.line.toShortLine(),
+            lineTraction = repo.lineTraction(info.line, info.vehicleType),
             delay = online.delayMin,
             vehicleNumber = online.vehicle,
             vehicleName = online.vehicle?.let(repo::vehicleName),
+            vehicleTraction = online.vehicle?.let(repo::vehicleTraction) ?: repo.lineTraction(info.line, info.vehicleType),
             originStopName = (stops.getOrNull(favourite.start) ?: stops.last()).name,
             originStopTime = (stops.getOrNull(favourite.start) ?: stops.last()).time,
             currentStopName = stops.last { it.time == online.nextStop }.name,
@@ -146,7 +152,8 @@ class FavouritesViewModel(
         )
         else FavouriteState.Offline(
             busName = info.connName,
-            line = info.line,
+            line = info.line.toShortLine(),
+            lineTraction = repo.lineTraction(info.line, info.vehicleType),
             originStopName = (stops.getOrNull(favourite.start) ?: stops.last()).name,
             originStopTime = (stops.getOrNull(favourite.start) ?: stops.last()).time,
             destinationStopName = (stops.getOrNull(favourite.end) ?: stops.last()).name,
@@ -173,7 +180,7 @@ class FavouritesViewModel(
                 recents, today, otherDay
             )
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavouritesState.Loading)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavouritesState.Loading)
 }
 
 private data class FavouriteResult(

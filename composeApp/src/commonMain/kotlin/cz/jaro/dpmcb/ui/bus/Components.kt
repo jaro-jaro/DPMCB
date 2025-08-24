@@ -80,7 +80,7 @@ import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
-import cz.jaro.dpmcb.ui.common.Wheelchair
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.main.supportsSharing
 import kotlinx.coroutines.launch
@@ -610,12 +610,13 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
-        Wheelchair(
-            lowFloor = state.lowFloor,
-            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
-            Modifier.padding(start = 8.dp),
-            enableCart = true,
-        )
+        VehicleIcon(state.lineTraction, state.online?.running?.vehicleTraction)
+//        Wheelchair(
+//            lowFloor = state.lowFloor,
+//            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
+//            Modifier.padding(start = 8.dp),
+//            enableCart = true,
+//        )
 
         if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
         if (state.online?.running?.vehicleNumber != null) Vehicle(

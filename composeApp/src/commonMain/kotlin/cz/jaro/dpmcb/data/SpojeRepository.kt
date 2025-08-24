@@ -31,9 +31,11 @@ import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.typeChar
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.*
+import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.anyAre
 import cz.jaro.dpmcb.data.helperclasses.anySatisfies
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
@@ -91,6 +93,14 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlin.collections.filterNot
 import kotlin.jvm.JvmName
@@ -131,6 +141,30 @@ class SpojeRepository(
     }
 
     private val configActive = ::getConfigActive.asFlow()
+
+    private val vehiclesTraction = configActive.map {
+        Json.decodeFromString(
+            MapSerializer(Traction.serializer(), ListSerializer(RegistrationNumberRangeSerializer)),
+            remoteConfig["traction"],
+        )
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    private val linesTraction = configActive.map {
+        Json.decodeFromString<Map<Traction, List<LongLine>>>(remoteConfig["lineTraction"])
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    fun lineTraction(line: LongLine, type: VehicleType) =
+        linesTraction.value?.entries?.find { (_, lines) -> line in lines }?.key
+            ?: when (type) {
+                VehicleType.TROLEJBUS -> Traction.Trolleybus
+                VehicleType.AUTOBUS -> Traction.Diesel
+                else -> Traction.Other
+            }
+
+    fun vehicleTraction(vehicle: RegistrationNumber) =
+        vehiclesTraction.value?.entries?.find { (_, ranges) ->
+            ranges.any { range -> vehicle in range }
+        }?.key
 
     private val vehicleNames = configActive.map {
         Json.decodeFromString<Map<RegistrationNumber, String>>(remoteConfig["vehicleNames"])
@@ -194,9 +228,10 @@ class SpojeRepository(
         return tablesByDateAndRestriction.maxBy { it.validFrom }
     }
 
-    private suspend fun nowUsedTable(date: LocalDate, lineNumber: LongLine) = _tables.getOrPut(lineNumber) { mutableMapOf() }.getOrPut(date) {
-        _nowUsedTable(date, lineNumber)?.tab
-    }
+    private suspend fun nowUsedTable(date: LocalDate, lineNumber: LongLine) =
+        _tables.getOrPut(lineNumber) { mutableMapOf() }.getOrPut(date) {
+            _nowUsedTable(date, lineNumber)?.tab
+        }
 
     private val _groups = mutableMapOf<SequenceCode, MutableMap<LocalDate, SequenceGroup?>>()
 
@@ -303,9 +338,10 @@ class SpojeRepository(
                 info = first().let {
                     BusInfo(
                         lowFloor = it.lowFloor,
-                        line = it.line.toShortLine(),
+                        line = it.line,
                         connName = it.connName,
                         sequence = sequence,
+                        vehicleType = it.vehicleType,
                     )
                 },
                 stops = noCodes.mapIndexed { i, it ->
@@ -337,7 +373,7 @@ class SpojeRepository(
         ds.coreBus(busName, allGroups(date), nowUsedTable(date, busName.line())!!)
             .run {
                 Pair(
-                    first().let { Favourite(it.lowFloor, it.line.toShortLine(), it.connName) },
+                    first().let { Favourite(it.lowFloor, it.line, it.vehicleType, it.connName) },
                     map { StopOfFavourite(it.time, it.name, it.connName) }.distinct(),
                 )
             }
@@ -448,9 +484,10 @@ class SpojeRepository(
                     stops.first().let {
                         BusInfo(
                             lowFloor = it.lowFloor,
-                            line = it.line.toShortLine(),
+                            line = it.line,
                             connName = it.connName,
                             sequence = it.sequence,
+                            vehicleType = it.vehicleType,
                         )
                     },
                     noCodes.mapIndexed { i, it ->
@@ -491,6 +528,10 @@ class SpojeRepository(
             conns.distinctBy { it.validity }.size == 1
         }
 
+        val commonLineTraction = lineTraction(conns.first().info.line, conns.first().info.vehicleType).takeIf {
+            conns.distinctBy { lineTraction(it.info.line, it.info.vehicleType) }.size == 1
+        }
+
         val before = buildList {
             if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
             addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
@@ -521,6 +562,7 @@ class SpojeRepository(
             commonTimeCodes = commonTimeCodes,
             commonFixedCodes = commonFixedCodes.joinToString(" "),
             commonValidity = commonValidity,
+            commonLineTraction = commonLineTraction,
         )
     }
 
@@ -547,7 +589,7 @@ class SpojeRepository(
             stops.chunked(1000).map { suspend { ds.insertStops(it) } },
             timeCodes.chunked(1000).map { suspend { ds.insertTimeCodes(it) } },
             lines.chunked(1000).map { suspend { ds.insertLines(it) } },
-            conns.chunked(1000).map { suspend { ds.insertConns(it) } } ,
+            conns.chunked(1000).map { suspend { ds.insertConns(it) } },
             seqGroups.chunked(1000).map { suspend { ds.insertSeqGroups(it) } },
             seqOfConns.chunked(1000).map { suspend { ds.insertSeqOfConns(it) } },
         ).flatten()
@@ -778,5 +820,13 @@ class SpojeRepository(
         ds.clearAllTables()
         sequencesMap.clear()
         _tables.clear()
+    }
+
+    object RegistrationNumberRangeSerializer : KSerializer<ClosedRange<RegistrationNumber>> {
+        override val descriptor: SerialDescriptor get() = PrimitiveSerialDescriptor("RegistrationNumberRange", PrimitiveKind.STRING)
+        override fun deserialize(decoder: Decoder) =
+            decoder.decodeString().split("..").map(String::toInt).map(::RegistrationNumber).let { it[0]..it[1] }
+
+        override fun serialize(encoder: Encoder, value: ClosedRange<RegistrationNumber>) = encoder.encodeString(value.toString())
     }
 }

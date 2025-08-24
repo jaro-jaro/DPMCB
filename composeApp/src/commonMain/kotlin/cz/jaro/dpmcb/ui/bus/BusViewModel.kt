@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
@@ -76,8 +77,9 @@ class BusViewModel(
         BusState.OK(
             busName = busName,
             stops = bus.stops,
-            lineNumber = bus.info.line,
+            lineNumber = bus.info.line.toShortLine(),
             lowFloor = bus.info.lowFloor,
+            lineTraction = repo.lineTraction(bus.info.line, bus.info.vehicleType),
             timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
             lineCode = validityString(validity),
@@ -159,7 +161,6 @@ class BusViewModel(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineTimetable = onlineTimetable,
             vehicleNumber = onlineConn?.vehicle,
-            vehicleName = onlineConn?.vehicle?.let(repo::vehicleName),
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
         )
@@ -214,7 +215,8 @@ class BusViewModel(
                 running = if (onlineState.delay != null || onlineState.nextStopTime != null) BusState.RunningState(
                     delayMin = onlineState.delay?.inWholeSeconds?.div(60F),
                     vehicleNumber = onlineState.vehicleNumber,
-                    vehicleName = onlineState.vehicleName,
+                    vehicleName = onlineState.vehicleNumber?.let(repo::vehicleName),
+                    vehicleTraction = onlineState.vehicleNumber?.let { repo.vehicleTraction(it) ?: info.lineTraction },
                     confirmedLowFloor = onlineState.confirmedLowFloor,
                     nextStopIndex = (traveledSegments ?: 0) + 1
                     //onlineState.onlineTimetable.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },

@@ -40,7 +40,7 @@ import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
-import cz.jaro.dpmcb.ui.common.Wheelchair
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -105,12 +105,13 @@ fun BusScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
-                        Wheelchair(
-                            lowFloor = state.lowFloor,
-                            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
-                            Modifier.padding(start = 8.dp),
-                            enableCart = true,
-                        )
+                        VehicleIcon(state.lineTraction, state.online?.running?.vehicleTraction)
+//                        Wheelchair(
+//                            lowFloor = state.lowFloor,
+//                            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
+//                            Modifier.padding(start = 8.dp),
+//                            enableCart = true,
+//                        )
 
                         Spacer(Modifier.weight(1F))
 
