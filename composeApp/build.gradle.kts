@@ -79,6 +79,18 @@ kotlin {
             implementation(libs.androidx.jetpack.room.runtime)
 
             implementation(libs.transportation.consumer)
+
+            // Firebase
+            // Realtime Database
+            implementation(libs.google.firebase.database)
+            // Storage
+            implementation(libs.google.firebase.storage)
+            // Analytics
+            implementation(libs.google.firebase.analytics)
+            // Crashlytics
+            implementation(libs.google.firebase.crashlytics)
+            // Remote config
+            implementation(libs.google.firebase.config)
         }
         jsMain.get().dependencies {
             implementation(compose.html.core)
