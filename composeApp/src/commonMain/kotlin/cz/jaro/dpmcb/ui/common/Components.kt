@@ -81,7 +81,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -89,7 +88,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -258,9 +256,19 @@ fun backgroundColorFor(contentColor: Color) =
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun Vehicle(vehicle: RegistrationNumber?, showInfoButton: Boolean = true) {
+fun Vehicle(vehicle: RegistrationNumber?, name: String?, showInfoButton: Boolean = true) {
     if (vehicle != null) {
-        Text(
+        if (name != null) {
+            Text(
+                text = name,
+                Modifier.padding(start = 8.dp),
+            )
+            Text(
+                text = " (ev. č. $vehicle)",
+                Modifier.padding(end = 8.dp),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else Text(
             text = "ev. č. $vehicle",
             Modifier.padding(horizontal = 8.dp),
         )
@@ -324,13 +332,13 @@ fun Wheelchair(
 @Composable
 fun Name(name: String, modifier: Modifier = Modifier, suffix: String? = null, prefix: String? = null) {
     Text(buildAnnotatedString {
-        if (prefix != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
+        if (prefix != null) withStyle(style = MaterialTheme.typography.titleMedium.toSpanStyle()) {
             append(prefix)
         }
-        withStyle(style = SpanStyle(fontSize = 24.sp)) {
+        withStyle(style = MaterialTheme.typography.headlineMedium.toSpanStyle()) {
             append(name)
         }
-        if (suffix != null) withStyle(style = SpanStyle(fontSize = 14.sp)) {
+        if (suffix != null) withStyle(style = MaterialTheme.typography.titleSmall.toSpanStyle()) {
             append(suffix)
         }
     }, modifier, color = MaterialTheme.colorScheme.primary)
@@ -397,7 +405,10 @@ fun DateSelector(
             TextButton(
                 onClick = {
                     showDialog = false
-                    onDateChange(kotlin.time.Instant.Companion.fromEpochMilliseconds(state.selectedDateMillis!!).toLocalDateTime(TimeZone.UTC).date)
+                    onDateChange(
+                        kotlin.time.Instant.Companion.fromEpochMilliseconds(state.selectedDateMillis!!)
+                            .toLocalDateTime(TimeZone.UTC).date
+                    )
                 }
             ) {
                 Text("OK")

@@ -49,7 +49,8 @@ sealed interface BusState {
 
     data class RunningState(
         val delayMin: Float?,
-        val vehicle: RegistrationNumber?,
+        val vehicleNumber: RegistrationNumber?,
+        val vehicleName: String?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int?,
     )

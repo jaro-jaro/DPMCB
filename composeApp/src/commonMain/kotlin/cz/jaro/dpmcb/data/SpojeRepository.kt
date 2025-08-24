@@ -6,6 +6,7 @@ import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SeqGroup
 import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
@@ -130,6 +131,12 @@ class SpojeRepository(
     }
 
     private val configActive = ::getConfigActive.asFlow()
+
+    private val vehicleNames = configActive.map {
+        Json.decodeFromString<Map<RegistrationNumber, String>>(remoteConfig["vehicleNames"])
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    fun vehicleName(vehicle: RegistrationNumber) = vehicleNames.value?.get(vehicle)
 
     private val sequenceTypes = configActive.map {
         Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"])

@@ -135,7 +135,10 @@ fun BusScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
-                        if (state.online?.running != null) Vehicle(state.online.running.vehicle)
+                        if (state.online?.running?.vehicleNumber != null) Vehicle(
+                            vehicle = state.online.running.vehicleNumber,
+                            name = state.online.running.vehicleName,
+                        )
                     }
 
                     Column(

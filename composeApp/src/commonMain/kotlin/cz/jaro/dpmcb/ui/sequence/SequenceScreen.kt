@@ -147,14 +147,14 @@ fun SequenceScreen(
                 state = lazyListState
             ) {
                 item {
-                    if (state.online != null || state.vehicle != null || state.date <= SystemClock.todayHere() && state.runsToday) Row(
+                    if (state.online != null || state.vehicleNumber != null || state.date <= SystemClock.todayHere() && state.runsToday) Row(
                         Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (state.online != null) DelayBubble(state.online.delayMin)
-                        if (state.vehicle != null) Vehicle(state.vehicle)
+                        if (state.vehicleNumber != null) Vehicle(state.vehicleNumber, state.vehicleName)
                         else if (state.date <= SystemClock.todayHere() && state.runsToday) VehicleSearcher(onEvent)
                     }
                 }
@@ -211,7 +211,7 @@ fun SequenceScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 DelayBubble(state.online.delayMin)
-                                Vehicle(state.vehicle)
+                                Vehicle(state.vehicleNumber, state.vehicleName)
                             }
                         }
                     }

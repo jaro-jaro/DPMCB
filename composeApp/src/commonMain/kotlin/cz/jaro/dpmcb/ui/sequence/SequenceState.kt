@@ -27,7 +27,8 @@ sealed interface SequenceState {
         val height: Float,
         val traveledSegments: Int,
         val date: LocalDate,
-        val vehicle: RegistrationNumber?,
+        val vehicleNumber: RegistrationNumber?,
+        val vehicleName: String?,
         val online: OnlineState? = null,
     ) : SequenceState
 

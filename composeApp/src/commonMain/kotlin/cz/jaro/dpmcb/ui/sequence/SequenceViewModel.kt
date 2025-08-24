@@ -95,7 +95,8 @@ class SequenceViewModel(
             height = 0F,
             traveledSegments = 0,
             date = params.date,
-            vehicle = null,
+            vehicleNumber = null,
+            vehicleName = null,
         )
     }.asFlow()
 
@@ -165,7 +166,8 @@ class SequenceViewModel(
     ) { info, traveledSegments, lineHeight, onlineConn, downloadedVehicle ->
         if (info !is SequenceState.OK) return@combine info
         info.copy(
-            vehicle = downloadedVehicle,
+            vehicleNumber = downloadedVehicle,
+            vehicleName = downloadedVehicle?.let(repo::vehicleName),
         ).let { info2 ->
             if (params.date != SystemClock.todayHere()) return@combine info2
             info2.copy(
@@ -178,7 +180,8 @@ class SequenceViewModel(
                         delayMin = onlineConn.delayMin,
                         confirmedLowFloor = onlineConn.lowFloor,
                     ),
-                    vehicle = onlineConn.vehicle ?: info3.vehicle,
+                    vehicleNumber = onlineConn.vehicle ?: info3.vehicleNumber,
+                    vehicleName = onlineConn.vehicle?.let(repo::vehicleName) ?: info3.vehicleName,
                     buses = info3.buses.map {
                         it.copy(
                             isRunning = it.busName == onlineConn.name
