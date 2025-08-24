@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
@@ -24,6 +25,7 @@ sealed interface BusState {
         override val busName: BusName,
         val stops: List<BusStop>,
         val lineNumber: ShortLine,
+        val lineTraction: Traction,
         val lowFloor: Boolean,
         override val timeCodes: List<String>,
         override val fixedCodes: List<String>,
@@ -51,6 +53,7 @@ sealed interface BusState {
         val delayMin: Float?,
         val vehicleNumber: RegistrationNumber?,
         val vehicleName: String?,
+        val vehicleTraction: Traction?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int?,
     )

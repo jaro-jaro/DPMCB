@@ -41,6 +41,7 @@ import androidx.glance.unit.ColorProvider
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.allTrue
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -104,7 +105,7 @@ class OblibeneWidget : GlanceAppWidget() {
 
                             KartickaWidgetState(
                                 spojId = info.connName,
-                                linka = info.line,
+                                linka = info.line.toShortLine(),
                                 vychoziZastavka = start.name,
                                 vychoziZastavkaCas = start.time,
                                 cilovaZastavka = end.name,

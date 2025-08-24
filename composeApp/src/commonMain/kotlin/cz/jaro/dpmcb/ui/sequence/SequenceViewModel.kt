@@ -13,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toRegNum
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
@@ -23,6 +24,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -71,6 +73,7 @@ class SequenceViewModel(
             timeCodes = filterTimeCodesAndMakeReadable(sequence.commonTimeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(sequence.commonFixedCodes, sequence.commonTimeCodes),
             lineCode = sequence.commonValidity?.let { validityString(it) } ?: "",
+            lineTraction = sequence.commonLineTraction,
             before = sequence.before.map { it to with(repo) { it.seqConnection() } },
             after = sequence.after.map { it to with(repo) { it.seqConnection() } },
             buses = sequence.buses.map { bus ->
@@ -82,7 +85,7 @@ class SequenceViewModel(
                 BusInSequence(
                     busName = bus.info.connName,
                     stops = bus.stops,
-                    lineNumber = bus.info.line,
+                    lineNumber = bus.info.line.toShortLine(),
                     lowFloor = bus.info.lowFloor,
                     isRunning = false,
                     shouldBeRunning = runningBus?.info?.connName == bus.info.connName && params.date == SystemClock.todayHere() && runsToday,
@@ -97,6 +100,7 @@ class SequenceViewModel(
             date = params.date,
             vehicleNumber = null,
             vehicleName = null,
+            vehicleTraction = null,
         )
     }.asFlow()
 
@@ -168,6 +172,7 @@ class SequenceViewModel(
         info.copy(
             vehicleNumber = downloadedVehicle,
             vehicleName = downloadedVehicle?.let(repo::vehicleName),
+            vehicleTraction = downloadedVehicle?.let { repo.vehicleTraction(it) ?: info.lineTraction },
         ).let { info2 ->
             if (params.date != SystemClock.todayHere()) return@combine info2
             info2.copy(
@@ -182,6 +187,7 @@ class SequenceViewModel(
                     ),
                     vehicleNumber = onlineConn.vehicle ?: info3.vehicleNumber,
                     vehicleName = onlineConn.vehicle?.let(repo::vehicleName) ?: info3.vehicleName,
+                    vehicleTraction = onlineConn.vehicle?.let { repo.vehicleTraction(it) ?: info3.lineTraction } ?: info3.vehicleTraction,
                     buses = info3.buses.map {
                         it.copy(
                             isRunning = it.busName == onlineConn.name
@@ -204,11 +210,21 @@ class SequenceViewModel(
             val state = state.value
             require(state is SequenceState.OK)
             viewModelScope.launch {
-                val doc = Ksoup.parseGetRequest(
-                    if (params.sequence.line().startsWith('5') && params.sequence.line().length == 2 && params.sequence.modifiers().part() == 2)
-                        "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date.minus(1.days)}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
-                    else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
-                )
+                val doc = try {
+                    Ksoup.parseGetRequest(
+                        if (
+                            params.sequence.line().startsWith('5') &&
+                            params.sequence.line().length == 2 &&
+                            params.sequence.modifiers().part() == 2
+                        ) "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date.minus(1.days)}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
+                        else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
+                    )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    recordException(ex)
+                    e.onLost()
+                    return@launch
+                }
                 val data = doc
                     .body()
                     .select("#snippet--table > div > table > tbody")

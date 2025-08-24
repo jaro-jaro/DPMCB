@@ -8,6 +8,8 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,10 +31,13 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.NotAccessible
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
@@ -46,6 +51,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
@@ -78,6 +84,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -91,10 +98,12 @@ import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.asString
 import cz.jaro.dpmcb.data.helperclasses.awaitFrame
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleContainer
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleText
+import cz.jaro.dpmcb.data.helperclasses.isTypeOf
 import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusStop
@@ -106,11 +115,21 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
+import dpmcb.composeapp.generated.resources.Res
+import dpmcb.composeapp.generated.resources.bus
+import dpmcb.composeapp.generated.resources.diesel
+import dpmcb.composeapp.generated.resources.ebus
+import dpmcb.composeapp.generated.resources.hybrid
+import dpmcb.composeapp.generated.resources.parcial
+import dpmcb.composeapp.generated.resources.trolejbus
+import dpmcb.composeapp.generated.resources.zemeplyn
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
@@ -256,6 +275,77 @@ fun backgroundColorFor(contentColor: Color) =
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
+fun VehicleIcon(lineTraction: Traction, vehicleTraction: Traction?, modifier: Modifier = Modifier) {
+    val icon = remember(vehicleTraction, lineTraction) {
+        when (vehicleTraction ?: lineTraction) {
+            Traction.Electro -> Res.drawable.ebus
+            Traction.Hybrid -> Res.drawable.hybrid
+            Traction.PartialTrolleybus -> Res.drawable.parcial
+            Traction.Gas -> Res.drawable.zemeplyn
+            Traction.Diesel if vehicleTraction == null -> Res.drawable.bus
+            Traction.Diesel -> Res.drawable.diesel
+            Traction.Trolleybus -> Res.drawable.trolejbus
+            Traction.Other -> null
+        }
+    }
+    if (icon != null) IconWithTooltip(
+        painter = painterResource(icon),
+        contentDescription = when (vehicleTraction ?: lineTraction) {
+            Traction.Electro -> "Elektrobus"
+            Traction.Hybrid -> "Hybrid"
+            Traction.PartialTrolleybus -> "Parciální trolejbus"
+            Traction.Gas -> "Zeměplynový autobus"
+            Traction.Diesel if vehicleTraction == null -> "Autobus"
+            Traction.Diesel -> "Dieselový autobus"
+            Traction.Trolleybus -> "Trolejbus"
+            Traction.Other -> null
+        },
+        modifier.size(48.dp).padding(horizontal = 8.dp),
+        tint = when {
+            vehicleTraction != null && !vehicleTraction.isTypeOf(lineTraction) ->
+                MaterialTheme.colorScheme.error
+
+            vehicleTraction != null -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurface
+        },
+    )
+}
+
+@Composable
+fun VI(lineTraction: Traction, vehicleTraction: Traction) = Row(verticalAlignment = Alignment.CenterVertically) {
+    VehicleIcon(lineTraction, null)
+    Icon(Icons.AutoMirrored.Default.ArrowRightAlt, null)
+    VehicleIcon(lineTraction, vehicleTraction)
+}
+
+@Preview
+@Composable
+fun IconsPreview() = Surface {
+    Column(Modifier.width(IntrinsicSize.Min)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Icon(Icons.Default.WifiOff, null, Modifier.size(48.dp).padding(horizontal = 8.dp))
+            Icon(Icons.AutoMirrored.Default.ArrowRightAlt, null)
+            Icon(Icons.Default.Wifi, null, Modifier.size(48.dp).padding(horizontal = 8.dp))
+        }
+        VI(Traction.Electro, Traction.Electro)
+        VI(Traction.Electro, Traction.Diesel)
+        VI(Traction.Diesel, Traction.Diesel)
+        VI(Traction.Diesel, Traction.Gas)
+        VI(Traction.Diesel, Traction.Hybrid)
+        VI(Traction.PartialTrolleybus, Traction.PartialTrolleybus)
+        VI(Traction.PartialTrolleybus, Traction.Diesel)
+        VI(Traction.PartialTrolleybus, Traction.Gas)
+        VI(Traction.PartialTrolleybus, Traction.Hybrid)
+        VI(Traction.Trolleybus, Traction.Trolleybus)
+        VI(Traction.Trolleybus, Traction.PartialTrolleybus)
+        VI(Traction.Trolleybus, Traction.Diesel)
+        VI(Traction.Trolleybus, Traction.Gas)
+        VI(Traction.Trolleybus, Traction.Hybrid)
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun Vehicle(vehicle: RegistrationNumber?, name: String?, showInfoButton: Boolean = true) {
     if (vehicle != null) {
         if (name != null) {
@@ -296,6 +386,7 @@ fun DelayBubble(delayMin: Float) {
     }
 }
 
+@Suppress("unused")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun Wheelchair(
@@ -377,6 +468,44 @@ fun IconWithTooltip(
 else
     Icon(
         imageVector = imageVector,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = tint
+    )
+
+@ExperimentalMaterial3Api
+@Composable
+fun IconWithTooltip(
+    painter: Painter,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    tooltipText: String? = contentDescription,
+    tint: Color = LocalContentColor.current,
+) = if (tooltipText != null) TooltipBox(
+    tooltip = {
+        DPMCBTheme(
+            useDarkTheme = LocalIsDarkThemeUsed.current,
+            useDynamicColor = LocalIsDynamicThemeUsed.current,
+            theme = LocalTheme.current ?: Theme.Default,
+        ) {
+            PlainTooltip {
+                Text(text = tooltipText)
+            }
+        }
+    },
+    state = rememberTooltipState(),
+    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+) {
+    Icon(
+        painter = painter,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = tint
+    )
+}
+else
+    Icon(
+        painter = painter,
         contentDescription = contentDescription,
         modifier = modifier,
         tint = tint

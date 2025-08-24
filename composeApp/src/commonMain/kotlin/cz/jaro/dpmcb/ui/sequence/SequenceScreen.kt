@@ -43,7 +43,7 @@ import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.Timetable
 import cz.jaro.dpmcb.ui.common.Vehicle
-import cz.jaro.dpmcb.ui.common.Wheelchair
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -124,12 +124,12 @@ fun SequenceScreen(
                 Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically,) {
                     val i = state.sequenceName.indexOfLast { it == ' ' }
                     Name(state.sequenceName.substring(i), Modifier.weight(1F, fill = false), prefix = state.sequenceName.substring(0, i))
-
-                    if (state.online?.confirmedLowFloor != null) Wheelchair(
-                        lowFloor = state.online.confirmedLowFloor,
-                        confirmedLowFloor = state.online.confirmedLowFloor,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
+                    if (state.lineTraction != null) VehicleIcon(state.lineTraction, state.vehicleTraction)
+//                    if (state.online?.confirmedLowFloor != null) Wheelchair(
+//                        lowFloor = state.online.confirmedLowFloor,
+//                        confirmedLowFloor = state.online.confirmedLowFloor,
+//                        modifier = Modifier.padding(start = 8.dp),
+//                    )
                 }
 
                 DateSelector(
@@ -192,11 +192,11 @@ fun SequenceScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Name("${bus.lineNumber}", suffix = "/${bus.busName.bus()}")
-                                Wheelchair(
-                                    lowFloor = bus.lowFloor,
-                                    confirmedLowFloor = state.online?.confirmedLowFloor?.takeIf { bus.isRunning },
-                                    Modifier.padding(start = 8.dp),
-                                )
+//                                Wheelchair(
+//                                    lowFloor = bus.lowFloor,
+//                                    confirmedLowFloor = state.online?.confirmedLowFloor?.takeIf { bus.isRunning },
+//                                    Modifier.padding(start = 8.dp),
+//                                )
 
                                 Spacer(Modifier.weight(1F))
 

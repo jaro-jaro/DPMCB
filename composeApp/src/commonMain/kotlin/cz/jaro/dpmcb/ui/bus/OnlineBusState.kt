@@ -9,7 +9,6 @@ data class OnlineBusState(
     val onlineTimetable: OnlineTimetable? = null,
     val delay: Duration? = null,
     val vehicleNumber: RegistrationNumber? = null,
-    val vehicleName: String? = null,
     val confirmedLowFloor: Boolean? = null,
     val nextStopTime: LocalTime? = null,
 )
