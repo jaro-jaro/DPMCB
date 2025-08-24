@@ -618,7 +618,11 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         )
 
         if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
-        if (state.online?.running?.vehicle != null) Vehicle(state.online.running.vehicle, showInfoButton = false)
+        if (state.online?.running?.vehicleNumber != null) Vehicle(
+            vehicle = state.online.running.vehicleNumber,
+            name = state.online.running.vehicleName,
+            showInfoButton = false
+        )
         Spacer(Modifier.weight(1F))
         DateSelector(
             date = state.date,

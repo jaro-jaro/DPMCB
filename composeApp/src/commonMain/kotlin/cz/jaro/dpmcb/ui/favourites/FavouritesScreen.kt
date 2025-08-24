@@ -228,7 +228,7 @@ private fun FavouriteState.CardContent(
     ) {
         Name("$line", Modifier.padding(end = 8.dp))
         if (isOnline()) DelayBubble(delay)
-        if (isOnline()) Vehicle(vehicle)
+        if (isOnline()) Vehicle(vehicleNumber, vehicleName)
     }
     if (isOnline() && this.positionOfCurrentStop == -1) this.CurrentStop()
     Stop(
@@ -280,7 +280,8 @@ private val onlinePreviewBus = FavouriteState.Online(
     busName = LongLine(325009) / 92,
     line = LongLine(325009).toShortLine(),
     delay = 1.36F,
-    vehicle = "02".toRegNum(),
+    vehicleNumber = "02".toRegNum(),
+    vehicleName = "Rába",
     originStopName = "Suché Vrbné",
     originStopTime = LocalTime(7, 46),
     currentStopName = "Pětidomí",

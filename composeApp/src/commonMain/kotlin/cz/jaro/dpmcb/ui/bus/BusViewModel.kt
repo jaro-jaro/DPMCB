@@ -158,7 +158,8 @@ class BusViewModel(
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineTimetable = onlineTimetable,
-            vehicle = onlineConn?.vehicle,
+            vehicleNumber = onlineConn?.vehicle,
+            vehicleName = onlineConn?.vehicle?.let(repo::vehicleName),
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
         )
@@ -212,7 +213,8 @@ class BusViewModel(
                 onlineConnStops = onlineState.onlineTimetable.stops,
                 running = if (onlineState.delay != null || onlineState.nextStopTime != null) BusState.RunningState(
                     delayMin = onlineState.delay?.inWholeSeconds?.div(60F),
-                    vehicle = onlineState.vehicle,
+                    vehicleNumber = onlineState.vehicleNumber,
+                    vehicleName = onlineState.vehicleName,
                     confirmedLowFloor = onlineState.confirmedLowFloor,
                     nextStopIndex = (traveledSegments ?: 0) + 1
                     //onlineState.onlineTimetable.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },
