@@ -2,7 +2,7 @@ package cz.jaro.dpmcb
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.ComposeViewport
+import androidx.compose.ui.window.CanvasBasedWindow
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.StorageSettings
 import com.russhwolf.settings.observable.makeObservable
@@ -91,7 +91,7 @@ fun main() = try {
     val link = window.location.hash.removePrefix("#") + window.location.search
     onWasmReady {
         setAppTitle("Lepší DPMCB")
-        ComposeViewport {
+        CanvasBasedWindow {
             CompositionLocalProvider(
                 LocalKoinApplication provides koinApp.koin,
                 LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
