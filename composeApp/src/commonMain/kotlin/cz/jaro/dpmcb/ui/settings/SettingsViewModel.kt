@@ -39,7 +39,7 @@ class SettingsViewModel(
                     traction = repo.lineTraction(it.number, it.vehicleType),
                     hasRestriction = it.hasRestriction,
                 )
-            },
+            }.sortedWith(compareBy<LineTable> { it.shortNumber }.thenBy { it.validFrom }.thenBy { it.hasRestriction }),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false, emptyList()))
 

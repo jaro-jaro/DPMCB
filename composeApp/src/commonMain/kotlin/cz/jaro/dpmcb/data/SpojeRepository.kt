@@ -582,13 +582,13 @@ class SpojeRepository(
         preferenceDataSource.changeVersion(version)
 
         val insertChunkFunctions = listOf(
-            connStops.chunked(1000).map { suspend { ds.insertConnStops(it) } },
-            stops.chunked(1000).map { suspend { ds.insertStops(it) } },
-            timeCodes.chunked(1000).map { suspend { ds.insertTimeCodes(it) } },
-            lines.chunked(1000).map { suspend { ds.insertLines(it) } },
-            conns.chunked(1000).map { suspend { ds.insertConns(it) } },
-            seqGroups.chunked(1000).map { suspend { ds.insertSeqGroups(it) } },
-            seqOfConns.chunked(1000).map { suspend { ds.insertSeqOfConns(it) } },
+            ds.insertConnStops(connStops),
+            ds.insertStops(stops),
+            ds.insertTimeCodes(timeCodes),
+            ds.insertLines(lines),
+            ds.insertConns(conns),
+            ds.insertSeqGroups(seqGroups),
+            ds.insertSeqOfConns(seqOfConns),
         ).flatten()
         val chunkCount = insertChunkFunctions.size.toFloat()
 

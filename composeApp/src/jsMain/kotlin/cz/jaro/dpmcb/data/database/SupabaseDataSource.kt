@@ -90,6 +90,9 @@ class SupabaseDataSource(
 //            .work { "$table returned ${decodeAs<JsonElement>()}" }
     }
 
+    private inline fun <reified T : Any> insertAll(rows: List<T>) =
+        rows.chunked(1000).map { suspend { insert(it) } }
+
     private suspend inline fun <reified T : Any> insert(rows: List<T>) {
         val modified = rows.map {
             it.toJsonElement(supabaseSerializer(), json)
@@ -134,8 +137,16 @@ class SupabaseDataSource(
     override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String> =
         query("nextStops", mapOf("lineA" to line.j, "thisStop" to thisStop.s, "tabA" to tab.j)).decodeColumnFromTable("stopname")
 
-    override suspend fun connStopsOnLineWithNextStopAtDate(stop: String, nextStop: String, date: LocalDate, tab: Table): List<CoreBusInTimetable> =
-        query("connStopsOnLineWithNextStopAtDate", mapOf("stop" to stop.s, "nextStop" to nextStop.s, "date" to date.s, "tabA" to tab.s)).decodeObjectList()
+    override suspend fun connStopsOnLineWithNextStopAtDate(
+        stop: String,
+        nextStop: String,
+        date: LocalDate,
+        tab: Table,
+    ): List<CoreBusInTimetable> =
+        query(
+            "connStopsOnLineWithNextStopAtDate",
+            mapOf("stop" to stop.s, "nextStop" to nextStop.s, "date" to date.s, "tabA" to tab.s)
+        ).decodeObjectList()
 
     override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> =
         query("stopNamesOfLine", mapOf("lineA" to line.j, "tabA" to tab.s)).decodeColumnFromTable("stopname")
@@ -176,7 +187,10 @@ class SupabaseDataSource(
         groups: List<SequenceGroup>,
         tabs: List<Table>,
     ): Map<SequenceCode, Map<BusName, LocalTime>> =
-        query("lastStopTimesOfConnsInSequences", mapOf("todayRunningSequences" to todayRunningSequences.l, "groups" to groups.l, "tabs" to tabs.l))
+        query(
+            "lastStopTimesOfConnsInSequences",
+            mapOf("todayRunningSequences" to todayRunningSequences.l, "groups" to groups.l, "tabs" to tabs.l)
+        )
             .decodeAs<JsonArray>()
             .groupBy { it.jsonObject.getValue("sequence").fromJsonElement<SequenceCode>() }
             .mapValues { it1 ->
@@ -185,7 +199,11 @@ class SupabaseDataSource(
                     .mapValues { it.value.single().jsonObject.getValue("time_").fromJsonElement<LocalTime>() }
             }
 
-    override suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusOfNowRunning, List<StopOfNowRunning>> =
+    override suspend fun nowRunningBuses(
+        connNames: List<BusName>,
+        groups: List<SequenceGroup>,
+        tabs: List<Table>,
+    ): Map<BusOfNowRunning, List<StopOfNowRunning>> =
         query("nowRunningBuses", mapOf("connNames" to connNames.l, "groups" to groups.l, "tabs" to tabs.l))
             .decodeAs<JsonArray>()
             .groupBy({ it.fromJsonElement(supabaseSerializer<BusOfNowRunning>(), json) }, { it.fromJsonElement<StopOfNowRunning>(json) })
@@ -197,7 +215,9 @@ class SupabaseDataSource(
             .decodeAs<JsonArray>()
             .groupBy { it.fromJsonElement<TimeOfSequence>(json) }
             .mapValues { it1 ->
-                it1.value.groupBy({ it.jsonObject.getValue("connname").fromJsonElement<BusName>() }, { it.fromJsonElement(supabaseSerializer<CodesOfBus>(), json) })
+                it1.value.groupBy(
+                    { it.jsonObject.getValue("connname").fromJsonElement<BusName>() },
+                    { it.fromJsonElement(supabaseSerializer<CodesOfBus>(), json) })
             }
 
     override suspend fun oneDirectionLines(): List<LongLine> =
@@ -232,14 +252,11 @@ class SupabaseDataSource(
     override suspend fun allSequences(): List<SequenceCode> =
         query("allSequences").decodeColumnFromTable("sequence")
 
-    override suspend fun insertConnStops(connStops: List<ConnStop>) = insert(connStops)
-    override suspend fun insertStops(stops: List<Stop>) = insert(stops)
-    override suspend fun insertTimeCodes(timeCodes: List<TimeCode>) = insert(timeCodes)
-    override suspend fun insertLines(lines: List<Line>) = insert(lines)
-    override suspend fun insertConns(conns: List<Conn>) = insert(conns)
-    override suspend fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>) = insert(seqsOfBuses)
-    override suspend fun insertSeqGroups(seqGroups: List<SeqGroup>) = insert(seqGroups)
+    override fun insertConnStops(connStops: List<ConnStop>) = insertAll(connStops)
+    override fun insertStops(stops: List<Stop>) = insertAll(stops)
+    override fun insertTimeCodes(timeCodes: List<TimeCode>) = insertAll(timeCodes)
+    override fun insertLines(lines: List<Line>) = insertAll(lines)
+    override fun insertConns(conns: List<Conn>) = insertAll(conns)
+    override fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>) = insertAll(seqsOfBuses)
+    override fun insertSeqGroups(seqGroups: List<SeqGroup>) = insertAll(seqGroups)
 }
-
-inline fun <K1, V1, K2, V2> Map<out K1, V1>.mapEntries(transformKey: (K1) -> K2, transformValue: (V1) -> V2): Map<K2, V2> =
-    mapValues { transformValue(it.value) }.mapKeys { transformKey(it.key) }
