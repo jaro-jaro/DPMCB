@@ -33,6 +33,7 @@ import org.koin.compose.LocalKoinApplication
 import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
 import org.koin.dsl.module
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)
 fun main() = try {
@@ -58,6 +59,7 @@ fun main() = try {
             ) {
                 install(Postgrest)
 //                install(Auth)
+                requestTimeout = 20.seconds
             }.also {
                 CoroutineScope(Dispatchers.Default).launch {
 //                    it.auth.signInAnonymously()

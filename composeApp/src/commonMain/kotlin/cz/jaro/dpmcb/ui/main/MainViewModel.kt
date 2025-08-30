@@ -104,7 +104,7 @@ class MainViewModel(
     ) = params.link?.let {
         val link = params.link.removePrefix("/#")
         if (link == "app-details") detailsOpener.openAppDetails()
-        if (link == "update") superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
+        if (link == "update") return@let superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
         viewModelScope.launch(Dispatchers.IO) {
             val url = encodeLink(link)
             while (navGraph() == null) Unit
