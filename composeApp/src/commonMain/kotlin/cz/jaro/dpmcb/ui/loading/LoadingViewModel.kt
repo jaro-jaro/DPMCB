@@ -22,9 +22,8 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
-import cz.jaro.dpmcb.data.entities.types.Direction
-import cz.jaro.dpmcb.data.entities.types.Direction.Companion.invoke
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.toDirection
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -50,8 +49,10 @@ import dev.gitlive.firebase.remoteconfig.remoteConfig
 import dev.gitlive.firebase.storage.StorageReference
 import dev.gitlive.firebase.storage.storage
 import io.github.z4kn4fein.semver.toVersion
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -69,6 +70,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
+@DslMarker
+private annotation class TimetableProcessing
+
 @OptIn(ExperimentalTime::class)
 class LoadingViewModel(
     private val repo: SpojeRepository,
@@ -76,6 +80,7 @@ class LoadingViewModel(
     private val firebase: FirebaseApp,
     private val params: Parameters,
 ) : ViewModel() {
+
     data class Parameters(
         val update: Boolean,
         val link: String?,
@@ -123,7 +128,7 @@ class LoadingViewModel(
             }
 
             if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
-                downloadNewData() ?: return@launch
+                downloadNewData(this) ?: return@launch
             }
 
             try {
@@ -215,7 +220,9 @@ class LoadingViewModel(
         }
     }
 
-    private suspend fun downloadNewData(): Unit? {
+    private suspend fun downloadNewData(
+        scope: CoroutineScope,
+    ): Unit? {
 
         if (!repo.isOnline()) {
             _state.value = LoadingState.Offline
@@ -261,7 +268,8 @@ class LoadingViewModel(
             repo.reset()
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)",
+                progress = 0F,
             )
 
             val sequencesRef = storage.reference.child("kurzy3.json")
@@ -271,7 +279,8 @@ class LoadingViewModel(
             val json = downloadText(dataRef)
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)",
+                progress = 0F,
             )
 
             val json2 = downloadText(sequencesRef)
@@ -293,12 +302,18 @@ class LoadingViewModel(
             resetRemoteConfig()
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/$m)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/$m)",
+                progress = 0F,
             )
 
-            val data: Map<Table, Map<String, List<List<String>>>> = Json.decodeFromString(json)
+            val data: Map<Table, Map<TableType, List<List<String>>>> = Json.decodeFromString(json)
 
-            data.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            data.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
+                _state.update {
+                    require(it is LoadingState.Loading)
+                    it.copy(progress = progress)
+                }
+            }) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -347,15 +362,25 @@ class LoadingViewModel(
 
             val manyChanges = Json.parseToJsonElement(json).jsonObject
 
-            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<Table, Map<String, List<List<String>>>>>()
+            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<Table, Map<TableType, List<List<String>>>>>()
             val minus = manyChanges["-"]!!.jsonArray.toString().fromJson<List<Table>>()
-            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<Table, Map<String, List<List<String>>>>>()
+            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<Table, Map<TableType, List<List<String>>>>>()
             val changeDiagram = manyChanges["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
 
             val minusTables = minus
-                .map { Table(LongLine(it.value.substringBefore('-').toInt() + 325_000), it.number()) } // TODO: Nezávislost dat na předčíslí linky
+                .map {
+                    Table(
+                        LongLine(it.value.substringBefore('-').toInt() + 325_000),
+                        it.number()
+                    )
+                } // TODO: Nezávislost dat na předčíslí linky
             val changedTables = changes
-                .map { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
+                .map {
+                    Table(
+                        LongLine(it.key.value.substringBefore('-').toInt() + 325_000),
+                        it.key.number()
+                    )
+                } // TODO: Nezávislost dat na předčíslí linky
 
             connStops.addAll(repo.connStops())
             stops.addAll(repo.stops())
@@ -387,7 +412,8 @@ class LoadingViewModel(
             _state.update { require(it is LoadingState.Loading); it.copy(progress = 5 / 5F) }
 
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)", progress = 0F,
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)",
+                progress = 0F,
             )
 
             val json2 = downloadText(sequencesRef)
@@ -407,7 +433,12 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            plus.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            plus.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
+                _state.update {
+                    require(it is LoadingState.Loading)
+                    it.copy(progress = progress)
+                }
+            }) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -428,7 +459,12 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            changes.extractData(seqOfConns.map { it.line / it.connNumber }.distinct()) {
+            changes.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
+                _state.update {
+                    require(it is LoadingState.Loading)
+                    it.copy(progress = progress)
+                }
+            }) {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -498,146 +534,167 @@ class LoadingViewModel(
         remoteConfig.fetchAndActivate()
     }
 
-    private inline fun Map<Table, Map<String, List<List<String>>>>.extractData(
-        connsWithSequence: List<BusName>,
-        addConnToSequence: (conn: Conn) -> Unit,
-    ): List<Quintuple<MutableList<ConnStop>, MutableList<TimeCode>, MutableList<Stop>, MutableList<Line>, MutableList<Conn>>> {
-
-        val rowsCount = this
-            .toList()
-            .flatMap { it0 ->
-                it0.second.flatMap {
-                    it.value
-                }
-            }
-            .count()
-
-        var rowindex = 0F
-
-        return this
-            .mapKeys { Table(LongLine(it.key.value.substringBefore('-').toInt() + 325_000), it.key.number()) } // TODO: Nezávislost dat na předčíslí linky
-            .map { (tab, dataLinky) ->
-                val connStopsOfTable: MutableList<ConnStop> = mutableListOf()
-                val timeCodesOfTable: MutableList<TimeCode> = mutableListOf()
-                val stopsOfTable: MutableList<Stop> = mutableListOf()
-                val linesOfTable: MutableList<Line> = mutableListOf()
-                val connsOfTable: MutableList<Conn> = mutableListOf()
-                val fixedCodesOfTable: MutableMap<String, String> = mutableMapOf()
-
-                dataLinky
-                    .toList()
-                    .sortedBy { (tableType, _) ->
-                        TableType.entries.indexOf(TableType.valueOf(tableType))
-                    }
-                    .forEach { (typTabulky, table) ->
-                        table.forEach radek@{ row ->
-                            rowindex++
-
-                            _state.update {
-                                require(it is LoadingState.Loading)
-                                it.copy(progress = rowindex / rowsCount)
-                            }
-
-                            when (TableType.valueOf(typTabulky)) {
-                                TableType.Zasspoje -> connStopsOfTable += ConnStop(
-                                    line = row[0].toLongLine(),
-                                    connNumber = row[1].toInt(),
-                                    stopIndexOnLine = row[2].toInt(),
-                                    stopNumber = row[3].toInt(),
-                                    kmFromStart = row[9].ifEmpty { null }?.toInt() ?: return@radek,
-                                    arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
-                                    departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
-                                    tab = tab,
-                                    fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
-                                        fixedCodesOfTable[it] ?: it
-                                    },
-                                )
-
-                                TableType.Zastavky -> stopsOfTable += Stop(
-                                    line = row[0].toLongLine(),
-                                    stopNumber = row[1].toInt(),
-                                    stopName = row[2],
-                                    fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
-                                        fixedCodesOfTable[it] ?: it
-                                    },
-                                    tab = tab,
-                                )
-
-                                TableType.Caskody -> {
-                                    val type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun
-                                    timeCodesOfTable += TimeCode(
-                                        line = row[0].toLongLine(),
-                                        connNumber = row[1].toInt(),
-                                        code = row[3].toInt(),
-                                        termIndex = row[2].toInt(),
-                                        type = type,
-                                        validFrom = row[5].toDateWeirdly(),
-                                        validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
-                                        tab = tab,
-                                    )
-                                }
-
-                                TableType.Linky -> linesOfTable += Line(
-                                    number = row[0].toLongLine(),
-                                    route = row[1],
-                                    vehicleType = Json.decodeFromString("\"${row[4]}\""),
-                                    lineType = Json.decodeFromString("\"${row[3]}\""),
-                                    hasRestriction = row[5] != "0",
-                                    validFrom = row[13].toDateWeirdly(),
-                                    validTo = row[14].toDateWeirdly(),
-                                    tab = tab,
-                                )
-
-                                TableType.Spoje -> {
-                                    connsOfTable += Conn(
-                                        line = row[0].toLongLine(),
-                                        connNumber = row[1].toInt(),
-                                        fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
-                                            fixedCodesOfTable[it] ?: it
-                                        },
-                                        direction = connStopsOfTable
-                                            .filter { it.connNumber == row[1].toInt() }
-                                            .sortedBy { it.stopIndexOnLine }
-                                            .filter { it.time != null }
-                                            .let { stops ->
-                                                Direction.invoke(stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart)
-                                            },
-                                        tab = tab,
-                                    ).also { conn ->
-                                        val type =
-                                            if (timeCodesOfTable.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun
-                                        timeCodesOfTable += TimeCode(
-                                            line = conn.line,
-                                            connNumber = conn.connNumber,
-                                            code = -1,
-                                            termIndex = 0,
-                                            type = type,
-                                            validFrom = noCode,
-                                            validTo = noCode,
-                                            tab = conn.tab,
-                                        )
-                                        if (conn.name !in connsWithSequence) addConnToSequence(conn)
-                                    }
-                                }
-
-                                TableType.Pevnykod -> {
-                                    fixedCodesOfTable += row[0] to row[1]
-                                }
-
-                                TableType.Zaslinky -> Unit
-                                TableType.VerzeJDF -> Unit
-                                TableType.Dopravci -> Unit
-                                TableType.LinExt -> Unit
-                                TableType.Udaje -> Unit
-                            }
-                        }
-                    }
-                Quintuple(connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable)
-            }
-    }
 }
 
+@TimetableProcessing
+private suspend inline fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
+    connsWithSequence: List<BusName>,
+    scope: CoroutineScope,
+    noinline progress: (Float) -> Unit,
+    crossinline addConnToSequence: (conn: Conn) -> Unit,
+): List<Quintuple<List<ConnStop>, List<TimeCode>, List<Stop>, List<Line>, List<Conn>>> {
+    val data = mapKeys { (key) ->
+        Table(LongLine(key.value.substringBefore('-').toInt() + 325_000), key.number()) // TODO: Nezávislost dat na předčíslí linky
+    }
 
+    val commonProgress = data.mapValues { 0F }.toMutableMap()
+
+    return data.map { (tab, lineData) ->
+        scope.async {
+
+            val rows = lineData.values.flatten().maxOf { it.count() }.toFloat()
+            val completed = lineData.mapValues { 0 }.toMutableMap()
+
+            @TimetableProcessing
+            fun <T> processTable(
+                type: TableType,
+                processRow: (List<String>) -> T,
+            ) = scope.async {
+                lineData
+                    .getOrElse(type) {
+                        error("$type not found in the table $tab, available tables are: ${lineData.keys.joinToString()}")
+                    }
+                    .mapIndexed { rowIndex, row ->
+                        processRow(row).also {
+                            completed[type] = rowIndex + 1
+                            commonProgress[tab] = completed.values.sum() / rows
+                            progress(commonProgress.values.average().toFloat())
+                        }
+                    }
+                    .filterNotNull()
+            }
+
+            val fixedCodesA = processTable(TableType.Pevnykod) { row ->
+                row[0] to row[1]
+            }
+
+            val timeCodesA = processTable(TableType.Caskody) { row ->
+                val type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun
+                TimeCode(
+                    line = row[0].toLongLine(),
+                    connNumber = row[1].toInt(),
+                    code = row[3].toInt(),
+                    termIndex = row[2].toInt(),
+                    type = type,
+                    validFrom = row[5].toDateWeirdly(),
+                    validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
+                    tab = tab,
+                )
+            }
+
+            processTable(TableType.Zaslinky) {}
+
+            val fixedCodes = fixedCodesA.await().toMap()
+            val timeCodes = timeCodesA.await()
+
+            val connStopsA = processTable(TableType.Zasspoje) { row ->
+                ConnStop(
+                    line = row[0].toLongLine(),
+                    connNumber = row[1].toInt(),
+                    stopIndexOnLine = row[2].toInt(),
+                    stopNumber = row[3].toInt(),
+                    kmFromStart = row[9].ifEmpty { return@processTable null }.toInt(),
+                    arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
+                    departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
+                    tab = tab,
+                    fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
+                        fixedCodes[it] ?: it
+                    },
+                )
+            }
+
+            val stopsA = processTable(TableType.Zastavky) { row ->
+                Stop(
+                    line = row[0].toLongLine(),
+                    stopNumber = row[1].toInt(),
+                    stopName = row[2],
+                    fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                        fixedCodes[it] ?: it
+                    },
+                    tab = tab,
+                )
+            }
+
+            val linesA = processTable(TableType.Linky) { row ->
+                Line(
+                    number = row[0].toLongLine(),
+                    route = row[1],
+                    vehicleType = Json.decodeFromString("\"${row[4]}\""),
+                    lineType = Json.decodeFromString("\"${row[3]}\""),
+                    hasRestriction = row[5] != "0",
+                    validFrom = row[13].toDateWeirdly(),
+                    validTo = row[14].toDateWeirdly(),
+                    tab = tab,
+                )
+            }
+
+            val connStops = connStopsA.await()
+
+            val connsA = processTable(TableType.Spoje) { row ->
+                Conn(
+                    line = row[0].toLongLine(),
+                    connNumber = row[1].toInt(),
+                    fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                        fixedCodes[it] ?: it
+                    },
+                    direction = connStops
+                        .filter { it.connNumber == row[1].toInt() }
+                        .sortedBy { it.stopIndexOnLine }
+                        .filter { it.time != null }
+                        .let { stops ->
+                            (stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart).toDirection()
+                        },
+                    tab = tab,
+                )
+            }
+
+            processTable(TableType.LinExt) {}
+            processTable(TableType.Dopravci) {}
+            processTable(TableType.Udaje) {}
+//            processTable(TableType.VerzeJDF) {}
+
+            val conns = connsA.await()
+
+            val blankTimeCodes = conns.map { conn ->
+                val type =
+                    if (timeCodes.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun
+                TimeCode(
+                    line = conn.line,
+                    connNumber = conn.connNumber,
+                    code = -1,
+                    termIndex = 0,
+                    type = type,
+                    validFrom = noCode,
+                    validTo = noCode,
+                    tab = conn.tab,
+                )
+            }
+
+            conns.forEach { conn ->
+                if (conn.name !in connsWithSequence) addConnToSequence(conn)
+            }
+
+            val stops = stopsA.await()
+            val lines = linesA.await()
+
+            Quintuple(connStops, timeCodes + blankTimeCodes, stops, lines, conns)
+//            Quintuple(listOf<ConnStop>(), listOf<TimeCode>(), listOf<Stop>(), listOf<Line>(), listOf<Conn>())
+        }
+    }
+        .awaitAll()
+}
+
+@TimetableProcessing
 private fun Map<SequenceGroup, LoadingViewModel.Group>.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
     map { (group, groupData) ->
         SeqGroup(

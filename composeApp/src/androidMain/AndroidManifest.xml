@@ -40,15 +40,14 @@
             </intent-filter>
             <intent-filter
                 android:autoVerify="true"
-                android:label="Lepší DPMCB spoj Deeplink">
+                android:label="Lepší DPMCB Deeplink">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="http" />
-                <data android:host="jaro-jaro.github.io" />
-                <data android:pathPrefix="/DPMCB" />
+                <data android:host="dpmcb-jaro.web.app" />
                 <data android:scheme="https" />
             </intent-filter>
         </activity>

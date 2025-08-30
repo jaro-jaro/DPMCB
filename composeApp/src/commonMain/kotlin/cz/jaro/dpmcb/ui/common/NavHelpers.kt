@@ -12,6 +12,7 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.serialization.decodeArguments
 import androidx.navigation.serialization.generateRouteWithArgs
 import androidx.navigation.toRoute
+import cz.jaro.dpmcb.data.AppState.APP_URL
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.typeMap
@@ -28,7 +29,7 @@ inline fun <reified T : Route> NavGraphBuilder.route(
         typeMap = typeMap<T>(),
         deepLinks = listOf(
             navDeepLink<T>(
-                basePath = "https://jaro-jaro.github.io/DPMCB/${T::class.serializer().descriptor.serialName}",
+                basePath = "${APP_URL}${T::class.serializer().descriptor.serialName}",
                 typeMap = typeMap<T>(),
             )
         ),

@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.AppState.APP_URL
 import cz.jaro.dpmcb.ui.bus.BroadcastReceiver
 
 actual fun supportsSharing() = true
@@ -37,8 +38,8 @@ actual val screenShareManager: ScreenShareManager
         }
 
         return ScreenShareManager { state ->
-            val deeplink = "https://jaro-jaro.github.io/DPMCB/${AppState.route}"
-            deeplink2 = "https://jaro-jaro.github.io/DPMCB/${AppState.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
+            val deeplink = "${APP_URL}${AppState.route}"
+            deeplink2 = "${APP_URL}${AppState.route.replace(localDateTypePair.second.serializeAsValue(state.date), "T")}"
             ctx.startActivity(Intent.createChooser(Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, deeplink)

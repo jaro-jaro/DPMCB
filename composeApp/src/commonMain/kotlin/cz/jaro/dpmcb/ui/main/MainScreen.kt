@@ -227,12 +227,12 @@ fun Main(
     val navigator = rememberNavigator(navController)
 
     LaunchedEffect(Unit) {
+        viewModel.navigator = navigator
+        viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.confirmDeeplink(
             confirmDeeplink(navController, scope, drawerState),
             navController.navGraphOrNull(),
         )
-        viewModel.navigator = navigator
-        viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.updateDrawerState = { mutate ->
             val newValue = mutate(drawerState.isOpen)
             scope.launch(Dispatchers.Main) {

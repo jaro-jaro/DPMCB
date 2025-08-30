@@ -103,7 +103,7 @@ fun TimetableScreen(
                 fontSize = 30.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.weight(1F))
 
             DateSelector(
                 date = state.date,

@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.bus
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cz.jaro.dpmcb.data.AppState.APP_URL
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -66,7 +67,7 @@ class BusViewModel(
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = validityString(validity),
-                deeplink = "https://jaro-jaro.github.io/DPMCB/bus/$serializedDate/$busName",
+                deeplink = "${APP_URL}bus/$serializedDate/$busName",
             )
         }
 

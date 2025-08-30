@@ -11,4 +11,6 @@ object AppState {
     var title by mutableStateOf("Lepší DPMCB")
     var selected by mutableStateOf(null as DrawerAction?)
     var menuState by mutableStateOf(DrawerValue.Closed)
+
+    const val APP_URL = "https://dpmcb-jaro.web.app/#"
 }

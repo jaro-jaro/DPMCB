@@ -78,6 +78,8 @@ import dev.gitlive.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -578,7 +580,7 @@ class SpojeRepository(
         seqOfConns: List<SeqOfConn>,
         version: Int,
         progress: (Float) -> Unit,
-    ) {
+    ) = coroutineScope {
         preferenceDataSource.changeVersion(version)
 
         val insertChunkFunctions = listOf(
@@ -592,10 +594,14 @@ class SpojeRepository(
         ).flatten()
         val chunkCount = insertChunkFunctions.size.toFloat()
 
-        insertChunkFunctions.forEachIndexed { i, insertChunk ->
-            progress(i / chunkCount)
-            insertChunk()
-        }
+        var completed = 0
+
+        insertChunkFunctions.mapIndexed { i, insertChunk ->
+            async {
+                insertChunk()
+                progress(++completed / chunkCount)
+            }
+        }.awaitAll()
     }
 
     val needsToDownloadData get() = ds.needsToDownloadData

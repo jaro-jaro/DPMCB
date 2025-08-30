@@ -40,6 +40,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import cz.jaro.dpmcb.MainActivity
 import cz.jaro.dpmcb.R
+import cz.jaro.dpmcb.data.AppState.APP_URL
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -214,7 +215,7 @@ class OblibeneWidget : GlanceAppWidget() {
     ) {
         val action = actionStartActivity(Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = "https://jaro-jaro.github.io/DPMCB/bus/${state.spojId}".toUri()
+            data = "${APP_URL}bus/${state.spojId}".toUri()
         })
 
         Row(

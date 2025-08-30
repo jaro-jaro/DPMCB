@@ -93,10 +93,9 @@ fun LoadingScreen(
                 Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DownloadButton(onEvent)
                 val time by nowFlow.collectAsStateWithLifecycle()
                 Text(
                     text = "${time.hour.two()}:${time.minute.two()}:${time.second.two()}",

@@ -102,9 +102,10 @@ class MainViewModel(
         confirmDeeplink: (String) -> Unit,
         navGraph: () -> NavGraph?,
     ) = params.link?.let {
+        val link = params.link.removePrefix("/#")
+        if (link == "app-details") detailsOpener.openAppDetails()
+        if (link == "update") superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
         viewModelScope.launch(Dispatchers.IO) {
-            val link = params.link.removePrefix("/DPMCB/")
-            if (link == "app-details") detailsOpener.openAppDetails()
             val url = encodeLink(link)
             while (navGraph() == null) Unit
             try {

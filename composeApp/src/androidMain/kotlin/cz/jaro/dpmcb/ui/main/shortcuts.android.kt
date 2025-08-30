@@ -10,6 +10,7 @@ import androidx.core.net.toUri
 import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.AppState.APP_URL
 
 actual fun supportsShortcuts() = true
 
@@ -32,7 +33,7 @@ actual val shortcutCreator: ShortcutCreator
                             ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                         )
                     )
-                    .setIntent(Intent(Intent.ACTION_VIEW, "https://jaro-jaro.github.io/DPMCB/$route".toUri()))
+                    .setIntent(Intent(Intent.ACTION_VIEW, "${APP_URL}$route".toUri()))
                     .build()
 
                 shortcutManager.requestPinShortcut(pinShortcutInfo, null)
