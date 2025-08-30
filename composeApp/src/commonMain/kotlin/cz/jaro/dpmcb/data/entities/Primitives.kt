@@ -1,7 +1,11 @@
+@file:OptIn(InternalAPI::class)
+
 package cz.jaro.dpmcb.data.entities
 
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
+import io.ktor.utils.io.InternalAPI
+import io.ktor.utils.io.JvmSerializable
 import kotlinx.serialization.Serializable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -35,7 +39,7 @@ typealias BusNumber = Int
 
 @Serializable
 @JvmInline
-value class BusName(val value: String) {
+value class BusName(val value: String) : JvmSerializable {
     override fun toString() = value
 }
 

@@ -191,8 +191,6 @@ class SpojeRepository(
 
     val settings = preferenceDataSource.settings
 
-    val showLowFloor = preferenceDataSource.lowFloor
-
     val showDeparturesOnly = preferenceDataSource.departures
 
     val favourites = preferenceDataSource.favourites
@@ -396,7 +394,6 @@ class SpojeRepository(
             .groupBy {
                 BusInTimetable(
                     departure = it.departure,
-                    lowFloor = it.lowFloor,
                     busName = it.connName,
                     destination = it.destination,
                 )
@@ -617,10 +614,6 @@ class SpojeRepository(
 
     fun editSettings(update: (Settings) -> Settings) {
         preferenceDataSource.changeSettings(update)
-    }
-
-    fun changeLowFloor(value: Boolean) {
-        preferenceDataSource.changeLowFloor(value)
     }
 
     fun changeDepartures(value: Boolean) {

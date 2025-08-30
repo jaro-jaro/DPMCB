@@ -8,7 +8,7 @@ import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 
@@ -30,14 +30,13 @@ class TimetableViewModel(
         repo.timetable(params.lineNumber, params.stop, params.nextStop, params.date).sortedBy { it.departure }
     }.asFlow()
 
-    val state = list.combine(repo.showLowFloor) { list, showLowFloor ->
+    val state = list.map { list ->
         TimetableState.Success(
             data = list,
             date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
             nextStop = params.nextStop,
-            showLowFloorFromLastTime = showLowFloor,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -47,7 +46,6 @@ class TimetableViewModel(
             lineNumber = params.lineNumber,
             stop = params.stop,
             nextStop = params.nextStop,
-            showLowFloorFromLastTime = false,
         )
     )
 
@@ -60,7 +58,6 @@ class TimetableViewModel(
                 date = e.date,
             )
         )
-        is TimetableEvent.EditShowLowFloor -> repo.changeLowFloor(e.value)
         is TimetableEvent.GoToBus -> navigator.navigate(
             Route.Bus(
                 date = params.date,

@@ -8,14 +8,12 @@ sealed interface TimetableState {
     val lineNumber: ShortLine
     val stop: String
     val nextStop: String
-    val showLowFloorFromLastTime: Boolean
     val date: LocalDate
     data class Loading(
         override val date: LocalDate,
         override val lineNumber: ShortLine,
         override val stop: String,
         override val nextStop: String,
-        override val showLowFloorFromLastTime: Boolean,
     ) : TimetableState
     data class Success(
         val data: List<BusInTimetable>,
@@ -23,6 +21,5 @@ sealed interface TimetableState {
         override val lineNumber: ShortLine,
         override val stop: String,
         override val nextStop: String,
-        override val showLowFloorFromLastTime: Boolean,
     ) : TimetableState
 }

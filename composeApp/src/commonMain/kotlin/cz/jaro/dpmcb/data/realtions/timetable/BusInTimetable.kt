@@ -5,7 +5,6 @@ import kotlinx.datetime.LocalTime
 
 data class BusInTimetable(
     val departure: LocalTime,
-    val lowFloor: Boolean,
     val busName: BusName,
     val destination: String,
 )

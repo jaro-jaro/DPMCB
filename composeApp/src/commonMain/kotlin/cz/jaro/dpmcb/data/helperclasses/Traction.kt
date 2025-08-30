@@ -16,8 +16,14 @@ enum class Traction {
 
     @SerialName("gas")
     Gas,
+
+    @SerialName("diesel")
     Diesel,
+
+    @SerialName("trolley")
     Trolleybus,
+
+    @SerialName("other")
     Other,
 }
 

@@ -6,5 +6,4 @@ import kotlinx.datetime.LocalDate
 sealed interface TimetableEvent {
     data class GoToBus(val bus: BusName) : TimetableEvent
     data class ChangeDate(val date: LocalDate) : TimetableEvent
-    data class EditShowLowFloor(val value: Boolean) : TimetableEvent
 }

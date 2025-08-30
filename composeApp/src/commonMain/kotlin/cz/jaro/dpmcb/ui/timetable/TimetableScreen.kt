@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.timetable
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -34,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -107,28 +104,6 @@ fun TimetableScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "${state.stop} -> ${state.nextStop}",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        var showLowFloor by remember(state.showLowFloorFromLastTime) { mutableStateOf(state.showLowFloorFromLastTime) }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(checked = showLowFloor, onCheckedChange = {
-                showLowFloor = it
-                onEvent(TimetableEvent.EditShowLowFloor(it))
-            })
-            Text("Zobrazit nízkopodlažnost", Modifier.clickable {
-                showLowFloor = !showLowFloor
-                onEvent(TimetableEvent.EditShowLowFloor(showLowFloor))
-            })
-
-            Spacer(Modifier.weight(1F))
 
             DateSelector(
                 date = state.date,
@@ -137,6 +112,12 @@ fun TimetableScreen(
                 }
             )
         }
+
+        Text(
+            text = "${state.stop} -> ${state.nextStop}",
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary,
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -183,7 +164,6 @@ fun TimetableScreen(
                         DepartureRow(
                             onEvent = onEvent,
                             result = state.data.filter { it.departure.hour == h },
-                            showLowFloor = showLowFloor,
                         )
                     }
                 }
@@ -199,7 +179,6 @@ fun TimetableScreen(
 fun ColumnScope.DepartureRow(
     onEvent: (TimetableEvent) -> Unit,
     result: List<BusInTimetable>,
-    showLowFloor: Boolean,
 ) {
     Row(
         modifier = Modifier.weight(1F),
@@ -213,7 +192,7 @@ fun ColumnScope.DepartureRow(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Normal
             )
-        result.forEach { (time, lowFloor, busName, destination) ->
+        result.forEach { (time, busName, destination) ->
             var showDropDown by rememberSaveable { mutableStateOf(false) }
             DropdownMenu(
                 expanded = showDropDown,
@@ -252,15 +231,12 @@ fun ColumnScope.DepartureRow(
                     .onSecondaryClick(Unit) {
                         showDropDown = true
                     }
-                    .padding(4.dp)
-                    .requiredSizeIn(minHeight = 32.dp, minWidth = 32.dp),
+                    .requiredSizeIn(minHeight = 48.dp, minWidth = 48.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = time.minute.let { if ("$it".length <= 1) "0$it" else "$it" },
-                    color = if (showLowFloor && lowFloor) MaterialTheme.colorScheme.tertiary else Color.Unspecified,
                     fontSize = 20.sp,
-                    fontWeight = if (showLowFloor && lowFloor) FontWeight.Bold else FontWeight.Normal
                 )
             }
         }

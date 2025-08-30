@@ -26,7 +26,6 @@ class PreferenceDataSource(
         const val VERSION = "verze"
         const val FAVOURITES = "oblibene_useky"
         const val RECENTS = "recents"
-        const val LOW_FLOOR = "nizkopodlaznost"
         const val DEPARTURES = "odjezdy"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"
@@ -36,7 +35,6 @@ class PreferenceDataSource(
         const val VERSION = -1
         val FAVOURITES = listOf<PartOfConn>()
         val RECENTS = listOf<BusName>()
-        const val LOW_FLOOR = false
         const val DEPARTURES = false
         val SETTINGS = Settings()
         const val CARD = false
@@ -84,16 +82,6 @@ class PreferenceDataSource(
 
     fun changeRecents(update: (List<BusName>) -> List<BusName>) {
         data[Keys.RECENTS] = update(recents.value).toJson(json)
-    }
-
-    val lowFloor = data
-        .getBooleanOrNullStateFlow(scope, Keys.LOW_FLOOR)
-        .mapState(scope) {
-            it ?: DefaultValues.LOW_FLOOR
-        }
-
-    fun changeLowFloor(value: Boolean) {
-        data[Keys.LOW_FLOOR] = value
     }
 
     val departures = data
