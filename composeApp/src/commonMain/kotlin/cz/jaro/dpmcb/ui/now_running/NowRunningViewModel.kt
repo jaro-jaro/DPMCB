@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
@@ -25,7 +26,6 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -109,7 +109,7 @@ class NowRunningViewModel(
         list.filter {
             filters.isEmpty() || it.lineNumber in filters
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
+    }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val offlineList = repo.nowRunningOrNot.map { busNames ->
         val oneWayLines = oneWayLines.await()
@@ -136,7 +136,7 @@ class NowRunningViewModel(
         list.filter {
             filters.isEmpty() || it.lineNumber in filters
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
+    }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val result = combine(filteredOfflineList, filteredOnlineList, allowedType) { offline, online, type ->
         if (offline == null && online == null) null
@@ -157,7 +157,7 @@ class NowRunningViewModel(
             result == null -> NowRunningState.Loading(lineNumbers, filters, type)
             else -> NowRunningState.OK(lineNumbers, filters, type, result, isOnline)
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
+    }.stateIn(SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
 }
 
 private fun resultListDelay(list: List<RunningConnPlus>) = list

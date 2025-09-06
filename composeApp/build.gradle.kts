@@ -135,6 +135,9 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
 
+            // Androidx adaptive
+            implementation(libs.androidx.adaptive)
+
             // Jetpack Navigation
             implementation(libs.androidx.navigation.compose)
 

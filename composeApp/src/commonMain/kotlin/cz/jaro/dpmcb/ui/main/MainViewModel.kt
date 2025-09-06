@@ -12,20 +12,19 @@ import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.encodeURL
+import cz.jaro.dpmcb.data.helperclasses.flattenMergeStates
+import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.common.getRoute
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -39,7 +38,6 @@ class MainViewModel(
 
     data class Parameters(
         val link: String?,
-        val currentBackStackEntry: Flow<NavBackStackEntry>,
     )
 
     val isOnline = repo.isOnline
@@ -97,6 +95,8 @@ class MainViewModel(
     lateinit var updateDrawerState: MutateFunction<Boolean>
     lateinit var navigator: Navigator
     lateinit var superNavigate: SuperNavigateFunction
+    var currentBackStack: MutableStateFlow<StateFlow<List<NavBackStackEntry>>> = MutableStateFlow(MutableStateFlow(emptyList()))
+    private val _currentBackStack = currentBackStack.flattenMergeStates()
 
     fun confirmDeeplink(
         confirmDeeplink: (String) -> Unit,
@@ -121,8 +121,8 @@ class MainViewModel(
         }
     }
 
-    val currentBackStackEntry = params.currentBackStackEntry
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+    private val currentBackStackEntry =
+        _currentBackStack.mapState { it.lastOrNull() }
 
     fun onEvent(e: MainEvent) = when (e) {
         is MainEvent.DrawerItemClicked -> {
@@ -137,6 +137,7 @@ class MainViewModel(
 
         MainEvent.RemoveCard -> cardManager.removeCard()
         MainEvent.ToggleDrawer -> updateDrawerState { !it }
+        MainEvent.NavigateBack -> navigator.navigateUp()
         MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
         MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
         is MainEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
@@ -145,12 +146,13 @@ class MainViewModel(
     private fun NavBackStackEntry?.date(): LocalDate = this?.getRoute()?.date ?: SystemClock.todayHere()
 
     val state = combineStates(
-        viewModelScope, isOnline, isOnlineModeEnabled, cardManager.card, currentBackStackEntry
-    ) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry ->
+        viewModelScope, isOnline, isOnlineModeEnabled, cardManager.card, currentBackStackEntry, _currentBackStack
+    ) { isOnline, isOnlineModeEnabled, hasCard, currentBackStackEntry, currentBackStack ->
         MainState(
             onlineStatus = OnlineStatus(isOnline, isOnlineModeEnabled),
             hasCard = hasCard != null,
             date = currentBackStackEntry.date(),
+            canGoBack = currentBackStack.count() > 1,
         )
     }
 

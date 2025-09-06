@@ -1,10 +1,9 @@
 package cz.jaro.dpmcb.ui.card
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.stateIn
 import kotlin.time.Duration.Companion.seconds
 
 class CardViewModel(
@@ -12,7 +11,7 @@ class CardViewModel(
 ) : ViewModel() {
 
     val hasCard = cardManager.card
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), null)
+        .stateIn(SharingStarted.WhileSubscribed(5.seconds), null)
 
     fun addCard() = cardManager.loadCard()
 

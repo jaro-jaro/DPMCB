@@ -10,6 +10,7 @@ data class MainState(
     val onlineStatus: OnlineStatus,
     val date: LocalDate = SystemClock.todayHere(),
     val hasCard: Boolean = false,
+    val canGoBack: Boolean = false,
 ) {
     sealed interface OnlineStatus {
         data object Offline : OnlineStatus

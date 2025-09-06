@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -59,9 +60,7 @@ fun Loading(
             update = args.update == true,
             link = args.link,
         )
-    ).also {
-        it.setNavigate(navController.superNavigateFunction)
-    },
+    ),
 ) {
     LaunchedEffect(Unit) {
         viewModel.setNavigate(navController.superNavigateFunction)
@@ -117,7 +116,7 @@ fun LoadingScreen(
                 ),
                 contentDescription = "Logo JARO",
                 contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
                 colorFilter = ColorFilter.colorMatrix(ColorMatrix())
             )
             when (state) {

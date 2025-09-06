@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
@@ -31,7 +32,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toDateTimePeriod
@@ -167,7 +167,7 @@ class BusViewModel(
         )
     } else flowOf(OnlineBusState()))
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
 
     private val traveledSegments = combine(info, onlineState, nowFlow) { info, state, now ->
         when {
@@ -224,5 +224,5 @@ class BusViewModel(
                 ) else null
             ) else null
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)
+    }.stateIn(SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)
 }

@@ -7,18 +7,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.safeGestures
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -38,11 +45,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,8 +82,12 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.get
+import androidx.window.core.layout.WindowHeightSizeClass
+import androidx.window.core.layout.WindowWidthSizeClass
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
@@ -84,6 +101,7 @@ import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
@@ -198,7 +216,6 @@ fun Main(
     viewModel: MainViewModel = viewModel(
         MainViewModel.Parameters(
             link = args.link,
-            currentBackStackEntry = navController.currentBackStackEntryFlow,
         )
     ),
 ) {
@@ -228,6 +245,7 @@ fun Main(
 
     LaunchedEffect(Unit) {
         viewModel.navigator = navigator
+        viewModel.currentBackStack.value = navController.navigatorProvider[ComposeNavigator::class].backStack
         viewModel.superNavigate = superNavController.superNavigateFunction
         viewModel.confirmDeeplink(
             confirmDeeplink(navController, scope, drawerState),
@@ -331,289 +349,459 @@ fun MainScreen(
     onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+
+    val compactWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
+    val mediumWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.MEDIUM }
+    val expandedWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED }
+    (windowSizeClass.windowWidthSizeClass to windowSizeClass.windowHeightSizeClass).work()
+    val expandedHeight = remember { windowSizeClass.windowHeightSizeClass == WindowHeightSizeClass.EXPANDED }
+
+    val useModal = remember { compactWidth }
+    val useRail = remember { mediumWidth }
+    val useDrawer = remember { expandedWidth }
+
+    val useTopBar = remember { expandedHeight || compactWidth }
+    val infoInDrawer = remember { !expandedHeight && expandedWidth }
+    val infoInRail = remember { !expandedHeight && mediumWidth }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(AppState.title)
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            onEvent(MainEvent.ToggleDrawer)
-                        }
-                    ) {
-                        IconWithTooltip(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = "Otevřít"
-                        )
-                    }
-                },
-                actions = {
-                    val time by nowFlow.collectAsStateWithLifecycle()
-                    if (AppState.selected != DrawerAction.TransportCard)
-                        Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
-
-                    if (AppState.selected != DrawerAction.TransportCard) IconButton(onClick = {
-                        if (state.onlineStatus is MainState.OnlineStatus.Online)
-                            onEvent(MainEvent.ToggleOnlineMode)
-                    }) {
-                        IconWithTooltip(
-                            imageVector = if (state.onlineStatus is MainState.OnlineStatus.Online && state.onlineStatus.onlineMode) Icons.Default.Wifi else Icons.Default.WifiOff,
-                            contentDescription = when (state.onlineStatus) {
-                                is MainState.OnlineStatus.Online if state.onlineStatus.onlineMode -> "Online, kliknutím přepnete do offline módu"
-                                is MainState.OnlineStatus.Online -> "Offline, kliknutím vypnete offline mód"
-                                is MainState.OnlineStatus.Offline -> "Offline, nejste připojeni k internetu"
-                            },
-                            tint = if (state.onlineStatus is MainState.OnlineStatus.Online) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
-                        )
-                    }
-
-                    var open by remember { mutableStateOf(false) }
-
-                    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts() || supportsSharing())
-                        IconButton(onClick = {
-                            open = !open
-                        }) {
-                            IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
-                        }
-
-                    val shareManager = if (supportsSharing()) screenShareManager else null
-
-                    DropdownMenu(
-                        expanded = open,
-                        onDismissRequest = {
-                            open = false
-                        },
-                        properties = PopupProperties(
-                            focusable = false
-                        ),
-                    ) {
-                        if (AppState.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
-                            text = {
-                                Text("Odstranit QR kód")
-                            },
-                            onClick = {
-                                onEvent(MainEvent.RemoveCard)
-                                open = false
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.DeleteForever, null)
-                            },
-                        )
-
-                        if (supportsSharing()) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Sdílet")
-                                },
-                                onClick = {
-                                    shareManager?.shareScreen(state)
-                                    open = false
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Share, null)
-                                },
-                            )
-                        }
-
-                        if (supportsShortcuts()) {
-                            val shortcutCreator = shortcutCreator
-
-                            var show by remember { mutableStateOf(false) }
-                            var includeDate by remember { mutableStateOf(true) }
-                            var label by remember { mutableStateOf("") }
-
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Připnout zkratku na domovskou obrazovku")
-                                },
-                                onClick = {
-                                    label = AppState.title
-                                    open = false
-                                    show = true
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.PushPin, null)
-                                },
-                            )
-                            if (show) AlertDialog(
-                                onDismissRequest = {
-                                    show = false
-                                },
-                                title = {
-                                    Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
-                                },
-                                icon = {
-                                    Icon(Icons.Default.PushPin, null)
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        shortcutCreator.createShortcut(includeDate, label, state)
-                                        show = false
-                                    }) {
-                                        Text("Přidat")
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = {
-                                        show = false
-                                    }) {
-                                        Text("Zrušit")
-                                    }
-                                },
-                                text = {
-                                    Column(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = label,
-                                            onValueChange = {
-                                                label = it
-                                            },
-                                            Modifier
-                                                .fillMaxWidth(),
-                                            label = {
-                                                Text("Titulek")
-                                            },
-                                        )
-                                        Row(
-                                            Modifier.padding(top = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Switch(checked = includeDate, onCheckedChange = {
-                                                includeDate = it
-                                            })
-                                            Text(
-                                                "Ponechat datum ve zkratce", Modifier
-                                                    .clickable {
-                                                        includeDate = !includeDate
-                                                    }
-                                                    .padding(start = 8.dp))
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-
-                },
-                colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
-                    containerColor = dpmcb,
-                    navigationIconContentColor = Color.Transparent,
-                    actionIconContentColor = Color.White,
-                ) else TopAppBarDefaults.topAppBarColors()
-            )
+            if (useTopBar) TopBar(state, onEvent, useModal)
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
         Surface {
-            if (isDataUpdateNeeded) {
-                var showDialog by rememberSaveable { mutableStateOf(true) }
+            UpdateDialogs(isDataUpdateNeeded, onEvent, isAppUpdateNeeded)
 
-                if (showDialog) AlertDialog(
-                    onDismissRequest = {
-                        showDialog = false
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showDialog = false
-                                onEvent(MainEvent.UpdateData)
-                            }
-                        ) {
-                            Text("Ano")
-                        }
-                    },
-                    title = {
-                        Text("Aktualizace JŘ")
-                    },
-                    text = {
-                        Text("Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?")
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                showDialog = false
-                            }
-                        ) {
-                            Text("Ne")
-                        }
-                    },
+            if (useDrawer) Drawer(state, onEvent, paddingValues, infoInDrawer, content)
+            else if (useRail) Rail(state, onEvent, paddingValues, infoInRail, content)
+            else if (useModal) Modal(state, onEvent, paddingValues, drawerState, content)
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TopBar(
+    state: MainState,
+    onEvent: (MainEvent) -> Unit,
+    useModal: Boolean,
+) {
+    TopAppBar(
+        title = {
+            Title()
+        },
+        navigationIcon = {
+            NavIcon(state, onEvent, useModal)
+        },
+        actions = {
+            Time()
+            OfflineModeSwitcher(state, onEvent)
+            OtherOptions(state, onEvent)
+        },
+        colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
+            containerColor = dpmcb,
+            navigationIconContentColor = Color.Transparent,
+            actionIconContentColor = Color.White,
+        ) else TopAppBarDefaults.topAppBarColors()
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun Drawer(
+    state: MainState,
+    onEvent: (MainEvent) -> Unit,
+    paddingValues: PaddingValues,
+    infoInDrawer: Boolean,
+    content: @Composable (() -> Unit),
+) = PermanentNavigationDrawer(
+    drawerContent = {
+        PermanentDrawerSheet(
+            Modifier.fillMaxHeight(),
+            windowInsets = WindowInsets(0),
+        ) {
+            if (infoInDrawer) MediumTopAppBar(
+                title = {
+                    Title()
+                },
+                navigationIcon = {
+                    NavIcon(state, onEvent, false)
+                },
+                actions = {
+                    Time()
+                    OfflineModeSwitcher(state, onEvent)
+                    OtherOptions(state, onEvent)
+                },
+                windowInsets = WindowInsets(0),
+            )
+            LazyColumn {
+                items(DrawerAction.entries) { action ->
+                    DrawerItem(
+                        isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
+                        action = action,
+                        onEvent = onEvent,
+                    )
+                }
+            }
+        }
+    },
+    Modifier.padding(paddingValues),
+    content = content,
+)
+
+@Composable
+private fun Modal(
+    state: MainState,
+    onEvent: (MainEvent) -> Unit,
+    paddingValues: PaddingValues,
+    drawerState: DrawerState,
+    content: @Composable (() -> Unit),
+) = ModalNavigationDrawer(
+    drawerContent = {
+        ModalDrawerSheet(
+            Modifier
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+            windowInsets = WindowInsets(top = 16.dp),
+        ) {
+            DrawerAction.entries.forEach { action ->
+                DrawerItem(
+                    isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
+                    action = action,
+                    onEvent = onEvent,
                 )
             }
-            if (isAppUpdateNeeded) {
-                var showDialog by rememberSaveable { mutableStateOf(true) }
-                var loading by rememberSaveable { mutableStateOf(null as String?) }
+        }
+    },
+    Modifier.padding(paddingValues),
+    drawerState = drawerState,
+    content = content,
+)
 
-                if (loading != null) AlertDialog(
-                    onDismissRequest = {
-                        loading = null
-                    },
-                    confirmButton = {},
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator()
-                            Text(loading!!, Modifier.padding(start = 8.dp))
-                        }
-                    },
-                )
-
-                if (showDialog) AlertDialog(
-                    onDismissRequest = {
-                        showDialog = false
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showDialog = false
-                                onEvent(MainEvent.UpdateApp { loading = it })
-                            }
-                        ) {
-                            Text("Ano")
-                        }
-                    },
-                    title = {
-                        Text("Aktualizace aplikace")
-                    },
-                    text = {
-                        Text("Je k dispozici nová verze aplikace, chcete ji aktualizovat?")
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                showDialog = false
-                            }
-                        ) {
-                            Text("Ne")
-                        }
-                    },
+@Composable
+private fun Rail(
+    state: MainState,
+    onEvent: (MainEvent) -> Unit,
+    paddingValues: PaddingValues,
+    infoInRail: Boolean,
+    content: @Composable (() -> Unit),
+) = Row(
+    Modifier
+        .fillMaxSize()
+        .padding(paddingValues)
+) {
+    NavigationRail(
+        Modifier.fillMaxHeight(),
+        windowInsets = WindowInsets.safeGestures.only(WindowInsetsSides.Start),
+    ) {
+        LazyColumn(
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (infoInRail) stickyHeader {
+                NavIcon(state, onEvent, false)
+                Time()
+                Row {
+                    OfflineModeSwitcher(state, onEvent)
+                    OtherOptions(state, onEvent)
+                }
+            }
+            items(DrawerAction.entries) { action ->
+                RailItem(
+                    isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
+                    action = action,
+                    onEvent = onEvent,
                 )
             }
-            ModalNavigationDrawer(
-                drawerContent = {
-                    ModalDrawerSheet(
-                        Modifier
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                    ) {
-                        DrawerAction.entries.forEach { action ->
-                            DrawerItem(
-                                isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
-                                action = action,
-                                onEvent = onEvent,
-                            )
-                        }
+        }
+    }
+    Box(Modifier.weight(1F)) {
+        content()
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun NavIcon(
+    state: MainState,
+    onEvent: (MainEvent) -> Unit,
+    useModal: Boolean,
+) {
+    if (useModal) IconButton(
+        onClick = {
+            onEvent(MainEvent.ToggleDrawer)
+        }
+    ) {
+        IconWithTooltip(
+            imageVector = Icons.Filled.Menu,
+            contentDescription = "Otevřít"
+        )
+    } else if (state.canGoBack) IconButton(
+        onClick = {
+            onEvent(MainEvent.NavigateBack)
+        }
+    ) {
+        IconWithTooltip(
+            imageVector = Icons.AutoMirrored.Default.ArrowBack,
+            contentDescription = "Zpět"
+        )
+    }
+}
+
+@Composable
+private fun Title() {
+    Text(AppState.title)
+}
+
+@Composable
+private fun UpdateDialogs(
+    isDataUpdateNeeded: Boolean,
+    onEvent: (MainEvent) -> Unit,
+    isAppUpdateNeeded: Boolean,
+) {
+    if (isDataUpdateNeeded) {
+        var showDialog by rememberSaveable { mutableStateOf(true) }
+
+        if (showDialog) AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        onEvent(MainEvent.UpdateData)
+                    }
+                ) {
+                    Text("Ano")
+                }
+            },
+            title = {
+                Text("Aktualizace JŘ")
+            },
+            text = {
+                Text("Je k dispozici nová verze jízdních řádů, chcete je aktualizovat?")
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                    }
+                ) {
+                    Text("Ne")
+                }
+            },
+        )
+    }
+    if (isAppUpdateNeeded) {
+        var showDialog by rememberSaveable { mutableStateOf(true) }
+        var loading by rememberSaveable { mutableStateOf(null as String?) }
+
+        if (loading != null) AlertDialog(
+            onDismissRequest = {
+                loading = null
+            },
+            confirmButton = {},
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Text(loading!!, Modifier.padding(start = 8.dp))
+                }
+            },
+        )
+
+        if (showDialog) AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        onEvent(MainEvent.UpdateApp { loading = it })
+                    }
+                ) {
+                    Text("Ano")
+                }
+            },
+            title = {
+                Text("Aktualizace aplikace")
+            },
+            text = {
+                Text("Je k dispozici nová verze aplikace, chcete ji aktualizovat?")
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                    }
+                ) {
+                    Text("Ne")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun OtherOptions(state: MainState, onEvent: (MainEvent) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+
+    if (AppState.selected == DrawerAction.TransportCard && state.hasCard || supportsShortcuts() || supportsSharing())
+        IconButton(onClick = {
+            open = !open
+        }) {
+            IconWithTooltip(imageVector = Icons.Default.MoreVert, contentDescription = "Více možností")
+        }
+
+    val shareManager = if (supportsSharing()) screenShareManager else null
+
+    DropdownMenu(
+        expanded = open,
+        onDismissRequest = {
+            open = false
+        },
+        properties = PopupProperties(
+            focusable = false
+        ),
+    ) {
+        if (AppState.selected == DrawerAction.TransportCard && state.hasCard) DropdownMenuItem(
+            text = {
+                Text("Odstranit QR kód")
+            },
+            onClick = {
+                onEvent(MainEvent.RemoveCard)
+                open = false
+            },
+            leadingIcon = {
+                Icon(Icons.Default.DeleteForever, null)
+            },
+        )
+
+        if (supportsSharing()) {
+            DropdownMenuItem(
+                text = {
+                    Text("Sdílet")
+                },
+                onClick = {
+                    shareManager?.shareScreen(state)
+                    open = false
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Share, null)
+                },
+            )
+        }
+
+        if (supportsShortcuts()) {
+            val shortcutCreator = shortcutCreator
+
+            var show by remember { mutableStateOf(false) }
+            var includeDate by remember { mutableStateOf(true) }
+            var label by remember { mutableStateOf("") }
+
+            DropdownMenuItem(
+                text = {
+                    Text("Připnout zkratku na domovskou obrazovku")
+                },
+                onClick = {
+                    label = AppState.title
+                    open = false
+                    show = true
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.PushPin, null)
+                },
+            )
+            if (show) AlertDialog(
+                onDismissRequest = {
+                    show = false
+                },
+                title = {
+                    Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
+                },
+                icon = {
+                    Icon(Icons.Default.PushPin, null)
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        shortcutCreator.createShortcut(includeDate, label, state)
+                        show = false
+                    }) {
+                        Text("Přidat")
                     }
                 },
-                Modifier.padding(paddingValues),
-                drawerState = drawerState,
-                content = content
+                dismissButton = {
+                    TextButton(onClick = {
+                        show = false
+                    }) {
+                        Text("Zrušit")
+                    }
+                },
+                text = {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = label,
+                            onValueChange = {
+                                label = it
+                            },
+                            Modifier
+                                .fillMaxWidth(),
+                            label = {
+                                Text("Titulek")
+                            },
+                        )
+                        Row(
+                            Modifier.padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Switch(checked = includeDate, onCheckedChange = {
+                                includeDate = it
+                            })
+                            Text(
+                                "Ponechat datum ve zkratce", Modifier
+                                    .clickable {
+                                        includeDate = !includeDate
+                                    }
+                                    .padding(start = 8.dp))
+                        }
+                    }
+                }
             )
         }
     }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun OfflineModeSwitcher(state: MainState, onEvent: (MainEvent) -> Unit) {
+    if (AppState.selected != DrawerAction.TransportCard) IconButton(onClick = {
+        if (state.onlineStatus is MainState.OnlineStatus.Online)
+            onEvent(MainEvent.ToggleOnlineMode)
+    }) {
+        IconWithTooltip(
+            imageVector = if (state.onlineStatus is MainState.OnlineStatus.Online && state.onlineStatus.onlineMode) Icons.Default.Wifi else Icons.Default.WifiOff,
+            contentDescription = when (state.onlineStatus) {
+                is MainState.OnlineStatus.Online if state.onlineStatus.onlineMode -> "Online, kliknutím přepnete do offline módu"
+                is MainState.OnlineStatus.Online -> "Offline, kliknutím vypnete offline mód"
+                is MainState.OnlineStatus.Offline -> "Offline, nejste připojeni k internetu"
+            },
+            tint = if (state.onlineStatus is MainState.OnlineStatus.Online) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+        )
+    }
+}
+
+@Composable
+private fun Time() {
+    val time by nowFlow.collectAsStateWithLifecycle()
+    if (AppState.selected != DrawerAction.TransportCard)
+        Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -639,6 +827,32 @@ fun DrawerItem(
             onEvent(MainEvent.DrawerItemClicked(action))
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RailItem(
+    isOnline: Boolean,
+    action: DrawerAction,
+    onEvent: (MainEvent) -> Unit,
+) = when (action) {
+    DrawerAction.Feedback -> {}//TODO: Feedback(isOnline, action)
+
+    else if action.hide -> {}
+
+    else -> NavigationRailItem(
+        label = {
+            Text(action.label)
+        },
+        icon = {
+            IconWithTooltip(action.icon, action.label)
+        },
+        selected = AppState.selected == action,
+        onClick = {
+            onEvent(MainEvent.DrawerItemClicked(action))
+        },
+        modifier = Modifier
     )
 }
 

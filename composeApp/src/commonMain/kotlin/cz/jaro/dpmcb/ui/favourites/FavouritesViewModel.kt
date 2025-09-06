@@ -1,13 +1,13 @@
 package cz.jaro.dpmcb.ui.favourites
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -180,7 +179,7 @@ class FavouritesViewModel(
                 recents, today, otherDay
             )
         }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FavouritesState.Loading)
+            .stateIn(SharingStarted.WhileSubscribed(5_000), FavouritesState.Loading)
 }
 
 private data class FavouriteResult(

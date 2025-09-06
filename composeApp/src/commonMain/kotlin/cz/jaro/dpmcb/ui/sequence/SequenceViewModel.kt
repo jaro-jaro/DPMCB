@@ -21,6 +21,7 @@ import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
@@ -37,7 +38,6 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
@@ -112,7 +112,7 @@ class SequenceViewModel(
         return@combine onlineConn
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
 
     private val traveledSegments = combine(info, nowRunningOnlineConn, nowFlow) { info, onlineConn, now ->
 
@@ -196,7 +196,7 @@ class SequenceViewModel(
                 )
             }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
+    }.stateIn(SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
 
     fun onEvent(e: SequenceEvent) = when (e) {
         is SequenceEvent.BusClick -> navigator.navigate(Route.Bus(params.date, e.busName))
@@ -211,13 +211,14 @@ class SequenceViewModel(
             require(state is SequenceState.OK)
             viewModelScope.launch {
                 val doc = try {
+                    val date = if (
+                        params.sequence.line().startsWith('5') &&
+                        params.sequence.line().length == 2 &&
+                        params.sequence.modifiers().part() == 2
+                    ) state.date.minus(1.days)else state.date
+
                     Ksoup.parseGetRequest(
-                        if (
-                            params.sequence.line().startsWith('5') &&
-                            params.sequence.line().length == 2 &&
-                            params.sequence.modifiers().part() == 2
-                        ) "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date.minus(1.days)}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
-                        else "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${state.date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
+                        "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
                     )
                 } catch (ex: Exception) {
                     ex.printStackTrace()

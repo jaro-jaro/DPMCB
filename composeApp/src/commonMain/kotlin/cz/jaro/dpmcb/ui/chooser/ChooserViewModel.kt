@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.sorted
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -19,7 +20,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -204,7 +204,7 @@ class ChooserViewModel(
     )
 
     val state =
-        list.map(::ChooserState).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChooserState())
+        list.map(::ChooserState).stateIn(SharingStarted.WhileSubscribed(5_000), ChooserState())
 }
 
 private fun String.normalize() = this

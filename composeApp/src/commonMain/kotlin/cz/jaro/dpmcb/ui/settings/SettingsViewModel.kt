@@ -1,18 +1,17 @@
 package cz.jaro.dpmcb.ui.settings
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlin.time.Duration.Companion.seconds
 
 class SettingsViewModel(
@@ -41,7 +40,7 @@ class SettingsViewModel(
                 )
             }.sortedWith(compareBy<LineTable> { it.shortNumber }.thenBy { it.validFrom }.thenBy { it.hasRestriction }),
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false, emptyList()))
+    }.stateIn(SharingStarted.WhileSubscribed(5.seconds), SettingsState(null, "", 0, 0, false, emptyList()))
 
     fun onEvent(e: SettingsEvent) = when (e) {
         is SettingsEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)

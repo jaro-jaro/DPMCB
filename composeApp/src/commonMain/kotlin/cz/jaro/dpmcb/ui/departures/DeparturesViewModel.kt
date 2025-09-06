@@ -13,6 +13,7 @@ import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.now
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.onlineBus
@@ -193,7 +194,7 @@ class DeparturesViewModel(
                 }
         }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
         .combine(info, repo.hasAccessToMap) { filteredList, info, isOnline ->
             when {
                 filteredList == null -> DeparturesState.Loading(
