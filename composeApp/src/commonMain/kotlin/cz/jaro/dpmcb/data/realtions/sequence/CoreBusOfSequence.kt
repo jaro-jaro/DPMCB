@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Table
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import kotlinx.datetime.LocalDate
@@ -17,6 +18,7 @@ data class CoreBusOfSequence(
     val line: LongLine,
     val sequence: SequenceCode,
     val fixedCodes: String,
+    val direction: Direction,
     val stopFixedCodes: String,
     val connStopFixedCodes: String,
     @SerialName("time_")

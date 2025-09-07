@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
@@ -20,15 +22,21 @@ class TimetableViewModel(
     data class Parameters(
         val lineNumber: ShortLine,
         val stop: String,
-        val nextStop: String,
+        val direction: Direction,
         val date: LocalDate,
     )
 
     lateinit var navigator: Navigator
 
     private val list = suspend {
-        repo.timetable(params.lineNumber, params.stop, params.nextStop, params.date).sortedBy { it.departure }
+        repo.timetable(params.lineNumber, params.stop, params.direction, params.date).sortedBy { it.departure }
     }.asFlow()
+
+    val endStops = viewModelScope.async {
+        repo.endStopNames(params.lineNumber, params.stop, params.date)
+            .getValue(params.direction)
+            .replace("\n", " / ")
+    }
 
     val state = list.map { list ->
         TimetableState.Success(
@@ -36,7 +44,7 @@ class TimetableViewModel(
             date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
-            nextStop = params.nextStop,
+            endStops = endStops.await(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -45,7 +53,6 @@ class TimetableViewModel(
             date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
-            nextStop = params.nextStop,
         )
     )
 
@@ -54,7 +61,7 @@ class TimetableViewModel(
             Route.Timetable(
                 lineNumber = params.lineNumber,
                 stop = params.stop,
-                nextStop = params.nextStop,
+                direction = params.direction,
                 date = e.date,
             )
         )

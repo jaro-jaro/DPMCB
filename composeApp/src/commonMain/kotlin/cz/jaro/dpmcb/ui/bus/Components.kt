@@ -640,6 +640,8 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             onlineConnStops = state.online?.onlineConnStops,
             nextStopIndex = state.online?.running?.nextStopIndex,
             stops = state.stops,
+            isOneWay = state.isOneWay,
+            direction = state.direction,
             traveledSegments = state.traveledSegments,
             height = state.lineHeight,
             isOnline = state.online?.running != null,

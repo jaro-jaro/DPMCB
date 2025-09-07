@@ -35,6 +35,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.inMinutes
@@ -42,6 +43,7 @@ import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
+import cz.jaro.dpmcb.data.middleDestination
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
@@ -51,7 +53,7 @@ import kotlin.time.Duration.Companion.minutes
 
 sealed interface TimetableEvent {
     data class StopClick(val stopName: String, val time: LocalTime) : TimetableEvent
-    data class TimetableClick(val line: ShortLine, val stop: String, val nextStop: String) : TimetableEvent
+    data class TimetableClick(val line: ShortLine, val stop: String, val direction: Direction) : TimetableEvent
 }
 
 @Composable
@@ -60,6 +62,8 @@ fun Timetable(
     onEvent: (TimetableEvent) -> Unit,
     onlineConnStops: List<OnlineConnStop>?,
     nextStopIndex: Int?,
+    direction: Direction,
+    isOneWay: Boolean,
     showLine: Boolean = true,
     traveledSegments: Int = 0,
     height: Float = 0F,
@@ -76,6 +80,7 @@ fun Timetable(
     Column(Modifier.weight(1F)) {
         filteredStops.forEachIndexed { index, stop ->
             Row(Modifier.fillMaxWidth()) {
+                val middleDest = middleDestination(isOneWay, stops.map { it.name }, index)
                 val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
                 val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
                 val defaultColor = if (movedNextStopIndex != null && index == movedNextStopIndex)
@@ -93,7 +98,8 @@ fun Timetable(
                     onEvent = onEvent,
                     time = time,
                     stopName = stop.name,
-                    nextStop = stop.nextStop,
+                    departs = stop.type != StopType.GetOffOnly && index < filteredStops.lastIndex,
+                    direction = if (middleDest != null) Direction.NEGATIVE else direction,
                     line = stop.line,
                     platform = onlineStop?.platform ?: "",
                     modifier,
@@ -231,7 +237,8 @@ fun TimetableText(
     onEvent: (TimetableEvent) -> Unit,
     time: LocalTime,
     stopName: String,
-    nextStop: String?,
+    departs: Boolean,
+    direction: Direction,
     line: ShortLine,
     platform: String,
     modifier: Modifier = Modifier,
@@ -268,7 +275,7 @@ fun TimetableText(
                 showDropDown = false
             },
         )
-        nextStop?.let {
+        if (departs) {
             DropdownMenuItem(
                 text = {
                     Text("Zobrazit zastávkové JŘ")
@@ -278,7 +285,7 @@ fun TimetableText(
                         TimetableEvent.TimetableClick(
                             line = line,
                             stop = stopName,
-                            nextStop = nextStop,
+                            direction = direction,
                         )
                     )
                     showDropDown = false

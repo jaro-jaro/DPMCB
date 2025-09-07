@@ -7,7 +7,7 @@ enum class ChooserType {
     Stops,
     Lines,
     LineStops,
-    NextStop,
+    EndStop,
     ReturnStop1,
     ReturnStop2,
     ReturnLine,

@@ -62,7 +62,7 @@ fun Timetable(
         TimetableViewModel.Parameters(
             lineNumber = args.lineNumber,
             stop = args.stop,
-            nextStop = args.nextStop,
+            direction = args.direction,
             date = args.date,
         )
     ),
@@ -114,7 +114,7 @@ fun TimetableScreen(
         }
 
         Text(
-            text = "${state.stop} -> ${state.nextStop}",
+            text = "${state.stop} -> ${(state as? TimetableState.Success)?.endStops ?: ""}",
             fontSize = 20.sp,
             color = MaterialTheme.colorScheme.primary,
         )

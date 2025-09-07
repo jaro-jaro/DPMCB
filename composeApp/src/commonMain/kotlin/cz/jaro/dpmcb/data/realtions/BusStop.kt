@@ -9,7 +9,6 @@ data class BusStop(
     val arrival: LocalTime?,
     val name: String,
     val line: ShortLine,
-    val nextStop: String?,
     val connName: BusName,
     val type: StopType,
 )

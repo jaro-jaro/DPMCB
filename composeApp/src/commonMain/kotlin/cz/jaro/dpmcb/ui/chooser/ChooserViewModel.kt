@@ -53,8 +53,8 @@ class ChooserViewModel(
             ChooserType.LineStops,
                 -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct()
 
-            ChooserType.NextStop,
-                -> repo.nextStopNames(params.lineNumber, params.stop!!, params.date)
+            ChooserType.EndStop,
+                -> repo.endStopNames(params.lineNumber, params.stop!!, params.date).values
         }
     }.asFlow()
 
@@ -62,6 +62,7 @@ class ChooserViewModel(
     private val searchText = snapshotFlow { search.text }
 
     private val triggered = MutableStateFlow(false)
+
     init {
         viewModelScope.launch {
             searchText.collect {
@@ -149,21 +150,21 @@ class ChooserViewModel(
 
         ChooserType.LineStops -> {
             viewModelScope.launch(Dispatchers.IO) {
-                repo.nextStopNames(params.lineNumber, result, params.date).let { stops: List<String> ->
+                repo.endStopNames(params.lineNumber, result, params.date).let { stops ->
                     withContext(Dispatchers.Main) {
                         navigator.navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    nextStop = stops.single(),
+                                    direction = stops.entries.single().key,
                                     date = params.date,
                                 )
                             else
                                 Route.Chooser(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    type = ChooserType.NextStop,
+                                    type = ChooserType.EndStop,
                                     date = params.date,
                                 )
                         )
@@ -173,14 +174,21 @@ class ChooserViewModel(
             Unit
         }
 
-        ChooserType.NextStop -> navigator.navigate(
-            Route.Timetable(
-                lineNumber = params.lineNumber,
-                stop = params.stop!!,
-                nextStop = result,
-                date = params.date,
-            )
-        )
+        ChooserType.EndStop -> {
+            viewModelScope.launch {
+                val direction = repo.endStopNames(params.lineNumber, params.stop!!, params.date)
+                    .entries.find { it.value == result }!!.key
+                navigator.navigate(
+                    Route.Timetable(
+                        lineNumber = params.lineNumber,
+                        stop = params.stop,
+                        direction = direction,
+                        date = params.date,
+                    )
+                )
+            }
+            Unit
+        }
 
         ChooserType.ReturnStop1,
         ChooserType.ReturnStop2,
@@ -190,16 +198,16 @@ class ChooserViewModel(
     }
 
     fun ChooserState(
-        list: List<String> = emptyList(),
+        list: Collection<String> = emptyList(),
     ) = ChooserState(
         type = params.type,
         search = search,
         info = when (params.type) {
             ChooserType.LineStops -> "${params.lineNumber}: ? -> ?"
-            ChooserType.NextStop -> "${params.lineNumber}: ${params.stop} -> ?"
+            ChooserType.EndStop -> "${params.lineNumber}: ${params.stop} -> ?"
             else -> ""
         },
-        list = list,
+        list = list.toList(),
         date = params.date,
     )
 

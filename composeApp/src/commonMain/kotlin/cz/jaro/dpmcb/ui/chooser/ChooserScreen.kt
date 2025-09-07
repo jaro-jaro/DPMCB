@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -74,7 +76,7 @@ fun Chooser(
         ChooserType.Stops -> "Odjezdy"
         ChooserType.Lines -> "Jízdní řády"
         ChooserType.LineStops -> "Jízdní řády"
-        ChooserType.NextStop -> "Jízdní řády"
+        ChooserType.EndStop -> "Jízdní řády"
         ChooserType.ReturnStop1 -> "Vyhledat spojení"
         ChooserType.ReturnStop2 -> "Vyhledat spojení"
         ChooserType.ReturnLine -> "Odjezdy"
@@ -83,7 +85,7 @@ fun Chooser(
     AppState.selected = when (args.type) {
         ChooserType.Lines,
         ChooserType.LineStops,
-        ChooserType.NextStop,
+        ChooserType.EndStop,
             -> DrawerAction.Timetable
 
         ChooserType.Stops,
@@ -121,6 +123,7 @@ fun ChooserScreen(
             .fillMaxSize()
             .padding(horizontal = 8.dp)
     ) {
+        val dateDialogShown = rememberSaveable { mutableStateOf(false) }
         Row(
             Modifier
                 .fillMaxWidth()
@@ -147,8 +150,8 @@ fun ChooserScreen(
                         ChooserType.ReturnLine,
                             -> "Vyberte linku"
 
-                        ChooserType.NextStop,
-                            -> "Vyberte příští zastávku"
+                        ChooserType.EndStop,
+                            -> "Vyberte směr"
                     },
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 20.sp,
@@ -159,7 +162,8 @@ fun ChooserScreen(
                 date = state.date,
                 onDateChange = {
                     onEvent(ChooserEvent.ChangeDate(it))
-                }
+                },
+                showDialog = dateDialogShown,
             )
         }
         val imeVisible = isImeVisible
@@ -167,7 +171,7 @@ fun ChooserScreen(
         LaunchedEffect(imeVisible) {
             when {
                 imeVisible -> wasShown = true
-                wasShown && AppState.menuState == DrawerValue.Closed -> navigateUp()
+                wasShown && AppState.menuState == DrawerValue.Closed && !dateDialogShown.value -> navigateUp()
             }
         }
         TextField(
@@ -183,7 +187,7 @@ fun ChooserScreen(
                 keyboardType = when (state.type) {
                     ChooserType.Stops,
                     ChooserType.LineStops,
-                    ChooserType.NextStop,
+                    ChooserType.EndStop,
                     ChooserType.ReturnStop1,
                     ChooserType.ReturnStop2,
                     ChooserType.ReturnStop,
@@ -195,7 +199,7 @@ fun ChooserScreen(
                 },
                 imeAction = when (state.type) {
                     ChooserType.Stops,
-                    ChooserType.NextStop,
+                    ChooserType.EndStop,
                         -> ImeAction.Search
 
                     ChooserType.Lines,
@@ -238,6 +242,7 @@ fun ChooserScreen(
                         onClick = {
                             onEvent(ChooserEvent.ClickedOnListItem(item))
                         },
+                        contentPadding = PaddingValues(12.dp),
                     )
                 }
             }
