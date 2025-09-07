@@ -109,6 +109,8 @@ class BusViewModel(
                     }
             },
             date = date,
+            direction = bus.info.direction,
+            isOneWay = repo.isOneWay(bus.info.line),
         ).also(::println)
     }
 
@@ -152,7 +154,7 @@ class BusViewModel(
             e.e.work()
             when (e.e) {
                 is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
-                is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.nextStop))
+                is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.direction))
             }
         }
     }

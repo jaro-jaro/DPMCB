@@ -30,6 +30,7 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.typeChar
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.*
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -39,6 +40,7 @@ import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.anyAre
 import cz.jaro.dpmcb.data.helperclasses.anySatisfies
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
+import cz.jaro.dpmcb.data.helperclasses.countMembers
 import cz.jaro.dpmcb.data.helperclasses.filter
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.noneAre
@@ -46,6 +48,7 @@ import cz.jaro.dpmcb.data.helperclasses.partMayBeMissing
 import cz.jaro.dpmcb.data.helperclasses.removeNoCodes
 import cz.jaro.dpmcb.data.helperclasses.runsToday
 import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.helperclasses.withCache
@@ -57,13 +60,11 @@ import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.bus.BusDetail
 import cz.jaro.dpmcb.data.realtions.departures.Departure
-import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
 import cz.jaro.dpmcb.data.realtions.invoke
 import cz.jaro.dpmcb.data.realtions.now_running.NowRunning
-import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.InterBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.Sequence
@@ -105,7 +106,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlin.collections.filterNot
-import kotlin.jvm.JvmName
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -342,6 +342,7 @@ class SpojeRepository(
                         connName = it.connName,
                         sequence = sequence,
                         vehicleType = it.vehicleType,
+                        direction = it.direction,
                     )
                 },
                 stops = noCodes.mapIndexed { i, it ->
@@ -350,7 +351,6 @@ class SpojeRepository(
                         arrival = it.arrival.takeIf { a -> a != it.time },
                         name = it.name,
                         line = it.line.toShortLine(),
-                        nextStop = noCodes.getOrNull(i + 1)?.name,
                         connName = it.connName,
                         type = StopType(it.connStopFixedCodes),
                     )
@@ -383,31 +383,105 @@ class SpojeRepository(
     suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
         ds.stopNamesOfLine(line.findLongLine(), nowUsedTable(date, line.findLongLine())!!)
 
-    suspend fun nextStopNames(line: ShortLine, thisStop: String, date: LocalDate): List<String> =
-        ds.nextStops(line.findLongLine(), thisStop, nowUsedTable(date, line.findLongLine())!!)
+    private val _endStops: MutableMap<ShortLine, MutableMap<String, MutableMap<LocalDate, Map<Direction, String>>>> = mutableMapOf()
 
-    suspend fun timetable(line: ShortLine, thisStop: String, nextStop: String, date: LocalDate): Set<BusInTimetable> =
-        ds.connStopsOnLineWithNextStopAtDate(
+    suspend fun endStopNames(
+        line: ShortLine,
+        thisStop: String,
+        date: LocalDate,
+    ): Map<Direction, String> =
+        _endStops.getOrPut(line) { mutableMapOf() }.getOrPut(thisStop) { mutableMapOf() }.getOrPut(date) {
+            _endStopNames(line, thisStop, date)
+        }
+
+    private suspend fun _endStopNames(
+        line: ShortLine,
+        thisStop: String,
+        date: LocalDate,
+    ): Map<Direction, String> = ds.endStops(
+        stop = thisStop,
+        tab = nowUsedTable(date, line.findLongLine())!!,
+    )
+        .groupBy {
+            it.connName
+        }
+        .filter { (_, codes) ->
+            runsAt(
+                timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
+                fixedCodes = codes.first().fixedCodes,
+                date = date,
+            )
+        }
+        .flatMap { (_, codes) ->
+            val stops = codes.map { it.stopName to it.stopIndexOnLine }.distinct().map { it.first }
+            stops.withIndex().filter { it.value == thisStop }.map { it.index }.map { i ->
+                val destination = middleDestination(line.findLongLine(), stops, i)
+                Triple(
+                    destination ?: stops.last(),
+                    stops.indexOf(destination ?: stops.last()),
+                    if (destination != null) Direction.NEGATIVE else codes.first().direction
+                )
+            }
+        }
+        .sortedBy { it.second }
+        .map { it.first to it.third }
+        .let { endStops ->
+            val total = endStops.count().toFloat()
+            endStops.countMembers()
+                .mapValues { (_, count) ->
+                    count / total
+                }
+                .filterValues {
+                    it >= .1F
+                }
+                .keys
+                .groupBy({ (_, dir) -> dir }, { (stop) -> stop })
+                .mapValues { it.value.joinToString("\n") }
+                .entries
+                .sortedBy { it.key.ordinal }
+                .toMap()
+        }
+
+    suspend fun timetable(line: ShortLine, thisStop: String, direction: Direction, date: LocalDate): Set<BusInTimetable> {
+        val isOneWay = isOneWay(line.findLongLine())
+        return ds.connStopsOnLineWithNextStopAtDate(
             stop = thisStop,
-            nextStop = nextStop,
-            date = date,
+            direction = if (isOneWay) Direction.POSITIVE else direction,
             tab = nowUsedTable(date, line.findLongLine())!!
         )
             .groupBy {
-                BusInTimetable(
-                    departure = it.departure,
-                    busName = it.connName,
-                    destination = it.destination,
-                )
+                it.connName
             }
-            .filter { (_, timeCodes) ->
+            .filter { (_, codes) ->
                 runsAt(
-                    timeCodes = timeCodes.map { RunsFromTo(it.type, it.from..it.to) },
-                    fixedCodes = timeCodes.first().fixedCodes,
+                    timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
+                    fixedCodes = codes.first().fixedCodes,
                     date = date,
                 )
             }
-            .keys
+            .flatMap { (busName, codes) ->
+                val stops = codes.map { it.stopName to it.time }.distinct()
+                val middleDestination = if (isOneWay) findMiddleStop(stops.map { it.first }) else null
+                stops.work(middleDestination)
+                val indices =
+                    if (middleDestination != null && direction == Direction.NEGATIVE)
+                        stops.withIndex().filter { it.value.first == thisStop && it.index < middleDestination.index - 1 }.map { it.index }
+                    else if (middleDestination != null && direction == Direction.POSITIVE)
+                        stops.withIndex().filter { it.value.first == thisStop && middleDestination.index - 1 <= it.index }.map { it.index }
+                    else stops.withIndex().filter { it.value.first == thisStop }.map { it.index }
+                indices.map { i ->
+                    val stop = stops[i]
+                    BusInTimetable(
+                        departure = stop.second,
+                        busName = busName,
+                        destination = if (middleDestination != null && direction == Direction.NEGATIVE)
+                            middleDestination.name
+                        else stops.last().first,
+                    )
+                }
+            }
+            .toSet()
+    }
 
     suspend fun findSequences(seq: String) = seq.partMayBeMissing()?.let { s ->
         ds.findSequences(
@@ -487,6 +561,7 @@ class SpojeRepository(
                             connName = it.connName,
                             sequence = it.sequence,
                             vehicleType = it.vehicleType,
+                            direction = it.direction,
                         )
                     },
                     noCodes.mapIndexed { i, it ->
@@ -495,7 +570,6 @@ class SpojeRepository(
                             arrival = it.arrival.takeIf { a -> a != it.time },
                             name = it.name,
                             line = it.line.toShortLine(),
-                            nextStop = noCodes.getOrNull(i + 1)?.name,
                             connName = it.connName,
                             type = StopType(it.connStopFixedCodes),
                         )
@@ -663,57 +737,23 @@ class SpojeRepository(
                     time = info.time,
                     stopIndexOnLine = stopIndexOnLine,
                     busName = connName,
-                    line = info.line.toShortLine(),
+                    line = info.line,
                     lowFloor = info.lowFloor,
                     busStops = stops,
                     stopType = StopType(info.connStopFixedCodes),
+                    direction = info.direction,
                 )
             }
 
-    val oneWayLines = withCache(suspend { ds.oneDirectionLines().map(LongLine::toShortLine) })
+    private val oneWayLines = withCache { ds.oneDirectionLines() }
 
-    fun findMiddleStop(stops: List<StopOfNowRunning>): MiddleStop? {
-        fun StopOfNowRunning.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
+    suspend fun middleDestination(
+        line: LongLine,
+        stops: List<String>,
+        thisStopIndex: Int,
+    ) = middleDestination(isOneWay(line), stops, thisStopIndex)
 
-        val lastCommonStop = stops.indexOfLast {
-            it.indexOfDuplicate() == 0
-        }
-
-        val firstReCommonStop = stops.indexOfFirst {
-            it.indexOfDuplicate() == 1
-        }
-
-        if (firstReCommonStop == -1 || lastCommonStop == -1) return null
-
-        val last = stops[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
-        return MiddleStop(
-            last.name,
-            last.time,
-            stops.indexOf(last)
-        )
-    }
-
-    @JvmName("findMiddleStop2")
-    fun findMiddleStop(stops: List<StopOfDeparture>): MiddleStop? {
-        fun StopOfDeparture.indexOfDuplicate() = stops.filter { it.name == name }.takeUnless { it.size == 1 }?.indexOf(this)
-
-        val lastCommonStop = stops.indexOfLast {
-            it.indexOfDuplicate() == 0
-        }
-
-        val firstReCommonStop = stops.indexOfFirst {
-            it.indexOfDuplicate() == 1
-        }
-
-        if (lastCommonStop == -1 || firstReCommonStop == -1) return null
-
-        val last = stops[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
-        return MiddleStop(
-            last.name,
-            last.time,
-            stops.indexOf(last)
-        )
-    }
+    suspend fun isOneWay(line: LongLine) = line in oneWayLines()
 
     suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
         ds.nowRunningBuses(busNames, allGroups(date), allTables(date))
@@ -721,7 +761,7 @@ class SpojeRepository(
             .associate { (conn, stops) ->
                 conn.connName to NowRunning(
                     busName = conn.connName,
-                    lineNumber = conn.line.toShortLine(),
+                    lineNumber = conn.line,
                     direction = conn.direction,
                     sequence = conn.sequence,
                     stops = stops,
@@ -828,4 +868,35 @@ class SpojeRepository(
 
         override fun serialize(encoder: Encoder, value: ClosedRange<RegistrationNumber>) = encoder.encodeString(value.toString())
     }
+}
+
+fun middleDestination(
+    isOneWay: Boolean,
+    stops: List<String>,
+    thisStopIndex: Int,
+): String? {
+    val middleStop = if (isOneWay) findMiddleStop(stops) else null
+    return if (middleStop != null && thisStopIndex < (middleStop.index - 1))
+        middleStop.name
+    else null
+}
+
+private fun findMiddleStop(stops: List<String>): MiddleStop? {
+    val wi = stops.withIndex().toList()
+
+    val lastCommonStop = wi.indexOfLast { (i, name) ->
+        i < wi.indexOfLast { it.value == name }
+    }
+
+    val firstReCommonStop = wi.indexOfFirst { (i, name) ->
+        wi.indexOfFirst { it.value == name } < i
+    }
+
+    if (firstReCommonStop == -1 || lastCommonStop == -1) return null
+
+    val last = wi[(lastCommonStop + firstReCommonStop).div(2F).roundToInt()]
+    return MiddleStop(
+        last.value,
+        last.index,
+    )
 }

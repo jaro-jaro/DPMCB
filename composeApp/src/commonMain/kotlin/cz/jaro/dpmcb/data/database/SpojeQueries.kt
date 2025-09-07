@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
@@ -23,6 +24,7 @@ import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
+import cz.jaro.dpmcb.data.realtions.timetable.EndStop
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -38,10 +40,14 @@ interface SpojeQueries {
 
     suspend fun connStopsOnLineWithNextStopAtDate(
         stop: String,
-        nextStop: String,
-        date: LocalDate,
+        direction: Direction,
         tab: Table,
     ): List<CoreBusInTimetable>
+
+    suspend fun endStops(
+        stop: String,
+        tab: Table,
+    ): List<EndStop>
 
     suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String>
 

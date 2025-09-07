@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
@@ -130,36 +131,37 @@ class DeparturesViewModel(
                 stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes
             }
             .map { (stop, onlineConn) ->
-                val thisStopIndex = stop.busStops.indexOfFirst { it.stopIndexOnLine == stop.stopIndexOnLine }
-                val middleStop = if (stop.line in repo.oneWayLines()) repo.findMiddleStop(stop.busStops) else null
-                val lastStop = stop.busStops.last { it.time != null }
+                val busStops = stop.busStops
+                val stopNames = busStops.map { it.name }
+
+                val thisStopIndex = busStops.indexOfFirst { it.stopIndexOnLine == stop.stopIndexOnLine }
                 val currentNextStop = onlineConn?.nextStop?.let { nextStop ->
-                    stop.busStops
-                        .filter { it.time != null }
-                        .findLast { it.time!! == nextStop }
-                        ?.let { it.name to it.time!! }
-                } ?: stop.busStops
+                    busStops
+                        .findLast { it.time == nextStop }
+                        ?.let { it.name to it.time }
+                } ?: busStops
                     .takeIf { date == SystemClock.todayHere() }
-                    ?.filter { it.time != null }
-                    ?.find { SystemClock.timeHere() < it.time!! }
-                    ?.takeIf { it.time!! > stop.busStops.first { it.time != null }.time!! }
-                    ?.let { it.name to it.time!! }
-                val lastIndexOfThisStop = stop.busStops.indexOfLast { it.name == stop.name }.let {
-                    if (it == thisStopIndex) stop.busStops.lastIndex else it
+                    ?.find { SystemClock.timeHere() < it.time }
+                    ?.takeIf { it.time > busStops.first().time }
+                    ?.let { it.name to it.time }
+                val lastIndexOfThisStop = stopNames.lastIndexOf(stop.name).let {
+                    if (it == thisStopIndex) busStops.lastIndex else it
                 }
 
+                val destination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
                 DepartureState(
-                    destination = if (middleStop != null && (thisStopIndex + 1) < middleStop.index) middleStop.name else lastStop.name,
-                    lineNumber = stop.line,
+                    destination = destination ?: stopNames.last(),
+                    lineNumber = stop.line.toShortLine(),
                     time = stop.time,
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
                     lowFloor = stop.lowFloor,
                     confirmedLowFloor = onlineConn?.lowFloor,
                     delay = onlineConn?.delayMin,
-                    runsVia = stop.busStops.map { it.name }.filterIndexed { i, _ -> i in (thisStopIndex + 1)..lastIndexOfThisStop },
+                    runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
                     runsIn = stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes - now,
-                    nextStop = stop.busStops.map { it.name }.getOrNull(thisStopIndex + 1),
+                    directionIfNotLast = if (destination != null) Direction.NEGATIVE
+                    else stop.direction.takeUnless { thisStopIndex == busStops.lastIndex },
                     stopType = stop.stopType,
                 )
             }
@@ -180,7 +182,7 @@ class DeparturesViewModel(
                     info.stopFilter?.let { filter -> it.runsVia.contains(filter) } != false
                 }
                 .remove {
-                    info.justDepartures && (it.nextStop == null || it.stopType == StopType.GetOffOnly)
+                    info.justDepartures && (it.directionIfNotLast == null || it.stopType == StopType.GetOffOnly)
                 }
                 .also { filteredList ->
                     println(lastState)
@@ -241,12 +243,12 @@ class DeparturesViewModel(
         }
 
         is DeparturesEvent.GoToTimetable -> {
-            e.bus.nextStop?.let {
+            e.bus.directionIfNotLast?.let {
                 navigator.navigate(
                     Route.Timetable(
                         lineNumber = e.bus.lineNumber,
                         stop = params.stop,
-                        nextStop = e.bus.nextStop,
+                        direction = e.bus.directionIfNotLast,
                         date = info.value.date,
                     )
                 )

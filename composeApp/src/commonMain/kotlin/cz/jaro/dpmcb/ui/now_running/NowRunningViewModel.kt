@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.now_running
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -9,6 +8,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
@@ -19,7 +19,6 @@ import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -80,15 +79,11 @@ class NowRunningViewModel(
         }
     }
 
-    private val oneWayLines = viewModelScope.async { repo.oneWayLines() }
-
     private val onlineList = onlineRepo.nowRunningBuses().map { onlineConns ->
         val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
-        val oneWayLines = repo.oneWayLines()
         onlineConns
             .mapNotNull { onlineConn ->
                 val bus = buses[onlineConn.name] ?: return@mapNotNull null
-                val middleStop = if (bus.lineNumber in oneWayLines) repo.findMiddleStop(bus.stops) else null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 RunningConnPlus(
                     busName = bus.busName,
@@ -97,8 +92,8 @@ class NowRunningViewModel(
                     delay = onlineConn.delayMin,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber,
-                    destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else bus.stops.last().name,
+                    lineNumber = bus.lineNumber.toShortLine(),
+                    destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
                     vehicle = onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
                 )
@@ -112,11 +107,9 @@ class NowRunningViewModel(
     }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val offlineList = repo.nowRunningOrNot.map { busNames ->
-        val oneWayLines = oneWayLines.await()
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
-                val middleStop = if (bus.lineNumber in oneWayLines) repo.findMiddleStop(bus.stops) else null
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
@@ -124,8 +117,8 @@ class NowRunningViewModel(
                     delay = -1F,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber,
-                    destination = if (middleStop != null && indexOnLine < middleStop.index) middleStop.name else bus.stops.last().name,
+                    lineNumber = bus.lineNumber.toShortLine(),
+                    destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
                     vehicle = RegistrationNumber(-1),
                     sequence = bus.sequence,
                 )

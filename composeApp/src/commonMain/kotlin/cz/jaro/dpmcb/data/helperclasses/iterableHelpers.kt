@@ -50,3 +50,22 @@ fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destinati
     }
     return destination
 }
+
+inline fun <K, V> Map<K, V>.mutate(block: MutableMap<K, V>.() -> Unit): Map<K, V> =
+    (this as? MutableMap<K, V> ?: toMutableMap()).apply(block)
+inline fun <T> Iterable<T>.mutate(block: MutableList<T>.() -> Unit): List<T> =
+    (this as? MutableList<T> ?: toMutableList()).apply(block)
+
+fun <K, V> Map<K, V>.with(key: K, mutateValue: (V?) -> V): Map<K, V> = mutate {
+    this[key] = mutateValue(this[key])
+}
+fun <T> Iterable<T>.with(index: Int, mutateValue: (T) -> T): List<T> = mutate {
+    this[index] = mutateValue(this[index])
+}
+
+fun <T> Iterable<T>.with(index: Int, value: T) = with(index) { value }
+fun <K, V> Map<K, V>.with(key: K, value: V) = with(key) { value }
+
+fun <T> Iterable<T>.countMembers(): Map<T, Int> = fold(mapOf()) { result, element ->
+    result.with(element, result.getOrElse(element) { 0 } + 1)
+}

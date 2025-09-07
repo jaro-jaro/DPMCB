@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 data class StopOfDeparture(
     val name: String,
     @SerialName("time_")
-    val time: LocalTime?,
+    val time: LocalTime,
     @SerialName("stopindexonline")
     val stopIndexOnLine: Int,
 )

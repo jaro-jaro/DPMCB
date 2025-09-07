@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.sequenceNumber
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.chooser.ChooserType
@@ -112,7 +113,7 @@ sealed interface Route {
         override val date: LocalDate,
         val lineNumber: ShortLine,
         val stop: String,
-        val nextStop: String,
+        val direction: Direction,
     ) : Route
 
     @Serializable

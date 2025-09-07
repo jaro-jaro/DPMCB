@@ -19,6 +19,7 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
@@ -28,6 +29,7 @@ import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
+import cz.jaro.dpmcb.data.realtions.timetable.EndStop
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -37,7 +39,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Line.vehicleType, CASE
+        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Conn.direction, Line.vehicleType, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to`, SeqOfConn.`group` FROM ConnStop
@@ -74,7 +76,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, CASE
+        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.direction, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, Line.validFrom, Line.validTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM ConnStop
@@ -160,7 +162,7 @@ interface Dao : SpojeQueries {
             ORDER BY ConnStop.stopIndexOnLine
         ),
         thisStop AS (
-            SELECT Stop.stopName name, Conn.fixedCodes, CASE
+            SELECT Stop.stopName name, Conn.fixedCodes, Conn.direction, CASE
                 WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
                 ELSE ConnStop.departure
             END time, ConnStop.stopIndexOnLine, ConnStop.fixedCodes connStopFixedCodes, Conn.connNumber, Conn.line, Conn.tab, (Conn.fixedCodes LIKE '%{%') lowFloor
@@ -400,7 +402,11 @@ interface Dao : SpojeQueries {
         END time, Stop.stopName name, ConnStop.stopIndexOnLine FROM Conn
         JOIN ConnStop ON ConnStop.connNumber = Conn.connNumber AND ConnStop.tab = Conn.tab
         JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
-        WHERE Conn.name IN (:connNames)
+        WHERE (
+            ConnStop.departure IS NOT NULL
+            OR ConnStop.arrival IS NOT NULL
+        )
+        AND Conn.name IN (:connNames)
         AND Conn.tab IN (:tabs)
         ORDER BY CASE
            WHEN Conn.direction = 'POSITIVE' THEN ConnStop.stopIndexOnLine
@@ -504,122 +510,66 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
-        
-        WITH TimeCodesCountOfConn AS (
-            SELECT DISTINCT Conn.connNumber, Conn.tab, COUNT(TimeCode.termIndex) count FROM TimeCode
-            JOIN Conn ON Conn.tab = TimeCode.tab AND Conn.connNumber = TimeCode.connNumber
-            GROUP BY Conn.name, Conn.tab
-        ),
-        TodayRunningConns AS (
-            SELECT DISTINCT Conn.* FROM TimeCode
-            JOIN Conn ON Conn.tab = TimeCode.tab AND Conn.connNumber = TimeCode.connNumber
-            JOIN TimeCodesCountOfConn ON TimeCodesCountOfConn.connNumber = Conn.connNumber AND TimeCodesCountOfConn.tab = Conn.tab
-            WHERE ((
-                TimeCode.type = 'RunsOnly'
-                AND TimeCode.validFrom <= :date
-                AND :date <= TimeCode.validTo
-            ) OR (
-                TimeCode.type = 'RunsAlso'
-            ) OR (
-                TimeCode.type = 'Runs'
-                AND TimeCode.validFrom <= :date
-                AND :date <= TimeCode.validTo
-            ) OR (
-                TimeCode.type = 'DoesNotRun'
-                AND NOT (
-                    TimeCode.validFrom <= :date
-                    AND :date <= TimeCode.validTo
-                )
-            ))
-            AND Conn.tab = :tab
-            GROUP BY Conn.name, Conn.tab
-            HAVING (
-                TimeCode.runs2
-                AND COUNT(TimeCode.termIndex) >= 1
-            ) OR (
-                NOT TimeCode.runs2
-                AND COUNT(TimeCode.termIndex) = TimeCodesCountOfConn.count
-            )
-        ),
-        thisStopIndex AS (
-            SELECT DISTINCT ConnStop.stopIndexOnLine FROM ConnStop
+        WITH HereRunningConns AS (
+            SELECT DISTINCT Conn.* FROM ConnStop
+            JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
             JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
-            JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab =  ConnStop.tab
             WHERE Conn.tab = :tab
             AND Stop.stopName = :stop
-            ORDER BY ConnStop.stopIndexOnLine
-        ),
-        negative(max, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
-            SELECT DISTINCT MAX(ConnStop.stopIndexOnLine), Stop.stopName, ConnStop.stopIndexOnLine, Conn.connNumber, thisStop.stopIndexOnLine
-            FROM ConnStop
-            JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
-            JOIN TodayRunningConns Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
-            CROSS JOIN thisStopIndex thisStop
-            WHERE ConnStop.stopIndexOnLine < thisStop.stopIndexOnLine
-            AND Conn.direction <> 'POSITIVE'
+            AND Conn.direction = :direction
             AND (
                 ConnStop.departure IS NOT NULL
                 OR ConnStop.arrival IS NOT NULL
             )
-            GROUP BY Conn.connNumber, thisStop.stopIndexOnLine
-            ORDER BY -ConnStop.stopIndexOnLine
-        ),
-        positive(min, stopName, indexOnLine, connNumber, indexOnThisLine) AS (
-            SELECT DISTINCT MIN(ConnStop.stopIndexOnLine), Stop.stopName, ConnStop.stopIndexOnLine, Conn.connNumber, thisStop.stopIndexOnLine
-            FROM ConnStop
-            JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
-            JOIN TodayRunningConns Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
-            CROSS JOIN thisStopIndex thisStop
-            WHERE ConnStop.stopIndexOnLine > thisStop.stopIndexOnLine
-            AND Conn.direction = 'POSITIVE'
-            AND (
-                ConnStop.departure IS NOT NULL
-                OR ConnStop.arrival IS NOT NULL
-            )
-            GROUP BY Conn.connNumber, thisStop.stopIndexOnLine
-            ORDER BY ConnStop.stopIndexOnLine
-        ),
-        endStopIndexOnThisLine(connNumber, time, name) AS (
-            SELECT DISTINCT ConnStop.connNumber, CASE
-                WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
-                ELSE ConnStop.departure
-            END, Stop.stopName FROM ConnStop
-            JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
-            JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
-            WHERE (
-                ConnStop.departure IS NOT NULL
-                OR ConnStop.arrival IS NOT NULL
-            )
-            AND ConnStop.tab = :tab
-            GROUP BY ConnStop.connNumber
-            HAVING MAX(CASE
-                WHEN Conn.direction = 'NEGATIVE' THEN -ConnStop.stopIndexOnLine
-                ELSE ConnStop.stopIndexOnLine
-            END)
         )
-        SELECT DISTINCT ConnStop.departure, (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.name connName, Conn.fixedCodes, endStopIndexOnThisLine.name destination, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM TodayRunningConns Conn
-        JOIN ConnStop ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
-        JOIN endStopIndexOnThisLine ON endStopIndexOnThisLine.connNumber = ConnStop.connNumber
-        CROSS JOIN thisStopIndex thisStop ON ConnStop.stopIndexOnLine = thisStop.stopIndexOnLine
-        LEFT JOIN positive ON positive.connNumber = Conn.connNumber AND positive.indexOnThisLine = ConnStop.stopIndexOnLine
-        LEFT JOIN negative ON negative.connNumber = Conn.connNumber AND negative.indexOnThisLine = ConnStop.stopIndexOnLine
-        JOIN TimeCode ON TimeCode.connNumber = Conn.connNumber AND TimeCode.tab = Conn.tab
-        WHERE (Conn.direction = 'POSITIVE' AND positive.stopName = :nextStop)
-        OR (Conn.direction <> 'POSITIVE' AND negative.stopName = :nextStop)
-        AND ConnStop.departure IS NOT NULL;
+        SELECT CASE
+            WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
+            ELSE ConnStop.departure
+        END time, Conn.name connName, Stop.stopName, Conn.fixedCodes, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM TimeCode
+        JOIN HereRunningConns Conn ON Conn.connNumber = TimeCode.connNumber AND Conn.tab = TimeCode.tab
+        JOIN ConnStop ON ConnStop.connNumber = TimeCode.connNumber AND ConnStop.tab = TimeCode.tab
+        JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+        ORDER BY CASE
+            WHEN Conn.direction = 'NEGATIVE' THEN -ConnStop.stopIndexOnLine
+            ELSE ConnStop.stopIndexOnLine
+        END
         """
     )
     override suspend fun connStopsOnLineWithNextStopAtDate(
         stop: String,
-        nextStop: String,
-        date: LocalDate,
+        direction: Direction,
         tab: Table,
     ): List<CoreBusInTimetable>
+    @Query(
+        """
+        WITH HereRunningConns AS (
+            SELECT DISTINCT Conn.* FROM ConnStop
+            JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
+            JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+            WHERE Conn.tab = :tab
+            AND Stop.stopName = :stop
+            AND (
+                ConnStop.departure IS NOT NULL
+                OR ConnStop.arrival IS NOT NULL
+            )
+        )
+        SELECT Conn.direction, ConnStop.stopIndexOnLine, Conn.name connName, Stop.stopName, Conn.fixedCodes, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM TimeCode
+        JOIN HereRunningConns Conn ON Conn.connNumber = TimeCode.connNumber AND Conn.tab = TimeCode.tab
+        JOIN ConnStop ON ConnStop.connNumber = TimeCode.connNumber AND ConnStop.tab = TimeCode.tab
+        JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+        ORDER BY CASE
+            WHEN Conn.direction = 'NEGATIVE' THEN -ConnStop.stopIndexOnLine
+            ELSE ConnStop.stopIndexOnLine
+        END
+        """
+    )
+    override suspend fun endStops(
+        stop: String,
+        tab: Table,
+    ): List<EndStop>
 
     @Query(
         """
-        
-        
         SELECT number FROM Line
         WHERE shortNumber = :line
         LIMIT 1;
@@ -629,7 +579,6 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
-        
         SELECT DISTINCT shortNumber FROM Line
         WHERE tab IN (:tabs)
         ORDER BY shortNumber;
@@ -648,9 +597,6 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
-        
-        
-        
         WITH hereRunningConns AS (
             SELECT DISTINCT Conn.* FROM ConnStop
             JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber

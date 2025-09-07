@@ -63,6 +63,7 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
@@ -523,8 +524,9 @@ fun DateSelector(
     date: LocalDate,
     onDateChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    showDialog: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
 ) {
-    var showDialog by rememberSaveable { mutableStateOf(false) }
+    var show by showDialog
     val state = rememberDatePickerState(
         initialSelectedDateMillis = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
         initialDisplayMode = DisplayMode.Picker,
@@ -532,14 +534,14 @@ fun DateSelector(
     LaunchedEffect(date) {
         state.selectedDateMillis = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
     }
-    if (showDialog) DatePickerDialog(
+    if (show) DatePickerDialog(
         onDismissRequest = {
-            showDialog = false
+            show = false
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    showDialog = false
+                    show = false
                     onDateChange(
                         kotlin.time.Instant.Companion.fromEpochMilliseconds(state.selectedDateMillis!!)
                             .toLocalDateTime(TimeZone.UTC).date
@@ -564,7 +566,7 @@ fun DateSelector(
                     )
                     TextButton(
                         onClick = {
-                            showDialog = false
+                            show = false
                             onDateChange(SystemClock.todayHere())
                         },
                         Modifier.padding(PaddingValues(end = 24.dp, start = 12.dp, top = 16.dp))
@@ -578,7 +580,7 @@ fun DateSelector(
 
     TextButton(
         onClick = {
-            showDialog = true
+            show = true
         },
         modifier,
         contentPadding = ButtonDefaults.TextButtonWithIconContentPadding,

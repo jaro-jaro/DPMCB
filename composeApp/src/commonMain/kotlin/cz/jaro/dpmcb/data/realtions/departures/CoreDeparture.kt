@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.data.realtions.departures
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Table
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -13,6 +14,7 @@ import kotlinx.serialization.Serializable
 data class CoreDeparture(
     val tab: Table,
     val name: String,
+    val direction: Direction,
     @SerialName("time_")
     val time: LocalTime,
     @SerialName("stopindexonline")

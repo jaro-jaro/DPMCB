@@ -529,7 +529,7 @@ private fun Card(
             showDropDown = true
         }
     ) {
-        departureState.nextStop?.let {
+        departureState.directionIfNotLast?.let {
             DropdownMenu(
                 expanded = showDropDown,
                 onDismissRequest = {

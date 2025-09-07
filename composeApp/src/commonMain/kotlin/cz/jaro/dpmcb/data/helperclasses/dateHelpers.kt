@@ -136,7 +136,7 @@ fun Clock.todayHere() = todayIn(DefaultTimeZone)
 fun Clock.timeHere() = timeIn(DefaultTimeZone)
 val DefaultTimeZone get() = TimeZone.currentSystemDefault()
 
-val Duration.inSeconds get() = inWholeMilliseconds / 60F
+val Duration.inSeconds get() = inWholeMilliseconds / 1000F
 val Duration.inMinutes get() = inSeconds / 60F
 val Duration.inHours get() = inMinutes / 60F
 val Duration.inDays get() = inHours / 24F

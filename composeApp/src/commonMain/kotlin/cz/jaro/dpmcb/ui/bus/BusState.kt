@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
@@ -37,6 +38,8 @@ sealed interface BusState {
         override val deeplink: String,
         val restriction: Boolean,
         val traveledSegments: Int,
+        val direction: Direction,
+        val isOneWay: Boolean,
         val lineHeight: Float,
         val favourite: PartOfConn?,
         val shouldBeOnline: Boolean,
