@@ -16,18 +16,18 @@ actual fun Navigator(
         }
     }
 
-    override fun <T> navigateBackWithResult(value: T) {
+    override fun navigateBackWithResult(value: String) {
         navController.navigateUp()
         navController.currentBackStackEntry?.savedStateHandle?.set("result", value)
     }
 
-    override fun <T> getResult(): T? {
-        return navController.currentBackStackEntry?.savedStateHandle?.get<T>("result")
+    override fun getResult(): String? {
+        return navController.currentBackStackEntry?.savedStateHandle?.get<String>("result")
     }
 
-    override fun <T> clearResult() {
+    override fun clearResult() {
         if (navController.currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.CREATED) == true)
-            navController.currentBackStackEntry?.savedStateHandle?.remove<T>("result")
+            navController.currentBackStackEntry?.savedStateHandle?.remove<String>("result")
     }
 
     override fun navigateUp() {

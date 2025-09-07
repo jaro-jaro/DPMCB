@@ -115,6 +115,7 @@ import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.NothingRuns
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.getResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
@@ -154,7 +155,7 @@ fun Departures(
         if (result != null) viewModel.onEvent(WentBack(result))
 
         onPauseOrDispose {
-            navigator.clearResult<ChooserResult>()
+            navigator.clearResult()
         }
     }
 

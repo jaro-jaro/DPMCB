@@ -29,18 +29,18 @@ actual fun Navigator(
             window.history.back()
         }
 
-        override fun <T> navigateBackWithResult(value: T) {
+        override fun navigateBackWithResult(value: String) {
             window.history.back()
-            window.history.replaceState(value, "", window.location.hash)
+            window.history.replaceState(value, ""/*, window.location.hash*/)
         }
 
-        override fun <T> getResult(): T? {
+        override fun getResult(): String? {
             @Suppress("UNCHECKED_CAST")
-            return window.history.state as? T?
+            return window.history.state as? String?
         }
 
-        override fun <T> clearResult() {
-            window.history.replaceState(null, "", window.location.hash)
+        override fun clearResult() {
+            window.history.replaceState(null, ""/*, window.location.hash*/)
         }
 
         override fun getNavDestination(): NavDestination? {

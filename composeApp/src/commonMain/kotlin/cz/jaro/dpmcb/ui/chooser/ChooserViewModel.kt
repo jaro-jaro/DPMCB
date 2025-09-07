@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import cz.jaro.dpmcb.ui.main.navigateBackWithResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
