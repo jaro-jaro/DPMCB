@@ -38,7 +38,7 @@ interface SpojeQueries {
 
     suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String>
 
-    suspend fun connStopsOnLineWithNextStopAtDate(
+    suspend fun connStopsOnLineInDirection(
         stop: String,
         direction: Direction,
         tab: Table,

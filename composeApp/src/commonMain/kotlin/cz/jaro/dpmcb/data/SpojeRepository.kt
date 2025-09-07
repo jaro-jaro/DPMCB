@@ -444,7 +444,7 @@ class SpojeRepository(
 
     suspend fun timetable(line: ShortLine, thisStop: String, direction: Direction, date: LocalDate): Set<BusInTimetable> {
         val isOneWay = isOneWay(line.findLongLine())
-        return ds.connStopsOnLineWithNextStopAtDate(
+        return ds.connStopsOnLineInDirection(
             stop = thisStop,
             direction = if (isOneWay) Direction.POSITIVE else direction,
             tab = nowUsedTable(date, line.findLongLine())!!

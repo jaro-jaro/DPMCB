@@ -535,7 +535,7 @@ interface Dao : SpojeQueries {
         END
         """
     )
-    override suspend fun connStopsOnLineWithNextStopAtDate(
+    override suspend fun connStopsOnLineInDirection(
         stop: String,
         direction: Direction,
         tab: Table,
