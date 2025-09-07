@@ -164,6 +164,8 @@ fun Departures(
 
     val listState = rememberLazyListState(info.scrollIndex)
 
+    Text(listState.firstVisibleItemIndex.toString())
+
     LaunchedEffect(Unit) {
         viewModel.setScroll {
             delay(500)
@@ -377,14 +379,22 @@ fun DeparturesScreen(
                     }
                 },
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface }
+                        ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface }
+                        ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     focusedContainerColor = containerColor,
                     unfocusedContainerColor = containerColor,
                     disabledContainerColor = containerColor,
                 ),
             )
-            val linePressedState by lineSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            val linePressedState by lineSource.interactions.collectAsStateWithLifecycle(
+                PressInteraction.Cancel(
+                    PressInteraction.Press(
+                        Offset.Zero
+                    )
+                )
+            )
             if (linePressedState is PressInteraction.Release) {
                 onEvent(DeparturesEvent.ChangeLine)
                 lineSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -410,14 +420,22 @@ fun DeparturesScreen(
                 },
                 interactionSource = stopSource,
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface }
+                        ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface }
+                        ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     focusedContainerColor = containerColor,
                     unfocusedContainerColor = containerColor,
                     disabledContainerColor = containerColor,
                 ),
             )
-            val stopPressedState by stopSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            val stopPressedState by stopSource.interactions.collectAsStateWithLifecycle(
+                PressInteraction.Cancel(
+                    PressInteraction.Press(
+                        Offset.Zero
+                    )
+                )
+            )
             if (stopPressedState is PressInteraction.Release) {
                 onEvent(DeparturesEvent.ChangeVia)
                 stopSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
@@ -669,26 +687,29 @@ fun TimePickerDialog(
     tonalElevation: Dp = DatePickerDefaults.TonalElevation,
     colors: TimePickerColors = TimePickerDefaults.colors(),
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) = BasicAlertDialog(
     onDismissRequest = onDismissRequest,
     modifier = modifier.wrapContentHeight(),
-    properties = properties
+    properties = properties,
 ) {
     Surface(
         modifier = Modifier
             .requiredWidth(360.0.dp)
-            .heightIn(max = 40.0.dp),
+            .heightIn(min = 40.0.dp),
         shape = shape,
         color = colors.containerColor,
         tonalElevation = tonalElevation,
     ) {
-        Column(verticalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            Modifier.padding(all = 8.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             content()
             Box(
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(bottom = 8.dp, end = 6.dp)
             ) {
                 val mergedStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
                 CompositionLocalProvider(
