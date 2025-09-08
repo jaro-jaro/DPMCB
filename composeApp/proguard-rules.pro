@@ -29,6 +29,7 @@
 -keep,allowoptimization,allowshrinking,allowobfuscation class <3>
 
 -keep class androidx.navigation.NavType$EnumType
+-keep class cz.jaro.dpmcb.data.entities.types.Direction
 
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
