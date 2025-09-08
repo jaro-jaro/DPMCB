@@ -10,12 +10,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -28,27 +27,31 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.NotAccessible
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -57,8 +60,6 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerColors
 import androidx.compose.material3.TimePickerDefaults
@@ -77,7 +78,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -102,10 +102,8 @@ import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.StopTypeIcon
+import cz.jaro.dpmcb.ui.common.VehicleIcon
 import cz.jaro.dpmcb.ui.common.toLocalTime
-import cz.jaro.dpmcb.ui.departures.DeparturesEvent.Canceled
-import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeCompactMode
-import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeJustDepartures
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.ChangeTime
 import cz.jaro.dpmcb.ui.departures.DeparturesEvent.WentBack
 import cz.jaro.dpmcb.ui.departures.DeparturesState.NothingRunsReason.LineDoesNotRun
@@ -162,7 +160,9 @@ fun Departures(
     val info by viewModel.info.collectAsStateWithLifecycle()
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val listState = rememberLazyListState(info.scrollIndex)
+    val listState = rememberLazyListState(remember { info.scrollIndex })
+
+    Text(listState.firstVisibleItemIndex.toString())
 
     LaunchedEffect(Unit) {
         viewModel.setScroll {
@@ -200,9 +200,10 @@ fun DeparturesScreen(
         if (state is DeparturesState.Runs) {
             val scope = rememberCoroutineScope()
             val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-            val isAtBottom = !listState.canScrollForward
-            val hideBecauseTooLow = isAtBottom && i < state.departures.home(state.info.time)
-            val hideBecauseNear = abs(i - state.departures.home(state.info.time)) <= 1
+            val isAtBottom by remember { derivedStateOf { !listState.canScrollForward } }
+            val home by remember {  derivedStateOf { state.departures.home(state.info.time) } }
+            val hideBecauseTooLow by remember { derivedStateOf { isAtBottom && i < home } }
+            val hideBecauseNear by remember { derivedStateOf { abs(i - home) <= 1 } }
 
             AnimatedVisibility(
                 visible = !hideBecauseNear && !hideBecauseTooLow,
@@ -212,7 +213,7 @@ fun DeparturesScreen(
                 SmallFloatingActionButton(
                     onClick = {
                         scope.launch(Dispatchers.Main) {
-                            listState.animateScrollToItem(state.departures.home(state.info.time))
+                            listState.animateScrollToItem(home)
                         }
                     },
                 ) {
@@ -221,10 +222,12 @@ fun DeparturesScreen(
                         "Scrollovat",
                         Modifier.rotate(
                             animateFloatAsState(
-                                when {
-                                    i > state.departures.home(state.info.time) -> 0F
-                                    i < state.departures.home(state.info.time) -> 180F
-                                    else -> 90F
+                                remember {
+                                    when {
+                                        i > home -> 0F
+                                        i < home -> 180F
+                                        else -> 90F
+                                    }
                                 }, label = "TOČENÍ"
                             ).value
                         )
@@ -234,31 +237,33 @@ fun DeparturesScreen(
         }
     },
     contentWindowInsets = WindowInsets(0)
-) {
+) { paddingValues ->
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(it)
+            .padding(paddingValues)
     ) {
+        TextButton(
+            onClick = {
+                onEvent(DeparturesEvent.ChangeStop)
+            },
+            Modifier
+        ) {
+            Text(
+                text = state.stop,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            IconWithTooltip(Icons.Default.Edit, "Změnit zastávku")
+        }
+
         Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
         ) {
-            Box(
-                Modifier.weight(1F),
-            ) {
-                TextButton(
-                    onClick = {
-                        onEvent(DeparturesEvent.ChangeStop)
-                    },
-                ) {
-                    Text(
-                        text = state.stop,
-                        fontSize = 20.sp,
-                    )
-                }
-            }
             DateSelector(
                 date = state.info.date,
                 onDateChange = {
@@ -303,124 +308,89 @@ fun DeparturesScreen(
             TextButton(
                 onClick = {
                     showDialog = true
-                }
+                },
+                contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp, start = 16.dp, end = 12.dp),
             ) {
+                IconWithTooltip(Icons.Default.AccessTime, "Změnit čas", Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 Text(text = state.info.time.toString())
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        LazyRow(
+            Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (state.isOnline) Surface(
-                checked = state.info.compactMode,
-                onCheckedChange = {
-                    onEvent(ChangeCompactMode)
-                },
-                Modifier.padding(all = 8.dp),
-                shape = CircleShape,
-            ) {
-                Row(
-                    Modifier.padding(all = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = state.info.compactMode, onCheckedChange = {
-                        onEvent(ChangeCompactMode)
-                    })
-                    Text("Zjednodušit")
-                }
+            item {
+                FilterChip(
+                    selected = state.info.compactMode,
+                    onClick = {
+                        onEvent(DeparturesEvent.ChangeCompactMode)
+                    },
+                    label = {
+                        Text("Zjednodušit")
+                    },
+                    leadingIcon = {
+                        if (state.info.compactMode) Icon(Icons.Default.Check, null)
+                    },
+                )
             }
-
-            Spacer(modifier = Modifier.weight(1F))
-
-            Surface(
-                checked = state.info.justDepartures,
-                onCheckedChange = {
-                    onEvent(ChangeJustDepartures)
-                },
-                Modifier.padding(all = 8.dp),
-                shape = CircleShape,
-            ) {
-                Row(
-                    Modifier.padding(all = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(checked = state.info.justDepartures, onCheckedChange = {
-                        onEvent(ChangeJustDepartures)
-                    })
-                    Text("Pouze odjezdy")
-                }
+            item {
+                FilterChip(
+                    selected = state.info.justDepartures,
+                    onClick = {
+                        onEvent(DeparturesEvent.ChangeJustDepartures)
+                    },
+                    label = {
+                        Text("Pouze odjezdy")
+                    },
+                    leadingIcon = {
+                        if (state.info.justDepartures) Icon(Icons.Default.Check, null)
+                    },
+                )
             }
-        }
-
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-        ) {
-            val lineSource = remember { MutableInteractionSource() }
-            val containerColor = MaterialTheme.colorScheme.surfaceVariant
-            TextField(
-                value = state.info.lineFilter?.toString() ?: "Všechny",
-                onValueChange = {},
-                Modifier
-                    .fillMaxWidth(),
-                label = {
-                    Text(text = "Linka:")
-                },
-                interactionSource = lineSource,
-                readOnly = true,
-                trailingIcon = {
-                    if (state.info.lineFilter != null) IconButton(onClick = {
-                        onEvent(Canceled(ChooserType.ReturnLine))
-                    }) {
-                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                    }
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = state.info.lineFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedContainerColor = containerColor,
-                    unfocusedContainerColor = containerColor,
-                    disabledContainerColor = containerColor,
-                ),
-            )
-            val linePressedState by lineSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-            if (linePressedState is PressInteraction.Release) {
-                onEvent(DeparturesEvent.ChangeLine)
-                lineSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            item {
+                FilterChip(
+                    selected = state.info.stopFilter != null,
+                    onClick = {
+                        onEvent(
+                            if (state.info.stopFilter != null)
+                                DeparturesEvent.Canceled(ChooserType.ReturnStop)
+                            else DeparturesEvent.ChangeVia
+                        )
+                    },
+                    label = {
+                        Text(state.info.stopFilter?.let { "Jede přes: $it" } ?: "Jede přes")
+                    },
+                    leadingIcon = {
+                        if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
+                    },
+                    trailingIcon = {
+                        if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+                    },
+                )
             }
-            val stopSource = remember { MutableInteractionSource() }
-            TextField(
-                value = state.info.stopFilter ?: "Cokoliv",
-                onValueChange = {},
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-
-                label = {
-                    Text(text = "Pojede přes:")
-                },
-                readOnly = true,
-                trailingIcon = {
-                    if (state.info.stopFilter != null) IconButton(onClick = {
-                        onEvent(Canceled(ChooserType.ReturnStop))
-                    }) {
-                        IconWithTooltip(imageVector = Icons.Default.Clear, contentDescription = "Vymazat")
-                    }
-                },
-                interactionSource = stopSource,
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTextColor = state.info.stopFilter?.let { MaterialTheme.colorScheme.onSurface } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedContainerColor = containerColor,
-                    unfocusedContainerColor = containerColor,
-                    disabledContainerColor = containerColor,
-                ),
-            )
-            val stopPressedState by stopSource.interactions.collectAsStateWithLifecycle(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
-            if (stopPressedState is PressInteraction.Release) {
-                onEvent(DeparturesEvent.ChangeVia)
-                stopSource.tryEmit(PressInteraction.Cancel(PressInteraction.Press(Offset.Zero)))
+            item {
+                FilterChip(
+                    selected = state.info.lineFilter != null,
+                    onClick = {
+                        onEvent(
+                            if (state.info.lineFilter != null)
+                                DeparturesEvent.Canceled(ChooserType.ReturnLine)
+                            else DeparturesEvent.ChangeLine
+                        )
+                    },
+                    label = {
+                        Text(state.info.lineFilter?.let { "Linka: $it" } ?: "Linka")
+                    },
+                    leadingIcon = {
+                        if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
+                    },
+                    trailingIcon = {
+                        if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+                    },
+                )
             }
         }
         when (state) {
@@ -569,25 +539,7 @@ private fun Card(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
             ) {
-                IconWithTooltip(
-                    when {
-                        departureState.confirmedLowFloor == true -> Icons.AutoMirrored.Filled.Accessible
-                        departureState.confirmedLowFloor == false -> Icons.Default.NotAccessible
-                        departureState.lowFloor -> Icons.AutoMirrored.Filled.Accessible
-                        else -> Icons.Default.NotAccessible
-                    },
-                    when {
-                        departureState.confirmedLowFloor == true -> "Potvrzený nízkopodlažní vůz"
-                        departureState.confirmedLowFloor == false -> "Potvrzený vysokopodlažní vůz"
-                        departureState.lowFloor -> "Plánovaný nízkopodlažní vůz"
-                        else -> "Nezaručený nízkopodlažní vůz"
-                    },
-                    tint = when {
-                        departureState.confirmedLowFloor == false && departureState.lowFloor -> MaterialTheme.colorScheme.error
-                        departureState.confirmedLowFloor != null -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                )
+                VehicleIcon(departureState.lineTraction, departureState.vehicleTraction)
                 Text(
                     modifier = Modifier.padding(start = 8.dp),
                     text = departureState.lineNumber.toString(),
@@ -669,26 +621,29 @@ fun TimePickerDialog(
     tonalElevation: Dp = DatePickerDefaults.TonalElevation,
     colors: TimePickerColors = TimePickerDefaults.colors(),
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) = BasicAlertDialog(
     onDismissRequest = onDismissRequest,
     modifier = modifier.wrapContentHeight(),
-    properties = properties
+    properties = properties,
 ) {
     Surface(
         modifier = Modifier
             .requiredWidth(360.0.dp)
-            .heightIn(max = 40.0.dp),
+            .heightIn(min = 40.0.dp),
         shape = shape,
         color = colors.containerColor,
         tonalElevation = tonalElevation,
     ) {
-        Column(verticalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            Modifier.padding(all = 8.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             content()
             Box(
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(bottom = 8.dp, end = 6.dp)
             ) {
                 val mergedStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
                 CompositionLocalProvider(

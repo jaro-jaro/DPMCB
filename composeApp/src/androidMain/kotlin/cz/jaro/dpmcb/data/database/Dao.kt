@@ -162,12 +162,13 @@ interface Dao : SpojeQueries {
             ORDER BY ConnStop.stopIndexOnLine
         ),
         thisStop AS (
-            SELECT Stop.stopName name, Conn.fixedCodes, Conn.direction, CASE
+            SELECT Stop.stopName name, Conn.fixedCodes, Line.vehicleType, Conn.direction, CASE
                 WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
                 ELSE ConnStop.departure
             END time, ConnStop.stopIndexOnLine, ConnStop.fixedCodes connStopFixedCodes, Conn.connNumber, Conn.line, Conn.tab, (Conn.fixedCodes LIKE '%{%') lowFloor
             FROM ConnStop
             JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+            JOIN Line ON Line.tab = ConnStop.tab
             JOIN hereRunningConns Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
             CROSS JOIN thisStopIndexes thisStop ON ConnStop.tab = thisStop.tab AND ConnStop.stopIndexOnLine = thisStop.stopIndexOnLine
         )

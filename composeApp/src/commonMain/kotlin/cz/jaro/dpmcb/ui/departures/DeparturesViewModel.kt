@@ -30,6 +30,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,7 +78,7 @@ class DeparturesViewModel(
             lineFilter = params.line,
             stopFilter = params.via,
             justDepartures = params.onlyDepartures == true,
-            compactMode = params.simple == true,
+            compactMode = params.simple != false,
         )
     )
     val info = _info.asStateFlow()
@@ -149,14 +151,15 @@ class DeparturesViewModel(
                 }
 
                 val destination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
+                val lineTraction = repo.lineTraction(stop.line, stop.vehicleType)
                 DepartureState(
                     destination = destination ?: stopNames.last(),
                     lineNumber = stop.line.toShortLine(),
                     time = stop.time,
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
-                    lowFloor = stop.lowFloor,
-                    confirmedLowFloor = onlineConn?.lowFloor,
+                    lineTraction = lineTraction,
+                    vehicleTraction = onlineConn?.vehicle?.let { repo.vehicleTraction(it) ?: lineTraction },
                     delay = onlineConn?.delayMin,
                     runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
                     runsIn = stop.time + (onlineConn?.delayMin?.toDouble() ?: .0).minutes - now,
@@ -374,17 +377,18 @@ class DeparturesViewModel(
     fun setScroll(scroll: suspend (Int) -> Unit) {
         this.scroll = scroll
         viewModelScope.launch(Dispatchers.IO) {
-            state.collect {
-                if (state.value is DeparturesState.Loading) return@collect
-                if (state.value !is DeparturesState.Runs) Unit//throw RuntimeException("End")
-                withContext(Dispatchers.Main) {
-                    val list = (state.value as DeparturesState.Runs).departures
-                    scroll(
-                        list.home(params.time)
-                    )
+            state.takeWhile {
+                when (state.value) {
+                    is DeparturesState.Loading -> true
+                    is DeparturesState.NothingRuns -> false
+                    is DeparturesState.Runs -> withContext(Dispatchers.Main) {
+                        val list = (state.value as DeparturesState.Runs).departures
+                        scroll(list.home(params.time))
+
+                        false
+                    }
                 }
-                //throw RuntimeException("End")
-            }
+            }.collect()
         }
     }
 }
