@@ -49,16 +49,7 @@ fun LocalDate.toCzechAccusative() = when (SystemClock.todayHere().durationUntil(
     0L -> "dnešek"
     1L -> "zítřek"
     2L -> "pozítří"
-    in 3L..6L -> when (dayOfWeek) {
-        DayOfWeek.MONDAY -> "pondělí"
-        DayOfWeek.TUESDAY -> "úterý"
-        DayOfWeek.WEDNESDAY -> "středu"
-        DayOfWeek.THURSDAY -> "čtvrtek"
-        DayOfWeek.FRIDAY -> "pátek"
-        DayOfWeek.SATURDAY -> "sobotu"
-        DayOfWeek.SUNDAY -> "neděli"
-    }
-
+    in 3L..6L -> dayOfWeek.cz()
     else -> asString()
 }
 
@@ -140,3 +131,13 @@ val Duration.inSeconds get() = inWholeMilliseconds / 1000F
 val Duration.inMinutes get() = inSeconds / 60F
 val Duration.inHours get() = inMinutes / 60F
 val Duration.inDays get() = inHours / 24F
+
+fun DayOfWeek.cz() = when (this) {
+    DayOfWeek.MONDAY -> "pondělí"
+    DayOfWeek.TUESDAY -> "úterý"
+    DayOfWeek.WEDNESDAY -> "středu"
+    DayOfWeek.THURSDAY -> "čtvrtek"
+    DayOfWeek.FRIDAY -> "pátek"
+    DayOfWeek.SATURDAY -> "sobotu"
+    DayOfWeek.SUNDAY -> "neděli"
+}

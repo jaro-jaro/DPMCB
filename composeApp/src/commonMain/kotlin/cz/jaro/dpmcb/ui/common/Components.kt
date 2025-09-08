@@ -31,6 +31,8 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.ArrowLeft
+import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
@@ -47,6 +49,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -99,11 +102,12 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.Traction
-import cz.jaro.dpmcb.data.helperclasses.asString
 import cz.jaro.dpmcb.data.helperclasses.awaitFrame
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleContainer
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleText
+import cz.jaro.dpmcb.data.helperclasses.cz
 import cz.jaro.dpmcb.data.helperclasses.isTypeOf
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.BusStop
@@ -124,15 +128,19 @@ import dpmcb.composeapp.generated.resources.parcial
 import dpmcb.composeapp.generated.resources.trolejbus
 import dpmcb.composeapp.generated.resources.zemeplyn
 import kotlinx.coroutines.delay
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -486,6 +494,8 @@ fun DateSelector(
     onDateChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     showDialog: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
+) = Row(
+    modifier,
 ) {
     var show by showDialog
     val state = rememberDatePickerState(
@@ -504,7 +514,7 @@ fun DateSelector(
                 onClick = {
                     show = false
                     onDateChange(
-                        kotlin.time.Instant.Companion.fromEpochMilliseconds(state.selectedDateMillis!!)
+                        Instant.fromEpochMilliseconds(state.selectedDateMillis!!)
                             .toLocalDateTime(TimeZone.UTC).date
                     )
                 }
@@ -539,16 +549,29 @@ fun DateSelector(
         )
     }
 
+    IconButton(
+        onClick = {
+            onDateChange(date - DatePeriod(days = 1))
+        },
+    ) {
+        IconWithTooltip(Icons.AutoMirrored.Default.ArrowLeft, "O den dříve")
+    }
     TextButton(
         onClick = {
             show = true
         },
-        modifier,
-        contentPadding = ButtonDefaults.TextButtonWithIconContentPadding,
+        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 2.dp),
     ) {
-        Text(date.asString())
+        IconWithTooltip(Icons.Default.CalendarMonth, "Změnit datum", Modifier.size(ButtonDefaults.IconSize))
         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-        IconWithTooltip(Icons.Default.CalendarMonth, null, Modifier.size(ButtonDefaults.IconSize))
+        Text("${date.dayOfWeek.cz().take(2)} ${date.day}. ${date.month.number}.")
+    }
+    IconButton(
+        onClick = {
+            onDateChange(date + DatePeriod(days = 1))
+        },
+    ) {
+        IconWithTooltip(Icons.AutoMirrored.Default.ArrowRight, "O den později")
     }
 }
 

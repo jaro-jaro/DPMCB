@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -33,9 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -107,7 +104,7 @@ fun Chooser(
     ChooserScreen(
         state = state,
         onEvent = viewModel::onEvent,
-        navigateUp = navigator::navigateUp,
+//        navigateUp = navigator::navigateUp,
     )
 }
 
@@ -116,7 +113,7 @@ fun Chooser(
 fun ChooserScreen(
     state: ChooserState,
     onEvent: (ChooserEvent) -> Unit,
-    navigateUp: () -> Unit,
+//    navigateUp: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -166,14 +163,14 @@ fun ChooserScreen(
                 showDialog = dateDialogShown,
             )
         }
-        val imeVisible = isImeVisible
-        var wasShown by remember { mutableStateOf(false) }
-        LaunchedEffect(imeVisible) {
-            when {
-                imeVisible -> wasShown = true
-                wasShown && AppState.menuState == DrawerValue.Closed && !dateDialogShown.value -> navigateUp()
-            }
-        }
+//        val imeVisible = isImeVisible
+//        var wasShown by remember { mutableStateOf(false) }
+//        LaunchedEffect(imeVisible) {
+//            when {
+//                imeVisible -> wasShown = true
+//                wasShown && AppState.menuState == DrawerValue.Closed && !dateDialogShown.value -> navigateUp()
+//            }
+//        }
         TextField(
             state = state.search,
             modifier = Modifier
@@ -266,7 +263,7 @@ fun ChooserPreview() {
                     info = "6: ? -> ?",
                 ),
                 onEvent = {},
-                navigateUp = {},
+//                navigateUp = {},
             )
         }
     }

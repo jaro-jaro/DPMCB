@@ -14,6 +14,7 @@ import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.fromJsonElement
 import cz.jaro.dpmcb.data.helperclasses.toJson
@@ -27,6 +28,7 @@ import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
+import cz.jaro.dpmcb.data.realtions.timetable.EndStop
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.result.PostgrestResult
@@ -137,15 +139,23 @@ class SupabaseDataSource(
     override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String> =
         query("nextStops", mapOf("lineA" to line.j, "thisStop" to thisStop.s, "tabA" to tab.j)).decodeColumnFromTable("stopname")
 
-    override suspend fun connStopsOnLineWithNextStopAtDate(
+    override suspend fun connStopsOnLineInDirection(
         stop: String,
-        nextStop: String,
-        date: LocalDate,
+        direction: Direction,
         tab: Table,
     ): List<CoreBusInTimetable> =
         query(
-            "connStopsOnLineWithNextStopAtDate",
-            mapOf("stop" to stop.s, "nextStop" to nextStop.s, "date" to date.s, "tabA" to tab.s)
+            "connStopsOnLineInDirection",
+            mapOf("stop" to stop.s, "direction" to direction.s, "tabA" to tab.s)
+        ).decodeObjectList()
+
+    override suspend fun endStops(
+        stop: String,
+        tab: Table,
+    ): List<EndStop> =
+        query(
+            "endStops",
+            mapOf("stop" to stop.s, "tabA" to tab.s)
         ).decodeObjectList()
 
     override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> =
