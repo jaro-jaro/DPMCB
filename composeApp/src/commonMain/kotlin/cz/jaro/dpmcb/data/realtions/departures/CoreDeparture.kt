@@ -5,6 +5,7 @@ import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
+import cz.jaro.dpmcb.data.entities.types.VehicleType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
@@ -24,6 +25,7 @@ data class CoreDeparture(
     @SerialName("connnumber")
     val connNumber: BusNumber,
     val line: LongLine,
+    val vehicleType: VehicleType,
     @SerialName("lowfloor")
     val lowFloor: Boolean,
     @SerialName("fixedcodes")

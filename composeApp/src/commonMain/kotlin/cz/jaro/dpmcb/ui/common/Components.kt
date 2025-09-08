@@ -88,7 +88,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -136,7 +135,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
@@ -303,7 +302,7 @@ fun VehicleIcon(
         }
     }
     if (icon != null) IconWithTooltip(
-        painter = painterResource(icon),
+        imageVector = vectorResource(icon),
         contentDescription = when (vehicleTraction ?: lineTraction) {
             Traction.Electro -> "Elektrobus"
             Traction.Hybrid -> "Hybrid"
@@ -314,7 +313,7 @@ fun VehicleIcon(
             Traction.Trolleybus -> "Trolejbus"
             Traction.Other -> null
         },
-        modifier.size(48.dp),
+        modifier.size(32.dp),
         tint = when {
             colorOverride != null -> colorOverride
             vehicleTraction != null && !vehicleTraction.isTypeOf(lineTraction) ->
@@ -483,44 +482,6 @@ fun IconWithTooltip(
 else
     Icon(
         imageVector = imageVector,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        tint = tint
-    )
-
-@ExperimentalMaterial3Api
-@Composable
-fun IconWithTooltip(
-    painter: Painter,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    tooltipText: String? = contentDescription,
-    tint: Color = LocalContentColor.current,
-) = if (tooltipText != null) TooltipBox(
-    tooltip = {
-        DPMCBTheme(
-            useDarkTheme = LocalIsDarkThemeUsed.current,
-            useDynamicColor = LocalIsDynamicThemeUsed.current,
-            theme = LocalTheme.current ?: Theme.Default,
-        ) {
-            PlainTooltip {
-                Text(text = tooltipText)
-            }
-        }
-    },
-    state = rememberTooltipState(),
-    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-) {
-    Icon(
-        painter = painter,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        tint = tint
-    )
-}
-else
-    Icon(
-        painter = painter,
         contentDescription = contentDescription,
         modifier = modifier,
         tint = tint

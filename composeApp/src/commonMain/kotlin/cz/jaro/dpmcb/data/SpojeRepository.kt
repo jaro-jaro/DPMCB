@@ -738,7 +738,7 @@ class SpojeRepository(
                     stopIndexOnLine = stopIndexOnLine,
                     busName = connName,
                     line = info.line,
-                    lowFloor = info.lowFloor,
+                    vehicleType = info.vehicleType,
                     busStops = stops,
                     stopType = StopType(info.connStopFixedCodes),
                     direction = info.direction,
