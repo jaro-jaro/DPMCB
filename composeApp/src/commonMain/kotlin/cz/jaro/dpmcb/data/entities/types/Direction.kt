@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("Direction")
 enum class Direction {
     @SerialName("positive")
     POSITIVE,
