@@ -93,6 +93,7 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
@@ -194,6 +195,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.Timetable::class -> mapOf(
         serializationTypePair<ShortLine>(),
+        serializationTypePair<Direction>(),
         localDateTypePair,
     )
 
