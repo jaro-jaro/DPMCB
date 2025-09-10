@@ -23,6 +23,7 @@ import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 
+
 class MainActivity : ComponentActivity() {
     val repo by inject<SpojeRepository>()
 
@@ -54,7 +55,19 @@ class MainActivity : ComponentActivity() {
                 LocalKoinApplication provides koin,
                 LocalKoinScope provides koin.scopeRegistry.rootScope
             ) {
-                SuperMainContent(repo, uri)
+                SuperMainContent(
+                    repo = repo,
+                    link = uri,
+                    reset = {
+                        val packageManager = packageManager
+                        val intent = packageManager.getLaunchIntentForPackage(packageName)
+                        val componentName = intent!!.component
+                        val mainIntent = Intent.makeRestartActivityTask(componentName)
+                        mainIntent.setPackage(packageName)
+                        startActivity(mainIntent)
+                        Runtime.getRuntime().exit(0)
+                    },
+                )
             }
         }
     }

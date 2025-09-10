@@ -17,6 +17,7 @@ import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 fun SuperMainContent(
     repo: SpojeRepository,
     link: String?,
+    reset: suspend () -> Unit,
 ) {
     val settings by repo.settings.collectAsStateWithLifecycle()
     DPMCBTheme(settings) {
@@ -31,7 +32,7 @@ fun SuperMainContent(
             }
             composable<SuperRoute.Loading> {
 //                Text("Ahoooooj")
-                Loading(navController, it.toRoute())
+                Loading(navController, it.toRoute(), reset)
             }
         }
     }

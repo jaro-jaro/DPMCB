@@ -1,7 +1,5 @@
 package cz.jaro.dpmcb.ui.loading
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,10 +53,12 @@ import org.jetbrains.compose.resources.painterResource
 fun Loading(
     navController: NavHostController,
     args: SuperRoute.Loading,
+    reset: suspend () -> Unit,
     viewModel: LoadingViewModel = viewModel<LoadingViewModel>(
         LoadingViewModel.Parameters(
             update = args.update == true,
             link = args.link,
+            reset = reset,
         )
     ),
 ) {
@@ -122,21 +122,21 @@ fun LoadingScreen(
             when (state) {
                 is LoadingState.Loading -> {
                     Text(state.infoText, textAlign = TextAlign.Center)
-                    if (state.progress == null) {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        )
-                    } else {
-                        val animatedProgress by animateFloatAsState(state.progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
-                        LinearProgressIndicator(
-                            progress = { animatedProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                        )
-                    }
+//                    if (state.progress == null) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+//                    } else {
+//                        val animatedProgress by animateFloatAsState(state.progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
+//                        LinearProgressIndicator(
+//                            progress = { animatedProgress },
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .padding(top = 8.dp),
+//                        )
+//                    }
                 }
 
                 LoadingState.Error -> {

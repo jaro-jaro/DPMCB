@@ -84,6 +84,7 @@ class LoadingViewModel(
     data class Parameters(
         val update: Boolean,
         val link: String?,
+        val reset: suspend () -> Unit,
     )
 
     private val navigate = MutableStateFlow<SuperNavigateFunction?>(null)
@@ -128,7 +129,8 @@ class LoadingViewModel(
             }
 
             if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
-                downloadNewData(this) ?: return@launch
+                downloadNewData(this)
+                return@launch
             }
 
             try {
@@ -222,11 +224,11 @@ class LoadingViewModel(
 
     private suspend fun downloadNewData(
         scope: CoroutineScope,
-    ): Unit? {
+    ) {
 
         if (!repo.isOnline()) {
             _state.value = LoadingState.Offline
-            return null
+            return
         }
 
         _state.value = LoadingState.Loading(
@@ -521,7 +523,12 @@ class LoadingViewModel(
                 (it as LoadingState.Loading).copy(progress = progress)
             }
         }
-        return Unit
+
+        withContext(Dispatchers.Main) {
+            params.reset()
+        }
+
+        return
     }
 
     private val remoteConfig = Firebase.remoteConfig(firebase)
@@ -533,7 +540,6 @@ class LoadingViewModel(
         }
         remoteConfig.fetchAndActivate()
     }
-
 }
 
 @TimetableProcessing

@@ -98,7 +98,13 @@ fun main() = try {
                 LocalKoinApplication provides koinApp.koin,
                 LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
             ) {
-                SuperMainContent(repo, link.takeUnless { it.isBlank() })
+                SuperMainContent(
+                    repo = repo,
+                    link = link.takeUnless { it.isBlank() },
+                    reset = {
+                        window.location.reload()
+                    }
+                )
             }
         }
     }

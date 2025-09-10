@@ -77,7 +77,7 @@ class DeparturesViewModel(
             date = params.date,
             lineFilter = params.line,
             stopFilter = params.via,
-            justDepartures = params.onlyDepartures == true,
+            justDepartures = params.onlyDepartures != false,
             compactMode = params.simple != false,
         )
     )
