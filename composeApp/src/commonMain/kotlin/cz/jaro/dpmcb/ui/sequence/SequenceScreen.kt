@@ -121,9 +121,9 @@ fun SequenceScreen(
                     .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically,) {
+                Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically) {
                     val i = state.sequenceName.indexOfLast { it == ' ' }.takeUnless { it == -1 } ?: 0
-                    Name(state.sequenceName.substring(i), Modifier.weight(1F, fill = false), prefix = state.sequenceName.substring(0, i))
+                    Name(state.sequenceName.substring(i), Modifier.weight(1F, fill = false).padding(end = 8.dp), prefix = state.sequenceName.substring(0, i))
                     if (state.lineTraction != null) VehicleIcon(state.lineTraction, state.vehicleTraction)
 //                    if (state.online?.confirmedLowFloor != null) Wheelchair(
 //                        lowFloor = state.online.confirmedLowFloor,
