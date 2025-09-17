@@ -27,6 +27,7 @@ import cz.jaro.dpmcb.data.entities.types.toDirection
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.noCode
@@ -191,7 +192,7 @@ class LoadingViewModel(
 
         val reference = database.reference("data${META_DATA_VERSION}/verze")
 
-        val onlineVersion = viewModelScope.async {
+        val onlineVersion = async {
             withTimeoutOrNull(3_000) {
                 reference.valueEvents.first().value<Int>()
             } ?: -2

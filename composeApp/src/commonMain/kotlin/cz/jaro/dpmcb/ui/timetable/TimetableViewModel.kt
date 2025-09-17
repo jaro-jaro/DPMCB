@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
+import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
@@ -32,7 +32,7 @@ class TimetableViewModel(
         repo.timetable(params.lineNumber, params.stop, params.direction, params.date).sortedBy { it.departure }
     }.asFlow()
 
-    val endStops = viewModelScope.async {
+    val endStops = async {
         repo.endStopNames(params.lineNumber, params.stop, params.date)
             .getValue(params.direction)
             .replace("\n", " / ")

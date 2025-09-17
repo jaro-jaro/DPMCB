@@ -2,7 +2,6 @@ package cz.jaro.dpmcb.ui.find_bus
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -16,18 +15,14 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.launch
+import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import kotlin.time.Duration.Companion.seconds
 
 class FindBusViewModel(
     private val repo: SpojeRepository,
@@ -46,7 +41,7 @@ class FindBusViewModel(
 
     private val busName get() = BusName(name.text.toString()).takeIf(BusName::isValid)
 
-    val state = result.map { result ->
+    val state = result.mapState { result ->
         FindBusState(
             name = name,
             line = line,
@@ -56,17 +51,7 @@ class FindBusViewModel(
             result = result,
             date = date,
         )
-    }.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5.seconds), FindBusState(
-            name = name,
-            line = line,
-            number = number,
-            vehicle = vehicle,
-            sequence = sequence,
-            result = FindBusResult.None,
-            date = date,
-        )
-    )
+    }
 
     private fun confirm(busName: BusName) = navigator.navigate(
         Route.Bus(
@@ -76,7 +61,7 @@ class FindBusViewModel(
     )
 
     private fun findBusByRegN(rn: RegistrationNumber, callback: (BusName?) -> Unit) {
-        viewModelScope.launch {
+        launch {
             callback(onlineRepository.nowRunningBuses().first().find {
                 it.vehicle == rn
             }?.name)
@@ -84,7 +69,7 @@ class FindBusViewModel(
     }
 
     private fun findLine(sl: ShortLine, callback: (LongLine?) -> Unit) {
-        viewModelScope.launch {
+        launch {
             with(repo) {
                 callback(sl.findLongLine())
             }
@@ -92,7 +77,7 @@ class FindBusViewModel(
     }
 
     private fun findSequences(seq: String) {
-        viewModelScope.launch {
+        launch {
             val found = repo.findSequences(seq)
 
             if (found.isEmpty()) result.value = FindBusResult.SequenceNotFound(seq)
