@@ -1,7 +1,7 @@
 [versions]
 #                 Mmmppbvv
-appVersionCode = "10700010"
-appVersionName = "1.7.0-alpha.10"
+appVersionCode = "10700011"
+appVersionName = "1.7.0-alpha.11"
 #                 M.m.p-b    .v
 android-compileSdk = "36"
 android-minSdk = "26"
