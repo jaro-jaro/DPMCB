@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.view.WindowCompat
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.ui.card.AndroidCardManager
 import cz.jaro.dpmcb.ui.card.CardManager
 import cz.jaro.dpmcb.ui.loading.AndroidAppUpdater
@@ -32,12 +30,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.addOnControllableInsetsChangedListener { c, m ->
-                m.work("Insect")
-            }
-        }
 
         val updater = AndroidAppUpdater(this)
         val cardManager = AndroidCardManager(this, get())

@@ -3,8 +3,10 @@ package cz.jaro.dpmcb.data
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
+import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
+import com.russhwolf.settings.observable.makeObservable
 import cz.jaro.dpmcb.data.database.AppDatabase
 import cz.jaro.dpmcb.data.database.SpojeDataSource
 import cz.jaro.dpmcb.data.database.SpojeQueries
@@ -23,6 +25,7 @@ import dev.gitlive.firebase.initialize
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+@OptIn(ExperimentalSettingsApi::class)
 context(ctx: Context)
 val androidModule get() = module(true) {
     single { ctx } bind Context::class
@@ -34,7 +37,7 @@ val androidModule get() = module(true) {
             .let(::dataSource)
     }
     single { get<Context>().getSharedPreferences("prefs-dpmcb", Context.MODE_PRIVATE) }
-    single { SharedPreferencesSettings(get()) } bind ObservableSettings::class
+    single { SharedPreferencesSettings(get()).makeObservable() } bind ObservableSettings::class
     single { UserOnlineManager(ctx) }
     single { DetailsOpener(ctx) }
     single<DiagramManager> { AndroidDiagramManager(ctx) }

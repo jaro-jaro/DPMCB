@@ -7,6 +7,6 @@ sealed interface FavouritesState {
     data class Loaded(
         val recents: List<FavouriteState>?,
         val runsToday: List<FavouriteState>,
-        val runsOtherDay: List<FavouriteState.Offline>,
+        val runsOtherDay: List<FavouriteState>,
     ) : FavouritesState
 }

@@ -111,7 +111,7 @@ class BusViewModel(
             date = date,
             direction = bus.info.direction,
             isOneWay = repo.isOneWay(bus.info.line),
-        ).also(::println)
+        )
     }
 
     fun onEvent(e: BusEvent) = when (e) {
@@ -176,11 +176,11 @@ class BusViewModel(
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
             date > SystemClock.todayHere() -> null
-            date < SystemClock.todayHere() -> info.stops.lastIndex.coerceAtLeast(0).work(3)
-            state?.onlineTimetable?.nextStopIndex != null -> (state.onlineTimetable.nextStopIndex.coerceAtLeast(1) - 1).work(4)
-            state?.nextStopTime != null -> (info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1).work(5)
-            info.stops.last().time < now -> info.stops.lastIndex.coerceAtLeast(0).work(6)
-            else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0).work(7)
+            date < SystemClock.todayHere() -> info.stops.lastIndex.coerceAtLeast(0)
+            state?.onlineTimetable?.nextStopIndex != null -> (state.onlineTimetable.nextStopIndex.coerceAtLeast(1) - 1)
+            state?.nextStopTime != null -> (info.stops.indexOfLast { it.time == state.nextStopTime }.coerceAtLeast(1) - 1)
+            info.stops.last().time < now -> info.stops.lastIndex.coerceAtLeast(0)
+            else -> info.stops.indexOfLast { it.time < now }.coerceAtLeast(0)
         }
     }
 

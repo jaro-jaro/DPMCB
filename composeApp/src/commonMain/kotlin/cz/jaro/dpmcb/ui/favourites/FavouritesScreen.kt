@@ -43,6 +43,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name
@@ -168,7 +169,7 @@ private fun LazyListScope.loaded(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsToday, key = { "D" + it.busName.value }) {
+        items(state.runsToday.work(8), key = { "D" + it.busName.value }) {
             Card(it, onEvent, false)
         }
     }
@@ -194,7 +195,7 @@ private fun Card(
     state: FavouriteState,
     onEvent: (FavouritesEvent) -> Unit,
     showNextWillRun: Boolean,
-) = if (state.isOnline()) ElevatedCard(
+) = if (state.online != null) ElevatedCard(
     onClick = {
         onEvent(FavouritesEvent.NavToBus(state.busName, state.nextWillRun))
     },
@@ -229,25 +230,25 @@ private fun FavouriteState.CardContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Name("$line", Modifier.padding(end = 8.dp))
-        VehicleIcon(lineTraction, if (isOnline()) vehicleTraction else null, Modifier.padding(horizontal = 8.dp))
-        if (isOnline()) DelayBubble(delay)
-        if (isOnline()) Vehicle(vehicleNumber, vehicleName)
+        VehicleIcon(lineTraction, online?.vehicleTraction, Modifier.padding(horizontal = 8.dp))
+        if (online != null) DelayBubble(online.delay)
+        if (online != null) Vehicle(online.vehicleNumber, online.vehicleName)
     }
-    if (isOnline() && this.positionOfCurrentStop == -1) this.CurrentStop()
+    if (online != null && online.positionOfCurrentStop == -1) CurrentStop()
     Stop(
-        stopName = originStopName,
-        stopTime = originStopTime,
-    ) { positionOfCurrentStop < 0 }
-    if (isOnline() && this.positionOfCurrentStop == 0) this.CurrentStop()
+        stopName = originStopName, stopTime = originStopTime,
+        showActualTime = { positionOfCurrentStop < 0 },
+    )
+    if (online?.positionOfCurrentStop == 0) CurrentStop()
     Stop(
-        stopName = destinationStopName,
-        stopTime = destinationStopTime,
-    ) { positionOfCurrentStop < 1 }
-    if (isOnline() && this.positionOfCurrentStop == 1) this.CurrentStop()
+        stopName = destinationStopName, stopTime = destinationStopTime,
+        showActualTime = { positionOfCurrentStop < 1 },
+    )
+    if (online?.positionOfCurrentStop == 1) CurrentStop()
 
     if (showNextWillRun && nextWillRun != null) {
         Text(
-            text = "Další pojede ${nextWillRun!!.toCzechLocative()}", Modifier
+            text = "Další pojede ${nextWillRun.toCzechLocative()}", Modifier
                 .fillMaxWidth()
                 .padding(start = 8.dp, bottom = 8.dp, end = 8.dp)
         )
@@ -255,16 +256,17 @@ private fun FavouriteState.CardContent(
 }
 
 @Composable
-private fun FavouriteState.Online.CurrentStop() = Stop(
-    stopName = currentStopName,
-    stopTime = currentStopTime,
+private fun FavouriteState.CurrentStop() = Stop(
+    stopName = online?.currentStopName ?: error("online may not be null"),
+    stopTime = online.currentStopTime,
+    showActualTime = { true },
 )
 
 @Composable
 private fun FavouriteState.Stop(
     stopName: String,
     stopTime: LocalTime,
-    showActualTime: FavouriteState.Online.() -> Boolean = { true },
+    showActualTime: OnlineFavouriteState.() -> Boolean,
 ) = Row(
     modifier = Modifier
         .fillMaxWidth()
@@ -272,32 +274,37 @@ private fun FavouriteState.Stop(
 ) {
     Text(text = stopName)
     Spacer(modifier = Modifier.weight(1F))
-    if (isOnline() && showActualTime()) Text(
-        text = "${stopTime + delay.toInt().minutes}",
-        color = colorOfDelayText(delay),
+    if (online != null && online.showActualTime()) Text(
+        text = "${stopTime + online.delay.toInt().minutes}",
+        color = colorOfDelayText(online.delay),
         modifier = Modifier.padding(start = 8.dp)
     ) else Text(text = "$stopTime")
 }
 
-private val onlinePreviewBus = FavouriteState.Online(
+@OptIn(ExperimentalTime::class)
+private val onlinePreviewBus = FavouriteState(
     busName = LongLine(325009) / 92,
     line = LongLine(325009).toShortLine(),
     lineTraction = Traction.Trolleybus,
-    delay = 1.36F,
-    vehicleNumber = "02".toRegNum(),
-    vehicleName = "Rába",
-    vehicleTraction = Traction.Trolleybus,
     originStopName = "Suché Vrbné",
     originStopTime = LocalTime(7, 46),
-    currentStopName = "Pětidomí",
-    currentStopTime = LocalTime(7, 48),
     destinationStopName = "U Koníčka",
     destinationStopTime = LocalTime(7, 55),
-    positionOfCurrentStop = 0,
+    type = FavouriteType.Favourite,
+    online = OnlineFavouriteState(
+        delay = 1.36F,
+        vehicleNumber = "02".toRegNum(),
+        vehicleName = "Rába",
+        vehicleTraction = Traction.Trolleybus,
+        currentStopName = "Pětidomí",
+        currentStopTime = LocalTime(7, 48),
+        positionOfCurrentStop = 0,
+    ),
+    nextWillRun = SystemClock.todayHere(),
 )
 
 @OptIn(ExperimentalTime::class)
-private val offlinePreviewBus = FavouriteState.Offline(
+private val offlinePreviewBus = FavouriteState(
     busName = LongLine(325009) / 286,
     line = LongLine(325009).toShortLine(),
     lineTraction = Traction.Trolleybus,
@@ -306,6 +313,8 @@ private val offlinePreviewBus = FavouriteState.Offline(
     destinationStopName = "U Hvízdala",
     destinationStopTime = LocalTime(15, 20),
     nextWillRun = SystemClock.todayHere() + 1.days,
+    type = FavouriteType.Recent,
+    online = null,
 )
 
 @Preview
@@ -397,7 +406,7 @@ private fun FavouritesPreview4R2() = FavouritesPreview(
 private fun FavouritesPreview(
     recents: List<FavouriteState>?,
     runsToday: List<FavouriteState>,
-    runsOtherDay: List<FavouriteState.Offline>,
+    runsOtherDay: List<FavouriteState>,
 ) {
     Surface {
         FavouritesScreen(

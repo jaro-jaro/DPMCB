@@ -96,7 +96,6 @@ kotlin {
             implementation(compose.html.core)
 
             // Multiplatform Settings
-            implementation(libs.multiplatform.settings.make.observable)
 
             // Supabase
             implementation(libs.supabase.postgrest)
@@ -161,6 +160,7 @@ kotlin {
             // Multiplatform Settings
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.coroutines)
+            implementation(libs.multiplatform.settings.make.observable)
         }
     }
 

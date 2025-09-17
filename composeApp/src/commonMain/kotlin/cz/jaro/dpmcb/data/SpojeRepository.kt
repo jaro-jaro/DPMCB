@@ -52,7 +52,6 @@ import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.helperclasses.withCache
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.MiddleStop
@@ -81,7 +80,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
@@ -117,7 +115,7 @@ import kotlin.collections.filterNot as remove
 class SpojeRepository(
     onlineManager: UserOnlineManager,
     private val ds: SpojeDataSource,
-    private val preferenceDataSource: PreferenceDataSource,
+    private val preferenceDataSource: SettingsDataSource,
     firebase: FirebaseApp,
 ) : UserOnlineManager by onlineManager {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -196,8 +194,9 @@ class SpojeRepository(
     val showDeparturesOnly = preferenceDataSource.departures
 
     val favourites = preferenceDataSource.favourites
+//        .map { it.work(4.4) }
 
-    val recents: Flow<List<BusName>> = preferenceDataSource.recents
+    val recents = preferenceDataSource.recents
 
     val version = preferenceDataSource.version
 
@@ -235,7 +234,7 @@ class SpojeRepository(
 
     private val _groups = mutableMapOf<SequenceCode, MutableMap<LocalDate, SequenceGroup?>>()
 
-    private val allGroups = scope.async { ds.seqGroupsPerSequence().work() }
+    private val allGroups = scope.async { ds.seqGroupsPerSequence() }
 
     private suspend fun _nowUsedGroup(date: LocalDate, seq: SequenceCode): SeqGroup? {
 
@@ -462,7 +461,7 @@ class SpojeRepository(
             .flatMap { (busName, codes) ->
                 val stops = codes.map { it.stopName to it.time }.distinct()
                 val middleDestination = if (isOneWay) findMiddleStop(stops.map { it.first }) else null
-                stops.work(middleDestination)
+
                 val indices =
                     if (middleDestination != null && direction == Direction.NEGATIVE)
                         stops.withIndex().filter { it.value.first == thisStop && it.index < middleDestination.index - 1 }.map { it.index }
@@ -517,7 +516,7 @@ class SpojeRepository(
                 }
                 .map { it.sequence },
             groups = allGroups(SystemClock.todayHere()),
-            tabs = allTables(SystemClock.todayHere()).work(),
+            tabs = allTables(SystemClock.todayHere()),
         )
             .values
             .map { stopByBus ->

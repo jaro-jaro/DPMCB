@@ -92,7 +92,6 @@ class LoadingViewModel(
 
     fun setNavigate(navigate: SuperNavigateFunction) {
         this.navigate.value = navigate
-        println("Setting navigate")
         tryNavigate()
     }
 
@@ -142,12 +141,9 @@ class LoadingViewModel(
                 return@launch
             }
 
-            _state.value = LoadingState.Loading("hjvfg")
-
             if (!repo.needsToDownloadData || !repo.isOnline() || !repo.settings.value.checkForUpdates) {
                 goTo.value = SuperRoute.Main(params.link)
                 withContext(Dispatchers.Main) {
-                    println("Navigating offline")
                     tryNavigate()
                 }
                 return@launch
@@ -157,14 +153,12 @@ class LoadingViewModel(
 
             goTo.value = SuperRoute.Main(params.link, isDataUpdateNeeded(), isAppUpdateNeeded())
             withContext(Dispatchers.Main) {
-                println("Navigating online")
                 tryNavigate()
             }
         }
     }
 
     private fun tryNavigate() {
-        println("TryNavigate, ${navigate.value}, ${goTo.value}")
         if (navigate.value != null && goTo.value != null) {
             navigate.value!!(goTo.value!!, popUpTo<SuperRoute.Loading>())
             goTo.value = null

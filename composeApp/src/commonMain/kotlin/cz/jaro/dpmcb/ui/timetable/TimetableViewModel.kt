@@ -56,7 +56,7 @@ class TimetableViewModel(
         )
     )
 
-    fun onEvent(e: TimetableEvent) = when(e) {
+    fun onEvent(e: TimetableEvent) = when (e) {
         is TimetableEvent.ChangeDate -> navigator.navigate(
             Route.Timetable(
                 lineNumber = params.lineNumber,
@@ -65,6 +65,7 @@ class TimetableViewModel(
                 date = e.date,
             )
         )
+
         is TimetableEvent.GoToBus -> navigator.navigate(
             Route.Bus(
                 date = params.date,

@@ -11,13 +11,14 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 
 @OptIn(ExperimentalSettingsApi::class)
-class PreferenceDataSource(
+class SettingsDataSource(
     private val data: ObservableSettings,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -67,11 +68,18 @@ class PreferenceDataSource(
     val favourites = data
         .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
         .mapState(scope) {
-            it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES
+            it?.fromJson<List<PartOfConn>>(json).work(1)
+            (it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES)
         }
 
+    init {
+        data.addStringOrNullListener(Keys.FAVOURITES) {
+            it?.fromJson<List<PartOfConn>>(json).work(2)
+        }
+    }
+
     fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
-        data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
+        data[Keys.FAVOURITES] = update(favourites.value.work(3)).work(4).toJson(json)
     }
 
     val recents = data

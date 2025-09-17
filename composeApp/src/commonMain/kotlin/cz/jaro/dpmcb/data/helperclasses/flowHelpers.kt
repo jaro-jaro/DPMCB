@@ -105,7 +105,7 @@ fun <T1, T2, T3, T4, T5, T6, T7, T8, R : Any> combine(
     )
 }
 
-inline fun <reified T, R> Iterable<Flow<T>>.combine(crossinline transform: suspend (List<T>) -> R) =
+inline fun <reified T, R> Iterable<Flow<T>>.combineAll(crossinline transform: suspend (List<T>) -> R) =
     combine(this) { transform(it.toList()) }
 
 
