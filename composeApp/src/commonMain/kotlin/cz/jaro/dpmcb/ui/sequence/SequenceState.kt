@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration
 
 sealed interface SequenceState {
 
@@ -36,7 +37,7 @@ sealed interface SequenceState {
     ) : SequenceState
 
     data class OnlineState(
-        val delayMin: Float,
+        val delay: Duration,
         val confirmedLowFloor: Boolean?,
     )
 }

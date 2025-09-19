@@ -78,6 +78,7 @@ fun Chooser(
         ChooserType.ReturnStop2 -> "Vyhledat spojení"
         ChooserType.ReturnLine -> "Odjezdy"
         ChooserType.ReturnStop -> "Odjezdy"
+        ChooserType.ReturnStopVia -> "Odjezdy"
     }
     AppState.selected = when (args.type) {
         ChooserType.Lines,
@@ -88,6 +89,7 @@ fun Chooser(
         ChooserType.Stops,
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
+        ChooserType.ReturnStopVia,
             -> DrawerAction.Departures
 
         ChooserType.ReturnStop1,
@@ -141,6 +143,7 @@ fun ChooserScreen(
                         ChooserType.ReturnStop,
                         ChooserType.ReturnStop1,
                         ChooserType.ReturnStop2,
+                        ChooserType.ReturnStopVia,
                             -> "Vyberte zastávku"
 
                         ChooserType.Lines,
@@ -188,6 +191,7 @@ fun ChooserScreen(
                     ChooserType.ReturnStop1,
                     ChooserType.ReturnStop2,
                     ChooserType.ReturnStop,
+                    ChooserType.ReturnStopVia,
                         -> KeyboardType.Text
 
                     ChooserType.Lines,
@@ -207,6 +211,7 @@ fun ChooserScreen(
                     ChooserType.ReturnStop2,
                     ChooserType.ReturnLine,
                     ChooserType.ReturnStop,
+                    ChooserType.ReturnStopVia,
                         -> ImeAction.Done
                 },
             ),

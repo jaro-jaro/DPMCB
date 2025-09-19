@@ -13,7 +13,6 @@ import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -26,7 +25,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalTime
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -78,7 +79,7 @@ class FavouritesViewModel(
                 .combineAll { onlineBuses ->
                     onlineBuses.toMap().mapValues { (busName, online) ->
                         if (online?.delayMin != null) FavouriteOnlineBusInfo(
-                            delay = online.delayMin,
+                            delay = online.delayMin.toDouble().minutes,
                             vehicleNumber = online.vehicle,
                             currentStopTime = online.nextStop,
                         ) else null
@@ -92,7 +93,7 @@ class FavouritesViewModel(
     private val states = combine(
         allBuses, onlineBuses
     ) { buses, onlineBuses ->
-        buses.work(4).map { bus ->
+        buses.map { bus ->
             val (info, stops) = try {
                 repo.favouriteBus(bus.busName, SystemClock.todayHere())
             } catch (e: Exception) {
@@ -136,9 +137,6 @@ class FavouritesViewModel(
         }.filterNotNull()
     }
         .distinctUntilChanged()
-        .map { buses ->
-            buses.work(5)
-        }
         .stateIn(SharingStarted.WhileSubscribed(5.seconds), null)
 
     val state =
@@ -147,11 +145,11 @@ class FavouritesViewModel(
 
             val (favourites, recents) = buses.partition { it.type == FavouriteType.Favourite }
 
-            val (today, otherDay) = favourites.work(6).partition { it.nextWillRun == SystemClock.todayHere() }
+            val (today, otherDay) = favourites.partition { it.nextWillRun == SystemClock.todayHere() }
 
             FavouritesState.Loaded(
                 recents = recents.takeUnless { recentBusesCount == 0 },
-                runsToday = today.sortedBy { it.originStopTime }.work(7),
+                runsToday = today.sortedBy { it.originStopTime },
                 runsOtherDay = otherDay.sortedWith(
                     compareBy<FavouriteState> { it.nextWillRun }.thenBy { it.originStopTime }
                 )
@@ -165,7 +163,7 @@ class FavouritesViewModel(
     )
 
     data class FavouriteOnlineBusInfo(
-        val delay: Float,
+        val delay: Duration,
         val vehicleNumber: RegistrationNumber?,
         val currentStopTime: LocalTime?,
     )

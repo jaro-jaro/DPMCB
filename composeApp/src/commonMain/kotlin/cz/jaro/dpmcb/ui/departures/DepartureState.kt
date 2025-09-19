@@ -18,7 +18,6 @@ data class DepartureState(
     val busName: BusName,
     val lineTraction: Traction,
     val vehicleTraction: Traction?,
-    val delay: Float?,
+    val delay: Duration?,
     val runsVia: List<String>,
-    val runsIn: Duration,
 )

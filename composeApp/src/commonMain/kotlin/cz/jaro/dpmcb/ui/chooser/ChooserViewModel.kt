@@ -49,6 +49,7 @@ class ChooserViewModel(
             ChooserType.ReturnStop1,
             ChooserType.ReturnStop2,
             ChooserType.ReturnStop,
+            ChooserType.ReturnStopVia,
                 -> repo.stopNames(params.date).sortedBy { it.normalize() }
 
             ChooserType.LineStops,
@@ -195,6 +196,7 @@ class ChooserViewModel(
         ChooserType.ReturnStop2,
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
+        ChooserType.ReturnStopVia,
             -> navigator.navigateBackWithResult(ChooserResult(result, params.type))
     }
 

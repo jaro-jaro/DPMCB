@@ -38,7 +38,6 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.inMinutes
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -113,8 +112,8 @@ fun Timetable(
                 }
                 if (stop.arrival != null) TT(time = stop.arrival)
                 if (previousOnlineStop != null && stop.arrival != null) TT(
-                    time = stop.arrival + previousOnlineStop.delay.minutes,
-                    color = colorOfDelayText(previousOnlineStop.delay.toFloat()),
+                    time = stop.arrival + previousOnlineStop.delay,
+                    color = colorOfDelayText(previousOnlineStop.delay),
                 )
                 if (stop.arrival != null) Text(
                     text = "-",
@@ -123,13 +122,13 @@ fun Timetable(
                 )
                 TT(time = stop.time)
                 if (onlineStop != null && stop.arrival != null) TT(
-                    time = stop.time.coerceAtLeast(stop.arrival + onlineStop.delay.minutes),
+                    time = stop.time.coerceAtLeast(stop.arrival + onlineStop.delay),
                     color = colorOfDelayText(
-                        (stop.arrival + onlineStop.delay.minutes - stop.time).inMinutes.coerceAtLeast(0F)
+                        (stop.arrival + onlineStop.delay - stop.time).coerceAtLeast(0.minutes)
                     ),
                 ) else if (onlineStop != null) TT(
-                    time = stop.time + onlineStop.delay.minutes,
-                    color = colorOfDelayText(onlineStop.delay.toFloat()),
+                    time = stop.time + onlineStop.delay,
+                    color = colorOfDelayText(onlineStop.delay),
                 )
             }
         }

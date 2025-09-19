@@ -3,16 +3,10 @@
 package cz.jaro.dpmcb.data.helperclasses
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.DEFAULT_CONCURRENCY
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -21,9 +15,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.jvm.JvmName
 
 inline fun <reified T, R> combineStates(
@@ -153,6 +144,15 @@ fun <T1, T2, R> StateFlow<T1>.combineStates(
 ): StateFlow<R> = combineStates(this, flow2, sharingStarted, transform)
 
 context(vm: ViewModel)
+@JvmName("combineStatesExt")
+fun <T1, T2, T3, R : Any> StateFlow<T1>.combineStates(
+    flow2: StateFlow<T2>,
+    flow3: StateFlow<T3>,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
+    transform: (T1, T2, T3) -> R,
+): StateFlow<R> = combineStates(this, flow2, flow3, sharingStarted, transform)
+
+context(vm: ViewModel)
 fun <T1, T2, R> combineStates(
     flow: StateFlow<T1>,
     flow2: StateFlow<T2>,
@@ -201,23 +201,3 @@ fun <T> StateFlow<StateFlow<T>>.flattenMergeStates(
     concurrency: Int = DEFAULT_CONCURRENCY
 ) = flattenMerge(concurrency)
     .stateIn(sharingStarted, value.value)
-
-context(vm: ViewModel)
-fun <T> Flow<T>.stateIn(
-    started: SharingStarted,
-    initialValue: T
-): StateFlow<T> = stateIn(vm.viewModelScope, started, initialValue)
-
-context(vm: ViewModel)
-fun <T> async(
-    context: CoroutineContext = EmptyCoroutineContext,
-    start: CoroutineStart = CoroutineStart.DEFAULT,
-    block: suspend CoroutineScope.() -> T
-): Deferred<T> = vm.viewModelScope.async(context, start, block)
-
-context(vm: ViewModel)
-fun launch(
-    context: CoroutineContext = EmptyCoroutineContext,
-    start: CoroutineStart = CoroutineStart.DEFAULT,
-    block: suspend CoroutineScope.() -> Unit
-): Job = vm.viewModelScope.launch(context, start, block)

@@ -43,6 +43,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
 import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -275,7 +276,7 @@ private fun FavouriteState.Stop(
     Text(text = stopName)
     Spacer(modifier = Modifier.weight(1F))
     if (online != null && online.showActualTime()) Text(
-        text = "${stopTime + online.delay.toInt().minutes}",
+        text = "${stopTime + online.delay.truncatedToMinutes()}",
         color = colorOfDelayText(online.delay),
         modifier = Modifier.padding(start = 8.dp)
     ) else Text(text = "$stopTime")
@@ -292,7 +293,7 @@ private val onlinePreviewBus = FavouriteState(
     destinationStopTime = LocalTime(7, 55),
     type = FavouriteType.Favourite,
     online = OnlineFavouriteState(
-        delay = 1.36F,
+        delay = 1.36.minutes,
         vehicleNumber = "02".toRegNum(),
         vehicleName = "Rába",
         vehicleTraction = Traction.Trolleybus,

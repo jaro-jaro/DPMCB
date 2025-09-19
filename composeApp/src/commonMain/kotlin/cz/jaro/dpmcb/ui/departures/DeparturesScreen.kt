@@ -91,10 +91,13 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.now
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
+import cz.jaro.dpmcb.data.helperclasses.truncatedToSeconds
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.chooser.ChooserType
@@ -115,13 +118,12 @@ import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.getResult
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
-import kotlin.math.abs
-import kotlin.math.roundToInt
+import kotlinx.datetime.atDate
+import kotlin.math.absoluteValue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -135,7 +137,7 @@ fun Departures(
     viewModel: DeparturesViewModel = viewModel(
         DeparturesViewModel.Parameters(
             stop = args.stop,
-            time = args.time.takeUnless { it.isInvalid() }?.toLocalTime() ?: now,
+            time = args.time.takeUnless { it.isInvalid() }?.toLocalTime(),
             line = args.line.takeUnless { it.isInvalid() },
             via = args.via,
             onlyDepartures = args.onlyDepartures,
@@ -161,13 +163,17 @@ fun Departures(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState(remember { info.scrollIndex })
-
-    Text(listState.firstVisibleItemIndex.toString())
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        viewModel.setScroll {
-            delay(500)
-            listState.scrollToItem(it)
+        viewModel.setScroll { i, animate ->
+            scope.launch {
+                if (listState.firstVisibleItemIndex != i)
+                    if (animate)
+                        listState.scrollToItem(i)
+                    else
+                        listState.animateScrollToItem(i)
+            }
         }
         viewModel.navigator = navigator
     }
@@ -199,11 +205,12 @@ fun DeparturesScreen(
     floatingActionButton = {
         if (state is DeparturesState.Runs) {
             val scope = rememberCoroutineScope()
-            val i by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+            val i = listState.firstVisibleItemIndex
             val isAtBottom by remember { derivedStateOf { !listState.canScrollForward } }
-            val home by remember {  derivedStateOf { state.departures.home(state.info.time) } }
-            val hideBecauseTooLow by remember { derivedStateOf { isAtBottom && i < home } }
-            val hideBecauseNear by remember { derivedStateOf { abs(i - home) <= 1 } }
+            val now by timeFlow.collectAsStateWithLifecycle()
+            val home by derivedStateOf { state.departures.indexOfNext(state.info.time ?: now, now) }
+            val hideBecauseTooLow by remember(home, i, isAtBottom) { derivedStateOf { isAtBottom && i < home } }
+            val hideBecauseNear by remember(home, i) { derivedStateOf { (i - home).absoluteValue <= 1 } }
 
             AnimatedVisibility(
                 visible = !hideBecauseNear && !hideBecauseTooLow,
@@ -212,7 +219,7 @@ fun DeparturesScreen(
             ) {
                 SmallFloatingActionButton(
                     onClick = {
-                        scope.launch(Dispatchers.Main) {
+                        scope.launch {
                             listState.animateScrollToItem(home)
                         }
                     },
@@ -222,7 +229,7 @@ fun DeparturesScreen(
                         "Scrollovat",
                         Modifier.rotate(
                             animateFloatAsState(
-                                remember {
+                                remember(i, home) {
                                     when {
                                         i > home -> 0F
                                         i < home -> 180F
@@ -250,7 +257,7 @@ fun DeparturesScreen(
             Modifier
         ) {
             Text(
-                text = state.stop,
+                text = state.info.stop,
                 style = MaterialTheme.typography.headlineSmall,
             )
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
@@ -271,9 +278,11 @@ fun DeparturesScreen(
                 },
             )
             var showDialog by rememberSaveable { mutableStateOf(false) }
+            val now by timeFlow.collectAsStateWithLifecycle()
+            val time = state.info.time ?: now
             val timeState = rememberTimePickerState(
-                initialHour = state.info.time.hour,
-                initialMinute = state.info.time.minute,
+                initialHour = time.hour,
+                initialMinute = time.minute,
                 is24Hour = true,
             )
             if (showDialog) TimePickerDialog(
@@ -295,7 +304,7 @@ fun DeparturesScreen(
                     Text("Změnit čas")
                     TextButton(
                         onClick = {
-                            onEvent(ChangeTime(now))
+                            onEvent(ChangeTime(null))
                             showDialog = false
                         }
                     ) {
@@ -313,7 +322,7 @@ fun DeparturesScreen(
             ) {
                 IconWithTooltip(Icons.Default.AccessTime, "Změnit čas", Modifier.size(ButtonDefaults.IconSize))
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(text = state.info.time.toString())
+                Text(text = state.info.time?.toString() ?: "Nyní")
             }
         }
 
@@ -361,7 +370,7 @@ fun DeparturesScreen(
                         )
                     },
                     label = {
-                        Text(state.info.stopFilter?.let { "Jede přes: $it" } ?: "Jede přes")
+                        Text(state.info.stopFilter?.let { "Pojede přes: $it" } ?: "Pojede přes")
                     },
                     leadingIcon = {
                         if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
@@ -407,7 +416,7 @@ fun DeparturesScreen(
                 state = listState,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                item {
+                item { // Seen in DeparturesStateKt::indexOfNext
                     HorizontalDivider()
                     DaySwitcher(onEvent, DeparturesEvent.PreviousDay, "Předchozí den…")
                 }
@@ -532,8 +541,9 @@ private fun Card(
                 .padding(top = 4.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
         ) {
             val nextStop = departureState.currentNextStop
-            val delay = departureState.delay
-            val runsIn = departureState.runsIn
+            val now by nowFlow.collectAsStateWithLifecycle()
+            val delay = departureState.delay.takeUnless { info.date != now.date }
+            val runsIn = departureState.time.atDate(info.date) + (delay ?: 0.minutes) - now
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -569,7 +579,7 @@ private fun Card(
                         text = "${departureState.time}"
                     )
                     if (delay != null && runsIn > Duration.ZERO) Text(
-                        text = "${departureState.time + delay.toInt().minutes}",
+                        text = "${departureState.time + delay.truncatedToSeconds()}",
                         color = colorOfDelayText(delay),
                         modifier = Modifier.padding(start = 8.dp)
                     )
@@ -588,7 +598,7 @@ private fun Card(
                         fontSize = 20.sp
                     )
                     if (delay != null) Text(
-                        text = (nextStop.second + delay.roundToInt().minutes).toString(),
+                        text = (nextStop.second + delay.truncatedToSeconds()).toString(),
                         color = colorOfDelayText(delay)
                     )
                     else Text(nextStop.second.toString())

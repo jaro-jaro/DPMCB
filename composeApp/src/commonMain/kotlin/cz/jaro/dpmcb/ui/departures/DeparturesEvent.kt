@@ -8,7 +8,7 @@ import kotlinx.datetime.LocalTime
 sealed interface DeparturesEvent {
     data class GoToBus(val bus: DepartureState) : DeparturesEvent
     data class GoToTimetable(val bus: DepartureState) : DeparturesEvent
-    data class ChangeTime(val time: LocalTime) : DeparturesEvent
+    data class ChangeTime(val time: LocalTime?) : DeparturesEvent
     data class Scroll(val i: Int) : DeparturesEvent
     data class WentBack(val result: ChooserResult) : DeparturesEvent
     data class Canceled(val chooserType: ChooserType) : DeparturesEvent

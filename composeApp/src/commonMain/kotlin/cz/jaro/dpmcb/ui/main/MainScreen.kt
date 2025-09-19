@@ -98,7 +98,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
-import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
@@ -801,7 +801,7 @@ private fun OfflineModeSwitcher(state: MainState, onEvent: (MainEvent) -> Unit) 
 
 @Composable
 private fun Time() {
-    val time by nowFlow.collectAsStateWithLifecycle()
+    val time by timeFlow.collectAsStateWithLifecycle()
     if (AppState.selected != DrawerAction.TransportCard)
         Text("${time.hour.two()}:${time.minute.two()}:${time.second.two()}", color = MaterialTheme.colorScheme.tertiary)
 }

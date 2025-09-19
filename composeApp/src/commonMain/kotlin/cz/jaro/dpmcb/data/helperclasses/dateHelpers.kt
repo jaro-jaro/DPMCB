@@ -26,6 +26,8 @@ import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 fun LocalDate.toCzechLocative() = when (SystemClock.todayHere().durationUntil(this).inWholeDays) {
@@ -90,19 +92,21 @@ operator fun LocalDate.minus(other: LocalDate) = other.periodUntil(this)
 
 private val LocalTime.Companion.Noon get() = LocalTime(0, 0)
 
-private fun Duration.truncatedToDays() = inWholeDays.days
+fun Duration.truncatedToSeconds() = inWholeSeconds.seconds
+fun Duration.truncatedToMinutes() = inWholeMinutes.minutes
+fun Duration.truncatedToDays() = inWholeDays.days
 private fun Duration.toDatePeriod() = DatePeriod(days = truncatedToDays().inWholeDays.toInt())
 
 fun LocalDate.asString() = "$day. ${month.number}. $year"
 
 fun String?.toTimeWeirdly() = (this?.run {
     LocalTime(slice(0..1).toInt(), slice(2..3).toInt())
-} ?: now)
+} ?: SystemClock.timeHere().let { LocalTime(it.hour, it.minute) })
 
 fun String?.toTime() = (this?.run {
     val list = split(":").map(String::toInt)
     LocalTime(list[0], list[1])
-} ?: now)
+} ?: SystemClock.timeHere().let { LocalTime(it.hour, it.minute) })
 
 fun String.toTimeOrNull() = this.run {
     val list = split(":").map(String::toIntOrNull)
@@ -111,13 +115,17 @@ fun String.toTimeOrNull() = this.run {
 
 fun String.toDateWeirdly() = LocalDate(slice(4..7).toInt(), slice(2..3).toInt(), slice(0..1).toInt())
 
-val now get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute) }
-val exactlyNow get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
+val exactTime get() = SystemClock.timeHere().let { LocalTime(it.hour, it.minute, it.second) }
 
-val nowFlow = ::exactlyNow
+val timeFlow = ::exactTime
     .asRepeatingFlow()
     .flowOn(Dispatchers.IO)
-    .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), exactlyNow)
+    .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), exactTime)
+
+val nowFlow = SystemClock::nowHere
+    .asRepeatingFlow()
+    .flowOn(Dispatchers.IO)
+    .stateIn(MainScope(), SharingStarted.WhileSubscribed(5_000), SystemClock.nowHere())
 
 fun Clock.timeIn(timeZone: TimeZone) = nowIn(timeZone).time
 fun Clock.nowIn(timeZone: TimeZone) = now().toLocalDateTime(timeZone)

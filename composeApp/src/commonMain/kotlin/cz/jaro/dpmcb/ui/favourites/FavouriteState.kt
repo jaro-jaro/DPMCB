@@ -6,6 +6,7 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlin.time.Duration
 
 data class FavouriteState(
     val busName: BusName,
@@ -21,7 +22,7 @@ data class FavouriteState(
 )
 
 data class OnlineFavouriteState(
-    val delay: Float,
+    val delay: Duration,
     val vehicleNumber: RegistrationNumber?,
     val vehicleName: String?,
     val vehicleTraction: Traction?,

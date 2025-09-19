@@ -42,13 +42,13 @@ import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.toDelay
+import cz.jaro.dpmcb.data.helperclasses.truncatedToSeconds
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeFilter
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeType
-import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
 @Composable
@@ -187,7 +187,7 @@ private fun LazyListScope.busResult(
                 Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
                 bus.delay?.let {
                     Text(
-                        text = bus.delay.toDouble().minutes.toDelay(),
+                        text = bus.delay.toDelay(),
                         color = colorOfDelayText(bus.delay)
                     )
                 }
@@ -243,7 +243,7 @@ private fun LazyListScope.line(
             Text(text = bus.nextStopTime.toString())
             if (online) bus.delay?.let { delay ->
                 Text(
-                    text = (bus.nextStopTime + delay.toInt().minutes).toString(),
+                    text = (bus.nextStopTime + delay.truncatedToSeconds()).toString(),
                     color = colorOfDelayText(delay),
                     modifier = Modifier.padding(start = 8.dp)
                 )

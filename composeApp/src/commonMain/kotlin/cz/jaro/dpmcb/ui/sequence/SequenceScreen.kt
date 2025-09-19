@@ -153,7 +153,7 @@ fun SequenceScreen(
                             .padding(top = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (state.online != null) DelayBubble(state.online.delayMin)
+                        if (state.online != null) DelayBubble(state.online.delay)
                         if (state.vehicleNumber != null) Vehicle(state.vehicleNumber, state.vehicleName)
                         else if (state.date <= SystemClock.todayHere() && state.runsToday) VehicleSearcher(onEvent)
                     }
@@ -210,7 +210,7 @@ fun SequenceScreen(
                                     .padding(vertical = 8.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                DelayBubble(state.online.delayMin)
+                                DelayBubble(state.online.delay)
                                 Vehicle(state.vehicleNumber, state.vehicleName)
                             }
                         }

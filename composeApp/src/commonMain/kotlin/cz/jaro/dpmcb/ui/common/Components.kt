@@ -138,7 +138,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -388,14 +388,14 @@ fun Vehicle(vehicle: RegistrationNumber?, name: String?, showInfoButton: Boolean
 }
 
 @Composable
-fun DelayBubble(delayMin: Float) {
+fun DelayBubble(delayMin: Duration) {
     Badge(
         Modifier,
         containerColor = colorOfDelayBubbleContainer(delayMin),
         contentColor = colorOfDelayBubbleText(delayMin),
     ) {
         Text(
-            text = delayMin.toDouble().minutes.toDelay(),
+            text = delayMin.toDelay(),
         )
     }
 }

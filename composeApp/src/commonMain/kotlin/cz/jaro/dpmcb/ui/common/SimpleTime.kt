@@ -25,6 +25,7 @@ data class SimpleTime(
     }
     fun isInvalid() = this == invalid
 }
+fun SimpleTime?.orInvalid() = this ?: SimpleTime.invalid
 
 fun SimpleTime.toLocalTime() = LocalTime(h, min)
 fun LocalTime.toSimpleTime() = SimpleTime(hour, minute)

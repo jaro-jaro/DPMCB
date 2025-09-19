@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration
 
 sealed interface BusState {
 
@@ -53,7 +54,7 @@ sealed interface BusState {
     )
 
     data class RunningState(
-        val delayMin: Float?,
+        val delay: Duration?,
         val vehicleNumber: RegistrationNumber?,
         val vehicleName: String?,
         val vehicleTraction: Traction?,

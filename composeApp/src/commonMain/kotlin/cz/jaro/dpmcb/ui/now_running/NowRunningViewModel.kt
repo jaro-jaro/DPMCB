@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalTime
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -89,7 +91,7 @@ class NowRunningViewModel(
                     busName = bus.busName,
                     nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
                     nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@mapNotNull null,
-                    delay = onlineConn.delayMin,
+                    delay = onlineConn.delayMin?.toDouble()?.minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
@@ -114,7 +116,7 @@ class NowRunningViewModel(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
                     nextStopTime = nextStop.time,
-                    delay = -1F,
+                    delay = (-1).minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
@@ -191,7 +193,7 @@ data class RunningConnPlus(
     val busName: BusName,
     val nextStopName: String,
     val nextStopTime: LocalTime,
-    val delay: Float?,
+    val delay: Duration?,
     val indexOnLine: Int,
     val direction: Direction,
     val lineNumber: ShortLine,

@@ -191,10 +191,9 @@ class SpojeRepository(
 
     val settings = preferenceDataSource.settings
 
-    val showDeparturesOnly = preferenceDataSource.departures
+//    val showDeparturesOnly = preferenceDataSource.departures
 
     val favourites = preferenceDataSource.favourites
-//        .map { it.work(4.4) }
 
     val recents = preferenceDataSource.recents
 
@@ -695,9 +694,9 @@ class SpojeRepository(
         preferenceDataSource.changeSettings(update)
     }
 
-    fun changeDepartures(value: Boolean) {
-        preferenceDataSource.changeDepartures(value)
-    }
+//    fun changeDepartures(value: Boolean) {
+//        preferenceDataSource.changeDepartures(value)
+//    }
 
     fun changeFavourite(part: PartOfConn) {
         preferenceDataSource.changeFavourites { favourites ->

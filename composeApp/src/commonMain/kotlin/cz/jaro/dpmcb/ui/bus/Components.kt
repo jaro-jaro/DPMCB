@@ -618,7 +618,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
 //            enableCart = true,
 //        )
 
-        if (state.online?.running?.delayMin != null) DelayBubble(state.online.running.delayMin)
+        if (state.online?.running?.delay != null) DelayBubble(state.online.running.delay)
         if (state.online?.running?.vehicleNumber != null) Vehicle(
             vehicle = state.online.running.vehicleNumber,
             name = state.online.running.vehicleName,

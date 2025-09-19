@@ -19,7 +19,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -116,7 +117,7 @@ class SequenceViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(SharingStarted.WhileSubscribed(5_000), null)
 
-    private val traveledSegments = combine(info, nowRunningOnlineConn, nowFlow) { info, onlineConn, now ->
+    private val traveledSegments = combine(info, nowRunningOnlineConn, timeFlow) { info, onlineConn, now ->
 
         if (info !is SequenceState.OK) return@combine null
 
@@ -135,7 +136,7 @@ class SequenceViewModel(
         }
     }
 
-    private val lineHeight = combine(info, nowRunningOnlineConn, nowFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
+    private val lineHeight = combine(info, nowRunningOnlineConn, timeFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
 
         if (info !is SequenceState.OK) return@combine 0F
 
@@ -184,7 +185,7 @@ class SequenceViewModel(
                 if (onlineConn?.delayMin == null) return@combine info3
                 info3.copy(
                     online = SequenceState.OnlineState(
-                        delayMin = onlineConn.delayMin,
+                        delay = onlineConn.delayMin.toDouble().minutes,
                         confirmedLowFloor = onlineConn.lowFloor,
                     ),
                     vehicleNumber = onlineConn.vehicle ?: info3.vehicleNumber,

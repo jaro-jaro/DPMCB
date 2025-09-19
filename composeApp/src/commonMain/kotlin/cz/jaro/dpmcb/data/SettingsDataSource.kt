@@ -11,7 +11,6 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +26,7 @@ class SettingsDataSource(
         const val VERSION = "verze"
         const val FAVOURITES = "oblibene_useky"
         const val RECENTS = "recents"
-        const val DEPARTURES = "odjezdy"
+//        const val DEPARTURES = "odjezdy"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"
     }
@@ -36,7 +35,7 @@ class SettingsDataSource(
         const val VERSION = -1
         val FAVOURITES = listOf<PartOfConn>()
         val RECENTS = listOf<BusName>()
-        const val DEPARTURES = false
+//        const val DEPARTURES = false
         val SETTINGS = Settings()
         const val CARD = false
     }
@@ -68,18 +67,11 @@ class SettingsDataSource(
     val favourites = data
         .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
         .mapState(scope) {
-            it?.fromJson<List<PartOfConn>>(json).work(1)
-            (it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES)
+            it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES
         }
-
-    init {
-        data.addStringOrNullListener(Keys.FAVOURITES) {
-            it?.fromJson<List<PartOfConn>>(json).work(2)
-        }
-    }
 
     fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
-        data[Keys.FAVOURITES] = update(favourites.value.work(3)).work(4).toJson(json)
+        data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
     }
 
     val recents = data
@@ -92,15 +84,15 @@ class SettingsDataSource(
         data[Keys.RECENTS] = update(recents.value).toJson(json)
     }
 
-    val departures = data
-        .getBooleanOrNullStateFlow(scope, Keys.DEPARTURES)
-        .mapState(scope) {
-            it ?: DefaultValues.DEPARTURES
-        }
-
-    fun changeDepartures(value: Boolean) {
-        data[Keys.DEPARTURES] = value
-    }
+//    val departures = data
+//        .getBooleanOrNullStateFlow(scope, Keys.DEPARTURES)
+//        .mapState(scope) {
+//            it ?: DefaultValues.DEPARTURES
+//        }
+//
+//    fun changeDepartures(value: Boolean) {
+//        data[Keys.DEPARTURES] = value
+//    }
 
     val hasCard = data
         .getBooleanOrNullStateFlow(scope, Keys.CARD)

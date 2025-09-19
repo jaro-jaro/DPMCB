@@ -37,7 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.viewModel
@@ -95,7 +95,7 @@ fun LoadingScreen(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val time by nowFlow.collectAsStateWithLifecycle()
+                val time by timeFlow.collectAsStateWithLifecycle()
                 Text(
                     text = "${time.hour.two()}:${time.minute.two()}:${time.second.two()}",
                     Modifier.padding(horizontal = 16.dp),

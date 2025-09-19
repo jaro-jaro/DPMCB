@@ -12,7 +12,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
@@ -171,7 +171,7 @@ class BusViewModel(
         .flowOn(Dispatchers.IO)
         .stateIn(SharingStarted.WhileSubscribed(5_000), null)
 
-    private val traveledSegments = combine(info, onlineState, nowFlow) { info, state, now ->
+    private val traveledSegments = combine(info, onlineState, timeFlow) { info, state, now ->
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
@@ -184,7 +184,7 @@ class BusViewModel(
         }
     }
 
-    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments) { info, state, now, traveledSegments ->
+    private val lineHeight = combine(info, onlineState, timeFlow, traveledSegments) { info, state, now, traveledSegments ->
 
         if (info !is BusState.OK) return@combine 0F
 
@@ -197,7 +197,7 @@ class BusViewModel(
         val netStopScheduledArrival = info.stops.getOrNull(traveledSegments + 1)?.run { arrival ?: time }
         val nextOnlineStop = state?.onlineTimetable?.stops?.getOrNull(traveledSegments + 1)
         val arrivalToNextStop = if (nextOnlineStop != null && netStopScheduledArrival != null)
-            netStopScheduledArrival + nextOnlineStop.delay.minutes + delay.toDateTimePeriod().seconds.seconds
+            netStopScheduledArrival + nextOnlineStop.delay + delay.toDateTimePeriod().seconds.seconds
         else netStopScheduledArrival?.plus(delay)
 
         val length = arrivalToNextStop?.minus(departureFromLastStop) ?: Duration.INFINITE
@@ -216,7 +216,7 @@ class BusViewModel(
             online = if (onlineState?.onlineTimetable != null) BusState.OnlineState(
                 onlineConnStops = onlineState.onlineTimetable.stops,
                 running = if (onlineState.delay != null || onlineState.nextStopTime != null) BusState.RunningState(
-                    delayMin = onlineState.delay?.inWholeSeconds?.div(60F),
+                    delay = onlineState.delay,
                     vehicleNumber = onlineState.vehicleNumber,
                     vehicleName = onlineState.vehicleNumber?.let(repo::vehicleName),
                     vehicleTraction = onlineState.vehicleNumber?.let { repo.vehicleTraction(it) ?: info.lineTraction },
