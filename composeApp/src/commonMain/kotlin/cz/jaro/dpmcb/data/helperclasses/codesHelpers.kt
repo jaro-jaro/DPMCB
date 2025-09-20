@@ -149,3 +149,19 @@ fun String.partMayBeMissing() = when {
     matches("^[0-9A-Z]{1,2}$".toRegex()) -> "%/$this"
     else -> null
 }
+
+fun runsAt(
+    timeCodes: List<RunsFromTo>,
+    fixedCodes: String,
+    date: LocalDate,
+): Boolean = timeCodes.removeNoCodes().let { filteredCodes ->
+    when {
+        filteredCodes anyAre RunsOnly -> filteredCodes filter RunsOnly anySatisfies date
+        filteredCodes filter RunsAlso anySatisfies date -> true
+        !date.runsToday(fixedCodes) -> false
+        filteredCodes filter DoesNotRun anySatisfies date -> false
+        filteredCodes noneAre Runs -> true
+        filteredCodes filter Runs anySatisfies date -> true
+        else -> false
+    }
+}

@@ -8,18 +8,55 @@ import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import com.russhwolf.settings.set
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.helperclasses.IO
+import cz.jaro.dpmcb.data.helperclasses.MutateLambda
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.Json
 
+interface LocalSettingsDataSource {
+    val settings: StateFlow<Settings>
+    fun changeSettings(update: MutateLambda<Settings>)
+
+    val version: StateFlow<Int>
+    fun changeVersion(value: Int)
+
+    val favourites: StateFlow<List<PartOfConn>>
+    fun changeFavourites(update: MutateLambda<List<PartOfConn>>)
+
+    val recents: StateFlow<List<BusName>>
+    fun changeRecents(update: MutateLambda<List<BusName>>)
+
+    val hasCard: StateFlow<Boolean>
+    fun changeCard(value: Boolean)
+}
+
+fun LocalSettingsDataSource.changeFavourite(part: PartOfConn) {
+    changeFavourites { favourites ->
+        (listOf(part) + favourites).distinctBy { it.busName }
+    }
+}
+
+fun LocalSettingsDataSource.removeFavourite(name: BusName) {
+    changeFavourites { favourites ->
+        favourites - favourites.first { it.busName == name }
+    }
+}
+
+fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
+    changeRecents { recents ->
+        (listOf(bus) + recents).distinct().take(settings.value.recentBusesCount)
+    }
+}
+
 @OptIn(ExperimentalSettingsApi::class)
-class SettingsDataSource(
+class MultiplatformSettingsDataSource(
     private val data: ObservableSettings,
-) {
+) : LocalSettingsDataSource {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     object Keys {
@@ -44,63 +81,63 @@ class SettingsDataSource(
         ignoreUnknownKeys = true
     }
 
-    val settings = data
+    override val settings = data
         .getStringOrNullStateFlow(scope, Keys.SETTINGS)
         .mapState(scope) {
             it?.fromJson<Settings>(json) ?: DefaultValues.SETTINGS
         }
 
-    fun changeSettings(update: (Settings) -> Settings) {
+    override fun changeSettings(update: (Settings) -> Settings) {
         data[Keys.SETTINGS] = update(settings.value).toJson(json)
     }
 
-    val version = data
+    override val version = data
         .getIntOrNullStateFlow(scope, Keys.VERSION)
         .mapState(scope) {
             it ?: DefaultValues.VERSION
         }
 
-    fun changeVersion(value: Int) {
+    override fun changeVersion(value: Int) {
         data[Keys.VERSION] = value
     }
 
-    val favourites = data
+    override val favourites = data
         .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
         .mapState(scope) {
             it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES
         }
 
-    fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
+    override fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
         data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
     }
 
-    val recents = data
+    override val recents = data
         .getStringOrNullStateFlow(scope, Keys.RECENTS)
         .mapState(scope) {
             it?.fromJson<List<BusName>>(json) ?: DefaultValues.RECENTS
         }
 
-    fun changeRecents(update: (List<BusName>) -> List<BusName>) {
+    override fun changeRecents(update: (List<BusName>) -> List<BusName>) {
         data[Keys.RECENTS] = update(recents.value).toJson(json)
     }
 
-//    val departures = data
+//    override val departures = data
 //        .getBooleanOrNullStateFlow(scope, Keys.DEPARTURES)
 //        .mapState(scope) {
 //            it ?: DefaultValues.DEPARTURES
 //        }
 //
-//    fun changeDepartures(value: Boolean) {
+//    override fun changeDepartures(value: Boolean) {
 //        data[Keys.DEPARTURES] = value
 //    }
 
-    val hasCard = data
+    override val hasCard = data
         .getBooleanOrNullStateFlow(scope, Keys.CARD)
         .mapState(scope) {
             it ?: DefaultValues.CARD
         }
 
-    fun changeCard(value: Boolean) {
+    override fun changeCard(value: Boolean) {
         data[Keys.CARD] = value
     }
 }

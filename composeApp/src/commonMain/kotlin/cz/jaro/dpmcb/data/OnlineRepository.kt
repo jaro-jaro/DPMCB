@@ -42,7 +42,7 @@ data class ProxyBody(
 )
 
 class OnlineRepository(
-    private val repo: SpojeRepository,
+    private val onlineModeManager: OnlineModeManager,
     onlineManager: UserOnlineManager,
 ) : UserOnlineManager by onlineManager {
     private val scope = MainScope()
@@ -52,7 +52,7 @@ class OnlineRepository(
     private val proxyUrl = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/cors-proxy"
 
     private suspend fun getAllConns() =
-        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
+        if (onlineModeManager.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
             if (!isOnline()) return@withContext null
             val data = """{"w":14.320215289916973,"s":48.88092891115194,"e":14.818033283081036,"n":49.076970164143134,"zoom":12,"showStops":false}"""
             val response = try {
@@ -89,8 +89,6 @@ class OnlineRepository(
             ?: emptyList()
         else emptyList()
 
-    private val stopIndexFlowMap: MutableMap<BusName, SharedFlow<List<Double>?>> = mutableMapOf()
-
     private val timetableFlowMap: MutableMap<BusName, SharedFlow<OnlineTimetable?>> = mutableMapOf()
 
     private val json = Json {
@@ -125,7 +123,7 @@ class OnlineRepository(
     )
 
     private suspend fun getTimetable(busName: BusName) =
-        if (repo.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
+        if (onlineModeManager.isOnlineModeEnabled.value) withContext(Dispatchers.IO) {
 
             if (!isOnline()) return@withContext null
             val response = try {

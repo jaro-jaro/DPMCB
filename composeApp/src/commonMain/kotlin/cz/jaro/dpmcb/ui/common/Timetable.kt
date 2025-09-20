@@ -38,11 +38,11 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
+import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
-import cz.jaro.dpmcb.data.middleDestination
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn

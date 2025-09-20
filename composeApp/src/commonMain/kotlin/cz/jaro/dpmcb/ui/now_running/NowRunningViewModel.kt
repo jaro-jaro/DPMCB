@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.now_running
 
 import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -12,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
+import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -35,6 +37,7 @@ import kotlin.time.ExperimentalTime
 class NowRunningViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
+    onlineModeManager: OnlineModeManager,
     params: Parameters,
 ) : ViewModel() {
 
@@ -48,7 +51,7 @@ class NowRunningViewModel(
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
 
-    private val allowedType = type.combine(repo.hasAccessToMap) { type, isOnline -> if (isOnline) type else NowRunningType.Line }
+    private val allowedType = type.combine(onlineModeManager.hasAccessToMap) { type, isOnline -> if (isOnline) type else NowRunningType.Line }
 
     private fun changeCurrentRoute() {
         try {
@@ -145,7 +148,7 @@ class NowRunningViewModel(
     private val lineNumbers = repo::lineNumbersToday.asFlow()
 
     val state = combine(
-        lineNumbers, filters, allowedType, result, repo.hasAccessToMap,
+        lineNumbers, filters, allowedType, result, onlineModeManager.hasAccessToMap,
     ) { lineNumbers, filters, type, result, isOnline ->
         when {
             lineNumbers.isEmpty() -> NowRunningState.NoLines

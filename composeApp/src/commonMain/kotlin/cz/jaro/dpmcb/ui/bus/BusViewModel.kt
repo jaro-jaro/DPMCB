@@ -3,8 +3,10 @@ package cz.jaro.dpmcb.ui.bus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.AppState.APP_URL
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.changeFavourite
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -12,13 +14,19 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.helperclasses.work
+import cz.jaro.dpmcb.data.lineTraction
+import cz.jaro.dpmcb.data.pushRecentBus
+import cz.jaro.dpmcb.data.removeFavourite
+import cz.jaro.dpmcb.data.seqName
+import cz.jaro.dpmcb.data.vehicleName
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -45,13 +53,14 @@ import kotlin.time.ExperimentalTime
 class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
+    onlineModeManager: OnlineModeManager,
     private val busName: BusName,
     private val date: LocalDate,
 ) : ViewModel() {
 
     lateinit var navigator: Navigator
 
-    private val info: Flow<BusState> = combine(repo.favourites, repo.hasAccessToMap) { favourites, online ->
+    private val info: Flow<BusState> = combine(repo.favourites, onlineModeManager.hasAccessToMap) { favourites, online ->
         val exists = repo.doesBusExist(busName)
         if (!exists) return@combine BusState.DoesNotExist(busName)
         val runsAt = repo.doesConnRunAt(busName)

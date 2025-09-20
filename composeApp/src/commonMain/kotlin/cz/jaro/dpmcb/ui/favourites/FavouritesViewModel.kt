@@ -13,8 +13,11 @@ import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.recordException
+import cz.jaro.dpmcb.data.vehicleName
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi

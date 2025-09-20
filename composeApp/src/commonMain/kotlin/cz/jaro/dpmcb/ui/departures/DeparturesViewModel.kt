@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.departures
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -15,15 +16,18 @@ import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.compare
 import cz.jaro.dpmcb.data.helperclasses.exactTime
 import cz.jaro.dpmcb.data.helperclasses.launch
+import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.tuples.Quadruple
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
@@ -58,6 +62,7 @@ class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
     private val params: Parameters,
+    onlineModeManager: OnlineModeManager,
 ) : ViewModel() {
 
     data class Parameters(
@@ -199,7 +204,7 @@ class DeparturesViewModel(
     }
 
     val state = finalList
-        .combineStates(info, repo.hasAccessToMap) { filteredList, info, isOnline ->
+        .combineStates(info, onlineModeManager.hasAccessToMap) { filteredList, info, isOnline ->
             when {
                 filteredList == null -> DeparturesState.Loading(
                     info = info,

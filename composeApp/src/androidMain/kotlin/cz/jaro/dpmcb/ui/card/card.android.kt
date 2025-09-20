@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.graphics.asImageBitmap
-import cz.jaro.dpmcb.data.SettingsDataSource
+import cz.jaro.dpmcb.data.LocalSettingsDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,11 +20,11 @@ import kotlin.time.Duration.Companion.seconds
 
 class AndroidCardManager(
     ctx: ComponentActivity,
-    private val settingsDataSource: SettingsDataSource,
+    private val localSettingsDataSource: LocalSettingsDataSource,
 ) : CardManager {
     val scope = CoroutineScope(Dispatchers.IO)
 
-    val hasCard = settingsDataSource.hasCard
+    val hasCard = localSettingsDataSource.hasCard
 
     val cardFile = File(ctx.filesDir, "prukazka.jpg")
 
@@ -44,7 +44,7 @@ class AndroidCardManager(
                         input.copyTo(output)
                     }
                 }
-                settingsDataSource.changeCard(true)
+                localSettingsDataSource.changeCard(true)
             }
         }
         launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -52,7 +52,7 @@ class AndroidCardManager(
 
     override fun removeCard() {
         scope.launch {
-            settingsDataSource.changeCard(false)
+            localSettingsDataSource.changeCard(false)
         }
     }
 

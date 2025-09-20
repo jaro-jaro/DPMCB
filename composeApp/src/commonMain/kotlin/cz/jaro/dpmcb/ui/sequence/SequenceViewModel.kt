@@ -19,13 +19,18 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.runsAt
 import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.recordException
+import cz.jaro.dpmcb.data.seqConnection
+import cz.jaro.dpmcb.data.seqName
+import cz.jaro.dpmcb.data.vehicleName
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -78,7 +83,7 @@ class SequenceViewModel(
             before = sequence.before.map { it to with(repo) { it.seqConnection() } },
             after = sequence.after.map { it to with(repo) { it.seqConnection() } },
             buses = sequence.buses.map { bus ->
-                val runsToday = repo.runsAt(
+                val runsToday = runsAt(
                     timeCodes = sequence.commonTimeCodes + bus.uniqueTimeCodes,
                     fixedCodes = sequence.commonFixedCodes + bus.uniqueFixedCodes,
                     date = params.date
@@ -97,7 +102,7 @@ class SequenceViewModel(
                     isOneWay = repo.isOneWay(bus.info.line),
                 )
             },
-            runsToday = repo.runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = params.date),
+            runsToday = runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = params.date),
             height = 0F,
             traveledSegments = 0,
             date = params.date,

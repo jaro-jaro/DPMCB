@@ -262,7 +262,7 @@ class LoadingViewModel(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
             )
 
-            repo.reset()
+            repo.deleteAll()
 
             _state.value = LoadingState.Loading(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)",
@@ -350,7 +350,7 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            repo.reset()
+            repo.deleteAll()
 
             val sequencesRef = storage.reference.child("kurzy3.json")
             val diagramRef = storage.reference.child("schema.svg")
