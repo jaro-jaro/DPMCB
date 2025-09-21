@@ -154,7 +154,7 @@ class DeparturesViewModel(
                     busName = stop.busName,
                     lineTraction = lineTraction,
                     vehicleTraction = registrationNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
-                    delay = (onlineConn?.delayMin?.toDouble() ?: .0).minutes,
+                    delay = onlineConn?.delayMin?.toDouble()?.minutes,
                     runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
                     directionIfNotLast = if (destination != null) Direction.NEGATIVE
                     else stop.direction.takeUnless { thisStopIndex == busStops.lastIndex },
