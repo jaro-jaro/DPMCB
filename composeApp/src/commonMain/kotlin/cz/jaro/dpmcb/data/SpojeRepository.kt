@@ -215,7 +215,7 @@ class SpojeRepository(
         ds.coreBus(busName, groupsOfDay(date), nowUsedTable(date, busName.line())!!)
             .run {
                 Pair(
-                    first().let { Favourite(it.lowFloor, it.line, it.vehicleType, it.connName) },
+                    first().let { Favourite(it.lowFloor, it.line, it.vehicleType, it.sequence, it.connName) },
                     map { StopOfFavourite(it.time, it.name, it.connName) }.distinct(),
                 )
             }
@@ -521,8 +521,13 @@ class SpojeRepository(
     suspend fun seqGroups() = ds.seqGroups()
     suspend fun seqOfConns() = ds.seqOfConns()
 
+    suspend fun seqOfConns(
+        conns: Set<BusName>,
+        date: LocalDate,
+    ) = ds.seqOfConns(conns, groupsOfDay(date), tablesOfDay(date))
+
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
-        ds.departures(stop, tablesOfDay(date))
+        ds.departures(stop, tablesOfDay(date), groupsOfDay(date))
             .groupBy { it.line / it.connNumber to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
@@ -545,6 +550,7 @@ class SpojeRepository(
                     busStops = stops,
                     stopType = StopType(info.connStopFixedCodes),
                     direction = info.direction,
+                    sequence = info.sequence,
                 )
             }
 

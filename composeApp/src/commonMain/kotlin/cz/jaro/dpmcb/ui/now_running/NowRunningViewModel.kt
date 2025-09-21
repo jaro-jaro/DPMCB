@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -51,7 +50,9 @@ class NowRunningViewModel(
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
 
-    private val allowedType = type.combine(onlineModeManager.hasAccessToMap) { type, isOnline -> if (isOnline) type else NowRunningType.Line }
+    private val allowedType = type.combine(onlineModeManager.hasAccessToMap) { type, isOnline ->
+        if (type in NowRunningType.entries(isOnline)) type else NowRunningType.Line
+    }
 
     private fun changeCurrentRoute() {
         try {
@@ -84,12 +85,13 @@ class NowRunningViewModel(
         }
     }
 
-    private val onlineList = onlineRepo.nowRunningBuses().map { onlineConns ->
+    private val onlineList = onlineRepo.nowRunningBuses().combine(repo.vehicleNumbersOnSequences) { onlineConns, vehicles ->
         val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
         onlineConns
             .mapNotNull { onlineConn ->
                 val bus = buses[onlineConn.name] ?: return@mapNotNull null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
+                val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
@@ -99,7 +101,7 @@ class NowRunningViewModel(
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
-                    vehicle = onlineConn.vehicle ?: return@mapNotNull null,
+                    vehicle = vehicle ?: onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
                 )
             }
@@ -111,10 +113,11 @@ class NowRunningViewModel(
         }
     }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    private val offlineList = repo.nowRunningOrNot.map { busNames ->
+    private val offlineList = repo.nowRunningOrNot.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
+                val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
@@ -124,7 +127,7 @@ class NowRunningViewModel(
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
-                    vehicle = RegistrationNumber(-1),
+                    vehicle = vehicle,
                     sequence = bus.sequence,
                 )
             }
@@ -201,7 +204,7 @@ data class RunningConnPlus(
     val direction: Direction,
     val lineNumber: ShortLine,
     val destination: String,
-    val vehicle: RegistrationNumber,
+    val vehicle: RegistrationNumber?,
     val sequence: SequenceCode?,
 ) {
     fun toRunningDelayedBus() = RunningDelayedBus(

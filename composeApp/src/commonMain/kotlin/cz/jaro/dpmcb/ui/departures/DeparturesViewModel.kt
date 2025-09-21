@@ -61,8 +61,8 @@ import kotlin.collections.filterNot as remove
 class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
-    private val params: Parameters,
     onlineModeManager: OnlineModeManager,
+    private val params: Parameters,
 ) : ViewModel() {
 
     data class Parameters(
@@ -123,7 +123,7 @@ class DeparturesViewModel(
                 }
         }.distinctUntilChanged()
 
-    private val list = combine(departuresWithOnline, date) { departures, date ->
+    private val list = combine(departuresWithOnline, date, repo.vehicleNumbersOnSequences) { departures, date, vehicles ->
         departures
             .map { (stop, onlineConn) ->
                 val busStops = stop.busStops
@@ -145,6 +145,7 @@ class DeparturesViewModel(
 
                 val destination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
                 val lineTraction = repo.lineTraction(stop.line, stop.vehicleType)
+                val registrationNumber = vehicles[date]?.get(stop.sequence)
                 DepartureState(
                     destination = destination ?: stopNames.last(),
                     lineNumber = stop.line.toShortLine(),
@@ -152,7 +153,7 @@ class DeparturesViewModel(
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
                     lineTraction = lineTraction,
-                    vehicleTraction = onlineConn?.vehicle?.let { repo.vehicleTraction(it) ?: lineTraction },
+                    vehicleTraction = registrationNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
                     delay = (onlineConn?.delayMin?.toDouble() ?: .0).minutes,
                     runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
                     directionIfNotLast = if (destination != null) Direction.NEGATIVE

@@ -59,14 +59,13 @@ interface SpojeQueries {
 
     suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName>
 
+    suspend fun seqOfConns(conns: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusName, SequenceCode>
+
     suspend fun firstConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName
 
     suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName
 
-    suspend fun departures(
-        stop: String,
-        tabs: List<Table>,
-    ): List<CoreDeparture>
+    suspend fun departures(stop: String, tabs: List<Table>, groups: List<SequenceGroup>): List<CoreDeparture>
 
     suspend fun findSequences(
         sequence1: String,

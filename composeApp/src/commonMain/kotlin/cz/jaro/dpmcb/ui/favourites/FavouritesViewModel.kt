@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combineAll
@@ -83,7 +82,6 @@ class FavouritesViewModel(
                     onlineBuses.toMap().mapValues { (busName, online) ->
                         if (online?.delayMin != null) FavouriteOnlineBusInfo(
                             delay = online.delayMin.toDouble().minutes,
-                            vehicleNumber = online.vehicle,
                             currentStopTime = online.nextStop,
                         ) else null
                     }
@@ -94,8 +92,8 @@ class FavouritesViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val states = combine(
-        allBuses, onlineBuses
-    ) { buses, onlineBuses ->
+        allBuses, onlineBuses, repo.vehicleNumbersOnSequences
+    ) { buses, onlineBuses, vehicles ->
         buses.map { bus ->
             val (info, stops) = try {
                 repo.favouriteBus(bus.busName, SystemClock.todayHere())
@@ -107,6 +105,7 @@ class FavouritesViewModel(
             val origin = stops.getOrNull(favourite.start) ?: stops.last()
             val destination = stops.getOrNull(favourite.end) ?: stops.last()
             val runsAt = repo.doesConnRunAt(bus.busName)
+            val vehicleNumber = vehicles[SystemClock.todayHere()]?.get(info.sequence)
             FavouriteState(
                 busName = info.connName,
                 line = info.line.toShortLine(),
@@ -123,10 +122,6 @@ class FavouritesViewModel(
 
                     OnlineFavouriteState(
                         delay = online.delay,
-                        vehicleNumber = online.vehicleNumber,
-                        vehicleName = online.vehicleNumber?.let(repo::vehicleName),
-                        vehicleTraction = online.vehicleNumber?.let(repo::vehicleTraction)
-                            ?: repo.lineTraction(info.line, info.vehicleType),
                         currentStopName = currentNext.value.name,
                         currentStopTime = currentNext.value.time,
                         positionOfCurrentStop = when {
@@ -136,6 +131,10 @@ class FavouritesViewModel(
                         },
                     )
                 },
+                vehicleNumber = vehicleNumber,
+                vehicleName = vehicleNumber?.let(repo::vehicleName),
+                vehicleTraction = vehicleNumber?.let(repo::vehicleTraction)
+                    ?: repo.lineTraction(info.line, info.vehicleType),
             )
         }.filterNotNull()
     }
@@ -167,7 +166,6 @@ class FavouritesViewModel(
 
     data class FavouriteOnlineBusInfo(
         val delay: Duration,
-        val vehicleNumber: RegistrationNumber?,
         val currentStopTime: LocalTime?,
     )
 }

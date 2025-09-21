@@ -7,16 +7,24 @@ import com.russhwolf.settings.coroutines.getIntOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import com.russhwolf.settings.set
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateLambda
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.durationUntil
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
 interface LocalSettingsDataSource {
     val settings: StateFlow<Settings>
@@ -33,6 +41,9 @@ interface LocalSettingsDataSource {
 
     val hasCard: StateFlow<Boolean>
     fun changeCard(value: Boolean)
+
+    val vehicleNumbersOnSequences: StateFlow<Map<LocalDate, Map<SequenceCode, RegistrationNumber>>>
+    fun changeVehicleNumbersOnSequences(update: MutateLambda<Map<LocalDate, Map<SequenceCode, RegistrationNumber>>>)
 }
 
 fun LocalSettingsDataSource.changeFavourite(part: PartOfConn) {
@@ -53,6 +64,18 @@ fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
     }
 }
 
+@OptIn(ExperimentalTime::class)
+fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>) {
+    changeVehicleNumbersOnSequences { current ->
+        current.toMutableMap().also {
+            it[date] = it.getOrElse(date) { mapOf() }.toMutableMap() + vehicles
+        }.filterKeys { date -> date.durationUntil(SystemClock.todayHere()) <= 7.days }
+    }
+}
+
+fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber) =
+    pushVehicles(date, mapOf(sequence to vehicle))
+
 @OptIn(ExperimentalSettingsApi::class)
 class MultiplatformSettingsDataSource(
     private val data: ObservableSettings,
@@ -63,18 +86,22 @@ class MultiplatformSettingsDataSource(
         const val VERSION = "verze"
         const val FAVOURITES = "oblibene_useky"
         const val RECENTS = "recents"
-//        const val DEPARTURES = "odjezdy"
+
+        //        const val DEPARTURES = "odjezdy"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"
+        const val VEHICLES = "vehiclesOnSequences"
     }
 
     object DefaultValues {
         const val VERSION = -1
         val FAVOURITES = listOf<PartOfConn>()
         val RECENTS = listOf<BusName>()
-//        const val DEPARTURES = false
+
+        //        const val DEPARTURES = false
         val SETTINGS = Settings()
         const val CARD = false
+        val VEHICLES = emptyMap<LocalDate, Map<SequenceCode, RegistrationNumber>>()
     }
 
     private val json = Json {
@@ -114,7 +141,7 @@ class MultiplatformSettingsDataSource(
     override val recents = data
         .getStringOrNullStateFlow(scope, Keys.RECENTS)
         .mapState(scope) {
-            it?.fromJson<List<BusName>>(json) ?: DefaultValues.RECENTS
+            it?.fromJson(json) ?: DefaultValues.RECENTS
         }
 
     override fun changeRecents(update: (List<BusName>) -> List<BusName>) {
@@ -139,5 +166,15 @@ class MultiplatformSettingsDataSource(
 
     override fun changeCard(value: Boolean) {
         data[Keys.CARD] = value
+    }
+
+    override val vehicleNumbersOnSequences = data
+        .getStringOrNullStateFlow(scope, Keys.VEHICLES)
+        .mapState(scope) {
+            it?.fromJson(json) ?: DefaultValues.VEHICLES
+        }
+
+    override fun changeVehicleNumbersOnSequences(update: MutateLambda<Map<LocalDate, Map<SequenceCode, RegistrationNumber>>>) {
+        data[Keys.VEHICLES] = update(vehicleNumbersOnSequences.value).toJson(json)
     }
 }

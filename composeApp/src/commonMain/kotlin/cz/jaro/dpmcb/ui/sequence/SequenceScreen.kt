@@ -204,13 +204,13 @@ fun SequenceScreen(
                             }
                         }
                         Surface {
-                            if (bus.isRunning && state.online != null) Row(
+                            if (bus.isRunning && (state.online != null || state.vehicleNumber != null)) Row(
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp, horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                DelayBubble(state.online.delay)
+                                if (state.online != null) DelayBubble(state.online.delay)
                                 Vehicle(state.vehicleNumber, state.vehicleName)
                             }
                         }

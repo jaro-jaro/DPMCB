@@ -5,8 +5,11 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.helperclasses.IO
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.fromJson
+import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -26,13 +29,16 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 @Serializable
 data class ProxyBody(
@@ -43,8 +49,8 @@ data class ProxyBody(
 
 class OnlineRepository(
     private val onlineModeManager: OnlineModeManager,
-    onlineManager: UserOnlineManager,
-) : UserOnlineManager by onlineManager {
+    private val repo: SpojeRepository,
+) : UserOnlineManager by repo {
     private val scope = MainScope()
 
     private val client = HttpClient()
@@ -168,6 +174,27 @@ class OnlineRepository(
             started = SharingStarted.Lazily,
             replay = 1
         )
+
+    init {
+        val pushed = mutableSetOf<BusName>()
+        @OptIn(ExperimentalTime::class)
+        connsFlow.onEach { conns ->
+            val date = SystemClock.todayHere()
+            val vehiclesPerBus = conns
+                .filter { it.vehicle != null }
+                .associate { it.name to it.vehicle!! }
+                .filterKeys { it !in pushed }.work()
+            val sequencePerBus = repo.seqOfConns(vehiclesPerBus.keys, date).work()
+            repo.pushVehicles(
+                date = date,
+                vehicles = sequencePerBus.map { (bus, seq) ->
+                    val vehicle = vehiclesPerBus[bus]!!
+                    seq to vehicle
+                }.toMap().work()
+            )
+            pushed += vehiclesPerBus.keys
+        }.flowOn(Dispatchers.IO).launchIn(scope)
+    }
 
     fun nowRunningBuses() =
         connsFlow

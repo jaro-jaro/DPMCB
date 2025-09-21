@@ -11,6 +11,6 @@ data class RunningBus(
     val nextStopName: String,
     val nextStopTime: LocalTime,
     val delay: Duration?,
-    val vehicle: RegistrationNumber,
+    val vehicle: RegistrationNumber?,
     val sequence: SequenceCode?,
 )

@@ -231,9 +231,9 @@ private fun FavouriteState.CardContent(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Name("$line", Modifier.padding(end = 8.dp))
-        VehicleIcon(lineTraction, online?.vehicleTraction, Modifier.padding(horizontal = 8.dp))
+        VehicleIcon(lineTraction, vehicleTraction, Modifier.padding(horizontal = 8.dp))
         if (online != null) DelayBubble(online.delay)
-        if (online != null) Vehicle(online.vehicleNumber, online.vehicleName)
+        Vehicle(vehicleNumber, vehicleName)
     }
     if (online != null && online.positionOfCurrentStop == -1) CurrentStop()
     Stop(
@@ -294,14 +294,14 @@ private val onlinePreviewBus = FavouriteState(
     type = FavouriteType.Favourite,
     online = OnlineFavouriteState(
         delay = 1.36.minutes,
-        vehicleNumber = "02".toRegNum(),
-        vehicleName = "Rába",
-        vehicleTraction = Traction.Trolleybus,
         currentStopName = "Pětidomí",
         currentStopTime = LocalTime(7, 48),
         positionOfCurrentStop = 0,
     ),
     nextWillRun = SystemClock.todayHere(),
+    vehicleNumber = "02".toRegNum(),
+    vehicleName = "Rába",
+    vehicleTraction = Traction.Trolleybus,
 )
 
 @OptIn(ExperimentalTime::class)
@@ -316,6 +316,9 @@ private val offlinePreviewBus = FavouriteState(
     nextWillRun = SystemClock.todayHere() + 1.days,
     type = FavouriteType.Recent,
     online = null,
+    vehicleNumber = null,
+    vehicleName = null,
+    vehicleTraction = null,
 )
 
 @Preview

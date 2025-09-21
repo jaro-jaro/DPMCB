@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
-import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.plus
@@ -49,6 +48,7 @@ import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeFilter
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeType
+import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.NavToBus
 
 @Suppress("unused")
 @Composable
@@ -94,15 +94,15 @@ fun NowRunningScreen(
             is NowRunningState.LoadingLines -> Text(text = "Načítání...")
 
             is NowRunningState.LinesLoaded -> Column {
-                if (state is NowRunningState.OK && state.isOnline) Text(
+                Text(
                     "Řadit podle:", modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
                 )
-                if (state is NowRunningState.OK && state.isOnline) FlowRow(
+                FlowRow(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
-                    NowRunningType.entries.forEach { type ->
+                    NowRunningType.entries(state is NowRunningState.OK && state.isOnline).forEach { type ->
                         FilterChip(
                             modifier = Modifier
                                 .padding(all = 4.dp),
@@ -151,6 +151,10 @@ fun NowRunningScreen(
     }
 }
 
+fun NowRunningType.Companion.entries(online: Boolean) =
+    if (online) listOf(NowRunningType.Line, NowRunningType.Delay, NowRunningType.RegN)
+    else listOf(NowRunningType.Line, NowRunningType.RegN)
+
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.busResult(
     state: NowRunningState.LinesLoaded,
@@ -160,7 +164,7 @@ private fun LazyListScope.busResult(
     is NowRunningState.OK if state.result.online.isEmpty() -> textItem("Od vybraných linek v blízké době nejede")
     is NowRunningState.OK -> when (state.result) {
         is NowRunningResults.Lines -> state.result.online.forEach { line ->
-            line(line, onEvent, key = "OL")
+            line(line, onEvent, true)
         }
 
         is NowRunningResults.RegN -> items(state.result.online, key = { "OR" + it.busName.value }) { bus ->
@@ -200,10 +204,9 @@ private fun LazyListScope.busResult(
 private fun LazyListScope.line(
     line: RunningLineInDirection,
     onEvent: (NowRunningEvent) -> Unit,
-    key: String,
+    online: Boolean,
 ) {
-    val online = line.buses.none { it.vehicle.value == -1 }
-    stickyHeader(key = "$key ${line.lineNumber.value} -> ${line.destination}") {
+    stickyHeader(key = "${if (online) "OL" else "NL"} ${line.lineNumber.value} -> ${line.destination}") {
         Column(
             Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
@@ -228,15 +231,15 @@ private fun LazyListScope.line(
             )
         }
     }
-    items(line.buses, key = { key + it.busName.value }) { bus ->
+    items(line.buses, key = { (if (online) "OL" else "NL") + it.busName.value }) { bus ->
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    onEvent(NowRunningEvent.NavToBus(bus.busName))
+                    onEvent(NavToBus(bus.busName))
                 }
         ) {
-            if (online)
+            if (bus.vehicle != null)
                 Text(text = "${bus.vehicle}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
             else
                 Text(text = bus.nextStopName, modifier = Modifier.weight(1F))
@@ -268,30 +271,35 @@ private fun LazyListScope.notRunning(
     }
     when (val result = state.result) {
         is NowRunningResults.Lines -> result.offlineNotOnline.forEach { line ->
-            line(line, onEvent, key = "NL")
+            line(line, onEvent, false)
         }
 
         is NowRunningResults.RegN -> items(result.offlineNotOnline, key = { "NR" + it.busName.value }) { bus ->
-            OfflineBus(onEvent, bus.busName, bus.lineNumber, bus.destination)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                if (bus.vehicle != null) Text(text = "${bus.vehicle}")
+            }
         }
 
         is NowRunningResults.Delay -> items(result.offlineNotOnline, key = { "ND" + it.busName.value }) { bus ->
-            OfflineBus(onEvent, bus.busName, bus.lineNumber, bus.destination)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onEvent(NavToBus(bus.busName))
+                    }
+            ) {
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+            }
         }
     }
 } else Unit
-
-@Composable
-private fun OfflineBus(onEvent: (NowRunningEvent) -> Unit, busName: BusName, line: ShortLine, destination: String) =
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                onEvent(NowRunningEvent.NavToBus(busName))
-            }
-    ) {
-        Text(text = "$line -> $destination", modifier = Modifier.weight(1F))
-    }
 
 @Composable
 fun Chip(

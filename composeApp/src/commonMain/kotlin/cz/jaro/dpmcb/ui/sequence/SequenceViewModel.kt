@@ -26,6 +26,7 @@ import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
+import cz.jaro.dpmcb.data.pushVehicle
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.seqConnection
 import cz.jaro.dpmcb.data.seqName
@@ -158,7 +159,8 @@ class SequenceViewModel(
 
         val departureFromLastStop = runningBus.stops[traveledSegments].time + (onlineConn?.delayMin?.toDouble() ?: .0).seconds
 
-        val arrivalToNextStop = (runningBus.stops.getOrNull(traveledSegments + 1)?.time?.plus(onlineConn?.delayMin?.toDouble()?.seconds ?: 0.seconds))
+        val arrivalToNextStop =
+            (runningBus.stops.getOrNull(traveledSegments + 1)?.time?.plus(onlineConn?.delayMin?.toDouble()?.seconds ?: 0.seconds))
 
         val length = arrivalToNextStop?.minus(departureFromLastStop) ?: Duration.INFINITE
 
@@ -169,18 +171,20 @@ class SequenceViewModel(
 
     private val downloadedVehicle = MutableStateFlow(null as RegistrationNumber?)
 
-    val state = combine(
+    val state = cz.jaro.dpmcb.data.helperclasses.combine(
         info,
         traveledSegments,
         lineHeight,
         nowRunningOnlineConn,
-        downloadedVehicle
-    ) { info, traveledSegments, lineHeight, onlineConn, downloadedVehicle ->
+        downloadedVehicle,
+        repo.vehicleNumbersOnSequences,
+    ) { info, traveledSegments, lineHeight, onlineConn, downloadedVehicle, vehicles ->
         if (info !is SequenceState.OK) return@combine info
+        val vehicle = vehicles[info.date]?.get(info.sequence) ?: downloadedVehicle
         info.copy(
-            vehicleNumber = downloadedVehicle,
-            vehicleName = downloadedVehicle?.let(repo::vehicleName),
-            vehicleTraction = downloadedVehicle?.let { repo.vehicleTraction(it) ?: info.lineTraction },
+            vehicleNumber = vehicle,
+            vehicleName = vehicle?.let(repo::vehicleName),
+            vehicleTraction = vehicle?.let { repo.vehicleTraction(it) ?: info.lineTraction },
         ).let { info2 ->
             if (params.date != SystemClock.todayHere()) return@combine info2
             info2.copy(
@@ -193,9 +197,6 @@ class SequenceViewModel(
                         delay = onlineConn.delayMin.toDouble().minutes,
                         confirmedLowFloor = onlineConn.lowFloor,
                     ),
-                    vehicleNumber = onlineConn.vehicle ?: info3.vehicleNumber,
-                    vehicleName = onlineConn.vehicle?.let(repo::vehicleName) ?: info3.vehicleName,
-                    vehicleTraction = onlineConn.vehicle?.let { repo.vehicleTraction(it) ?: info3.lineTraction } ?: info3.vehicleTraction,
                     buses = info3.buses.map {
                         it.copy(
                             isRunning = it.busName == onlineConn.name
@@ -223,7 +224,7 @@ class SequenceViewModel(
                         params.sequence.line().startsWith('5') &&
                         params.sequence.line().length == 2 &&
                         params.sequence.modifiers().part() == 2
-                    ) state.date.minus(1.days)else state.date
+                    ) state.date.minus(1.days) else state.date
 
                     Ksoup.parseGetRequest(
                         "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
@@ -259,6 +260,8 @@ class SequenceViewModel(
                         if (cast == null) null.also { e.onLost() }
                         else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
                     }
+                if (downloadedVehicle.value != null)
+                    repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!)
             }
             Unit
         }

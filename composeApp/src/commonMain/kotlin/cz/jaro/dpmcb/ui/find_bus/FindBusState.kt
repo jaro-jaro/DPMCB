@@ -19,7 +19,10 @@ sealed interface FindBusResult {
     data object Offline : FindBusResult
     data class InvalidBusName(val name: String) : FindBusResult
     data class LineNotFound(val line: String) : FindBusResult
-    data class VehicleNotFound(val regN: String) : FindBusResult
-    data class SequenceNotFound(val seq: String) : FindBusResult
-    data class MoreSequencesFound(val seq: String, val sequences: List<Pair<SequenceCode, String>>) : FindBusResult
+    data class SequenceNotFound(val input: String, val source: SequenceSource) : FindBusResult
+    data class MoreSequencesFound(val input: String, val source: SequenceSource, val sequences: List<Pair<SequenceCode, String>>) : FindBusResult
+}
+
+enum class SequenceSource {
+    Search, Vehicle;
 }
