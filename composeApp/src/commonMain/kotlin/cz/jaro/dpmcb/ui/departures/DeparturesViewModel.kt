@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.departures
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -15,15 +16,18 @@ import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.compare
 import cz.jaro.dpmcb.data.helperclasses.exactTime
 import cz.jaro.dpmcb.data.helperclasses.launch
+import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.tuples.Quadruple
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
@@ -57,6 +61,7 @@ import kotlin.collections.filterNot as remove
 class DeparturesViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
+    onlineModeManager: OnlineModeManager,
     private val params: Parameters,
 ) : ViewModel() {
 
@@ -118,7 +123,7 @@ class DeparturesViewModel(
                 }
         }.distinctUntilChanged()
 
-    private val list = combine(departuresWithOnline, date) { departures, date ->
+    private val list = combine(departuresWithOnline, date, repo.vehicleNumbersOnSequences) { departures, date, vehicles ->
         departures
             .map { (stop, onlineConn) ->
                 val busStops = stop.busStops
@@ -140,6 +145,7 @@ class DeparturesViewModel(
 
                 val destination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
                 val lineTraction = repo.lineTraction(stop.line, stop.vehicleType)
+                val registrationNumber = vehicles[date]?.get(stop.sequence)
                 DepartureState(
                     destination = destination ?: stopNames.last(),
                     lineNumber = stop.line.toShortLine(),
@@ -147,8 +153,8 @@ class DeparturesViewModel(
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
                     lineTraction = lineTraction,
-                    vehicleTraction = onlineConn?.vehicle?.let { repo.vehicleTraction(it) ?: lineTraction },
-                    delay = (onlineConn?.delayMin?.toDouble() ?: .0).minutes,
+                    vehicleTraction = registrationNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
+                    delay = onlineConn?.delayMin?.toDouble()?.minutes,
                     runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
                     directionIfNotLast = if (destination != null) Direction.NEGATIVE
                     else stop.direction.takeUnless { thisStopIndex == busStops.lastIndex },
@@ -199,7 +205,7 @@ class DeparturesViewModel(
     }
 
     val state = finalList
-        .combineStates(info, repo.hasAccessToMap) { filteredList, info, isOnline ->
+        .combineStates(info, onlineModeManager.hasAccessToMap) { filteredList, info, isOnline ->
             when {
                 filteredList == null -> DeparturesState.Loading(
                     info = info,

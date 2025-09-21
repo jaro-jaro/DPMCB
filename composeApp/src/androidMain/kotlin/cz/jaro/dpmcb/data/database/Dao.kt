@@ -115,6 +115,18 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
+        SELECT DISTINCT Conn.name connName, SeqOfConn.sequence FROM Conn
+        JOIN SeqOfConn ON SeqOfConn.connNumber = Conn.connNumber AND SeqOfConn.line = Conn.line
+        WHERE Conn.name IN (:conns)
+        AND SeqOfConn.`group` IN (:groups)
+        AND Conn.tab IN (:tabs)
+        """
+    )
+    override suspend fun seqOfConns(conns: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<@MapColumn("connName") BusName, @MapColumn("sequence") SequenceCode>
+
+    @Transaction
+    @Query(
+        """
         SELECT DISTINCT Conn.name connName FROM Conn
         JOIN SeqOfConn ON SeqOfConn.connNumber = Conn.connNumber AND SeqOfConn.line = Conn.line
         WHERE SeqOfConn.sequence = :seq
@@ -162,15 +174,17 @@ interface Dao : SpojeQueries {
             ORDER BY ConnStop.stopIndexOnLine
         ),
         thisStop AS (
-            SELECT Stop.stopName name, Conn.fixedCodes, Line.vehicleType, Conn.direction, CASE
+            SELECT Stop.stopName name, Conn.fixedCodes, Line.vehicleType, Conn.direction, SeqOfConn.sequence, CASE
                 WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
                 ELSE ConnStop.departure
             END time, ConnStop.stopIndexOnLine, ConnStop.fixedCodes connStopFixedCodes, Conn.connNumber, Conn.line, Conn.tab, (Conn.fixedCodes LIKE '%{%') lowFloor
             FROM ConnStop
             JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
             JOIN Line ON Line.tab = ConnStop.tab
+            JOIN SeqOfConn ON SeqOfConn.line = ConnStop.line AND SeqOfConn.connNumber = ConnStop.connNumber
             JOIN hereRunningConns Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
             CROSS JOIN thisStopIndexes thisStop ON ConnStop.tab = thisStop.tab AND ConnStop.stopIndexOnLine = thisStop.stopIndexOnLine
+            WHERE SeqOfConn.`group` IN (:groups)
         )
         SELECT thisStop.*, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to`
         FROM thisStop
@@ -181,6 +195,7 @@ interface Dao : SpojeQueries {
     override suspend fun departures(
         stop: String,
         tabs: List<Table>,
+        groups: List<SequenceGroup>,
     ): List<CoreDeparture>
 
     @Query(

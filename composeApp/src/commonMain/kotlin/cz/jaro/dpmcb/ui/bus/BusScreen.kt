@@ -105,7 +105,7 @@ fun BusScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Name("${state.lineNumber}", suffix = "/${state.busName.bus()}")
-                        VehicleIcon(state.lineTraction, state.online?.running?.vehicleTraction, Modifier.padding(horizontal = 8.dp))
+                        VehicleIcon(state.lineTraction, state.vehicleTraction, Modifier.padding(horizontal = 8.dp))
 //                        Wheelchair(
 //                            lowFloor = state.lowFloor,
 //                            confirmedLowFloor = state.online?.running?.confirmedLowFloor,
@@ -136,9 +136,9 @@ fun BusScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (state.online?.running?.delay != null) DelayBubble(state.online.running.delay)
-                        if (state.online?.running?.vehicleNumber != null) Vehicle(
-                            vehicle = state.online.running.vehicleNumber,
-                            name = state.online.running.vehicleName,
+                        if (state.vehicleNumber != null) Vehicle(
+                            vehicle = state.vehicleNumber,
+                            name = state.vehicleName,
                         )
                     }
 

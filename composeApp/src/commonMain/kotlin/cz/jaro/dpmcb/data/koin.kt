@@ -30,18 +30,20 @@ fun initKoin(
 }
 
 val commonModule = module(true) {
-    single { SpojeRepository(get(), get(), get(), get()) }
-    single { SettingsDataSource(get()) }
+    single<SpojeRepository> { SpojeRepository(get(), get(), get(), get()) }
+    single<GlobalSettingsDataSource> { RemoteConfigDataSource(get(), get()) }
+    single<LocalSettingsDataSource> { MultiplatformSettingsDataSource(get()) }
+    single { OnlineModeManager(get(), get()) }
     single { OnlineRepository(get(), get()) }
-    factory { BusViewModel(get(), get(), it.get(), it.get()) }
+    factory { BusViewModel(get(), get(), get(), it.get(), it.get()) }
     factory { CardViewModel(get()) }
     factory { ChooserViewModel(get(), it.get()) }
-    factory { DeparturesViewModel(get(), get(), it.get()) }
+    factory { DeparturesViewModel(get(), get(), get(), it.get()) }
     factory { FavouritesViewModel(get(), get()) }
     factory { FindBusViewModel(get(), get(), it.get()) }
     factory { LoadingViewModel(get(), get(), get(), it.get()) }
-    factory { MainViewModel(get(), get(), get(), get(), it.get()) }
-    factory { NowRunningViewModel(get(), get(), it.get()) }
+    factory { MainViewModel(get(), get(), get(), get(), get(), it.get()) }
+    factory { NowRunningViewModel(get(), get(), get(), it.get()) }
     factory { SequenceViewModel(get(), get(), it.get()) }
     factory { SettingsViewModel(get(), get()) }
     factory { TimetableViewModel(get(), it.get()) }

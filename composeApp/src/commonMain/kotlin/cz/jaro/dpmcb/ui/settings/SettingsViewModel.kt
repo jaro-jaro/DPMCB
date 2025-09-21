@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
@@ -60,6 +61,6 @@ class SettingsViewModel(
             superNavigate(SuperRoute.Loading(null, true), popUpTo<SuperRoute.Main>())
         }
 
-        is SettingsEvent.EditSettings -> repo.editSettings(e.edit)
+        is SettingsEvent.EditSettings -> repo.changeSettings(e.edit)
     }
 }

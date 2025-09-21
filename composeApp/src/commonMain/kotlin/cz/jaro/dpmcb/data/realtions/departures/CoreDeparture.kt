@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data.realtions.departures
 
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
@@ -35,4 +36,5 @@ data class CoreDeparture(
     val from: LocalDate,
     @SerialName("validto")
     val to: LocalDate,
+    val sequence: SequenceCode,
 )

@@ -137,25 +137,6 @@ fun FindBusScreen(
             )
         }
         TextField(
-            state = state.vehicle,
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            label = {
-                Text("Ev. č. vozu")
-            },
-            onKeyboardAction = {
-                if (state.vehicle.text.isNotEmpty()) {
-                    onEvent(FindBusEvent.ConfirmVehicle)
-                } else
-                    focusManager.moveFocus(FocusDirection.Down)
-            },
-            keyboardOptions = KeyboardOptions(
-                imeAction = if (state.vehicle.text.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-                keyboardType = KeyboardType.Number,
-            ),
-        )
-        TextField(
             state = state.name,
             Modifier
                 .fillMaxWidth()
@@ -183,10 +164,29 @@ fun FindBusScreen(
                 Text("Linka nebo název kurzu")
             },
             onKeyboardAction = {
-                onEvent(FindBusEvent.ConfirmSequence)
+                if (state.sequence.text.isNotEmpty()) {
+                    onEvent(FindBusEvent.ConfirmSequence)
+                } else
+                    focusManager.moveFocus(FocusDirection.Down)
+            },
+            keyboardOptions = KeyboardOptions(
+                imeAction = if (state.sequence.text.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+            ),
+        )
+        TextField(
+            state = state.vehicle,
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            label = {
+                Text("Ev. č. vozu")
+            },
+            onKeyboardAction = {
+                onEvent(FindBusEvent.ConfirmVehicle)
             },
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Search,
+                keyboardType = KeyboardType.Number,
             ),
         )
         Row(
@@ -210,10 +210,11 @@ fun FindBusScreen(
             FindBusResult.Offline -> Text("Jste offline!")
             is FindBusResult.LineNotFound -> Text("Linka \"${r.line}\" neexistuje")
             is FindBusResult.InvalidBusName -> Text("Jméno spoje \"${r.name}\" je neplatné")
-            is FindBusResult.VehicleNotFound -> Text("Vůz ev. č. \"${r.regN}\" nebyl nalezen.")
-            is FindBusResult.SequenceNotFound -> Text("Kurz \"${r.seq}\" neexistuje.")
+            is FindBusResult.SequenceNotFound if r.source == SequenceSource.Vehicle -> Text("Vůz ev. č. \"${r.input}\" nebyl nalezen.")
+            is FindBusResult.SequenceNotFound -> Text("Kurz \"${r.input}\" neexistuje.")
             is FindBusResult.MoreSequencesFound -> {
-                Text("\"${r.seq}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
+                if (r.source == SequenceSource.Vehicle) Text("Vůz ev. č. \"${r.input}\" byl nalezen na následujících kurzech:")
+                else Text("\"${r.input}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
                 r.sequences.forEach {
                     HorizontalDivider(Modifier.fillMaxWidth())
                     ListItem(

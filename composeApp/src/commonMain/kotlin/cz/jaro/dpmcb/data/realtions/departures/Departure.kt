@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data.realtions.departures
 
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -17,4 +18,5 @@ data class Departure(
     val vehicleType: VehicleType,
     val busStops: List<StopOfDeparture>,
     val stopType: StopType,
+    val sequence: SequenceCode,
 )

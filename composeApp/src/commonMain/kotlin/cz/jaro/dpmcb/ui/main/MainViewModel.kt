@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
@@ -29,7 +30,8 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 class MainViewModel(
-    private val repo: SpojeRepository,
+    private val onlineModeManager: OnlineModeManager,
+    repo: SpojeRepository,
     private val detailsOpener: DetailsOpener,
     private val appUpdater: AppUpdater,
     private val cardManager: CardManager,
@@ -41,7 +43,7 @@ class MainViewModel(
     )
 
     val isOnline = repo.isOnline
-    val isOnlineModeEnabled = repo.isOnlineModeEnabled
+    val isOnlineModeEnabled = onlineModeManager.isOnlineModeEnabled
 
     private fun encodeLink(link: String) = link.split("?").let { segments ->
         val path = segments[0].split("/").joinToString("/") {
@@ -138,7 +140,7 @@ class MainViewModel(
         MainEvent.RemoveCard -> cardManager.removeCard()
         MainEvent.ToggleDrawer -> updateDrawerState { !it }
         MainEvent.NavigateBack -> navigator.navigateUp()
-        MainEvent.ToggleOnlineMode -> repo.editOnlineMode(!isOnlineModeEnabled.value)
+        MainEvent.ToggleOnlineMode -> onlineModeManager.editOnlineMode(!isOnlineModeEnabled.value)
         MainEvent.UpdateData -> superNavigate(SuperRoute.Loading(update = true, link = null), popUpTo<SuperRoute.Main>())
         is MainEvent.UpdateApp -> appUpdater.updateApp(e.loadingDialog)
     }

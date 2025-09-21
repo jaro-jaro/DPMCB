@@ -45,6 +45,9 @@ sealed interface BusState {
         val favourite: PartOfConn?,
         val shouldBeOnline: Boolean,
         override val date: LocalDate,
+        val vehicleNumber: RegistrationNumber? = null,
+        val vehicleName: String?,
+        val vehicleTraction: Traction?,
         val online: OnlineState? = null,
     ) : Exists
 
@@ -55,9 +58,6 @@ sealed interface BusState {
 
     data class RunningState(
         val delay: Duration?,
-        val vehicleNumber: RegistrationNumber?,
-        val vehicleName: String?,
-        val vehicleTraction: Traction?,
         val confirmedLowFloor: Boolean?,
         val nextStopIndex: Int?,
     )

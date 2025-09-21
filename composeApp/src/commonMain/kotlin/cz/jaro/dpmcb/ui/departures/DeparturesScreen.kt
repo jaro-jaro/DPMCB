@@ -571,14 +571,14 @@ private fun Card(
 
                 if (info.compactMode) {
                     Text(
-                        text = if (runsIn < Duration.ZERO || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
-                        color = if (delay == null || runsIn < Duration.ZERO) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
+                        text = if (runsIn < 0.minutes || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
+                        color = if (delay == null || runsIn < 0.minutes) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
                     )
                 } else {
                     Text(
                         text = "${departureState.time}"
                     )
-                    if (delay != null && runsIn > Duration.ZERO) Text(
+                    if (delay != null && runsIn > 0.minutes) Text(
                         text = "${departureState.time + delay.truncatedToSeconds()}",
                         color = colorOfDelayText(delay),
                         modifier = Modifier.padding(start = 8.dp)

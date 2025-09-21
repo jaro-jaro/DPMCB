@@ -3,8 +3,10 @@ package cz.jaro.dpmcb.ui.bus
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.AppState.APP_URL
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.changeFavourite
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -12,13 +14,19 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.helperclasses.work
+import cz.jaro.dpmcb.data.lineTraction
+import cz.jaro.dpmcb.data.pushRecentBus
+import cz.jaro.dpmcb.data.removeFavourite
+import cz.jaro.dpmcb.data.seqName
+import cz.jaro.dpmcb.data.vehicleName
+import cz.jaro.dpmcb.data.vehicleTraction
 import cz.jaro.dpmcb.ui.common.TimetableEvent
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -45,13 +53,14 @@ import kotlin.time.ExperimentalTime
 class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
+    onlineModeManager: OnlineModeManager,
     private val busName: BusName,
     private val date: LocalDate,
 ) : ViewModel() {
 
     lateinit var navigator: Navigator
 
-    private val info: Flow<BusState> = combine(repo.favourites, repo.hasAccessToMap) { favourites, online ->
+    private val info: Flow<BusState> = combine(repo.favourites, onlineModeManager.hasAccessToMap, repo.vehicleNumbersOnSequences) { favourites, online, vehicles ->
         val exists = repo.doesBusExist(busName)
         if (!exists) return@combine BusState.DoesNotExist(busName)
         val runsAt = repo.doesConnRunAt(busName)
@@ -75,12 +84,15 @@ class BusViewModel(
 
         val bus = repo.busDetail(busName, date)
         val restriction = repo.hasRestriction(busName, date)
+        val seq = bus.info.sequence
+        val vehicleNumber = vehicles.work("AAAAAAAAAAAAAAA")[date]?.get(seq)
+        val lineTraction = repo.lineTraction(bus.info.line, bus.info.vehicleType)
         BusState.OK(
             busName = busName,
             stops = bus.stops,
             lineNumber = bus.info.line.toShortLine(),
             lowFloor = bus.info.lowFloor,
-            lineTraction = repo.lineTraction(bus.info.line, bus.info.vehicleType),
+            lineTraction = lineTraction,
             timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
             lineCode = validityString(validity),
@@ -90,8 +102,8 @@ class BusViewModel(
             lineHeight = 0F,
             traveledSegments = 0,
             shouldBeOnline = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
-            sequence = bus.info.sequence,
-            sequenceName = with(repo) { bus.info.sequence?.seqName() },
+            sequence = seq,
+            sequenceName = with(repo) { seq?.seqName() },
             previousBus = bus.sequence?.let { seq ->
                 val i = seq.indexOf(busName)
                 seq.getOrNull(i - 1)
@@ -111,6 +123,9 @@ class BusViewModel(
             date = date,
             direction = bus.info.direction,
             isOneWay = repo.isOneWay(bus.info.line),
+            vehicleNumber = vehicleNumber,
+            vehicleName = vehicleNumber?.let(repo::vehicleName),
+            vehicleTraction = vehicleNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
         )
     }
 
@@ -163,7 +178,6 @@ class BusViewModel(
         OnlineBusState(
             delay = onlineConn?.delayMin?.toDouble()?.minutes,
             onlineTimetable = onlineTimetable,
-            vehicleNumber = onlineConn?.vehicle,
             confirmedLowFloor = onlineConn?.lowFloor,
             nextStopTime = onlineConn?.nextStop
         )
@@ -217,9 +231,6 @@ class BusViewModel(
                 onlineConnStops = onlineState.onlineTimetable.stops,
                 running = if (onlineState.delay != null || onlineState.nextStopTime != null) BusState.RunningState(
                     delay = onlineState.delay,
-                    vehicleNumber = onlineState.vehicleNumber,
-                    vehicleName = onlineState.vehicleNumber?.let(repo::vehicleName),
-                    vehicleTraction = onlineState.vehicleNumber?.let { repo.vehicleTraction(it) ?: info.lineTraction },
                     confirmedLowFloor = onlineState.confirmedLowFloor,
                     nextStopIndex = (traveledSegments ?: 0) + 1
                     //onlineState.onlineTimetable.nextStopIndex ?: state.stops.indexOfFirst { it.time == onlineState.nextStopTime },

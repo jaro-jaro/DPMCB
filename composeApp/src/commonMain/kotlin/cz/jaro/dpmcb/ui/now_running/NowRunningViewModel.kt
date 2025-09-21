@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.now_running
 
 import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -12,6 +13,7 @@ import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
+import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -24,7 +26,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -35,6 +36,7 @@ import kotlin.time.ExperimentalTime
 class NowRunningViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
+    onlineModeManager: OnlineModeManager,
     params: Parameters,
 ) : ViewModel() {
 
@@ -48,7 +50,9 @@ class NowRunningViewModel(
     private val type = MutableStateFlow(params.type)
     private val filters = MutableStateFlow(params.filters)
 
-    private val allowedType = type.combine(repo.hasAccessToMap) { type, isOnline -> if (isOnline) type else NowRunningType.Line }
+    private val allowedType = type.combine(onlineModeManager.hasAccessToMap) { type, isOnline ->
+        if (type in NowRunningType.entries(isOnline)) type else NowRunningType.Line
+    }
 
     private fun changeCurrentRoute() {
         try {
@@ -81,12 +85,13 @@ class NowRunningViewModel(
         }
     }
 
-    private val onlineList = onlineRepo.nowRunningBuses().map { onlineConns ->
+    private val onlineList = onlineRepo.nowRunningBuses().combine(repo.vehicleNumbersOnSequences) { onlineConns, vehicles ->
         val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
         onlineConns
             .mapNotNull { onlineConn ->
                 val bus = buses[onlineConn.name] ?: return@mapNotNull null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
+                val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
@@ -96,7 +101,7 @@ class NowRunningViewModel(
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
-                    vehicle = onlineConn.vehicle ?: return@mapNotNull null,
+                    vehicle = vehicle ?: onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
                 )
             }
@@ -108,10 +113,11 @@ class NowRunningViewModel(
         }
     }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    private val offlineList = repo.nowRunningOrNot.map { busNames ->
+    private val offlineList = repo.nowRunningOrNot.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
         repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
+                val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
@@ -121,7 +127,7 @@ class NowRunningViewModel(
                     direction = bus.direction,
                     lineNumber = bus.lineNumber.toShortLine(),
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
-                    vehicle = RegistrationNumber(-1),
+                    vehicle = vehicle,
                     sequence = bus.sequence,
                 )
             }
@@ -145,7 +151,7 @@ class NowRunningViewModel(
     private val lineNumbers = repo::lineNumbersToday.asFlow()
 
     val state = combine(
-        lineNumbers, filters, allowedType, result, repo.hasAccessToMap,
+        lineNumbers, filters, allowedType, result, onlineModeManager.hasAccessToMap,
     ) { lineNumbers, filters, type, result, isOnline ->
         when {
             lineNumbers.isEmpty() -> NowRunningState.NoLines
@@ -198,7 +204,7 @@ data class RunningConnPlus(
     val direction: Direction,
     val lineNumber: ShortLine,
     val destination: String,
-    val vehicle: RegistrationNumber,
+    val vehicle: RegistrationNumber?,
     val sequence: SequenceCode?,
 ) {
     fun toRunningDelayedBus() = RunningDelayedBus(

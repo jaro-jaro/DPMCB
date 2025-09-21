@@ -19,13 +19,13 @@ data class FavouriteState(
     val nextWillRun: LocalDate?,
     val type: FavouriteType,
     val online: OnlineFavouriteState?,
+    val vehicleNumber: RegistrationNumber?,
+    val vehicleName: String?,
+    val vehicleTraction: Traction?,
 )
 
 data class OnlineFavouriteState(
     val delay: Duration,
-    val vehicleNumber: RegistrationNumber?,
-    val vehicleName: String?,
-    val vehicleTraction: Traction?,
     val currentStopName: String,
     val currentStopTime: LocalTime,
     val positionOfCurrentStop: Int,

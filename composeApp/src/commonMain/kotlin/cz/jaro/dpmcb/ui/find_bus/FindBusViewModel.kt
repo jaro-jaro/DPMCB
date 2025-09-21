@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
@@ -15,14 +16,17 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
+import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.seqName
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.datetime.LocalDate
+import kotlin.time.ExperimentalTime
 
 class FindBusViewModel(
     private val repo: SpojeRepository,
@@ -60,11 +64,19 @@ class FindBusViewModel(
         )
     )
 
-    private fun findBusByRegN(rn: RegistrationNumber, callback: (BusName?) -> Unit) {
+    @OptIn(ExperimentalTime::class)
+    private fun findSequenceByRegN(rn: RegistrationNumber) {
         launch {
-            callback(onlineRepository.nowRunningBuses().first().find {
-                it.vehicle == rn
-            }?.name)
+            with(repo) {
+                val found = repo.vehicleNumbersOnSequences.value[SystemClock.todayHere()]?.entries
+                    .orEmpty()
+                    .filter { it.value == rn }
+                    .map { (seq) ->
+                        seq to seq.seqName()
+                    }
+
+                onFoundSequences(found, rn.toString(), SequenceSource.Vehicle)
+            }
         }
     }
 
@@ -80,10 +92,18 @@ class FindBusViewModel(
         launch {
             val found = repo.findSequences(seq)
 
-            if (found.isEmpty()) result.value = FindBusResult.SequenceNotFound(seq)
-            else if (found.size == 1) onEvent(FindBusEvent.SelectSequence(found.single().first))
-            else result.value = FindBusResult.MoreSequencesFound(seq, found)
+            onFoundSequences(found, seq, SequenceSource.Search)
         }
+    }
+
+    private fun onFoundSequences(
+        found: List<Pair<SequenceCode, String>>,
+        input: String,
+        source: SequenceSource,
+    ) {
+        if (found.isEmpty()) result.value = FindBusResult.SequenceNotFound(input, source)
+        else if (found.size == 1) onEvent(FindBusEvent.SelectSequence(found.single().first))
+        else result.value = FindBusResult.MoreSequencesFound(input, source, found)
     }
 
     fun onEvent(e: FindBusEvent): Unit = when (e) {
@@ -102,15 +122,7 @@ class FindBusViewModel(
         }
 
         FindBusEvent.ConfirmVehicle -> {
-            if (!repo.isOnline())
-                result.value = FindBusResult.Offline
-            else
-                findBusByRegN(vehicle.text.toRegNum()) {
-                    if (it == null)
-                        result.value = FindBusResult.VehicleNotFound(vehicle.text.toString())
-                    else
-                        confirm(it)
-                }
+            findSequenceByRegN(vehicle.text.toRegNum())
         }
 
         FindBusEvent.ConfirmName -> when {
