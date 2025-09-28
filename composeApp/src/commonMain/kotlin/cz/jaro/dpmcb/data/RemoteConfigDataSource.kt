@@ -96,6 +96,7 @@ class RemoteConfigDataSource(
 
     override val sequenceTypes = configActive.map {
         Json.decodeFromString<Map<Char, SequenceType>>(remoteConfig["sequenceTypes"])
+            .mapValues { (char, type) -> type.copy(char = char) }
     }
 
     override val sequenceConnections = configActive.map {

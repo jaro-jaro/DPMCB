@@ -1,7 +1,6 @@
 package cz.jaro.dpmcb.ui.sequence
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.OnlineRepository
@@ -18,6 +17,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
+import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.runsAt
@@ -44,7 +44,6 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -218,7 +217,7 @@ class SequenceViewModel(
         is SequenceEvent.FindBus -> {
             val state = state.value
             require(state is SequenceState.OK)
-            viewModelScope.launch {
+            launch {
                 val doc = try {
                     val date = if (
                         params.sequence.line().startsWith('5') &&
@@ -261,7 +260,7 @@ class SequenceViewModel(
                         else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
                     }
                 if (downloadedVehicle.value != null)
-                    repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!)
+                    repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!, reliable = false)
             }
             Unit
         }

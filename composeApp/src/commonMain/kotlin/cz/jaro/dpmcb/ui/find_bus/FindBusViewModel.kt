@@ -1,7 +1,10 @@
 package cz.jaro.dpmcb.ui.find_bus
 
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
+import com.fleeksoft.ksoup.Ksoup
+import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -9,22 +12,21 @@ import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
-import cz.jaro.dpmcb.data.entities.isUnknown
-import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.entities.withPart
+import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
-import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.pushVehicles
+import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.seqName
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
 import kotlin.time.ExperimentalTime
 
@@ -41,9 +43,8 @@ class FindBusViewModel(
     private val line = TextFieldState()
     private val number = TextFieldState()
     private val vehicle = TextFieldState()
-    private val sequence = TextFieldState()
-
-    private val busName get() = BusName(name.text.toString()).takeIf(BusName::isValid)
+    private val sequenceNumber = TextFieldState()
+    private val sequenceLine = TextFieldState()
 
     val state = result.mapState { result ->
         FindBusState(
@@ -51,7 +52,8 @@ class FindBusViewModel(
             line = line,
             number = number,
             vehicle = vehicle,
-            sequence = sequence,
+            sequenceNumber = sequenceNumber,
+            sequenceLine = sequenceLine,
             result = result,
             date = date,
         )
@@ -68,7 +70,7 @@ class FindBusViewModel(
     private fun findSequenceByRegN(rn: RegistrationNumber) {
         launch {
             with(repo) {
-                val found = repo.vehicleNumbersOnSequences.value[SystemClock.todayHere()]?.entries
+                val found = vehicleNumbersOnSequences.value[date]?.entries
                     .orEmpty()
                     .filter { it.value == rn }
                     .map { (seq) ->
@@ -88,11 +90,12 @@ class FindBusViewModel(
         }
     }
 
-    private fun findSequences(seq: String) {
+    private fun findSequences(number: String, line: String, allowImmediateSubmit: Boolean = true) {
         launch {
-            val found = repo.findSequences(seq)
+            require(line.isNotEmpty() && line.length <= 2 && number.length <= 2)
+            val found = repo.findSequences(line, number)
 
-            onFoundSequences(found, seq, SequenceSource.Search)
+            onFoundSequences(found, "$number/$line", SequenceSource.Search, allowImmediateSubmit)
         }
     }
 
@@ -100,10 +103,22 @@ class FindBusViewModel(
         found: List<Pair<SequenceCode, String>>,
         input: String,
         source: SequenceSource,
+        allowImmediateSubmit: Boolean = true,
     ) {
         if (found.isEmpty()) result.value = FindBusResult.SequenceNotFound(input, source)
-        else if (found.size == 1) onEvent(FindBusEvent.SelectSequence(found.single().first))
-        else result.value = FindBusResult.MoreSequencesFound(input, source, found)
+        else {
+            result.value = FindBusResult.SequencesFound(input, source, found)
+            if (allowImmediateSubmit) onEvent(FindBusEvent.SelectSequence(found.first().first))
+        }
+    }
+
+    init {
+        combine(
+            snapshotFlow { sequenceNumber.text }, snapshotFlow { sequenceLine.text }
+        ) { number, line ->
+            if (line.isNotEmpty())
+                findSequences(number.toString(), line.toString(), allowImmediateSubmit = false)
+        }.launch()
     }
 
     fun onEvent(e: FindBusEvent): Unit = when (e) {
@@ -125,25 +140,13 @@ class FindBusViewModel(
             findSequenceByRegN(vehicle.text.toRegNum())
         }
 
-        FindBusEvent.ConfirmName -> when {
-            busName == null -> result.value = FindBusResult.InvalidBusName(name.text.toString())
-            busName!!.isUnknown() -> findLine(busName!!.shortLine()) {
-                if (it != null)
-                    confirm(it / busName!!.bus())
-                else
-                    result.value = FindBusResult.LineNotFound(busName!!.line().toString())
-            }
-
-            else -> confirm(busName!!)
-        }
-
-        FindBusEvent.ConfirmSequence -> findSequences(sequence.text.toString())
+        FindBusEvent.ConfirmSequence -> findSequences(sequenceNumber.text.toString(), sequenceLine.text.toString())
         FindBusEvent.Confirm ->
             when {
                 line.text.isNotEmpty() && number.text.isNotEmpty() -> onEvent(FindBusEvent.ConfirmLine)
+                sequenceLine.text.isNotEmpty() -> onEvent(FindBusEvent.ConfirmSequence)
                 vehicle.text.isNotEmpty() -> onEvent(FindBusEvent.ConfirmVehicle)
-                sequence.text.isNotEmpty() -> onEvent(FindBusEvent.ConfirmSequence)
-                else -> onEvent(FindBusEvent.ConfirmName)
+                else -> Unit
             }
 
         is FindBusEvent.SelectSequence -> navigator.navigate(
@@ -158,14 +161,79 @@ class FindBusViewModel(
                 date = e.date,
             )
         )
+
+        is FindBusEvent.DownloadVehicles -> {
+            launch {
+                val doc = getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}") {
+                    e.onFail()
+                    return@launch
+                }
+                val otherPages = doc
+                    .body()
+                    .select("#snippet--table > div > div.visual-paginator-control:nth-child(1) > span.description")
+                    .single()
+                    .text()
+                    .substringAfterLast(' ')
+                    .toInt()
+                    .div(50)
+
+                val otherDocs = List(otherPages) { i ->
+                    getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&strana=${i + 2}") {
+                        e.onFail()
+                        return@launch
+                    }
+                }
+                val data = (listOf(doc) + otherDocs).flatMap {
+                    it
+                        .body()
+                        .select("#snippet--table > div > table > tbody")
+                        .single()
+                        .children()
+                }
+                    .filter { !it.hasClass("table-header") }
+                    .map {
+                        Triple(
+                            it.getElementsByClass("car").single().text().toRegNum(),
+                            SequenceCode(
+                                "${
+                                    it.getElementsByClass("order-on-line").single().text()
+                                }/${
+                                    it.getElementsByClass("route").single().text()
+                                }"
+                            ),
+                            it.getElementsByClass("note").single().text(),
+                        )
+                    }
+
+                val todayRunning = repo.nowRunningSequencesOrNot(date)
+                    .map { it.sequence }
+
+                val downloaded = data.mapNotNull { (vehicle, sequence, note) ->
+                    val withPart = when {
+                        note.contains("ran") -> sequence.withPart(1)
+                        note.contains("odpo") -> sequence.withPart(2)
+                        else -> sequence
+                    }
+                    val foundSequence = todayRunning.find {
+                        it.withoutType() == withPart
+                    }
+                    foundSequence?.to(vehicle)
+                }.toMap()
+                repo.pushVehicles(date, downloaded, reliable = false)
+                e.onSuccess()
+            }
+            Unit
+        }
+    }
+
+    suspend inline fun getDoc(
+        url: String,
+        onFail: () -> Nothing,
+    ) = try {
+        Ksoup.parseGetRequest(url)
+    } catch (ex: Exception) {
+        ex.printStackTrace()
+        recordException(ex)
+        onFail()
     }
 }
-
-private fun BusName.isValid() = value.contains("/")
-        && (value.substringBefore("/").length == 6
-        || value.substringBefore("/").length <= 3)
-        && value.substringBefore("/").isDigitsOnly()
-        && value.substringAfter("/").isNotEmpty()
-        && value.substringAfter("/").isDigitsOnly()
-
-fun CharSequence.isDigitsOnly() = Regex("^[0-9]*$").matches(this)
