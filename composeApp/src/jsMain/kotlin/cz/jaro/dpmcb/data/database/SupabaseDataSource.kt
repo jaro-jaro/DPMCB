@@ -173,13 +173,16 @@ class SupabaseDataSource(
     override suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName> =
         query("connsOfSeq", mapOf("seq" to seq.s, "seqGroupA" to group.j, "tabs" to tabs.l)).decodeColumnFromTable("connname")
 
+    override suspend fun seqOfConns(conns: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): List<BusName> =
+        query("connsOfSeq", mapOf("seq" to seq.s, "seqGroupA" to group.j, "tabs" to tabs.l)).decodeColumnFromTable("connname")
+
     override suspend fun firstConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName =
         query("firstConnOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.l)).decodeSingle()
 
     override suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName =
         query("lastConnOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.l)).decodeSingle()
 
-    override suspend fun departures(stop: String, tabs: List<Table>): List<CoreDeparture> =
+    override suspend fun departures(stop: String, tabs: List<Table>, groups: List<SequenceGroup>): List<CoreDeparture> =
         query("departures", mapOf("stop" to stop, "tabs" to tabs.l)).decodeList()
 
     override suspend fun findSequences(
