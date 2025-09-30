@@ -173,8 +173,8 @@ class SupabaseDataSource(
     override suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName> =
         query("connsOfSeq", mapOf("seq" to seq.s, "seqGroupA" to group.j, "tabs" to tabs.l)).decodeColumnFromTable("connname")
 
-    override suspend fun seqOfConns(conns: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): List<BusName> =
-        query("connsOfSeq", mapOf("seq" to seq.s, "seqGroupA" to group.j, "tabs" to tabs.l)).decodeColumnFromTable("connname")
+    override suspend fun seqOfConns(conns: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusName, SequenceCode> =
+        emptyMap()
 
     override suspend fun firstConnOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): BusName =
         query("firstConnOfSeq", mapOf("seq" to seq.j, "group" to group.j, "tabs" to tabs.l)).decodeSingle()
