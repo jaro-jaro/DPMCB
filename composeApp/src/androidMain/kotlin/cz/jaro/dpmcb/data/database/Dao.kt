@@ -312,7 +312,7 @@ interface Dao : SpojeQueries {
             JOIN CountOfConnsInSequence c ON c.sequence = SeqOfConn.sequence
             WHERE SeqOfConn.`group` IN (:groups)
             GROUP BY validFrom || validTo || type, SeqOfConn.sequence, TimeCode.tab
-            HAVING COUNT(DISTINCT SeqOfConn.connNumber) = c.count
+            --HAVING COUNT(DISTINCT SeqOfConn.connNumber) = c.count
             ORDER BY SeqOfConn.sequence, type, validTo, validFrom
         ),
         TimeCodesCountOfSeq AS (

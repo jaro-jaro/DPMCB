@@ -170,7 +170,7 @@ private fun LazyListScope.loaded(
                 color = MaterialTheme.colorScheme.primary,
             )
         }
-        items(state.runsToday.work(8), key = { "D" + it.busName.value }) {
+        items(state.runsToday, key = { "D" + it.busName.value }) {
             Card(it, onEvent, false)
         }
     }

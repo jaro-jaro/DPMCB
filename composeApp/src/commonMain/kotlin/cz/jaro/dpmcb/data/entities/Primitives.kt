@@ -2,6 +2,7 @@
 
 package cz.jaro.dpmcb.data.entities
 
+import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import io.ktor.utils.io.InternalAPI
@@ -69,11 +70,27 @@ fun BusName.isUnknown(): Boolean {
     return value.substringBefore('/').length <= 3
 }
 
-fun SequenceCode.changePart(part: Int) = SequenceCode(
+fun SequenceCode.withPart(part: Int) = SequenceCode(
     when {
         !hasModifiers() -> "$value-$part"
         !modifiers().hasPart() -> "$value$part"
         else -> value.dropLast(1) + part
+    }
+)
+
+fun SequenceCode.withType(type: SequenceType) = withType(type.char)
+fun SequenceCode.withType(type: Char) = SequenceCode(
+    when {
+        !hasModifiers() -> "$value-$type"
+        !modifiers().hasPart() -> value.dropLast(1) + type
+        else -> generic().value + '-' + type + modifiers().part()
+    }
+)
+fun SequenceCode.withoutType() = SequenceCode(
+    when {
+        !hasModifiers() -> value
+        !modifiers().hasPart() -> generic().value
+        else -> generic().value + '-' + modifiers().part()
     }
 )
 
@@ -93,7 +110,7 @@ fun SequenceModifiers.hasType() = isNotEmpty() && first().isLetter()
 fun SequenceModifiers.typeChar() = if (hasType()) first() else null
 fun SequenceCode.generic() = SequenceCode(value.substringBefore('-'))
 fun SequenceCode.line() = generic().value.substringAfter('/')
-fun SequenceCode.sequenceNumber() = generic().value.substringBefore('/').toInt()
+fun SequenceCode.sequenceNumber() = generic().value.substringBefore('/').toIntOrNull()
 fun Table.line() = value.substringBefore('-').toLongLine()
 fun Table.number() = value.substringAfter('-').toInt()
 fun BusName.line() = value.substringBefore('/').toLongLine()
