@@ -281,8 +281,8 @@ class DeparturesViewModel(
                 _info.update { oldState ->
                     when (e.result.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
-                        ChooserType.ReturnStop -> oldState.copy(stopFilter = e.result.value)
-                        ChooserType.ReturnStopVia -> oldState.copy(stop = e.result.value)
+                        ChooserType.ReturnStop -> oldState.copy(stop = e.result.value)
+                        ChooserType.ReturnStopVia -> oldState.copy(stopFilter = e.result.value)
                         else -> return@launch
                     }.also(::changeCurrentRoute)
                 }

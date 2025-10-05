@@ -7,18 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -83,7 +81,7 @@ fun NowRunningScreen(
 ) {
     if (state == NowRunningState.NoLines) Text(
         text = "Bohužel, zdá se že právě nejede žádná linka. Prosím, aktualizujte jízdní řády v aplikaci.",
-        modifier = Modifier
+        Modifier
             .padding(all = 16.dp)
             .fillMaxWidth(),
         style = MaterialTheme.typography.bodyLarge,
@@ -95,32 +93,32 @@ fun NowRunningScreen(
 
             is NowRunningState.LinesLoaded -> Column {
                 Text(
-                    "Řadit podle:", modifier = Modifier
+                    "Řadit podle:", Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
                 )
                 FlowRow(
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    Modifier.padding(horizontal = 8.dp),
                 ) {
                     NowRunningType.entries(state is NowRunningState.OK && state.isOnline).forEach { type ->
                         FilterChip(
-                            modifier = Modifier
-                                .padding(all = 4.dp),
                             selected = type == state.type,
                             onClick = {
                                 onEvent(ChangeType(type))
                             },
-                            label = { Text(type.label) }
+                            label = { Text(type.label) },
+                            Modifier
+                                .padding(all = 4.dp),
                         )
                     }
                 }
                 Text(
-                    "Filtr linek:", modifier = Modifier
+                    "Filtr linek:", Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
                 )
                 FlowRow(
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    Modifier.padding(horizontal = 8.dp),
                 ) {
                     state.lineNumbers.forEach { line ->
                         Chip(
@@ -133,11 +131,11 @@ fun NowRunningScreen(
                     }
                 }
                 LazyColumn(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxSize()
                         .padding(top = 8.dp)
                         .padding(horizontal = 8.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues()
                 ) {
                     if (state is NowRunningState.OK && state.isOnline) busResult(state, onEvent)
 
@@ -147,7 +145,6 @@ fun NowRunningScreen(
 
             NowRunningState.NoLines -> Unit
         }
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
     }
 }
 
@@ -169,26 +166,26 @@ private fun LazyListScope.busResult(
 
         is NowRunningResults.RegN -> items(state.result.online, key = { "OR" + it.busName.value }) { bus ->
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .clickable {
-                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                        onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
                 Text(text = "${bus.vehicle}")
             }
         }
 
         is NowRunningResults.Delay -> items(state.result.online, key = { "OD" + it.busName.value }) { bus ->
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .clickable {
-                        onEvent(NowRunningEvent.NavToBus(bus.busName))
+                        onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
                 bus.delay?.let {
                     Text(
                         text = bus.delay.toDelay(),
@@ -216,15 +213,19 @@ private fun LazyListScope.line(
                 color = if (online) MaterialTheme.colorScheme.primary else Color.Unspecified,
             )
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
             ) {
-                Text(text = "Vůz: příští zastávka", modifier = Modifier.weight(1F), style = MaterialTheme.typography.labelMedium)
+                Text(
+                    text = "Vůz: příští zastávka",
+                    Modifier.weight(1F),
+                    style = MaterialTheme.typography.labelMedium,
+                )
                 Text(text = "odjezd", style = MaterialTheme.typography.bodySmall)
             }
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.onSurface)
@@ -233,22 +234,22 @@ private fun LazyListScope.line(
     }
     items(line.buses, key = { (if (online) "OL" else "NL") + it.busName.value }) { bus ->
         Row(
-            modifier = Modifier
+            Modifier
                 .fillMaxWidth()
                 .clickable {
                     onEvent(NavToBus(bus.busName))
                 }
         ) {
             if (bus.vehicle != null)
-                Text(text = "${bus.vehicle}: ${bus.nextStopName}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.vehicle}: ${bus.nextStopName}", Modifier.weight(1F))
             else
-                Text(text = bus.nextStopName, modifier = Modifier.weight(1F))
+                Text(text = bus.nextStopName, Modifier.weight(1F))
             Text(text = bus.nextStopTime.toString())
             if (online) bus.delay?.let { delay ->
                 Text(
                     text = (bus.nextStopTime + delay.truncatedToSeconds()).toString(),
+                    Modifier.padding(start = 8.dp),
                     color = colorOfDelayText(delay),
-                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
         }
@@ -261,7 +262,9 @@ private fun LazyListScope.notRunning(
     onEvent: (NowRunningEvent) -> Unit,
 ) = if (state is NowRunningState.OK && state.result.offlineNotOnline.isNotEmpty()) {
     if (state.isOnline) stickyHeader(key = "NH") {
-        Surface {
+        Surface(
+            Modifier.fillMaxWidth()
+        ) {
             Text(
                 text = "Jedoucí spoje, které nejsou online:",
                 color = MaterialTheme.colorScheme.primary,
@@ -276,26 +279,26 @@ private fun LazyListScope.notRunning(
 
         is NowRunningResults.RegN -> items(result.offlineNotOnline, key = { "NR" + it.busName.value }) { bus ->
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .clickable {
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
                 if (bus.vehicle != null) Text(text = "${bus.vehicle}")
             }
         }
 
         is NowRunningResults.Delay -> items(result.offlineNotOnline, key = { "ND" + it.busName.value }) { bus ->
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .clickable {
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", modifier = Modifier.weight(1F))
+                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
             }
         }
     }
@@ -307,11 +310,11 @@ fun Chip(
     lineNumber: ShortLine,
     onClick: (Boolean) -> Unit,
 ) = FilterChip(
-    modifier = Modifier
-        .padding(all = 4.dp),
     selected = lineNumber in list,
     onClick = {
         onClick(lineNumber !in list)
     },
-    label = { Text("$lineNumber") }
+    label = { Text("$lineNumber") },
+    Modifier
+        .padding(all = 4.dp),
 )

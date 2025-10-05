@@ -14,6 +14,7 @@ data class EndStop(
     val connName: BusName,
     val stopName: String,
     val fixedCodes: String,
+    val stopFixedCodes: String,
     val type: TimeCodeType,
     @SerialName("validfrom")
     val from: LocalDate,

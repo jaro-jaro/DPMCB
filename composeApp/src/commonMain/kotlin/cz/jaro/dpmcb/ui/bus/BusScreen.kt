@@ -77,6 +77,7 @@ fun BusScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp)
+            .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)),
     ) {
         when (state) {
             is BusState.Loading -> Loading()
@@ -179,7 +180,6 @@ fun BusScreen(
                 }
             }
         }
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
     }
 }
 

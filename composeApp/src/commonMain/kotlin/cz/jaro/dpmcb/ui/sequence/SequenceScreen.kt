@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -144,7 +144,8 @@ fun SequenceScreen(
                 modifier = Modifier
                     .weight(1F)
                     .padding(horizontal = 8.dp),
-                state = lazyListState
+                state = lazyListState,
+                contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
             ) {
                 item {
                     if (state.online != null || state.vehicleNumber != null || state.date <= SystemClock.todayHere() && state.runsToday) Row(
@@ -258,9 +259,6 @@ fun SequenceScreen(
                     item {
                         Connection(onEvent, it)
                     }
-                }
-                item {
-                    Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
                 }
             }
         }

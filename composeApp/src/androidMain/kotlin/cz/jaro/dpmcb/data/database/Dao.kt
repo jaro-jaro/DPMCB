@@ -569,7 +569,7 @@ interface Dao : SpojeQueries {
                 OR ConnStop.arrival IS NOT NULL
             )
         )
-        SELECT Conn.direction, ConnStop.stopIndexOnLine, Conn.name connName, Stop.stopName, Conn.fixedCodes, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM TimeCode
+        SELECT Conn.direction, ConnStop.stopIndexOnLine, ConnStop.fixedCodes stopFixedCodes, Conn.name connName, Stop.stopName, Conn.fixedCodes, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM TimeCode
         JOIN HereRunningConns Conn ON Conn.connNumber = TimeCode.connNumber AND Conn.tab = TimeCode.tab
         JOIN ConnStop ON ConnStop.connNumber = TimeCode.connNumber AND ConnStop.tab = TimeCode.tab
         JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab

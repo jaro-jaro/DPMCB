@@ -38,6 +38,7 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.withCache
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
@@ -245,15 +246,21 @@ class SpojeRepository(
                 )
             }
             .flatMap { (_, codes) ->
-                val stops = codes.map { it.stopName to it.stopIndexOnLine }.distinct().map { it.first }
-                stops.withIndex().filter { it.value == thisStop }.map { it.index }.map { i ->
-                    val destination = middleDestination(line.findLongLine(), stops, i)
-                    Triple(
-                        destination ?: stops.last(),
-                        stops.indexOf(destination ?: stops.last()),
-                        if (destination != null) Direction.NEGATIVE else codes.first().direction
-                    )
-                }
+                val stops = codes
+                    .distinctBy { it.stopName to it.stopIndexOnLine }.work()
+                val stopNames = stops.map { it.stopName }
+                stops.withIndex()
+                    .filter { it.value.stopName == thisStop }
+                    .filter { it.index < stops.lastIndex && StopType(it.value.stopFixedCodes) != StopType.GetOffOnly }
+                    .map { it.index }
+                    .map { i ->
+                        val destination = middleDestination(line.findLongLine(), stopNames, i)
+                        Triple(
+                            destination ?: codes.last().stopName,
+                            stopNames.indexOf(destination ?: codes.last().stopName),
+                            if (destination != null) Direction.NEGATIVE else codes.first().direction
+                        )
+                    }
             }
             .sortedBy { it.second }
             .map { it.first to it.third }

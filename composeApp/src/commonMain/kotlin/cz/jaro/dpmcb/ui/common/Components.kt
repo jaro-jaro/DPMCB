@@ -305,7 +305,7 @@ fun VehicleIcon(
         imageVector = vectorResource(icon),
         contentDescription = when (vehicleTraction ?: lineTraction) {
             Traction.Electro -> "Elektrobus"
-            Traction.Hybrid -> "Hybrid"
+            Traction.Hybrid -> "Hybridní autobus"
             Traction.PartialTrolleybus -> "Parciální trolejbus"
             Traction.Gas -> "Zeměplynový autobus"
             Traction.Diesel if vehicleTraction == null -> "Autobus"

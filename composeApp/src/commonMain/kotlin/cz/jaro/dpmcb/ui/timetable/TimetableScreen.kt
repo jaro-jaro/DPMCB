@@ -91,9 +91,9 @@ fun TimetableScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-
-        ) {
+            .padding(16.dp)
+            .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)),
+    ) {
         Row(
             modifier = Modifier,
             verticalAlignment = Alignment.CenterVertically
@@ -169,7 +169,6 @@ fun TimetableScreen(
                 }
             }
         }
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
     }
 }
 

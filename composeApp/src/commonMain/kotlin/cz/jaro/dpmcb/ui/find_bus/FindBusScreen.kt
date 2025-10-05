@@ -1,23 +1,21 @@
 package cz.jaro.dpmcb.ui.find_bus
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.helperclasses.rowItem
+import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
@@ -78,29 +78,31 @@ fun FindBusScreen(
     onEvent: (FindBusEvent) -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
-    Column(
+    LazyColumn(
         Modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
     ) {
-        FlowRow(
-            verticalArrangement = Arrangement.Top,
-        ) {
-            Text(
-                text = "Najít bus",
-                Modifier.padding(bottom = 16.dp),
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Spacer(Modifier.weight(1F))
-            DateSelector(
-                date = state.date,
-                onDateChange = {
-                    onEvent(FindBusEvent.ChangeDate(it))
-                },
-                Modifier.padding(bottom = 8.dp),
-            )
+        item {
+            FlowRow(
+                verticalArrangement = Arrangement.Top,
+            ) {
+                Text(
+                    text = "Najít bus",
+                    Modifier.padding(bottom = 16.dp),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(Modifier.weight(1F))
+                DateSelector(
+                    date = state.date,
+                    onDateChange = {
+                        onEvent(FindBusEvent.ChangeDate(it))
+                    },
+                    Modifier.padding(bottom = 8.dp),
+                )
+            }
         }
-        Row {
+        rowItem {
             TextField(
                 state = state.line,
                 Modifier
@@ -136,60 +138,68 @@ fun FindBusScreen(
                 ),
             )
         }
-        TextField(
-            state = state.name,
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            label = {
-                Text("Jméno spoje")
-            },
-            onKeyboardAction = {
-                onEvent(FindBusEvent.ConfirmName)
-            },
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search,
-            ),
-        )
-        Text(
-            text = "Najít kurz",
-            Modifier.padding(bottom = 16.dp, top = 16.dp),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        TextField(
-            state = state.sequence,
-            Modifier
-                .fillMaxWidth(),
-            label = {
-                Text("Linka nebo název kurzu")
-            },
-            onKeyboardAction = {
-                if (state.sequence.text.isNotEmpty()) {
-                    onEvent(FindBusEvent.ConfirmSequence)
-                } else
-                    focusManager.moveFocus(FocusDirection.Down)
-            },
-            keyboardOptions = KeyboardOptions(
-                imeAction = if (state.sequence.text.isNotEmpty()) ImeAction.Search else ImeAction.Next,
-            ),
-        )
-        TextField(
-            state = state.vehicle,
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            label = {
-                Text("Ev. č. vozu")
-            },
-            onKeyboardAction = {
-                onEvent(FindBusEvent.ConfirmVehicle)
-            },
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search,
-                keyboardType = KeyboardType.Number,
-            ),
-        )
-        Row(
+        item {
+            TextField(
+                state = state.name,
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                label = {
+                    Text("Jméno spoje")
+                },
+                onKeyboardAction = {
+                    onEvent(FindBusEvent.ConfirmName)
+                },
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search,
+                ),
+            )
+        }
+        item {
+            Text(
+                text = "Najít kurz",
+                Modifier.padding(bottom = 16.dp, top = 16.dp),
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+        item {
+            TextField(
+                state = state.sequence,
+                Modifier
+                    .fillMaxWidth(),
+                label = {
+                    Text("Linka nebo název kurzu")
+                },
+                onKeyboardAction = {
+                    if (state.sequence.text.isNotEmpty()) {
+                        onEvent(FindBusEvent.ConfirmSequence)
+                    } else
+                        focusManager.moveFocus(FocusDirection.Down)
+                },
+                keyboardOptions = KeyboardOptions(
+                    imeAction = if (state.sequence.text.isNotEmpty()) ImeAction.Search else ImeAction.Next,
+                ),
+            )
+        }
+        item {
+            TextField(
+                state = state.vehicle,
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                label = {
+                    Text("Ev. č. vozu")
+                },
+                onKeyboardAction = {
+                    onEvent(FindBusEvent.ConfirmVehicle)
+                },
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search,
+                    keyboardType = KeyboardType.Number,
+                ),
+            )
+        }
+        rowItem(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
         ) {
@@ -207,30 +217,31 @@ fun FindBusScreen(
         }
         when (val r = state.result) {
             FindBusResult.None -> Unit
-            FindBusResult.Offline -> Text("Jste offline!")
-            is FindBusResult.LineNotFound -> Text("Linka \"${r.line}\" neexistuje")
-            is FindBusResult.InvalidBusName -> Text("Jméno spoje \"${r.name}\" je neplatné")
-            is FindBusResult.SequenceNotFound if r.source == SequenceSource.Vehicle -> Text("Vůz ev. č. \"${r.input}\" nebyl nalezen.")
-            is FindBusResult.SequenceNotFound -> Text("Kurz \"${r.input}\" neexistuje.")
+            FindBusResult.Offline -> textItem("Jste offline!")
+            is FindBusResult.LineNotFound -> textItem("Linka \"${r.line}\" neexistuje")
+            is FindBusResult.InvalidBusName -> textItem("Jméno spoje \"${r.name}\" je neplatné")
+            is FindBusResult.SequenceNotFound if r.source == SequenceSource.Vehicle -> textItem("Vůz ev. č. \"${r.input}\" nebyl nalezen.")
+            is FindBusResult.SequenceNotFound -> textItem("Kurz \"${r.input}\" neexistuje.")
             is FindBusResult.MoreSequencesFound -> {
-                if (r.source == SequenceSource.Vehicle) Text("Vůz ev. č. \"${r.input}\" byl nalezen na následujících kurzech:")
-                else Text("\"${r.input}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
-                r.sequences.forEach {
+                if (r.source == SequenceSource.Vehicle) textItem("Vůz ev. č. \"${r.input}\" byl nalezen na následujících kurzech:")
+                else textItem("\"${r.input}\" by mohlo označovat více kurzů, vyberte který jste měli na mysli:")
+                items(r.sequences) {
                     HorizontalDivider(Modifier.fillMaxWidth())
                     ListItem(
                         headlineContent = {
                             TextButton(
                                 onClick = {
                                     onEvent(FindBusEvent.SelectSequence(it.first))
-                                }
+                                },
+                                Modifier.fillMaxWidth(),
                             ) {
                                 Text(it.second)
                             }
-                        }
+                        },
+                        Modifier.fillMaxWidth(),
                     )
                 }
             }
         }
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
     }
 }

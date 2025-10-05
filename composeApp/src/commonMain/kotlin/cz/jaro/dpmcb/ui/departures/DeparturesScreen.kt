@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -223,6 +224,7 @@ fun DeparturesScreen(
                             listState.animateScrollToItem(home)
                         }
                     },
+                    Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)),
                 ) {
                     IconWithTooltip(
                         Icons.Default.ArrowUpward,
@@ -237,7 +239,7 @@ fun DeparturesScreen(
                                     }
                                 }, label = "TOČENÍ"
                             ).value
-                        )
+                        ),
                     )
                 }
             }
@@ -330,6 +332,7 @@ fun DeparturesScreen(
             Modifier.padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
         ) {
             item {
                 FilterChip(
@@ -459,7 +462,6 @@ fun DeparturesScreen(
                 }
             }
         }
-        Spacer(Modifier.windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom)))
     }
 }
 
