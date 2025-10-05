@@ -20,7 +20,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.pushRecentBus
 import cz.jaro.dpmcb.data.removeFavourite
@@ -85,7 +84,7 @@ class BusViewModel(
         val bus = repo.busDetail(busName, date)
         val restriction = repo.hasRestriction(busName, date)
         val seq = bus.info.sequence
-        val vehicleNumber = vehicles.work("AAAAAAAAAAAAAAA")[date]?.get(seq)
+        val vehicleNumber = vehicles[date]?.get(seq)
         val lineTraction = repo.lineTraction(bus.info.line, bus.info.vehicleType)
         BusState.OK(
             busName = busName,
@@ -166,7 +165,6 @@ class BusViewModel(
         }
 
         is BusEvent.TimetableClick -> {
-            e.e.work()
             when (e.e) {
                 is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
                 is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.direction))

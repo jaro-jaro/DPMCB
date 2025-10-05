@@ -143,13 +143,6 @@ infix fun List<RunsFromTo>.filter(type: TimeCodeType) = filter { it.type == type
 infix fun List<RunsFromTo>.anySatisfies(date: LocalDate) = any { it satisfies date }
 infix fun RunsFromTo.satisfies(date: LocalDate) = date in `in`
 
-fun String.partMayBeMissing() = when {
-    matches("^[0-9]{1,2}/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> substringBefore('-')
-    matches("^/[0-9A-Z]{1,2}(-[A-Z]?[12]?)?$".toRegex()) -> "%" + substringBefore('-')
-    matches("^[0-9A-Z]{1,2}$".toRegex()) -> "%/$this"
-    else -> null
-}
-
 fun runsAt(
     timeCodes: List<RunsFromTo>,
     fixedCodes: String,

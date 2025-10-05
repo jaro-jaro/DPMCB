@@ -65,15 +65,18 @@ fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
 }
 
 @OptIn(ExperimentalTime::class)
-fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>) {
+fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean = true) {
     changeVehicleNumbersOnSequences { current ->
         current.toMutableMap().also {
-            it[date] = it.getOrElse(date) { mapOf() }.toMutableMap() + vehicles
+            if (reliable)
+                it[date] = it.getOrElse(date) { mapOf() } + vehicles
+            else
+                it[date] = vehicles + it.getOrElse(date) { mapOf() }
         }.filterKeys { date -> date.durationUntil(SystemClock.todayHere()) <= 7.days }
     }
 }
 
-fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber) =
+fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
     pushVehicles(date, mapOf(sequence to vehicle))
 
 @OptIn(ExperimentalSettingsApi::class)

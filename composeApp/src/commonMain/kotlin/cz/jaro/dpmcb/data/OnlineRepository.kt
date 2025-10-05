@@ -9,7 +9,6 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
@@ -183,14 +182,14 @@ class OnlineRepository(
             val vehiclesPerBus = conns
                 .filter { it.vehicle != null }
                 .associate { it.name to it.vehicle!! }
-                .filterKeys { it !in pushed }.work()
-            val sequencePerBus = repo.seqOfConns(vehiclesPerBus.keys, date).work()
+                .filterKeys { it !in pushed }
+            val sequencePerBus = repo.seqOfConns(vehiclesPerBus.keys, date)
             repo.pushVehicles(
                 date = date,
                 vehicles = sequencePerBus.map { (bus, seq) ->
                     val vehicle = vehiclesPerBus[bus]!!
                     seq to vehicle
-                }.toMap().work()
+                }.toMap()
             )
             pushed += vehiclesPerBus.keys
         }.flowOn(Dispatchers.IO).launchIn(scope)

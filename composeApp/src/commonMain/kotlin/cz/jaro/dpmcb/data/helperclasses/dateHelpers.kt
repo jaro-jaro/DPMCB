@@ -86,7 +86,7 @@ fun LocalTime.until(other: LocalTime, date: LocalDate, timeZone: TimeZone = Defa
 operator fun LocalTime.minus(other: LocalTime) = other.until(this, SystemClock.todayHere())
 
 fun LocalDate.durationUntil(other: LocalDate, timeZone: TimeZone = DefaultTimeZone) =
-    atTime(LocalTime.Companion.Noon).until(other.atTime(LocalTime.Companion.Noon), timeZone)
+    atTime(LocalTime.Noon).until(other.atTime(LocalTime.Noon), timeZone)
 
 operator fun LocalDate.minus(other: LocalDate) = other.periodUntil(this)
 

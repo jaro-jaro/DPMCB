@@ -14,7 +14,6 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
-import cz.jaro.dpmcb.data.entities.changePart
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.generic
 import cz.jaro.dpmcb.data.entities.invalid
@@ -25,6 +24,7 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.*
+import cz.jaro.dpmcb.data.entities.withPart
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
@@ -32,7 +32,6 @@ import cz.jaro.dpmcb.data.helperclasses.countMembers
 import cz.jaro.dpmcb.data.helperclasses.findMiddleStop
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.partMayBeMissing
 import cz.jaro.dpmcb.data.helperclasses.runsAt
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.toMap
@@ -165,14 +164,14 @@ class SpojeRepository(
 
             val before = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
+                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(1))
                     addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
                 }
             }
 
             val after = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
+                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(2))
                     addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
                 }
             }
@@ -323,8 +322,11 @@ class SpojeRepository(
             .toSet()
     }
 
-    suspend fun findSequences(seq: String) = seq.partMayBeMissing()?.let { s ->
-        ds.findSequences(
+    suspend fun findSequences(
+        line: String, number: String,
+    ): List<Pair<SequenceCode, String>> {
+        val s = number.ifEmpty { "%" } + "/" + line
+        return ds.findSequences(
             sequence1 = s,
             sequence2 = "$s-1",
             sequence3 = "$s-2",
@@ -338,7 +340,7 @@ class SpojeRepository(
             .map {
                 it to it.seqName()
             }
-    } ?: emptyList()
+    }
 
     val nowRunningOrNot = ::getNowRunningOrNot
         .asRepeatingFlow(30.seconds)
@@ -446,12 +448,12 @@ class SpojeRepository(
         }
 
         val before = buildList {
-            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(1))
+            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(1))
             addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
         }
 
         val after = buildList {
-            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.changePart(2))
+            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(2))
             addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
         }
 
