@@ -17,6 +17,11 @@ inline fun <reified T> serializationTypePair() = typePair(
     serializeAsValue = { Json.encodeToString<T>(it) },
 )
 
+inline fun <reified T> stringSerializationTypePair() = typePair(
+    parseValue = { Json.decodeFromString<T>(it.run { "\"$this\"" }) },
+    serializeAsValue = { Json.encodeToString<T>(it).removeSurrounding("\"") },
+)
+
 inline fun <reified T> typePair(
     crossinline parseValue: (String) -> T,
     crossinline serializeAsValue: (T) -> String,

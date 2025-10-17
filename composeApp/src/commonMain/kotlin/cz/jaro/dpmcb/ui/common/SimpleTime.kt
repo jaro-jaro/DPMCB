@@ -1,5 +1,6 @@
 package cz.jaro.dpmcb.ui.common
 
+import cz.jaro.dpmcb.data.helperclasses.two
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -17,7 +18,7 @@ data class SimpleTime(
     object Serializer : KSerializer<SimpleTime> {
         override val descriptor: SerialDescriptor get() = PrimitiveSerialDescriptor("SimpleTime", PrimitiveKind.STRING)
         override fun deserialize(decoder: Decoder) = decoder.decodeString().split(":").map(String::toInt).let { SimpleTime(h = it[0], min = it[1]) }
-        override fun serialize(encoder: Encoder, value: SimpleTime) = encoder.encodeString("${value.h}:${value.min}")
+        override fun serialize(encoder: Encoder, value: SimpleTime) = encoder.encodeString("${value.h.two()}:${value.min.two()}")
     }
 
     companion object {

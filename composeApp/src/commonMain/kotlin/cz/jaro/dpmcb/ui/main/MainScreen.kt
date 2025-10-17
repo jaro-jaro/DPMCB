@@ -98,8 +98,8 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.helperclasses.work
@@ -115,6 +115,7 @@ import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
+import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
@@ -168,7 +169,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     )
 
     Route.Departures::class -> mapOf(
-        serializationTypePair<SimpleTime>(),
+        stringSerializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
         serializationTypePair<ShortLine?>(),
         localDateTypePair,
@@ -195,7 +196,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.Timetable::class -> mapOf(
         serializationTypePair<ShortLine>(),
-        serializationTypePair<Direction>(),
+        stringSerializationTypePair<Direction>(),
         localDateTypePair,
     )
 
