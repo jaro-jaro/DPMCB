@@ -9,7 +9,7 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Stars
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.ui.card.supportsCard
 import cz.jaro.dpmcb.ui.chooser.ChooserType
@@ -22,13 +22,15 @@ enum class DrawerAction(
     val multiselect: Boolean,
     val hide: Boolean = false,
     val route: ((LocalDate) -> Route)? = null,
+    val hasDivider: Boolean = false,
 ) {
-    /*Connection(
+    Connection(
         label = "Vyhledat spojení",
         icon = Icons.Default.Timeline,
         multiselect = true,
-        route = { Route.Connection(it) }
-    ),*/
+        hide = true,
+        route = { Route.Connection(it) },
+    ),
     Favourites(
         label = "Oblíbené spoje",
         icon = Icons.Default.Star,
@@ -44,13 +46,13 @@ enum class DrawerAction(
                 type = ChooserType.Stops,
                 date = it,
             )
-        }
+        },
     ),
     NowRunning(
         label = "Právě jedoucí",
         icon = Icons.Default.FastForward,
         multiselect = true,
-        route = { Route.NowRunning() }
+        route = { Route.NowRunning() },
     ),
     Timetable(
         label = "Jízdní řády",
@@ -61,37 +63,34 @@ enum class DrawerAction(
                 type = ChooserType.Lines,
                 date = it,
             )
-        }
+        },
     ),
     FindBus(
         label = "Najít spoj",
         icon = Icons.Default.Search,
         multiselect = true,
-        route = { Route.FindBus(it) }
+        route = { Route.FindBus(it) },
+        hasDivider = true,
     ),
     TransportCard(
         label = "Průkazka",
         icon = Icons.Default.QrCode,
         multiselect = true,
         hide = !supportsCard(),
-        route = { Route.Card }
+        route = { Route.Card },
     ),
     LinesMap(
         label = "Schéma linek",
         icon = Icons.Default.Map,
         hide = !supportsLineDiagram(),
         multiselect = true,
-        route = { Route.Map(it) }
+        route = { Route.Map(it) },
+        hasDivider = true,
     ),
     Settings(
         label = "Nastavení",
         icon = Icons.Default.Settings,
         multiselect = false,
         route = { Route.Settings },
-    ),
-    Feedback(
-        label = "Zpětná vazba",
-        icon = Icons.Default.Stars,
-        multiselect = false,
     ),
 }

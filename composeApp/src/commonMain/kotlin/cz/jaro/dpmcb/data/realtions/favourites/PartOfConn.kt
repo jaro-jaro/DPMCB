@@ -21,3 +21,5 @@ fun PartOfConn.Companion.Empty(busName: BusName) = PartOfConn(busName, -1, -1)
 
 fun PartOfConn.isEmpty() = start == -1 && end == -1
 fun PartOfConn.isNotEmpty() = start != -1 || end != -1
+
+fun PartOfConn?.orEmpty(busName: BusName) = this ?: PartOfConn.Empty(busName)

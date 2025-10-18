@@ -20,6 +20,7 @@ sealed interface BusState {
         val fixedCodes: List<String>
         val lineCode: String
         val deeplink: String
+        val deeplink2: String
         val date: LocalDate
     }
 
@@ -37,6 +38,7 @@ sealed interface BusState {
         val nextBus: BusName?,
         val previousBus: BusName?,
         override val deeplink: String,
+        override val deeplink2: String,
         val restriction: Boolean,
         val traveledSegments: Int,
         val direction: Direction,
@@ -75,6 +77,7 @@ sealed interface BusState {
         override val fixedCodes: List<String>,
         override val lineCode: String,
         override val deeplink: String,
+        override val deeplink2: String,
         val runsNextTimeAfterToday: LocalDate?,
         val runsNextTimeAfterDate: LocalDate?,
     ) : Exists

@@ -76,6 +76,7 @@ class BusViewModel(
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = validityString(validity),
                 deeplink = "${APP_URL}bus/$serializedDate/$busName",
+                deeplink2 = "${APP_URL}bus/T/$busName",
             )
         }
 
@@ -95,7 +96,8 @@ class BusViewModel(
             timeCodes = filterTimeCodesAndMakeReadable(bus.timeCodes),
             fixedCodes = filterFixedCodesAndMakeReadable(bus.fixedCodes, bus.timeCodes),
             lineCode = validityString(validity),
-            deeplink = "https://jaro-jaro.github.io/DPMCB/bus/$serializedDate/$busName",
+            deeplink = "${APP_URL}bus/$serializedDate/$busName",
+            deeplink2 = "${APP_URL}bus/T/$busName",
             restriction = restriction,
             favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,

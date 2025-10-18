@@ -91,45 +91,7 @@ fun NowRunningScreen(
         when (state) {
             is NowRunningState.LoadingLines -> Text(text = "Načítání...")
 
-            is NowRunningState.OK -> Column {
-                Text(
-                    "Řadit podle:", Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                )
-                FlowRow(
-                    Modifier.padding(horizontal = 8.dp),
-                ) {
-                    NowRunningType.entries(state.isOnline).forEach { type ->
-                        FilterChip(
-                            selected = type == state.type,
-                            onClick = {
-                                onEvent(ChangeType(type))
-                            },
-                            label = { Text(type.label) },
-                            Modifier
-                                .padding(all = 4.dp),
-                        )
-                    }
-                }
-                Text(
-                    "Filtr linek:", Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                )
-                FlowRow(
-                    Modifier.padding(horizontal = 8.dp),
-                ) {
-                    state.lineNumbers.forEach { line ->
-                        Chip(
-                            list = state.filters,
-                            lineNumber = line,
-                            onClick = {
-                                onEvent(ChangeFilter(line))
-                            }
-                        )
-                    }
-                }
+            is NowRunningState.OK ->
                 LazyColumn(
                     Modifier
                         .fillMaxSize()
@@ -137,11 +99,40 @@ fun NowRunningScreen(
                         .padding(horizontal = 8.dp),
                     contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues()
                 ) {
+                    textItem("Řadit podle:", Modifier.fillMaxWidth())
+                    item {
+                        FlowRow {
+                            NowRunningType.entries(state.isOnline).forEach { type ->
+                                FilterChip(
+                                    selected = type == state.type,
+                                    onClick = {
+                                        onEvent(ChangeType(type))
+                                    },
+                                    label = { Text(type.label) },
+                                    Modifier
+                                        .padding(all = 4.dp),
+                                )
+                            }
+                        }
+                    }
+                    textItem("Filtr linek:", Modifier.fillMaxWidth())
+                    item {
+                        FlowRow {
+                            state.lineNumbers.forEach { line ->
+                                Chip(
+                                    list = state.filters,
+                                    lineNumber = line,
+                                    onClick = {
+                                        onEvent(ChangeFilter(line))
+                                    }
+                                )
+                            }
+                        }
+                    }
                     if (state.isOnline) busResult(state, onEvent)
 
                     notRunning(state, onEvent)
                 }
-            }
 
             NowRunningState.NoLines -> Unit
         }

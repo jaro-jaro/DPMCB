@@ -30,7 +30,7 @@ sealed interface Route {
 
     companion object {
         val routes = listOf(
-            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Map::class,
+            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Connection::class, Map::class,
             NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
         )
     }
@@ -81,6 +81,12 @@ sealed interface Route {
     @Serializable
     @SerialName("map")
     data class Map(
+        override val date: LocalDate,
+    ) : Route
+
+    @Serializable
+    @SerialName("connection")
+    data class Connection(
         override val date: LocalDate,
     ) : Route
 

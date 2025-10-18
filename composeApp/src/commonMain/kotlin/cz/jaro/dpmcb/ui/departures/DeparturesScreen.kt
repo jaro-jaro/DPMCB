@@ -126,7 +126,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atDate
 import kotlin.math.absoluteValue
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 @Suppress("unused")
@@ -171,9 +170,9 @@ fun Departures(
             scope.launch {
                 if (listState.firstVisibleItemIndex != i)
                     if (animate)
-                        listState.scrollToItem(i)
-                    else
                         listState.animateScrollToItem(i)
+                    else
+                        listState.scrollToItem(i)
             }
         }
         viewModel.navigator = navigator
@@ -211,7 +210,7 @@ fun DeparturesScreen(
             val now by timeFlow.collectAsStateWithLifecycle()
             val home by derivedStateOf { state.departures.indexOfNext(state.info.time ?: now, now) }
             val hideBecauseTooLow by remember(home, i, isAtBottom) { derivedStateOf { isAtBottom && i < home } }
-            val hideBecauseNear by remember(home, i) { derivedStateOf { (i - home).absoluteValue <= 1 } }
+            val hideBecauseNear by remember(home, i) { derivedStateOf { (i - home).absoluteValue < 1 } }
 
             AnimatedVisibility(
                 visible = !hideBecauseNear && !hideBecauseTooLow,
@@ -233,9 +232,9 @@ fun DeparturesScreen(
                             animateFloatAsState(
                                 remember(i, home) {
                                     when {
-                                        i > home -> 0F
+                                        i >= home -> 0F
                                         i < home -> 180F
-                                        else -> 90F
+                                        else -> error("???")
                                     }
                                 }, label = "TOČENÍ"
                             ).value
@@ -328,83 +327,8 @@ fun DeparturesScreen(
             }
         }
 
-        LazyRow(
-            Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
-        ) {
-            item {
-                FilterChip(
-                    selected = state.info.compactMode,
-                    onClick = {
-                        onEvent(DeparturesEvent.ChangeCompactMode)
-                    },
-                    label = {
-                        Text("Zjednodušit")
-                    },
-                    leadingIcon = {
-                        if (state.info.compactMode) Icon(Icons.Default.Check, null)
-                    },
-                )
-            }
-            item {
-                FilterChip(
-                    selected = state.info.justDepartures,
-                    onClick = {
-                        onEvent(DeparturesEvent.ChangeJustDepartures)
-                    },
-                    label = {
-                        Text("Pouze odjezdy")
-                    },
-                    leadingIcon = {
-                        if (state.info.justDepartures) Icon(Icons.Default.Check, null)
-                    },
-                )
-            }
-            item {
-                FilterChip(
-                    selected = state.info.stopFilter != null,
-                    onClick = {
-                        onEvent(
-                            if (state.info.stopFilter != null)
-                                DeparturesEvent.Canceled(ChooserType.ReturnStop)
-                            else DeparturesEvent.ChangeVia
-                        )
-                    },
-                    label = {
-                        Text(state.info.stopFilter?.let { "Pojede přes: $it" } ?: "Pojede přes")
-                    },
-                    leadingIcon = {
-                        if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
-                    },
-                    trailingIcon = {
-                        if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
-                    },
-                )
-            }
-            item {
-                FilterChip(
-                    selected = state.info.lineFilter != null,
-                    onClick = {
-                        onEvent(
-                            if (state.info.lineFilter != null)
-                                DeparturesEvent.Canceled(ChooserType.ReturnLine)
-                            else DeparturesEvent.ChangeLine
-                        )
-                    },
-                    label = {
-                        Text(state.info.lineFilter?.let { "Linka: $it" } ?: "Linka")
-                    },
-                    leadingIcon = {
-                        if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
-                    },
-                    trailingIcon = {
-                        if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
-                    },
-                )
-            }
-        }
+        ChipRow(state, onEvent)
+
         when (state) {
             is DeparturesState.Loading -> Row(
                 Modifier
@@ -417,7 +341,8 @@ fun DeparturesScreen(
 
             is DeparturesState.Loaded -> LazyColumn(
                 state = listState,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.padding(top = 16.dp),
+                contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
             ) {
                 item { // Seen in DeparturesStateKt::indexOfNext
                     HorizontalDivider()
@@ -448,11 +373,10 @@ fun DeparturesScreen(
                         state.busName to state.time
                     },
                 ) { itemState ->
-                    Card(
+                    BusDeparture(
                         itemState, state.info, onEvent, Modifier
                             .animateContentSize()
                             .animateItem()
-//                            .animateItemPlacement(spring(stiffness = Spring.StiffnessMediumLow))
                     )
                 }
                 item {
@@ -462,6 +386,87 @@ fun DeparturesScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChipRow(
+    state: DeparturesState,
+    onEvent: (DeparturesEvent) -> Unit,
+) = LazyRow(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    contentPadding = PaddingValues(horizontal = 16.dp),
+) {
+    item {
+        FilterChip(
+            selected = state.info.compactMode,
+            onClick = {
+                onEvent(DeparturesEvent.ChangeCompactMode)
+            },
+            label = {
+                Text("Zjednodušit")
+            },
+            leadingIcon = {
+                if (state.info.compactMode) Icon(Icons.Default.Check, null)
+            },
+        )
+    }
+    item {
+        FilterChip(
+            selected = state.info.justDepartures,
+            onClick = {
+                onEvent(DeparturesEvent.ChangeJustDepartures)
+            },
+            label = {
+                Text("Pouze odjezdy")
+            },
+            leadingIcon = {
+                if (state.info.justDepartures) Icon(Icons.Default.Check, null)
+            },
+        )
+    }
+    item {
+        FilterChip(
+            selected = state.info.stopFilter != null,
+            onClick = {
+                onEvent(
+                    if (state.info.stopFilter != null)
+                        DeparturesEvent.Canceled(ChooserType.ReturnStop)
+                    else DeparturesEvent.ChangeVia
+                )
+            },
+            label = {
+                Text(state.info.stopFilter?.let { "Pojede přes: $it" } ?: "Pojede přes")
+            },
+            leadingIcon = {
+                if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
+            },
+            trailingIcon = {
+                if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+            },
+        )
+    }
+    item {
+        FilterChip(
+            selected = state.info.lineFilter != null,
+            onClick = {
+                onEvent(
+                    if (state.info.lineFilter != null)
+                        DeparturesEvent.Canceled(ChooserType.ReturnLine)
+                    else DeparturesEvent.ChangeLine
+                )
+            },
+            label = {
+                Text(state.info.lineFilter?.let { "Linka: $it" } ?: "Linka")
+            },
+            leadingIcon = {
+                if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
+            },
+            trailingIcon = {
+                if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+            },
+        )
     }
 }
 
@@ -491,7 +496,7 @@ private fun DaySwitcher(onEvent: (DeparturesEvent) -> Unit, event: DeparturesEve
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-private fun Card(
+private fun BusDeparture(
     departureState: DepartureState,
     info: DeparturesInfo,
     onEvent: (DeparturesEvent) -> Unit,
@@ -573,7 +578,7 @@ private fun Card(
 
                 if (info.compactMode) {
                     Text(
-                        text = if (runsIn < 0.minutes || (runsIn > 1.hours && delay == null)) "${departureState.time}" else runsIn.asString(),
+                        text = if (0.minutes <= runsIn && runsIn < 30.minutes) runsIn.asString() else "${departureState.time}",
                         color = if (delay == null || runsIn < 0.minutes) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
                     )
                 } else {
@@ -611,14 +616,18 @@ private fun Card(
 }
 
 fun Duration.asString(): String {
-    val hours = inWholeHours
+    val hours = inWholeHours.toInt()
     val minutes = (inWholeMinutes % 60).toInt()
+    val seconds = (inWholeSeconds % 60).toInt()
 
     return when {
-        hours == 0L && minutes == 0 -> "<1 min"
-        hours == 0L -> "$minutes min"
-        minutes == 0 -> "$hours hod"
-        else -> "$hours hod $minutes min"
+        hours > 0 && minutes == 0 -> "$hours hod"
+        hours > 0 -> "$hours hod $minutes min"
+        minutes >= 5 -> "$minutes min"
+        minutes > 0 && seconds == 0 -> "$minutes min"
+        minutes > 0 -> "$minutes min $seconds s"
+        seconds >= 15 -> "$seconds s"
+        else -> "<15 s"
     }
 }
 

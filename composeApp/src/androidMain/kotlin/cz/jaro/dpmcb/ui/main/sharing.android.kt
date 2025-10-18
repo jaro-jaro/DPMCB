@@ -26,13 +26,17 @@ actual val screenShareManager: ScreenShareManager
         val ctx = LocalContext.current
 
         LaunchedEffect(Unit) {
-            for (e in BroadcastReceiver.clicked) when (e) {
-                BroadcastReceiver.TYPE_REMOVE_DATE -> {
-                    ctx.startActivity(Intent.createChooser(Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, deeplink2)
-                        type = "text/uri-list"
-                    }, "Sdílet"))
+            BroadcastReceiver.clickedFlow.collect { e ->
+                when (e) {
+                    BroadcastReceiver.ActionType.REMOVE_DATE -> {
+                        ctx.startActivity(Intent.createChooser(Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, deeplink2)
+                            type = "text/uri-list"
+                        }, "Sdílet"))
+                    }
+
+                    else -> {}
                 }
             }
         }
@@ -45,7 +49,7 @@ actual val screenShareManager: ScreenShareManager
                 putExtra(Intent.EXTRA_TEXT, deeplink)
                 type = "text/uri-list"
             }, "Sdílet").apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && deeplink != deeplink2)
                     putExtra(
                         Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(
                             ChooserAction.Builder(
@@ -54,7 +58,7 @@ actual val screenShareManager: ScreenShareManager
                                 PendingIntent.getBroadcast(
                                     ctx,
                                     5,
-                                    BroadcastReceiver.createIntent(ctx, BroadcastReceiver.TYPE_REMOVE_DATE),
+                                    BroadcastReceiver.createIntent(ctx, BroadcastReceiver.ActionType.REMOVE_DATE),
                                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                                 ),
                             ).build()

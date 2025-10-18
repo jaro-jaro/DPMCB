@@ -7,29 +7,40 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.UNLIMITED
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 
 class BroadcastReceiver : BroadcastReceiver() {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
-
     override fun onReceive(context: Context, intent: Intent) {
-        val type = intent.getStringExtra("type")
+        val type = intent.getStringExtra("type")?.let(ActionType::valueOf)
         if (type != null) scope.launch {
-            clicked.send(type)
+            send(type)
         }
     }
+
     companion object {
-        val clicked = Channel<String>(UNLIMITED)
+        private val scope = CoroutineScope(Dispatchers.IO)
 
-        fun createIntent(context: Context, type: String) =
+        private val clicked = Channel<ActionType>(UNLIMITED)
+        suspend fun send(type: ActionType) = clicked.send(type)
+        val clickedFlow = clicked.consumeAsFlow().shareIn(scope, SharingStarted.Eagerly)
+
+        fun createIntent(context: Context, type: ActionType) =
             Intent(context, cz.jaro.dpmcb.ui.bus.BroadcastReceiver::class.java).apply {
-                putExtra("type", type)
+                putExtra("type", type.name)
             }
+    }
 
-        const val TYPE_REMOVE_DATE = "remove_date"
-        const val TYPE_COPY = "copy"
-        const val TYPE_ADD_IMAGE = "add_image"
-        const val TYPE_SHARE_PART = "share_part"
+    enum class ActionType {
+        COPY,
+        ADD_IMAGE,
+        SHARE_PART,
+        REMOVE_DATE_FROM_BUS,
+        REMOVE_DATE,
+        REMOVE_DATE_FROM_IMAGE,
+        REMOVE_DATE_FROM_IMAGE_PART,
     }
 }

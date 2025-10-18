@@ -22,7 +22,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.rememberGraphicsLayer
@@ -93,10 +92,10 @@ fun BusScreen(
             is BusState.OK -> Box {
                 val graphicsLayerWhole = rememberGraphicsLayer()
                 val graphicsLayerPart = rememberGraphicsLayer()
-                var part by remember { mutableStateOf(PartOfConn.Empty(state.busName)) }
+                val part = remember { mutableStateOf(PartOfConn.Empty(state.busName)) }
 
                 ShareLayout(graphicsLayerWhole, state, null)
-                ShareLayout(graphicsLayerPart, state, part)
+                ShareLayout(graphicsLayerPart, state, part.value)
 
                 Column {
                     Row(
@@ -174,7 +173,7 @@ fun BusScreen(
                             graphicsLayerWhole = graphicsLayerWhole,
                             graphicsLayerPart = graphicsLayerPart,
                             part = part,
-                            editPart = { part = it(part) }
+                            editPart = { part.value = it(part.value) }
                         )
                     }
                 }

@@ -81,12 +81,12 @@ class DeparturesViewModel(
     private val _info = MutableStateFlow(
         DeparturesInfo(
             stop = params.stop,
-            time = params.time,
+            time = params.time ?: if (params.date == SystemClock.todayHere()) null else SystemClock.timeHere(),
             date = params.date,
             lineFilter = params.line,
             stopFilter = params.via,
             justDepartures = params.onlyDepartures != false,
-            compactMode = params.simple ?: (params.time == null),
+            compactMode = params.simple ?: (params.time == null && params.date == SystemClock.todayHere()),
         )
     )
     val info = _info.asStateFlow()
@@ -369,8 +369,11 @@ class DeparturesViewModel(
         DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnStopVia))
     }
 
+    val scrolled = MutableStateFlow(false)
+
     fun setScroll(scroll: suspend (Int, animate: Boolean) -> Unit) {
         this.scroll = scroll
+        if (scrolled.value) return
         state.takeWhile {
             when (state.value) {
                 is DeparturesState.Loading -> true
@@ -378,6 +381,7 @@ class DeparturesViewModel(
                 is DeparturesState.Runs -> withContext(Dispatchers.Main) {
                     val list = (state.value as DeparturesState.Runs).departures
                     scroll(list.indexOfNext(params.time ?: exactTime, exactTime), false)
+                    scrolled.value = true
 
                     false
                 }

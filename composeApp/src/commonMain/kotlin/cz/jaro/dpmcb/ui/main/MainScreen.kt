@@ -42,6 +42,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -117,6 +118,7 @@ import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
+import cz.jaro.dpmcb.ui.connection.Connection
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
@@ -172,6 +174,10 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
         stringSerializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
         serializationTypePair<ShortLine?>(),
+        localDateTypePair,
+    )
+
+    Route.Connection::class -> mapOf(
         localDateTypePair,
     )
 
@@ -308,6 +314,7 @@ fun Main(
                 )
             },
         ) {
+            route<Route.Connection> { Connection(args = it, navigator, superNavController) }
             route<Route.Favourites> { Favourites(args = it, navigator, superNavController) }
             route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
             route<Route.Departures> { Departures(args = it, navigator, superNavController) }
@@ -442,7 +449,6 @@ private fun Drawer(
             LazyColumn {
                 items(DrawerAction.entries) { action ->
                     DrawerItem(
-                        isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
                         action = action,
                         onEvent = onEvent,
                     )
@@ -471,7 +477,6 @@ private fun Modal(
         ) {
             DrawerAction.entries.forEach { action ->
                 DrawerItem(
-                    isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
                     action = action,
                     onEvent = onEvent,
                 )
@@ -512,7 +517,6 @@ private fun Rail(
             }
             items(DrawerAction.entries) { action ->
                 RailItem(
-                    isOnline = state.onlineStatus is MainState.OnlineStatus.Online,
                     action = action,
                     onEvent = onEvent,
                 )
@@ -661,6 +665,12 @@ private fun OtherOptions(state: MainState, onEvent: (MainEvent) -> Unit) {
 
     val shareManager = if (supportsSharing()) screenShareManager else null
 
+    val shortcutCreator = if (supportsShortcuts()) shortcutCreator else null
+
+    var includeDate by remember { mutableStateOf(false) }
+    var label by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(false) }
+
     DropdownMenu(
         expanded = open,
         onDismissRequest = {
@@ -699,12 +709,6 @@ private fun OtherOptions(state: MainState, onEvent: (MainEvent) -> Unit) {
         }
 
         if (supportsShortcuts()) {
-            val shortcutCreator = shortcutCreator
-
-            var show by remember { mutableStateOf(false) }
-            var includeDate by remember { mutableStateOf(true) }
-            var label by remember { mutableStateOf("") }
-
             DropdownMenuItem(
                 text = {
                     Text("Připnout zkratku na domovskou obrazovku")
@@ -718,67 +722,68 @@ private fun OtherOptions(state: MainState, onEvent: (MainEvent) -> Unit) {
                     Icon(Icons.Default.PushPin, null)
                 },
             )
-            if (show) AlertDialog(
-                onDismissRequest = {
-                    show = false
-                },
-                title = {
-                    Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
-                },
-                icon = {
-                    Icon(Icons.Default.PushPin, null)
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        shortcutCreator.createShortcut(includeDate, label, state)
-                        show = false
-                    }) {
-                        Text("Přidat")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        show = false
-                    }) {
-                        Text("Zrušit")
-                    }
-                },
-                text = {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = label,
-                            onValueChange = {
-                                label = it
-                            },
-                            Modifier
-                                .fillMaxWidth(),
-                            label = {
-                                Text("Titulek")
-                            },
-                        )
-                        Row(
-                            Modifier.padding(top = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Switch(checked = includeDate, onCheckedChange = {
-                                includeDate = it
-                            })
-                            Text(
-                                "Ponechat datum ve zkratce", Modifier
-                                    .clickable {
-                                        includeDate = !includeDate
-                                    }
-                                    .padding(start = 8.dp))
-                        }
-                    }
-                }
-            )
         }
     }
+
+    if (show) AlertDialog(
+        onDismissRequest = {
+            show = false
+        },
+        title = {
+            Text("Přidat zkratku na aktuální stránku na domovskou obrazovku")
+        },
+        icon = {
+            Icon(Icons.Default.PushPin, null)
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                shortcutCreator?.createShortcut(includeDate, label, state)
+                show = false
+            }) {
+                Text("Přidat")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                show = false
+            }) {
+                Text("Zrušit")
+            }
+        },
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = {
+                        label = it
+                    },
+                    Modifier
+                        .fillMaxWidth(),
+                    label = {
+                        Text("Titulek")
+                    },
+                )
+                if (localDateTypePair.second.serializeAsValue(state.date) in AppState.route) Row(
+                    Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Switch(checked = includeDate, onCheckedChange = {
+                        includeDate = it
+                    })
+                    Text(
+                        "Ponechat datum ve zkratce", Modifier
+                            .clickable {
+                                includeDate = !includeDate
+                            }
+                            .padding(start = 8.dp))
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -810,53 +815,49 @@ private fun Time() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerItem(
-    isOnline: Boolean,
     action: DrawerAction,
     onEvent: (MainEvent) -> Unit,
-) = when (action) {
-    DrawerAction.Feedback -> Feedback(isOnline, action)
-
-    else if action.hide -> {}
-
-    else -> NavigationDrawerItem(
-        label = {
-            Text(action.label)
-        },
-        icon = {
-            IconWithTooltip(action.icon, action.label)
-        },
-        selected = AppState.selected == action,
-        onClick = {
-            onEvent(MainEvent.DrawerItemClicked(action))
-        },
-        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-    )
+) {
+    if (!action.hide || AppState.selected == action) {
+        NavigationDrawerItem(
+            label = {
+                Text(action.label)
+            },
+            icon = {
+                IconWithTooltip(action.icon, action.label)
+            },
+            selected = AppState.selected == action,
+            onClick = {
+                onEvent(MainEvent.DrawerItemClicked(action))
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+        if (action.hasDivider) HorizontalDivider(Modifier.fillMaxWidth().padding(all = 8.dp))
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RailItem(
-    isOnline: Boolean,
     action: DrawerAction,
     onEvent: (MainEvent) -> Unit,
-) = when (action) {
-    DrawerAction.Feedback -> {}//TODO: Feedback(isOnline, action)
-
-    else if action.hide -> {}
-
-    else -> NavigationRailItem(
-        label = {
-            Text(action.label)
-        },
-        icon = {
-            IconWithTooltip(action.icon, action.label)
-        },
-        selected = AppState.selected == action,
-        onClick = {
-            onEvent(MainEvent.DrawerItemClicked(action))
-        },
-        modifier = Modifier
-    )
+) {
+    if (!action.hide || AppState.selected == action) {
+        NavigationRailItem(
+            label = {
+                Text(action.label)
+            },
+            icon = {
+                IconWithTooltip(action.icon, action.label)
+            },
+            selected = AppState.selected == action,
+            onClick = {
+                onEvent(MainEvent.DrawerItemClicked(action))
+            },
+            modifier = Modifier
+        )
+        if (action.hasDivider) HorizontalDivider(Modifier.fillMaxWidth().padding(all = 8.dp))
+    }
 }
 
 @Composable

@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -534,7 +535,7 @@ fun ColumnScope.CodesAndShare(
     state = state,
     graphicsLayerWhole = rememberGraphicsLayer(),
     graphicsLayerPart = rememberGraphicsLayer(),
-    part = PartOfConn.Empty(state.busName),
+    part = mutableStateOf(PartOfConn.Empty(state.busName)),
     editPart = { },
 )
 
@@ -544,7 +545,7 @@ fun ColumnScope.CodesAndShare(
     state: BusState.Exists,
     graphicsLayerWhole: GraphicsLayer,
     graphicsLayerPart: GraphicsLayer,
-    part: PartOfConn,
+    part: State<PartOfConn>,
     editPart: MutateFunction<PartOfConn>,
 ) {
     Row(
