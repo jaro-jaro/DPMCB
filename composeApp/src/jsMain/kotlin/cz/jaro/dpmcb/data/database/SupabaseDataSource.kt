@@ -24,9 +24,9 @@ import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
+import cz.jaro.dpmcb.data.realtions.now_running.BusStartEnd
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
-import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import cz.jaro.dpmcb.data.realtions.timetable.EndStop
 import io.github.jan.supabase.SupabaseClient
@@ -40,8 +40,6 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.encodeURLPath
 import io.ktor.http.parametersOf
 import io.ktor.http.takeFrom
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -167,6 +165,11 @@ class SupabaseDataSource(
     override suspend fun codes(connName: BusName, tab: Table): List<CodesOfBus> =
         query("codes", mapOf("connName" to connName.s, "tabA" to tab.s)).decodeObjectList()
 
+    override suspend fun multiCodes(
+        connNames: List<BusName>,
+        tabs: List<Table>,
+    ): Map<BusName, List<CodesOfBus>> = emptyMap()
+
     override suspend fun coreBusOfSequence(seq: SequenceCode, group: SequenceGroup?): List<CoreBusOfSequence> =
         query("coreBusOfSequence", mapOf("seq" to seq.s, "seqgroup" to group.j)).decodeObjectList()
 
@@ -195,22 +198,10 @@ class SupabaseDataSource(
         )
     ).decodeColumnFromTable("sequence")
 
-    override suspend fun lastStopTimesOfConnsInSequences(
-        todayRunningSequences: List<SequenceCode>,
-        groups: List<SequenceGroup>,
+    override suspend fun busesStartAndEnd(
+        conns: List<BusName>,
         tabs: List<Table>,
-    ): Map<SequenceCode, Map<BusName, LocalTime>> =
-        query(
-            "lastStopTimesOfConnsInSequences",
-            mapOf("todayRunningSequences" to todayRunningSequences.l, "groups" to groups.l, "tabs" to tabs.l)
-        )
-            .decodeAs<JsonArray>()
-            .groupBy { it.jsonObject.getValue("sequence").fromJsonElement<SequenceCode>() }
-            .mapValues { it1 ->
-                it1.value
-                    .groupBy { it.jsonObject.getValue("connname").fromJsonElement<BusName>() }
-                    .mapValues { it.value.single().jsonObject.getValue("time_").fromJsonElement<LocalTime>() }
-            }
+    ): Map<BusName, BusStartEnd> = emptyMap()
 
     override suspend fun nowRunningBuses(
         connNames: List<BusName>,
@@ -222,16 +213,9 @@ class SupabaseDataSource(
             .groupBy({ it.fromJsonElement(supabaseSerializer<BusOfNowRunning>(), json) }, { it.fromJsonElement<StopOfNowRunning>(json) })
 
     override suspend fun codesOfSequences(
-        date: LocalDate, tabs: List<Table>, groups: List<SequenceGroup>,
-    ): Map<TimeOfSequence, Map<BusName, List<CodesOfBus>>> =
-        query("fixedCodesOfTodayRunningSequencesAccordingToTimeCodes", mapOf("date" to date.s, "tabs" to tabs.l, "groups" to groups.l))
-            .decodeAs<JsonArray>()
-            .groupBy { it.fromJsonElement<TimeOfSequence>(json) }
-            .mapValues { it1 ->
-                it1.value.groupBy(
-                    { it.jsonObject.getValue("connname").fromJsonElement<BusName>() },
-                    { it.fromJsonElement(supabaseSerializer<CodesOfBus>(), json) })
-            }
+        tabs: List<Table>,
+        groups: List<SequenceGroup>,
+    ): Map<SequenceCode, Map<BusName, List<CodesOfBus>>> = emptyMap()
 
     override suspend fun oneDirectionLines(): List<LongLine> =
         query("oneDirectionLines").decodeColumnFromTable("line")
