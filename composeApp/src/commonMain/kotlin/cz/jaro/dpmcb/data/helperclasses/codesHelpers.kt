@@ -77,7 +77,7 @@ fun LocalDate.runsToday(fixedCodes: String) = fixedCodes
     .anyTrue()
 
 // Je státní svátek nebo den pracovního klidu
-fun isPublicHoliday(datum: LocalDate) = listOf(
+fun isPublicHoliday(date: LocalDate) = listOf(
     LocalDate(1, 1, 1), // Den obnovy samostatného českého státu
     LocalDate(1, 1, 1), // Nový rok
     LocalDate(1, 5, 1), // Svátek práce
@@ -91,8 +91,8 @@ fun isPublicHoliday(datum: LocalDate) = listOf(
     LocalDate(1, 12, 25), // 1. svátek vánoční
     LocalDate(1, 12, 26), // 2. svátek vánoční
 ).any {
-    it.day == datum.day && it.month == datum.month
-} || isEaster(datum)
+    it.day == date.day && it.month == date.month
+} || isEaster(date)
 
 // Je Velký pátek nebo Velikonoční pondělí
 fun isEaster(date: LocalDate): Boolean {
@@ -101,9 +101,12 @@ fun isEaster(date: LocalDate): Boolean {
     return date == easterMonday || date == bigFriday
 }
 
+val cahedEaster = mutableMapOf<Int, Pair<LocalDate, LocalDate>>()
 // Poloha Velkého pátku a Velikonočního pondělí v roce
 // Zdroj: https://cs.wikipedia.org/wiki/V%C3%BDpo%C4%8Det_data_Velikonoc#Algoritmus_k_v%C3%BDpo%C4%8Dtu_data
 fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
+    if (year in cahedEaster) return cahedEaster[year]
+
     val (m, n) = listOf(
         1583..1599 to (22 to 2),
         1600..1699 to (22 to 2),
@@ -133,7 +136,9 @@ fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
     val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1.days
     val easterMonday = LocalDate(year, Month.MARCH, 1) + (easterMondayFromTheStartOfMarch - 1.days)
 
-    return bigFriday to easterMonday
+    val result = bigFriday to easterMonday
+    cahedEaster[year] = result
+    return result
 }
 
 infix fun List<RunsFromTo>.anyAre(type: TimeCodeType) = any { it.type == type }

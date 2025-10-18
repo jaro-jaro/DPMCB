@@ -221,7 +221,7 @@ class SupabaseDataSource(
             .decodeAs<JsonArray>()
             .groupBy({ it.fromJsonElement(supabaseSerializer<BusOfNowRunning>(), json) }, { it.fromJsonElement<StopOfNowRunning>(json) })
 
-    override suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
+    override suspend fun codesOfSequences(
         date: LocalDate, tabs: List<Table>, groups: List<SequenceGroup>,
     ): Map<TimeOfSequence, Map<BusName, List<CodesOfBus>>> =
         query("fixedCodesOfTodayRunningSequencesAccordingToTimeCodes", mapOf("date" to date.s, "tabs" to tabs.l, "groups" to groups.l))

@@ -20,13 +20,11 @@ import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
+import cz.jaro.dpmcb.data.realtions.now_running.BusStartEnd
 import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
-import cz.jaro.dpmcb.data.realtions.sequence.TimeOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import cz.jaro.dpmcb.data.realtions.timetable.EndStop
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 
 interface SpojeQueries {
 
@@ -55,6 +53,8 @@ interface SpojeQueries {
 
     suspend fun codes(connName: BusName, tab: Table): List<CodesOfBus>
 
+    suspend fun multiCodes(connNames: List<BusName>, tabs: List<Table>): Map<BusName, List<CodesOfBus>>
+
     suspend fun coreBusOfSequence(seq: SequenceCode, group: SequenceGroup?): List<CoreBusOfSequence>
 
     suspend fun connsOfSeq(seq: SequenceCode, group: SequenceGroup?, tabs: List<Table>): List<BusName>
@@ -76,19 +76,17 @@ interface SpojeQueries {
         sequence6: String,
     ): List<SequenceCode>
 
-    suspend fun lastStopTimesOfConnsInSequences(
-        todayRunningSequences: List<SequenceCode>,
-        groups: List<SequenceGroup>,
+    suspend fun busesStartAndEnd(
+        conns: List<BusName>,
         tabs: List<Table>,
-    ): Map<SequenceCode, Map<BusName, LocalTime>>
+    ): Map<BusName, BusStartEnd>
 
     suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusOfNowRunning, List<StopOfNowRunning>>
 
-    suspend fun fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
-        date: LocalDate,
+    suspend fun codesOfSequences(
         tabs: List<Table>,
         groups: List<SequenceGroup>,
-    ): Map<TimeOfSequence, Map<BusName, List<CodesOfBus>>>
+    ): Map<SequenceCode, Map<BusName, List<CodesOfBus>>>
 
     suspend fun oneDirectionLines(): List<LongLine>
 

@@ -86,7 +86,7 @@ class NowRunningViewModel(
     }
 
     private val onlineList = onlineRepo.nowRunningBuses().combine(repo.vehicleNumbersOnSequences) { onlineConns, vehicles ->
-        val buses = repo.nowRunningBuses(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
+        val buses = repo.nowRunningBusDetails(onlineConns.map(OnlineConn::name), SystemClock.todayHere())
         onlineConns
             .mapNotNull { onlineConn ->
                 val bus = buses[onlineConn.name] ?: return@mapNotNull null
@@ -113,8 +113,8 @@ class NowRunningViewModel(
         }
     }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
-    private val offlineList = repo.nowRunningOrNot.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
-        repo.nowRunningBuses(busNames, SystemClock.todayHere()).values
+    private val offlineList = repo.nowRunning.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
+        repo.nowRunningBusDetails(busNames, SystemClock.todayHere()).values
             .map { bus ->
                 val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
                 val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
@@ -140,11 +140,10 @@ class NowRunningViewModel(
     }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val result = combine(filteredOfflineList, filteredOnlineList, allowedType) { offline, online, type ->
-        if (offline == null && online == null) null
-        else when (type) {
-            NowRunningType.RegN -> NowRunningResults.RegN(resultListRegN(online.orEmpty()), offline = resultListRegN(offline.orEmpty()))
-            NowRunningType.Line -> NowRunningResults.Lines(resultListLine(online.orEmpty()), offline = resultListLine(offline.orEmpty()))
-            NowRunningType.Delay -> NowRunningResults.Delay(resultListDelay(online.orEmpty()), offline = resultListDelay(offline.orEmpty()))
+        when (type) {
+            NowRunningType.RegN -> NowRunningResults.RegN(online?.let(::resultListRegN), offline = offline?.let(::resultListRegN))
+            NowRunningType.Line -> NowRunningResults.Lines(online?.let(::resultListLine), offline = offline?.let(::resultListLine))
+            NowRunningType.Delay -> NowRunningResults.Delay(online?.let(::resultListDelay), offline = offline?.let(::resultListDelay))
         }
     }
 
@@ -155,7 +154,6 @@ class NowRunningViewModel(
     ) { lineNumbers, filters, type, result, isOnline ->
         when {
             lineNumbers.isEmpty() -> NowRunningState.NoLines
-            result == null -> NowRunningState.Loading(lineNumbers, filters, type)
             else -> NowRunningState.OK(lineNumbers, filters, type, result, isOnline)
         }
     }.stateIn(SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))

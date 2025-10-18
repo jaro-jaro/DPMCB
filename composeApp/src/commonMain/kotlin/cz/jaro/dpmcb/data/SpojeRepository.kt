@@ -37,7 +37,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.withCache
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
@@ -111,24 +110,25 @@ class SpojeRepository(
         sortedGroupsByDate.first().group
     }
 
-    val nowRunningSequencesOrNot = withCache { date: LocalDate ->
-        ds.fixedCodesOfTodayRunningSequencesAccordingToTimeCodes(
-            date = date,
+    val todayRunningSequences = withCache { date: LocalDate ->
+        ds.codesOfSequences(
             groups = groupsOfDay(date),
             tabs = tablesOfDay(date),
         )
-            .filter { (_, conns) ->
-                if (conns.isEmpty()) return@filter false
-
-                conns.any { (_, codes) ->
+            .mapValues { (_, conns) ->
+                conns.filter { (_, codes) ->
                     runsAt(
                         timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
                         fixedCodes = codes.first().fixedCodes,
                         date = date,
                     )
+                }.map { (busName) ->
+                    busName
                 }
             }
-            .keys
+            .filter { (_, conns) ->
+                conns.isNotEmpty()
+            }
     }
 
     private val tablesOfDay = withCache { date: LocalDate ->
@@ -246,7 +246,7 @@ class SpojeRepository(
             }
             .flatMap { (_, codes) ->
                 val stops = codes
-                    .distinctBy { it.stopName to it.stopIndexOnLine }.work()
+                    .distinctBy { it.stopName to it.stopIndexOnLine }
                 val stopNames = stops.map { it.stopName }
                 stops.withIndex()
                     .filter { it.value.stopName == thisStop }
@@ -342,7 +342,7 @@ class SpojeRepository(
             }
     }
 
-    val nowRunningOrNot = ::getNowRunningOrNot
+    val nowRunning = ::getNowRunning
         .asRepeatingFlow(30.seconds)
         .flowOn(Dispatchers.IO)
         .shareIn(
@@ -351,27 +351,29 @@ class SpojeRepository(
             replay = 1
         )
 
-    private suspend fun getNowRunningOrNot() =
-        ds.lastStopTimesOfConnsInSequences(
-            todayRunningSequences = nowRunningSequencesOrNot(SystemClock.todayHere())
-                .filter {
-                    it.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < it.end
-                }
-                .map { it.sequence },
-            groups = groupsOfDay(SystemClock.todayHere()),
-            tabs = tablesOfDay(SystemClock.todayHere()),
-        )
-            .values
-            .map { stopByBus ->
-                stopByBus
-                    .entries
-                    .sortedBy { it.value }
-                    .find {
-                        SystemClock.timeHere() <= it.value
-                    }
-                    ?.key
-                    ?: error("This should never happen")
+    private suspend fun getNowRunning(): List<BusName> {
+        return todayRunningBusBoundaries(SystemClock.todayHere())
+            .filterValues { buses ->
+                buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
             }
+            .mapValues { (_, buses) ->
+                buses.findLast { it.second.start < SystemClock.timeHere() }?.first ?: buses.first().first
+            }
+            .values.toList()
+    }
+
+    private val todayRunningBusBoundaries =
+        withCache { date: LocalDate ->
+            val sequences = todayRunningSequences(date)
+            val times = ds.busesStartAndEnd(
+                conns = sequences.values.flatten(),
+                tabs = tablesOfDay(SystemClock.todayHere()),
+            )
+
+            sequences.mapValues { (_, buses) ->
+                buses.map { it to times[it]!! }
+            }
+        }
 
     suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
         val conns = ds.coreBusOfSequence(seq, nowUsedGroup(date, seq))
@@ -567,7 +569,7 @@ class SpojeRepository(
 
     suspend fun isOneWay(line: LongLine) = line in oneWayLines.await()
 
-    suspend fun nowRunningBuses(busNames: List<BusName>, date: LocalDate): Map<BusName, NowRunning> =
+    suspend fun nowRunningBusDetails(busNames: List<BusName>, date: LocalDate) =
         ds.nowRunningBuses(busNames, groupsOfDay(date), tablesOfDay(date))
             .entries
             .associate { (conn, stops) ->

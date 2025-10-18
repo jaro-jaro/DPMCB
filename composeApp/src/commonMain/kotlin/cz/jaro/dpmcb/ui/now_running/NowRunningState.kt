@@ -13,22 +13,11 @@ sealed interface NowRunningState {
         override val type: NowRunningType = NowRunningType.Line
     }
 
-    sealed interface LinesLoaded : NowRunningState {
-        val lineNumbers: List<ShortLine>
-        val filters: List<ShortLine>
-    }
-
-    data class Loading(
-        override val lineNumbers: List<ShortLine>,
-        override val filters: List<ShortLine>,
-        override val type: NowRunningType,
-    ) : LinesLoaded
-
     data class OK(
-        override val lineNumbers: List<ShortLine>,
-        override val filters: List<ShortLine>,
+        val lineNumbers: List<ShortLine>,
+        val filters: List<ShortLine>,
         override val type: NowRunningType,
         val result: NowRunningResults<*>,
         val isOnline: Boolean,
-    ) : LinesLoaded
+    ) : NowRunningState
 }

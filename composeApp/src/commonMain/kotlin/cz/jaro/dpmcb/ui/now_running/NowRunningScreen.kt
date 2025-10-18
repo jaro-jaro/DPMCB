@@ -91,7 +91,7 @@ fun NowRunningScreen(
         when (state) {
             is NowRunningState.LoadingLines -> Text(text = "Načítání...")
 
-            is NowRunningState.LinesLoaded -> Column {
+            is NowRunningState.OK -> Column {
                 Text(
                     "Řadit podle:", Modifier
                         .padding(horizontal = 16.dp)
@@ -100,7 +100,7 @@ fun NowRunningScreen(
                 FlowRow(
                     Modifier.padding(horizontal = 8.dp),
                 ) {
-                    NowRunningType.entries(state is NowRunningState.OK && state.isOnline).forEach { type ->
+                    NowRunningType.entries(state.isOnline).forEach { type ->
                         FilterChip(
                             selected = type == state.type,
                             onClick = {
@@ -137,7 +137,7 @@ fun NowRunningScreen(
                         .padding(horizontal = 8.dp),
                     contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues()
                 ) {
-                    if (state is NowRunningState.OK && state.isOnline) busResult(state, onEvent)
+                    if (state.isOnline) busResult(state, onEvent)
 
                     notRunning(state, onEvent)
                 }
@@ -154,17 +154,17 @@ fun NowRunningType.Companion.entries(online: Boolean) =
 
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.busResult(
-    state: NowRunningState.LinesLoaded,
+    state: NowRunningState.OK,
     onEvent: (NowRunningEvent) -> Unit,
-) = when (state) {
-    is NowRunningState.Loading -> textItem("Načítání...")
-    is NowRunningState.OK if state.result.online.isEmpty() -> textItem("Od vybraných linek v blízké době nejede")
-    is NowRunningState.OK -> when (state.result) {
-        is NowRunningResults.Lines -> state.result.online.forEach { line ->
+) = when {
+    state.result.online == null -> textItem("Načítání…")
+    state.result.online!!.isEmpty() -> textItem("Od vybraných linek v blízké době nejede")
+    else -> when (state.result) {
+        is NowRunningResults.Lines -> state.result.online!!.forEach { line ->
             line(line, onEvent, true)
         }
 
-        is NowRunningResults.RegN -> items(state.result.online, key = { "OR" + it.busName.value }) { bus ->
+        is NowRunningResults.RegN -> items(state.result.online!!, key = { "OR" + it.busName.value }) { bus ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -177,7 +177,7 @@ private fun LazyListScope.busResult(
             }
         }
 
-        is NowRunningResults.Delay -> items(state.result.online, key = { "OD" + it.busName.value }) { bus ->
+        is NowRunningResults.Delay -> items(state.result.online!!, key = { "OD" + it.busName.value }) { bus ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -258,10 +258,10 @@ private fun LazyListScope.line(
 
 @OptIn(ExperimentalFoundationApi::class)
 private fun LazyListScope.notRunning(
-    state: NowRunningState.LinesLoaded,
+    state: NowRunningState.OK,
     onEvent: (NowRunningEvent) -> Unit,
-) = if (state is NowRunningState.OK && state.result.offlineNotOnline.isNotEmpty()) {
-    if (state.isOnline) stickyHeader(key = "NH") {
+) {
+    if (state.isOnline && (state.result.offlineNotOnline == null || state.result.offlineNotOnline!!.isNotEmpty())) stickyHeader(key = "NH") {
         Surface(
             Modifier.fillMaxWidth()
         ) {
@@ -272,12 +272,14 @@ private fun LazyListScope.notRunning(
             )
         }
     }
-    when (val result = state.result) {
-        is NowRunningResults.Lines -> result.offlineNotOnline.forEach { line ->
+    if (state.result.offlineNotOnline == null) textItem("Načítání…")
+    else if (!state.isOnline && state.result.offlineNotOnline!!.isEmpty()) textItem("Od vybraných linek v blízké době nejede")
+    else when (val result = state.result) {
+        is NowRunningResults.Lines -> result.offlineNotOnline!!.forEach { line ->
             line(line, onEvent, false)
         }
 
-        is NowRunningResults.RegN -> items(result.offlineNotOnline, key = { "NR" + it.busName.value }) { bus ->
+        is NowRunningResults.RegN -> items(result.offlineNotOnline!!, key = { "NR" + it.busName.value }) { bus ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -290,7 +292,7 @@ private fun LazyListScope.notRunning(
             }
         }
 
-        is NowRunningResults.Delay -> items(result.offlineNotOnline, key = { "ND" + it.busName.value }) { bus ->
+        is NowRunningResults.Delay -> items(result.offlineNotOnline!!, key = { "ND" + it.busName.value }) { bus ->
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -302,7 +304,7 @@ private fun LazyListScope.notRunning(
             }
         }
     }
-} else Unit
+}
 
 @Composable
 fun Chip(
