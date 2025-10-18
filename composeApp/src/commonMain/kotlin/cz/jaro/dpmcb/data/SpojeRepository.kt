@@ -78,6 +78,8 @@ class SpojeRepository(
 ) : UserOnlineManager by onlineManager, GlobalSettingsDataSource by gs, LocalSettingsDataSource by ls {
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    // --- TODAY STUFF ---
+
     val allTables = scope.async { ds.lines() }
 
     val nowUsedTable = withCache { date: LocalDate, lineNumber: LongLine ->
@@ -110,27 +112,6 @@ class SpojeRepository(
         sortedGroupsByDate.first().group
     }
 
-    val todayRunningSequences = withCache { date: LocalDate ->
-        ds.codesOfSequences(
-            groups = groupsOfDay(date),
-            tabs = tablesOfDay(date),
-        )
-            .mapValues { (_, conns) ->
-                conns.filter { (_, codes) ->
-                    runsAt(
-                        timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
-                        fixedCodes = codes.first().fixedCodes,
-                        date = date,
-                    )
-                }.map { (busName) ->
-                    busName
-                }
-            }
-            .filter { (_, conns) ->
-                conns.isNotEmpty()
-            }
-    }
-
     private val tablesOfDay = withCache { date: LocalDate ->
         ds.allLineNumbers().mapNotNull { lineNumber ->
             nowUsedTable(date, lineNumber)
@@ -142,6 +123,8 @@ class SpojeRepository(
             nowUsedGroup(date, seq)
         }.distinct().filterNot { it.isInvalid() } + SequenceGroup.invalid
     }
+
+    // --- ---
 
     suspend fun stopNames(datum: LocalDate) = ds.stopNames(tablesOfDay(datum))
     suspend fun lineNumbers(datum: LocalDate) = ds.lineNumbers(tablesOfDay(datum))
@@ -342,39 +325,6 @@ class SpojeRepository(
             }
     }
 
-    val nowRunning = ::getNowRunning
-        .asRepeatingFlow(30.seconds)
-        .flowOn(Dispatchers.IO)
-        .shareIn(
-            scope = scope,
-            started = SharingStarted.WhileSubscribed(5.seconds),
-            replay = 1
-        )
-
-    private suspend fun getNowRunning(): List<BusName> {
-        return todayRunningBusBoundaries(SystemClock.todayHere())
-            .filterValues { buses ->
-                buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
-            }
-            .mapValues { (_, buses) ->
-                buses.findLast { it.second.start < SystemClock.timeHere() }?.first ?: buses.first().first
-            }
-            .values.toList()
-    }
-
-    private val todayRunningBusBoundaries =
-        withCache { date: LocalDate ->
-            val sequences = todayRunningSequences(date)
-            val times = ds.busesStartAndEnd(
-                conns = sequences.values.flatten(),
-                tabs = tablesOfDay(SystemClock.todayHere()),
-            )
-
-            sequences.mapValues { (_, buses) ->
-                buses.map { it to times[it]!! }
-            }
-        }
-
     suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
         val conns = ds.coreBusOfSequence(seq, nowUsedGroup(date, seq))
             .groupBy {
@@ -569,19 +519,6 @@ class SpojeRepository(
 
     suspend fun isOneWay(line: LongLine) = line in oneWayLines.await()
 
-    suspend fun nowRunningBusDetails(busNames: List<BusName>, date: LocalDate) =
-        ds.nowRunningBuses(busNames, groupsOfDay(date), tablesOfDay(date))
-            .entries
-            .associate { (conn, stops) ->
-                conn.connName to NowRunning(
-                    busName = conn.connName,
-                    lineNumber = conn.line,
-                    direction = conn.direction,
-                    sequence = conn.sequence,
-                    stops = stops,
-                )
-            }
-
     fun doesConnRunAt(connName: BusName): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
         val tab = nowUsedTable(datum, connName.line()) ?: return@runsAt false
 
@@ -605,8 +542,76 @@ class SpojeRepository(
     suspend fun doesBusExist(busName: BusName) =
         ds.doesConnExist(busName) != null
 
-
     suspend fun deleteAll() {
         ds.clearAllTables()
     }
+
+    // --- NOW RUNNING ---
+
+    val todayRunningSequences = withCache { date: LocalDate ->
+        ds.codesOfSequences(
+            groups = groupsOfDay(date),
+            tabs = tablesOfDay(date),
+        )
+            .mapValues { (_, conns) ->
+                conns.filter { (_, codes) ->
+                    runsAt(
+                        timeCodes = codes.map { RunsFromTo(it.type, it.from..it.to) },
+                        fixedCodes = codes.first().fixedCodes,
+                        date = date,
+                    )
+                }.map { (busName) ->
+                    busName
+                }
+            }
+            .filter { (_, conns) ->
+                conns.isNotEmpty()
+            }
+    }
+
+    private val todayRunningBusBoundaries =
+        withCache { date: LocalDate ->
+            val sequences = todayRunningSequences(date)
+            val times = ds.busesStartAndEnd(
+                conns = sequences.values.flatten(),
+                tabs = tablesOfDay(SystemClock.todayHere()),
+            )
+
+            sequences.mapValues { (_, buses) ->
+                buses.map { it to times[it]!! }
+            }
+        }
+
+    private suspend fun getNowRunning(): List<BusName> {
+        return todayRunningBusBoundaries(SystemClock.todayHere())
+            .filterValues { buses ->
+                buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
+            }
+            .mapValues { (_, buses) ->
+                buses.findLast { it.second.start < SystemClock.timeHere() }?.first ?: buses.first().first
+            }
+            .values.toList()
+    }
+
+    val nowRunning = ::getNowRunning
+        .asRepeatingFlow(30.seconds)
+        .flowOn(Dispatchers.IO)
+        .shareIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5.seconds),
+            replay = 1
+        )
+
+    suspend fun nowRunningBusDetails(busNames: List<BusName>, date: LocalDate) =
+        ds.nowRunningBuses(busNames, groupsOfDay(date), tablesOfDay(date))
+            .entries
+            .associate { (conn, stops) ->
+                conn.connName to NowRunning(
+                    busName = conn.connName,
+                    lineNumber = conn.line,
+                    direction = conn.direction,
+                    sequence = conn.sequence,
+                    stops = stops,
+                )
+            }
 }
