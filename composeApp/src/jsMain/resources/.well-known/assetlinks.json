@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "cz.jaro.dpmcb",
+    "sha256_cert_fingerprints": [
+      "4A:D7:46:ED:11:60:81:29:74:60:AB:27:80:DB:92:B8:01:98:34:CA:F3:A5:F1:68:AD:5C:FA:9C:50:66:F1:AF"
+    ]
+  }
+}]
