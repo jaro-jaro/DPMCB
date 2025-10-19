@@ -623,6 +623,7 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
         DateSelector(
             date = state.date,
             onDateChange = {},
+            hideArrows = true,
         )
     }
     OutlinedCard(
