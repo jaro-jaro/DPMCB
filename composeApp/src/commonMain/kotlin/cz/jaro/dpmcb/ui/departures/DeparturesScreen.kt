@@ -227,7 +227,7 @@ fun DeparturesScreen(
                 ) {
                     IconWithTooltip(
                         Icons.Default.ArrowUpward,
-                        "Scrollovat",
+                        "Skočit na vybraný čas",
                         Modifier.rotate(
                             animateFloatAsState(
                                 remember(i, home) {

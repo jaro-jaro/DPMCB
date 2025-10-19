@@ -1,5 +1,10 @@
 package cz.jaro.dpmcb.ui.now_running
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,14 +24,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +62,7 @@ import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeFilter
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.ChangeType
 import cz.jaro.dpmcb.ui.now_running.NowRunningEvent.NavToBus
+import kotlinx.coroutines.launch
 
 @Suppress("unused")
 @Composable
@@ -78,6 +94,11 @@ fun NowRunning(
 fun NowRunningScreen(
     state: NowRunningState,
     onEvent: (NowRunningEvent) -> Unit,
+    lazyListState: LazyListState = rememberLazyListState(),
+) = Scaffold(
+    floatingActionButton = {
+        if (state is NowRunningState.OK) FAB(lazyListState)
+    }
 ) {
     if (state == NowRunningState.NoLines) Text(
         text = "Bohužel, zdá se že právě nejede žádná linka. Prosím, aktualizujte jízdní řády v aplikaci.",
@@ -97,6 +118,7 @@ fun NowRunningScreen(
                         .fillMaxSize()
                         .padding(top = 8.dp)
                         .padding(horizontal = 8.dp),
+                    state = lazyListState,
                     contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues()
                 ) {
                     textItem("Řadit podle:", Modifier.fillMaxWidth())
@@ -311,3 +333,27 @@ fun Chip(
     Modifier
         .padding(all = 4.dp),
 )
+
+@Composable
+fun FAB(lazyListState: LazyListState) {
+    val isAtTop by remember { derivedStateOf { !lazyListState.canScrollBackward } }
+    val scope = rememberCoroutineScope()
+    AnimatedVisibility(
+        visible = !isAtTop,
+        enter = fadeIn(spring(stiffness = Spring.StiffnessVeryLow)),
+        exit = fadeOut(spring(stiffness = Spring.StiffnessVeryLow)),
+    ) {
+        SmallFloatingActionButton(
+            onClick = {
+                scope.launch {
+                    lazyListState.animateScrollToItem(0)
+                }
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowUpward,
+                contentDescription = "Skočit nahoru"
+            )
+        }
+    }
+}

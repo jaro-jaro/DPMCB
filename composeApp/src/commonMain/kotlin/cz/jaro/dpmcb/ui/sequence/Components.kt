@@ -64,7 +64,7 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowUpward,
-                contentDescription = null
+                contentDescription = "Skočit nahoru",
             )
         }
         if (now != null) SmallFloatingActionButton(
@@ -76,7 +76,7 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
         ) {
             Icon(
                 imageVector = Icons.Default.GpsFixed,
-                contentDescription = null
+                contentDescription = "Skočit na právě jedoucí",
             )
         }
         SmallFloatingActionButton(
@@ -88,7 +88,7 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowDownward,
-                contentDescription = null
+                contentDescription = "Skočit dolů",
             )
         }
     }
