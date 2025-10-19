@@ -17,6 +17,7 @@ import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
+import io.github.z4kn4fein.semver.Version
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -151,6 +152,6 @@ sealed interface SuperRoute {
     data class Main(
         val link: String?,
         val isDataUpdateNeeded: Boolean = false,
-        val isAppDataUpdateNeeded: Boolean = false,
+        val appVersionToUpdate: Version? = null,
     ) : SuperRoute
 }

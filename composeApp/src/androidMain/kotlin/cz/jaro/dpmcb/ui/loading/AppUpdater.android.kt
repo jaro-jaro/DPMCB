@@ -8,6 +8,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import cz.jaro.dpmcb.BuildKonfig
+import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,12 +57,16 @@ class AndroidAppUpdater(
         }
 
         coroutineScope.launch(Dispatchers.Main) {
-            val latestVersion = latestAppVersion() ?: return@launch
+            val localVersion = BuildKonfig.versionName.toVersion(false)
+            val latestVersion = latestAppVersion()
+            val latestPreReleaseVersion =
+                if (latestVersion != null && localVersion < latestVersion) latestVersion
+                else latestAppPreReleaseVersion(localVersion) ?: return@launch
 
             val apkUrl =
-                "https://github.com/jaro-jaro/DPMCB/releases/download/v$latestVersion/Lepsi-DPMCB-v$latestVersion.apk"
+                "https://github.com/jaro-jaro/DPMCB/releases/download/v$latestPreReleaseVersion/Lepsi-DPMCB-v$latestPreReleaseVersion.apk"
 
-            val file = File(apkDir, "$latestVersion.apk")
+            val file = File(apkDir, "$latestPreReleaseVersion.apk")
             file.createNewFile()
 
             val connection = URL(apkUrl).openConnection() as HttpsURLConnection

@@ -8,10 +8,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.loading.Loading
 import cz.jaro.dpmcb.ui.main.Main
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
+import io.github.z4kn4fein.semver.Version
 
 @Composable
 fun SuperMainContent(
@@ -26,7 +28,11 @@ fun SuperMainContent(
             navController = navController,
             startDestination = SuperRoute.Loading(link = link),
         ) {
-            composable<SuperRoute.Main> {
+            composable<SuperRoute.Main>(
+                typeMap = mapOf(
+                    serializationTypePair<Version?>()
+                )
+            ) {
 //                Text("Ahojda")
                 Main(navController, it.toRoute())
             }

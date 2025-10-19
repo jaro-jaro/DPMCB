@@ -35,6 +35,7 @@ import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
@@ -49,6 +50,7 @@ import dev.gitlive.firebase.database.database
 import dev.gitlive.firebase.remoteconfig.remoteConfig
 import dev.gitlive.firebase.storage.StorageReference
 import dev.gitlive.firebase.storage.storage
+import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -152,7 +154,7 @@ class LoadingViewModel(
 
             _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
-            goTo.value = SuperRoute.Main(params.link, isDataUpdateNeeded(), isAppUpdateNeeded())
+            goTo.value = SuperRoute.Main(params.link, isDataUpdateNeeded(), appVersionToUpdate())
             withContext(Dispatchers.Main) {
                 tryNavigate()
             }
@@ -201,13 +203,20 @@ class LoadingViewModel(
         return localVersion < onlineVersion.await()
     }
 
-    private suspend fun isAppUpdateNeeded(): Boolean {
-        if (isDebug) return false
+    private suspend fun appVersionToUpdate(): Version? {
+        if (isDebug) return null
 
-        val newestVersion = latestAppVersion()?.toVersion(false) ?: return false
+        val newestVersion = latestAppVersion().work()
         val localVersion = BuildKonfig.versionName.toVersion(false)
 
-        return localVersion < newestVersion
+        if (newestVersion != null && localVersion < newestVersion) return newestVersion
+
+        if (!localVersion.isPreRelease) return null
+
+        val preReleaseVersion = latestAppPreReleaseVersion(localVersion).work() ?: return null
+
+        if (localVersion < preReleaseVersion) return preReleaseVersion
+        return null
     }
 
     private suspend fun downloadText(ref: StorageReference) = fetch(ref.getDownloadUrl()) { progress ->

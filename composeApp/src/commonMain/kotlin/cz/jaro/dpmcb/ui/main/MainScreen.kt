@@ -89,6 +89,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.get
 import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
+import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
@@ -133,6 +134,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.analytics.analytics
 import dev.gitlive.firebase.analytics.logEvent
 import dev.gitlive.firebase.database.database
+import io.github.z4kn4fein.semver.Version
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -282,7 +284,7 @@ fun Main(
     MainScreen(
         state = state,
         drawerState = drawerState,
-        isAppUpdateNeeded = args.isAppDataUpdateNeeded,
+        appVersionToUpdate = args.appVersionToUpdate,
         isDataUpdateNeeded = args.isDataUpdateNeeded,
         onEvent = viewModel::onEvent,
     ) {
@@ -355,7 +357,7 @@ fun MainScreen(
     state: MainState,
     drawerState: DrawerState,
     isDataUpdateNeeded: Boolean,
-    isAppUpdateNeeded: Boolean,
+    appVersionToUpdate: Version?,
     onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -382,7 +384,7 @@ fun MainScreen(
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
     ) { paddingValues ->
         Surface {
-            UpdateDialogs(isDataUpdateNeeded, onEvent, isAppUpdateNeeded)
+            UpdateDialogs(isDataUpdateNeeded, onEvent, appVersionToUpdate)
 
             if (useDrawer) Drawer(state, onEvent, paddingValues, infoInDrawer, content)
             else if (useRail) Rail(state, onEvent, paddingValues, infoInRail, content)
@@ -565,7 +567,7 @@ private fun Title() {
 private fun UpdateDialogs(
     isDataUpdateNeeded: Boolean,
     onEvent: (MainEvent) -> Unit,
-    isAppUpdateNeeded: Boolean,
+    appVersionToUpdate: Version?,
 ) {
     if (isDataUpdateNeeded) {
         var showDialog by rememberSaveable { mutableStateOf(true) }
@@ -601,7 +603,7 @@ private fun UpdateDialogs(
             },
         )
     }
-    if (isAppUpdateNeeded) {
+    if (appVersionToUpdate != null) {
         var showDialog by rememberSaveable { mutableStateOf(true) }
         var loading by rememberSaveable { mutableStateOf(null as String?) }
 
@@ -636,7 +638,7 @@ private fun UpdateDialogs(
                 Text("Aktualizace aplikace")
             },
             text = {
-                Text("Je k dispozici nová verze aplikace, chcete ji aktualizovat?")
+                Text("Je k dispozici nová verze aplikace (${BuildKonfig.versionName} ➔ $appVersionToUpdate), chcete ji aktualizovat?")
             },
             dismissButton = {
                 TextButton(

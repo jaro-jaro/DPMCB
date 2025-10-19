@@ -217,7 +217,7 @@ fun SettingsScreen(
     }
 
     textItem("Aktuální verze dat: ${state.dataMetaVersion}.${state.dataVersion}")
-    textItem("Aktuální verze aplikace: ${state.version}${if (isDebug) "-DEBUG" else ""}")
+    textItem("Aktuální verze aplikace: ${state.version}${if (isDebug) "+DEBUG" else ""}")
 
     textItem("")
 
@@ -279,6 +279,23 @@ fun SettingsScreen(
         })
     }
     textItem("Veškerá data o kurzech jsou neoficiální a proto za ně neručíme")
+
+    textItem("")
+
+    item {
+        TextWithLink(buildAnnotatedString {
+            withStyle(
+                style = SpanStyle(color = MaterialTheme.colorScheme.primary)
+            ) {
+                withAnnotation(
+                    tag = "link",
+                    annotation = "https://github.com/jaro-jaro/DPMCB"
+                ) {
+                    append("GitHub")
+                }
+            }
+        })
+    }
 
     textItem("")
 
