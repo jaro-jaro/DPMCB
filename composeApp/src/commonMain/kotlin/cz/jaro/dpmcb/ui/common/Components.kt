@@ -337,9 +337,9 @@ fun VI(lineTraction: Traction, vehicleTraction: Traction) = Row(verticalAlignmen
 fun IconsPreview() = Surface {
     Column(Modifier.width(IntrinsicSize.Min)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Icon(Icons.Default.WifiOff, null, Modifier.size(48.dp))
+            Icon(Icons.Default.WifiOff, null, Modifier.size(32.dp))
             Icon(Icons.AutoMirrored.Default.ArrowRightAlt, null)
-            Icon(Icons.Default.Wifi, null, Modifier.size(48.dp))
+            Icon(Icons.Default.Wifi, null, Modifier.size(32.dp))
         }
         VI(Traction.Electro, Traction.Electro)
         VI(Traction.Electro, Traction.Diesel)
@@ -494,6 +494,7 @@ fun DateSelector(
     onDateChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     showDialog: MutableState<Boolean> = rememberSaveable { mutableStateOf(false) },
+    hideArrows: Boolean = false,
 ) = Row(
     modifier,
 ) {
@@ -549,7 +550,7 @@ fun DateSelector(
         )
     }
 
-    IconButton(
+    if (!hideArrows) IconButton(
         onClick = {
             onDateChange(date - DatePeriod(days = 1))
         },
@@ -566,7 +567,7 @@ fun DateSelector(
         Spacer(Modifier.width(ButtonDefaults.IconSpacing))
         Text("${date.dayOfWeek.cz().take(2)} ${date.day}. ${date.month.number}.")
     }
-    IconButton(
+    if (!hideArrows) IconButton(
         onClick = {
             onDateChange(date + DatePeriod(days = 1))
         },
