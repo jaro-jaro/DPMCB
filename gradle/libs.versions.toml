@@ -1,7 +1,8 @@
 [versions]
+# b: 0=alpha, 1=beta, 2=pre, 3=RC
 #                 Mmmppbvv
-appVersionCode = "10700203"
-appVersionName = "1.7.0-pre.3"
+appVersionCode = "10700301"
+appVersionName = "1.7.0-RC.1"
 #                 M.m.p-b    .v
 android-compileSdk = "36"
 android-minSdk = "26"
