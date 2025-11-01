@@ -5,7 +5,9 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.hasModifiers
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
@@ -16,9 +18,14 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
+import cz.jaro.dpmcb.ui.common.toLocalTime
+import cz.jaro.dpmcb.ui.common.toSimpleTime
+import cz.jaro.dpmcb.ui.connection.ConnectionPartDefinition
+import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import io.github.z4kn4fein.semver.Version
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
@@ -31,8 +38,8 @@ sealed interface Route {
 
     companion object {
         val routes = listOf(
-            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, Connection::class, Map::class,
-            NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
+            Bus::class, Card::class, Chooser::class, Departures::class, Favourites::class, ConnectionSearch::class, Connection::class,
+            ConnectionResults::class, Map::class, NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
         )
     }
 
@@ -42,8 +49,13 @@ sealed interface Route {
         override val date: LocalDate,
         val lineNumber: LongLine,
         val busNumber: BusNumber,
+        val from: Int? = null,
+        val to: Int? = null,
     ) : Route {
-        constructor(date: LocalDate, busName: BusName) : this(date, busName.line(), busName.bus())
+        constructor(date: LocalDate, busName: BusName, from: Int? = null, to: Int? = null)
+                : this(date, busName.line(), busName.bus(), from, to)
+        val busName get() = lineNumber / busNumber
+        val part get() = if (from != null && to != null) from..to else null
     }
 
     @Serializable
@@ -86,9 +98,50 @@ sealed interface Route {
     ) : Route
 
     @Serializable
+    @SerialName("connection_search")
+    data class ConnectionSearch(
+        override val date: LocalDate,
+        val time: SimpleTime? = null,
+        val start: StopName? = null,
+        val destination: StopName? = null,
+        val directOnly: Boolean? = null,
+        val showInefficientConnections: Boolean? = null,
+    ) : Route
+
+    @Serializable
+    @SerialName("connection_results")
+    data class ConnectionResults(
+        override val date: LocalDate,
+        val time: SimpleTime,
+        val start: StopName,
+        val destination: StopName,
+        val directOnly: Boolean = false,
+        val showInefficientConnections: Boolean = true,
+    ) : Route {
+        constructor(settings: SearchSettings) : this(
+            date = settings.datetime.date,
+            time = settings.datetime.time.toSimpleTime(),
+            start = settings.start,
+            destination = settings.destination,
+            directOnly = settings.directOnly,
+            showInefficientConnections = true,//settings.showInefficientConnections,
+        )
+
+        val settings
+            get() = SearchSettings(
+                datetime = date.atTime(time.toLocalTime()),
+                start = start,
+                destination = destination,
+                directOnly = directOnly,
+                showInefficientConnections = showInefficientConnections,
+            )
+    }
+
+    @Serializable()
     @SerialName("connection")
     data class Connection(
         override val date: LocalDate,
+        val def: List<ConnectionPartDefinition> = listOf(),
     ) : Route
 
     @Serializable

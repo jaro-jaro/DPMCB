@@ -6,7 +6,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
@@ -39,7 +39,7 @@ class SettingsViewModel(
         )
     }
         .asFlow()
-        .stateIn(SharingStarted.WhileSubscribed(5.seconds), emptyList())
+        .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state = combineStates(
         repo.settings, repo.version, repo.isOnline, tables

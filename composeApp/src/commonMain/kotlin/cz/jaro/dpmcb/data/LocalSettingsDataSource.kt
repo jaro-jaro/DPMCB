@@ -18,10 +18,12 @@ import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atTime
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -38,6 +40,9 @@ interface LocalSettingsDataSource {
 
     val recents: StateFlow<List<BusName>>
     fun changeRecents(update: MutateLambda<List<BusName>>)
+
+    val searchHistory: StateFlow<List<SearchSettings>>
+    fun changeSearchHistory(update: MutateLambda<List<SearchSettings>>)
 
     val hasCard: StateFlow<Boolean>
     fun changeCard(value: Boolean)
@@ -61,6 +66,12 @@ fun LocalSettingsDataSource.removeFavourite(name: BusName) {
 fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
     changeRecents { recents ->
         (listOf(bus) + recents).distinct().take(settings.value.recentBusesCount)
+    }
+}
+
+fun LocalSettingsDataSource.pushSearchToHistory(settings: SearchSettings) {
+    changeSearchHistory { history ->
+        (listOf(settings) + history).distinct()
     }
 }
 
@@ -89,6 +100,7 @@ class MultiplatformSettingsDataSource(
         const val VERSION = "verze"
         const val FAVOURITES = "oblibene_useky"
         const val RECENTS = "recents"
+        const val SEARCH_HISTORY = "search_history"
 
         //        const val DEPARTURES = "odjezdy"
         const val SETTINGS = "nastaveni"
@@ -100,6 +112,30 @@ class MultiplatformSettingsDataSource(
         const val VERSION = -1
         val FAVOURITES = listOf<PartOfConn>()
         val RECENTS = listOf<BusName>()
+        @OptIn(ExperimentalTime::class)
+        val SEARCH_HISTORY = listOf(
+            SearchSettings(
+                start = "Pětidomí",
+                destination = "Na Sádkách",
+                directOnly = false,
+                showInefficientConnections = true,
+                datetime = SystemClock.todayHere().atTime(6, 30),
+            ),
+            SearchSettings(
+                start = "Alešova",
+                destination = "Aloise Kříže",
+                directOnly = false,
+                showInefficientConnections = true,
+                datetime = SystemClock.todayHere().atTime(16, 10),
+            ),
+            SearchSettings(
+                start = "Suché Vrbné",
+                destination = "Jana Buděšínského",
+                directOnly = false,
+                showInefficientConnections = true,
+                datetime = SystemClock.todayHere().atTime(16, 10),
+            )
+        )
 
         //        const val DEPARTURES = false
         val SETTINGS = Settings()
@@ -149,6 +185,16 @@ class MultiplatformSettingsDataSource(
 
     override fun changeRecents(update: (List<BusName>) -> List<BusName>) {
         data[Keys.RECENTS] = update(recents.value).toJson(json)
+    }
+
+    override val searchHistory = data
+        .getStringOrNullStateFlow(scope, Keys.SEARCH_HISTORY)
+        .mapState(scope) {
+            it?.fromJson(json) ?: DefaultValues.SEARCH_HISTORY
+        }
+
+    override fun changeSearchHistory(update: (List<SearchSettings>) -> List<SearchSettings>) {
+        data[Keys.SEARCH_HISTORY] = update(searchHistory.value).toJson(json)
     }
 
 //    override val departures = data

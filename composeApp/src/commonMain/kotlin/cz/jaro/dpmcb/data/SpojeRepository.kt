@@ -42,6 +42,8 @@ import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.bus.BusDetail
+import cz.jaro.dpmcb.data.realtions.connection.GraphBus
+import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.Departure
 import cz.jaro.dpmcb.data.realtions.favourites.Favourite
 import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
@@ -546,6 +548,31 @@ class SpojeRepository(
         ds.clearAllTables()
     }
 
+    val stopGraph = withCache { date: LocalDate ->
+        createStopGraph(stops(date))
+    }
+
+    val connsRunAt = withCache { date: LocalDate ->
+        val codes = ds.multiCodes(
+            connNames = stops(date).keys.map { it.connName },
+            tabs = tablesOfDay(date)
+        )
+        // future: codes: Map<BusName, Map<Table, List<CodesOfBus>>>
+        codes.mapValues { (_, codes) ->
+            { date: LocalDate ->
+                runsAt(
+                    codes.map { RunsFromTo(it.type, it.from..it.to) },
+                    codes.first().fixedCodes,
+                    date
+                )
+            }
+        }
+    }
+
+    val stops = withCache { date: LocalDate ->
+        ds.stopsOnConns(tablesOfDay(date))
+    }
+
     // --- NOW RUNNING ---
 
     val todayRunningSequences = withCache { date: LocalDate ->
@@ -569,7 +596,7 @@ class SpojeRepository(
             }
     }
 
-    private val todayRunningBusBoundaries =
+    val todayRunningBusBoundaries =
         withCache { date: LocalDate ->
             val sequences = todayRunningSequences(date)
             val times = ds.busesStartAndEnd(
@@ -614,4 +641,58 @@ class SpojeRepository(
                     stops = stops,
                 )
             }
+
+    suspend fun connectionBusInfo(
+        buses: Set<BusName>, date: LocalDate,
+    ) = ds.connectionResultBuses(
+        buses, groupsOfDay(date), tablesOfDay(date)
+    )
+}
+
+fun MutableStopGraph.toStopGraph(): StopGraph = mapValues { (_, set) -> set.toList() }
+fun StopGraph.toMutableStopGraph(): MutableStopGraph = mapValues { (_, set) -> set.toMutableList() }.toMutableMap()
+
+fun emptyStopGraph(): StopGraph = emptyMap()
+fun mutableStopGraphOf(): MutableStopGraph = mutableMapOf()
+
+private fun createStopGraph(
+    connStops: Map<GraphBus, List<StopNameTime>>,
+): StopGraph {
+    val stopGraph = mutableStopGraphOf()
+
+    connStops.forEach { (bus, stops) ->
+        val indexed = stops.withIndex().toList()
+        indexed.windowed(2).forEach { (thisStop, nextStop) ->
+            val start = if (StopType(thisStop.value.fixedCodes) != StopType.GetOffOnly) thisStop
+            else indexed.take(thisStop.index).findLast { StopType(thisStop.value.fixedCodes) != StopType.GetOffOnly } ?: return@forEach
+            val end = if (StopType(nextStop.value.fixedCodes) != StopType.GetOnOnly) nextStop
+            else indexed.drop(nextStop.index + 1).find { StopType(thisStop.value.fixedCodes) != StopType.GetOnOnly } ?: return@forEach
+            stopGraph.getOrPut(start.value.name) { mutableListOf() } += GraphEdge(
+                departure = start.value.departure!!,
+                arrival = end.value.arrival!!,
+                to = end.value.name,
+                bus = bus.connName,
+                vehicleType = bus.vehicleType,
+                departureIndexOnBus = start.index,
+                arrivalIndexOnBus = end.index,
+            )
+        }
+    }
+
+    stopGraph.mapValues { (_, e) ->
+        e.sortedBy { it.departure }
+    }/*.toList().sortedBy { it.first }.toMap()*/
+
+//    println(graphZastavek
+//        .flatMap { (k, v) ->
+//            v.map { k to it }
+//        }
+//        .joinToString("\n") {
+//            it.toList().joinToString("&&&")
+//        }
+//        .replace(" ", "")
+//        .replace("&&&", " ")
+//    )
+
+    return stopGraph.toStopGraph()
 }

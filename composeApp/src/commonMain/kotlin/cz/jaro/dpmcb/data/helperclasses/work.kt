@@ -4,26 +4,20 @@
 package cz.jaro.dpmcb.data.helperclasses
 
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import kotlin.time.measureTimedValue
 
-fun <R> work(vararg msg: R?) = run { if (isDebug) println(msg.joinToString()) }
-inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.work(vararg msg: R, transform: T.() -> S): T =
-    also { cz.jaro.dpmcb.data.helperclasses.work(*msg, transform()) }
+fun <R> work(vararg msg: R?, tag: String? = null) = run { if (isDebug) println(msg.joinToString()) }
+inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.work(vararg msg: R, tag: String? = null, transform: T.() -> S, ): T =
+    also { cz.jaro.dpmcb.data.helperclasses.work(*msg, transform(), tag = tag) }
 
-inline fun <reified T : Any?, reified R : Any?> T.work(vararg msg: R): T = also { work(*msg, transform = { this }) }
-inline fun <reified T : Any?, reified S : Any?> T.work(transform: T.() -> S = { this as S }): T =
-    also { work(*emptyArray<Any?>(), transform = transform) }
+inline fun <reified T : Any?, reified R : Any?> T.work(vararg msg: R, tag: String? = null): T = also { work(*msg, tag = tag, transform = { this }) }
+inline fun <reified T : Any?, reified S : Any?> T.work(tag: String? = null, transform: T.() -> S = { this as S }): T =
+    also { work(*emptyArray<Any?>(), tag = tag, transform = transform) }
 
-inline fun <reified T : Any?> T.work(): T = also { work(*emptyArray<Any?>(), transform = { this }) }
+inline fun <reified T : Any?> T.work(tag: String? = null): T = also { work(*emptyArray<Any?>(), tag = tag, transform = { this }) }
 
-var last: Instant? = null
+inline fun <T, reified R : Any?> measure(vararg msg: R, tag: String? = null, block: () -> T) =
+    measureTimedValue(block).work(*msg, tag = tag) { duration }.value
 
-inline fun <T : Any?, R> T.timestamp(vararg msg: R?): T = also {
-    cz.jaro.dpmcb.data.helperclasses.timestamp(*msg)
-}
-
-fun <R> timestamp(vararg msg: R?) {
-    val now = SystemClock.now()
-    now.work(*msg, last?.let { now - it })
-    last = now
-}
+inline fun <T> measure(tag: String? = null, block: () -> T) =
+    measureTimedValue(block).work(tag = tag) { duration }.value

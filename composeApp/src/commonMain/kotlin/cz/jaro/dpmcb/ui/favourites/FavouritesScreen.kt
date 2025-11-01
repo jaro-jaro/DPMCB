@@ -44,7 +44,6 @@ import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.Name

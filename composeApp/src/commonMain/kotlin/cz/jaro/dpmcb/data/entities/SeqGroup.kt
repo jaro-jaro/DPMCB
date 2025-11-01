@@ -1,13 +1,17 @@
 package cz.jaro.dpmcb.data.entities
 
+import androidx.room.Entity
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-expect class SeqGroup(
-    group: SequenceGroup,
-    validFrom: LocalDate,
-    validTo: LocalDate,
-) {
-    val group: SequenceGroup
-    val validFrom: LocalDate
-    val validTo: LocalDate
-}
+@Entity(primaryKeys = ["group"])
+@Serializable
+data class SeqGroup(
+// Primary keys
+    @SerialName("groupNumber")
+    val group: SequenceGroup,
+// Other
+    val validFrom: LocalDate,
+    val validTo: LocalDate,
+)

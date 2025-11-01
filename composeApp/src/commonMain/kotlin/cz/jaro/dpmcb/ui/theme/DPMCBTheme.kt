@@ -26,8 +26,13 @@ fun DPMCBTheme(
             else -> theme.lightColorScheme
         }
     }
+    val customColors = when {
+        useDarkTheme -> DarkCustomColors
+        else -> LightCustomColors
+    }
 
     CompositionLocalProvider(
+        LocalCustomColors provides customColors,
         LocalIsDynamicThemeUsed provides (useDynamicColor && areDynamicColorsSupported()),
         LocalIsDarkThemeUsed provides useDarkTheme,
         LocalTheme provides theme.takeUnless { useDynamicColor && areDynamicColorsSupported() }
@@ -39,9 +44,15 @@ fun DPMCBTheme(
     }
 }
 
+val LocalCustomColors = staticCompositionLocalOf<CustomColors> { error("CompositionLocal LocalCustomColors not present") }
 val LocalTheme = staticCompositionLocalOf<Theme?> { error("CompositionLocal LocalTheme not present") }
-val LocalIsDynamicThemeUsed = staticCompositionLocalOf<Boolean> { error("CompositionLocal LocalTheme not present") }
+val LocalIsDynamicThemeUsed = staticCompositionLocalOf<Boolean> { error("CompositionLocal LocalIsDynamicThemeUsed not present") }
 val LocalIsDarkThemeUsed = staticCompositionLocalOf<Boolean> { error("CompositionLocal LocalIsDarkThemeUsed not present") }
+
+val Colors: CustomColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalCustomColors.current
 
 @Composable
 fun DPMCBTheme(

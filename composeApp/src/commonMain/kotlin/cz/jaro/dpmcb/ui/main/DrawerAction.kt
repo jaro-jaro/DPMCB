@@ -28,8 +28,7 @@ enum class DrawerAction(
         label = "Vyhledat spojení",
         icon = Icons.Default.Timeline,
         multiselect = true,
-        hide = true,
-        route = { Route.Connection(it) },
+        route = { Route.ConnectionSearch(it) },
     ),
     Favourites(
         label = "Oblíbené spoje",

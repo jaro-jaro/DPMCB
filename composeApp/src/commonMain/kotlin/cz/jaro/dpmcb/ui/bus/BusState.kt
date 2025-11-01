@@ -26,6 +26,7 @@ sealed interface BusState {
 
     data class OK(
         override val busName: BusName,
+        val part: IntRange?,
         val stops: List<BusStop>,
         val lineNumber: ShortLine,
         val lineTraction: Traction,

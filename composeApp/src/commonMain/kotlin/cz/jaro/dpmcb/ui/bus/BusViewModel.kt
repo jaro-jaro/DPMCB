@@ -7,7 +7,6 @@ import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.changeFavourite
-import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -15,7 +14,7 @@ import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -40,7 +39,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toDateTimePeriod
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -53,9 +51,11 @@ class BusViewModel(
     private val repo: SpojeRepository,
     onlineRepo: OnlineRepository,
     onlineModeManager: OnlineModeManager,
-    private val busName: BusName,
-    private val date: LocalDate,
+    args: Route.Bus,
 ) : ViewModel() {
+    private val date = args.date
+    private val busName = args.busName
+    private val part = args.part
 
     lateinit var navigator: Navigator
 
@@ -89,6 +89,7 @@ class BusViewModel(
         val lineTraction = repo.lineTraction(bus.info.line, bus.info.vehicleType)
         BusState.OK(
             busName = busName,
+            part = part,
             stops = bus.stops,
             lineNumber = bus.info.line.toShortLine(),
             lowFloor = bus.info.lowFloor,
@@ -183,7 +184,7 @@ class BusViewModel(
         )
     } else flowOf(OnlineBusState()))
         .flowOn(Dispatchers.IO)
-        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
     private val traveledSegments = combine(info, onlineState, timeFlow) { info, state, now ->
         when {
@@ -237,5 +238,5 @@ class BusViewModel(
                 ) else null
             ) else null
         )
-    }.stateIn(SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)
+    }.stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), BusState.Loading)
 }

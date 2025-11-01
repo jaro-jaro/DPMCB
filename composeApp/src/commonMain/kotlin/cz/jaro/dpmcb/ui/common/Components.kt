@@ -8,7 +8,9 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,9 +18,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,6 +47,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DatePicker
@@ -59,6 +66,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimePickerColors
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberDatePickerState
@@ -82,14 +91,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -97,7 +115,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.window.DialogProperties
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -114,6 +135,7 @@ import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
 import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
+import cz.jaro.dpmcb.ui.theme.Colors
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
@@ -190,25 +212,27 @@ fun Line(
     height: Float,
     isOnline: Boolean,
     modifier: Modifier = Modifier,
+    highlight: IntRange? = null,
 ) {
-    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else LocalContentColor.current
-    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else LocalContentColor.current
-    val bgColor = backgroundColorFor(LocalContentColor.current)
-    val lineColor = variantColorFor(backgroundColorFor(LocalContentColor.current))
+    val passedColor = if (isOnline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+    val busColor = MaterialTheme.colorScheme.secondary
+    val highlightColor = MaterialTheme.colorScheme.onSurface
+    val bgColor = MaterialTheme.colorScheme.surface
+    val lineColor = Colors.dimmedContent
     val stopCount = stops.count()
 
     val animatedHeight by animateFloatAsState(height, label = "HeightAnimation")
 
     Canvas(
         modifier = modifier
+            .padding(horizontal = 8.dp)
             .fillMaxHeight()
-            .width(20.dp)
-            .padding(horizontal = 8.dp),
+            .width(24.dp),
         contentDescription = "Poloha spoje"
     ) {
         val canvasHeight = size.height
         val lineWidth = 3.dp.toPx()
-        val lineXOffset = 7.dp.toPx()
+        val lineXOffset = size.width / 2
         val rowHeight = canvasHeight / stopCount
         val circleRadius = 5.5.dp.toPx()
         val circleStrokeWidth = 3.dp.toPx()
@@ -221,18 +245,26 @@ fun Line(
                 strokeWidth = lineWidth,
             )
 
+            drawLine(
+                color = highlightColor,
+                start = Offset(y = rowHeight * (highlight?.first ?: 0)),
+                end = Offset(y = rowHeight * (highlight?.last ?: 0)),
+                strokeWidth = lineWidth,
+            )
+
             repeat(stopCount) { i ->
                 translate(top = i * rowHeight) {
                     val passed = traveledSegments >= i
+                    val highlighted = highlight != null && i in highlight
 
                     drawCircle(
-                        color = if (passed) passedColor else bgColor,
+                        color = if (passed && highlight == null) passedColor else bgColor,
                         radius = circleRadius,
                         center = Offset(),
                         style = Fill
                     )
                     drawCircle(
-                        color = if (passed) passedColor else lineColor,
+                        color = if (passed && highlight == null) passedColor else if (highlighted) highlightColor else lineColor,
                         radius = circleRadius,
                         center = Offset(),
                         style = Stroke(
@@ -242,7 +274,7 @@ fun Line(
                 }
             }
 
-            drawLine(
+            if (highlight == null) drawLine(
                 color = passedColor,
                 start = Offset(),
                 end = Offset(y = rowHeight * animatedHeight),
@@ -358,6 +390,73 @@ fun IconsPreview() = Surface {
     }
 }
 
+@Preview
+@Composable
+fun InvertedIconsPreview() = Surface {
+    Column(Modifier) {
+        InvertedVehicleIcon(false)
+        InvertedVehicleIcon(true)
+    }
+}
+
+@Composable
+fun InvertedVehicleIcon(
+    trolley: Boolean,
+    modifier: Modifier = Modifier,
+    color: Color = invertedIconColor(trolley),
+    size: Dp = 32.dp,
+) {
+    val graphicsLayer = invertedVehicleIconGraphicsLayer(trolley, color, size)
+    Canvas(
+        modifier.size(size),
+        contentDescription = if (trolley) "Trolejbus" else "Autobus",
+        onDraw = {
+            drawLayer(graphicsLayer)
+        },
+    )
+}
+
+@Composable
+@ReadOnlyComposable
+fun invertedIconColor(trolley: Boolean) =
+    if (trolley) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+
+@Composable
+fun invertedVehicleIconGraphicsLayer(
+    trolley: Boolean,
+    color: Color = invertedIconColor(trolley),
+    size: Dp = 32.dp,
+): GraphicsLayer {
+    val foreground = backgroundColorFor(color)
+    val icon = if (trolley) Res.drawable.trolejbus else Res.drawable.bus
+    val vector = vectorResource(icon)
+    val painter = rememberVectorPainter(image = vector)
+
+    val graphicsLayer = rememberGraphicsLayer()
+    val density = LocalDensity.current
+    val dimension = with(density) { size.toPx() }
+    val size = Size(dimension, dimension)
+
+    graphicsLayer.record(
+        density = density,
+        layoutDirection = LocalLayoutDirection.current,
+        size = size.toIntSize(),
+    ) {
+        val r = dimension / 4
+        drawRoundRect(color, Offset(), size, cornerRadius = CornerRadius(r, r))
+        translate(
+            left = dimension / 8,
+            top = (if (trolley) 0F else dimension / -16) - .5.dp.toPx(),
+        ) {
+            with(painter) {
+                draw(size, colorFilter = ColorFilter.tint(foreground))
+            }
+        }
+    }
+
+    return graphicsLayer
+}
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun Vehicle(vehicle: RegistrationNumber?, name: String?, showInfoButton: Boolean = true) {
@@ -435,7 +534,13 @@ fun Wheelchair(
 }
 
 @Composable
-fun Name(name: String, modifier: Modifier = Modifier, suffix: String? = null, prefix: String? = null) {
+fun Name(
+    name: String,
+    modifier: Modifier = Modifier,
+    suffix: String? = null,
+    prefix: String? = null,
+    color: Color = MaterialTheme.colorScheme.primary,
+) {
     Text(buildAnnotatedString {
         if (prefix != null) withStyle(style = MaterialTheme.typography.titleMedium.toSpanStyle()) {
             append(prefix)
@@ -446,7 +551,7 @@ fun Name(name: String, modifier: Modifier = Modifier, suffix: String? = null, pr
         if (suffix != null) withStyle(style = MaterialTheme.typography.titleSmall.toSpanStyle()) {
             append(suffix)
         }
-    }, modifier, color = MaterialTheme.colorScheme.primary)
+    }, modifier, color = color)
 }
 
 @ExperimentalMaterial3Api
@@ -695,4 +800,55 @@ fun Modifier.autoFocus(vararg keys: Any? = arrayOf()) = composed {
     }
 
     focusRequester(focusRequester)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissButton: @Composable (() -> Unit)? = null,
+    shape: Shape = DatePickerDefaults.shape,
+    tonalElevation: Dp = DatePickerDefaults.TonalElevation,
+    colors: TimePickerColors = TimePickerDefaults.colors(),
+    properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    content: @Composable ColumnScope.() -> Unit,
+) = BasicAlertDialog(
+    onDismissRequest = onDismissRequest,
+    modifier = modifier.wrapContentHeight(),
+    properties = properties,
+) {
+    Surface(
+        modifier = Modifier.Companion
+            .requiredWidth(360.0.dp)
+            .heightIn(min = 40.0.dp),
+        shape = shape,
+        color = colors.containerColor,
+        tonalElevation = tonalElevation,
+    ) {
+        Column(
+            Modifier.padding(all = 8.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            content()
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End)
+            ) {
+                val mergedStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
+                CompositionLocalProvider(
+                    LocalContentColor provides MaterialTheme.colorScheme.primary,
+                    LocalTextStyle provides mergedStyle,
+                ) {
+                    Row(modifier = Modifier.Companion.height(40.dp).fillMaxWidth()) {
+                        dismissButton?.invoke()
+                        Spacer(modifier = Modifier.weight(1f))
+                        confirmButton()
+                    }
+                }
+            }
+        }
+    }
 }

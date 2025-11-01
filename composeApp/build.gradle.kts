@@ -1,7 +1,9 @@
+
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
@@ -33,11 +35,8 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static = (static ?: mutableListOf()).apply {
-                        // Serve sources to debug inside browser
-                        add(rootDirPath)
-                        add(projectDirPath)
-                    }
+                    static(rootDirPath)
+                    static(projectDirPath)
                 }
             }
         }
@@ -161,18 +160,32 @@ kotlin {
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.coroutines)
             implementation(libs.multiplatform.settings.make.observable)
+
+            // Room
+            implementation(libs.androidx.jetpack.room.common)
+        }
+        all {
+            languageSettings {
+                enableLanguageFeature(LanguageFeature.NestedTypeAliases.name)
+                enableLanguageFeature(LanguageFeature.ContextParameters.name)
+                enableLanguageFeature(LanguageFeature.WhenGuards.name)
+//                enableLanguageFeature(LanguageFeature.NonLocalBreakContinue.name)
+                enableLanguageFeature(LanguageFeature.MultiDollarInterpolation.name)
+                enableLanguageFeature(LanguageFeature.ExpectActualClasses.name)
+                enableLanguageFeature(LanguageFeature.ContextSensitiveResolutionUsingExpectedType.name)
+            }
         }
     }
 
-    @OptIn(ExperimentalKotlinGradlePluginApi::class)
-    compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
-        freeCompilerArgs.add("-Xwhen-guards")
-        freeCompilerArgs.add("-Xnon-local-break-continue")
-        freeCompilerArgs.add("-Xmulti-dollar-interpolation")
-        freeCompilerArgs.add("-Xexpect-actual-classes")
-        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
-    }
+//    compilerOptions {
+//        freeCompilerArgs.add("-Xnested-type-aliases")
+//        freeCompilerArgs.add("-Xcontext-parameters")
+//        freeCompilerArgs.add("-Xwhen-guards")
+//        freeCompilerArgs.add("-Xnon-local-break-continue")
+//        freeCompilerArgs.add("-Xmulti-dollar-interpolation")
+//        freeCompilerArgs.add("-Xexpect-actual-classes")
+//        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+//    }
 }
 
 ksp {

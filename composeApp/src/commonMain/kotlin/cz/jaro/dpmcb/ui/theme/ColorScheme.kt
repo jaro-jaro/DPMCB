@@ -2,7 +2,9 @@ package cz.jaro.dpmcb.ui.theme
 
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
+import cz.jaro.dpmcb.ui.theme.dpmcb as dpmcbColor
 
 val LightColorsRed = lightColorScheme(
     primary = md_theme_light_primary_red,
@@ -521,4 +523,54 @@ val DarkColorsPink = darkColorScheme(
     surfaceTint = md_theme_dark_surfaceTint_pink,
     outlineVariant = md_theme_dark_outlineVariant_pink,
     scrim = md_theme_dark_scrim_pink,
+)
+
+@Immutable
+class CustomColors(
+    val dimmedContent: Color,
+    val delayEarlyText: Color,
+    val delayEarlyBubble: Color,
+    val delayEarlyBubbleText: Color,
+    val delaySmallText: Color,
+    val delaySmallBubble: Color,
+    val delaySmallBubbleText: Color,
+    val delayMediumText: Color,
+    val delayMediumBubble: Color,
+    val delayMediumBubbleText: Color,
+    val delayLargeText: Color,
+    val delayLargeBubble: Color,
+    val delayLargeBubbleText: Color,
+    val dpmcb: Color = dpmcbColor,
+)
+
+val LightCustomColors = CustomColors(
+    dimmedContent = light_dimmedContent,
+    delayEarlyText = light_delayEarlyText,
+    delayEarlyBubble = light_delayEarlyBubble,
+    delayEarlyBubbleText = light_delayEarlyBubbleText,
+    delaySmallText = light_delaySmallText,
+    delaySmallBubble = light_delaySmallBubble,
+    delaySmallBubbleText = light_delaySmallBubbleText,
+    delayMediumText = light_delayMediumText,
+    delayMediumBubble = light_delayMediumBubble,
+    delayMediumBubbleText = light_delayMediumBubbleText,
+    delayLargeText = light_delayLargeText,
+    delayLargeBubble = light_delayLargeBubble,
+    delayLargeBubbleText = light_delayLargeBubbleText,
+)
+
+val DarkCustomColors = CustomColors(
+    dimmedContent = dark_dimmedContent,
+    delayEarlyText = dark_delayEarlyText,
+    delayEarlyBubble = dark_delayEarlyBubble,
+    delayEarlyBubbleText = dark_delayEarlyBubbleText,
+    delaySmallText = dark_delaySmallText,
+    delaySmallBubble = dark_delaySmallBubble,
+    delaySmallBubbleText = dark_delaySmallBubbleText,
+    delayMediumText = dark_delayMediumText,
+    delayMediumBubble = dark_delayMediumBubble,
+    delayMediumBubbleText = dark_delayMediumBubbleText,
+    delayLargeText = dark_delayLargeText,
+    delayLargeBubble = dark_delayLargeBubble,
+    delayLargeBubbleText = dark_delayLargeBubbleText,
 )

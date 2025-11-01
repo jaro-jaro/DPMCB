@@ -16,6 +16,7 @@ typealias SequenceID = Int
 typealias StopNumber = Int
 typealias SequenceGroup = Int
 typealias SequenceGroupCompanion = Int.Companion
+typealias StopName = String
 
 @Serializable
 @JvmInline

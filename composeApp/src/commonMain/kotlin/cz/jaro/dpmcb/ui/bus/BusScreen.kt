@@ -30,7 +30,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.bus
-import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.realtions.favourites.Empty
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.data.viewModel
@@ -50,7 +49,7 @@ fun Bus(
     args: Route.Bus,
     navigator: Navigator,
     superNavController: NavHostController,
-    viewModel: BusViewModel = viewModel(args.lineNumber / args.busNumber, args.date),
+    viewModel: BusViewModel = viewModel(args),
 ) {
     AppState.title = "Detail spoje"
     AppState.selected = DrawerAction.FindBus
@@ -165,6 +164,7 @@ fun BusScreen(
                                 direction = state.direction,
                                 height = state.lineHeight,
                                 isOnline = state.online?.running != null,
+                                highlight = state.part,
                             )
                         }
 

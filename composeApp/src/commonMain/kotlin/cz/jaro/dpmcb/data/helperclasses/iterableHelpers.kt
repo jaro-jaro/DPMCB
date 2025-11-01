@@ -46,7 +46,7 @@ fun <K, V> Collection<Map.Entry<K, V>>.toMap(): Map<K, V> = toMap(LinkedHashMap(
 
 fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destination: M): M {
     for (element in this) {
-        destination.put(element.key, element.value)
+        destination[element.key] = element.value
     }
     return destination
 }

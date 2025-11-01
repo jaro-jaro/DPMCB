@@ -98,6 +98,9 @@ fun Duration.truncatedToDays() = inWholeDays.days
 private fun Duration.toDatePeriod() = DatePeriod(days = truncatedToDays().inWholeDays.toInt())
 
 fun LocalDate.asString() = "$day. ${month.number}. $year"
+fun LocalDate.asStringDM() = "$day. ${month.number}."
+
+fun LocalTime.truncatedToMinutes() = LocalTime(hour, minute)
 
 fun String?.toTimeWeirdly() = (this?.run {
     LocalTime(slice(0..1).toInt(), slice(2..3).toInt())

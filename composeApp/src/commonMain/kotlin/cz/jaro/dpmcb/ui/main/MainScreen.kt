@@ -120,6 +120,9 @@ import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.connection.Connection
+import cz.jaro.dpmcb.ui.connection.ConnectionPartDefinition
+import cz.jaro.dpmcb.ui.connection_results.ConnectionResults
+import cz.jaro.dpmcb.ui.connection_search.ConnectionSearch
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.favourites.Favourites
 import cz.jaro.dpmcb.ui.find_bus.FindBus
@@ -128,7 +131,7 @@ import cz.jaro.dpmcb.ui.now_running.NowRunning
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import cz.jaro.dpmcb.ui.sequence.Sequence
 import cz.jaro.dpmcb.ui.settings.Settings
-import cz.jaro.dpmcb.ui.theme.dpmcb
+import cz.jaro.dpmcb.ui.theme.Colors
 import cz.jaro.dpmcb.ui.timetable.Timetable
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.analytics.analytics
@@ -142,6 +145,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
 import org.koin.compose.LocalKoinApplication
+import org.koin.core.annotation.KoinInternalApi
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -179,8 +183,21 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
         localDateTypePair,
     )
 
+    Route.ConnectionSearch::class -> mapOf(
+        localDateTypePair,
+        stringSerializationTypePair<SimpleTime?>(),
+        serializationTypePair<Boolean?>(),
+    )
+
+    Route.ConnectionResults::class -> mapOf(
+        localDateTypePair,
+        stringSerializationTypePair<SimpleTime>(),
+        serializationTypePair<Boolean>(),
+    )
+
     Route.Connection::class -> mapOf(
         localDateTypePair,
+        serializationTypePair<List<ConnectionPartDefinition>>(),
     )
 
     Route.Favourites::class -> mapOf(
@@ -219,6 +236,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     else -> emptyMap()
 }
 
+@OptIn(ExperimentalTime::class)
 @Composable
 fun Main(
     superNavController: NavHostController,
@@ -290,7 +308,7 @@ fun Main(
     ) {
         NavHost(
             navController = navController,
-            startDestination = Route.Favourites,
+            startDestination = Route.ConnectionSearch(SystemClock.todayHere()),
             popEnterTransition = {
                 scaleIn(
                     animationSpec = tween(
@@ -316,6 +334,8 @@ fun Main(
                 )
             },
         ) {
+            route<Route.ConnectionSearch> { ConnectionSearch(args = it, navigator, superNavController) }
+            route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
             route<Route.Connection> { Connection(args = it, navigator, superNavController) }
             route<Route.Favourites> { Favourites(args = it, navigator, superNavController) }
             route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
@@ -413,7 +433,7 @@ private fun TopBar(
             OtherOptions(state, onEvent)
         },
         colors = if (AppState.title == "") TopAppBarDefaults.topAppBarColors(
-            containerColor = dpmcb,
+            containerColor = Colors.dpmcb,
             navigationIconContentColor = Color.Transparent,
             actionIconContentColor = Color.White,
         ) else TopAppBarDefaults.topAppBarColors()
@@ -863,7 +883,7 @@ fun RailItem(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, KoinInternalApi::class)
 private fun Feedback(
     isOnline: Boolean,
     action: DrawerAction,
@@ -880,7 +900,7 @@ private fun Feedback(
         },
         confirmButton = {
             val scope = rememberCoroutineScope()
-            val koin = LocalKoinApplication.current
+            val koin = LocalKoinApplication.current.getValue()
             TextButton(onClick = {
                 val database = Firebase.database(app = koin.get())
                 val ref = database.reference("hodnoceni")
