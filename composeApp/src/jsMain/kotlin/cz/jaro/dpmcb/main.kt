@@ -2,7 +2,7 @@ package cz.jaro.dpmcb
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeViewport
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.StorageSettings
 import com.russhwolf.settings.observable.makeObservable
@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.skiko.wasm.onWasmReady
+import org.koin.compose.ComposeContextWrapper
 import org.koin.compose.LocalKoinApplication
 import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
@@ -93,10 +94,10 @@ fun main() = try {
     val link = window.location.hash.removePrefix("#") + window.location.search
     onWasmReady {
         setAppTitle("Lepší DPMCB")
-        CanvasBasedWindow {
+        ComposeViewport {
             CompositionLocalProvider(
-                LocalKoinApplication provides koinApp.koin,
-                LocalKoinScope provides koinApp.koin.scopeRegistry.rootScope
+                LocalKoinApplication provides ComposeContextWrapper { koinApp.koin },
+                LocalKoinScope provides ComposeContextWrapper { koinApp.koin.scopeRegistry.rootScope },
             ) {
                 SuperMainContent(
                     repo = repo,

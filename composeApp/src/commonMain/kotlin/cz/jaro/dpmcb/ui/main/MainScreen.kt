@@ -33,8 +33,6 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
@@ -68,7 +66,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -87,8 +84,7 @@ import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.get
-import androidx.window.core.layout.WindowHeightSizeClass
-import androidx.window.core.layout.WindowWidthSizeClass
+import androidx.window.core.layout.WindowSizeClass
 import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.BusNumber
@@ -114,7 +110,6 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.enumTypePair
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
-import cz.jaro.dpmcb.ui.common.openWebsiteLauncher
 import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
@@ -136,7 +131,6 @@ import cz.jaro.dpmcb.ui.timetable.Timetable
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.analytics.analytics
 import dev.gitlive.firebase.analytics.logEvent
-import dev.gitlive.firebase.database.database
 import io.github.z4kn4fein.semver.Version
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -144,8 +138,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
-import org.koin.compose.LocalKoinApplication
-import org.koin.core.annotation.KoinInternalApi
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -381,21 +373,20 @@ fun MainScreen(
     onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass.work()
 
-    val compactWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.COMPACT }
-    val mediumWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.MEDIUM }
-    val expandedWidth = remember { windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED }
-    (windowSizeClass.windowWidthSizeClass to windowSizeClass.windowHeightSizeClass).work()
-    val expandedHeight = remember { windowSizeClass.windowHeightSizeClass == WindowHeightSizeClass.EXPANDED }
+    val widthAtLeastMedium = remember { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) }
+    val widthAtLeastExpanded = remember { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) }
 
-    val useModal = remember { compactWidth }
-    val useRail = remember { mediumWidth }
-    val useDrawer = remember { expandedWidth }
+    val heightAtLeastExpanded = remember { windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_EXPANDED_LOWER_BOUND) }
 
-    val useTopBar = remember { expandedHeight || compactWidth }
-    val infoInDrawer = remember { !expandedHeight && expandedWidth }
-    val infoInRail = remember { !expandedHeight && mediumWidth }
+    val useModal = remember { !widthAtLeastMedium }
+    val useRail = remember { widthAtLeastMedium && !widthAtLeastExpanded }
+    val useDrawer = remember { widthAtLeastExpanded }
+
+    val useTopBar = remember { heightAtLeastExpanded || !widthAtLeastMedium }
+    val infoInDrawer = remember { !heightAtLeastExpanded && widthAtLeastExpanded }
+    val infoInRail = remember { !heightAtLeastExpanded && widthAtLeastMedium && !widthAtLeastExpanded }
 
     Scaffold(
         topBar = {
@@ -408,7 +399,7 @@ fun MainScreen(
 
             if (useDrawer) Drawer(state, onEvent, paddingValues, infoInDrawer, content)
             else if (useRail) Rail(state, onEvent, paddingValues, infoInRail, content)
-            else if (useModal) Modal(state, onEvent, paddingValues, drawerState, content)
+            else if (useModal) Modal(onEvent, paddingValues, drawerState, content)
         }
     }
 }
@@ -484,7 +475,6 @@ private fun Drawer(
 
 @Composable
 private fun Modal(
-    state: MainState,
     onEvent: (MainEvent) -> Unit,
     paddingValues: PaddingValues,
     drawerState: DrawerState,
@@ -583,6 +573,7 @@ private fun Title() {
     Text(AppState.title)
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 private fun UpdateDialogs(
     isDataUpdateNeeded: Boolean,
@@ -673,6 +664,7 @@ private fun UpdateDialogs(
     }
 }
 
+@Suppress("AssignedValueIsNeverRead")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun OtherOptions(state: MainState, onEvent: (MainEvent) -> Unit) {
@@ -882,7 +874,7 @@ fun RailItem(
     }
 }
 
-@Composable
+/*@Composable
 @OptIn(ExperimentalMaterial3Api::class, KoinInternalApi::class)
 private fun Feedback(
     isOnline: Boolean,
@@ -951,4 +943,4 @@ private fun Feedback(
         },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
-}
+}*/

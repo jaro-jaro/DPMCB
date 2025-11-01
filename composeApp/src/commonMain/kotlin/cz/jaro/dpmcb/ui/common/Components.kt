@@ -68,6 +68,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePickerColors
 import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberDatePickerState
@@ -575,7 +576,7 @@ fun IconWithTooltip(
         }
     },
     state = rememberTooltipState(),
-    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
 ) {
     Icon(
         imageVector = imageVector,

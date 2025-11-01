@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
@@ -21,6 +22,9 @@ import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.toJsonElement
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
+import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
+import cz.jaro.dpmcb.data.realtions.connection.GraphBus
+import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
@@ -156,8 +160,16 @@ class SupabaseDataSource(
             mapOf("stop" to stop.s, "tabA" to tab.s)
         ).decodeObjectList()
 
+    override suspend fun stopNamesOnConns(tabs: List<Table>): Map<BusName, List<StopName>> {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String> =
         query("stopNamesOfLine", mapOf("lineA" to line.j, "tabA" to tab.s)).decodeColumnFromTable("stopname")
+
+    override suspend fun stopsOnConns(tabs: List<Table>): Map<GraphBus, List<StopNameTime>> {
+        TODO("Not yet implemented")
+    }
 
     override suspend fun coreBus(connName: BusName, groups: List<SequenceGroup>, tab: Table): List<CoreBus> =
         query("coreBus", mapOf("connName" to connName.s, "groups" to groups.l, "tabA" to tab.s)).decodeObjectList()
@@ -211,6 +223,14 @@ class SupabaseDataSource(
         query("nowRunningBuses", mapOf("connNames" to connNames.l, "groups" to groups.l, "tabs" to tabs.l))
             .decodeAs<JsonArray>()
             .groupBy({ it.fromJsonElement(supabaseSerializer<BusOfNowRunning>(), json) }, { it.fromJsonElement<StopOfNowRunning>(json) })
+
+    override suspend fun connectionResultBuses(
+        connNames: Set<BusName>,
+        groups: List<SequenceGroup>,
+        tabs: List<Table>,
+    ): Map<ConnectionBusInfo, List<StopNameTime>> {
+        TODO("Not yet implemented")
+    }
 
     override suspend fun codesOfSequences(
         tabs: List<Table>,
