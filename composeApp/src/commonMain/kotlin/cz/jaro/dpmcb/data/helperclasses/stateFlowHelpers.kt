@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 import kotlin.jvm.JvmName
 
@@ -46,6 +47,14 @@ fun <T : Any> StateFlow<T?>.filterNotNullState(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
 ): StateFlow<T> = filterNotNull()
     .stateIn(coroutineScope, sharingStarted, value ?: defaultInitialValue)
+
+fun <T, R> StateFlow<T>.runningFoldState(
+    initial: R,
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
+    operation: suspend (accumulator: R, value: T) -> R
+): StateFlow<R> = runningFold(initial, operation)
+    .stateIn(coroutineScope, sharingStarted, initial)
 
 fun <T1, T2, R> StateFlow<T1>.combineStates(
     coroutineScope: CoroutineScope,
@@ -111,14 +120,14 @@ inline fun <reified T, R> combineStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     crossinline transform: (Array<T>) -> R
 ) = combine(flows, transform)
-    .stateIn(sharingStarted, transform(flows.map { it.value }.toTypedArray()))
+    .stateInViewModel(sharingStarted, transform(flows.map { it.value }.toTypedArray()))
 
 context(vm: ViewModel)
 inline fun <T, R> StateFlow<T>.mapState(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     crossinline transform: (value: T) -> R,
 ): StateFlow<R> = map(transform)
-    .stateIn(sharingStarted, transform(value))
+    .stateInViewModel(sharingStarted, transform(value))
 
 context(vm: ViewModel)
 inline fun <T> StateFlow<T>.filterState(
@@ -126,14 +135,22 @@ inline fun <T> StateFlow<T>.filterState(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     crossinline predicate: (value: T) -> Boolean,
 ): StateFlow<T> = filter(predicate)
-    .stateIn(sharingStarted, if (predicate(value)) value else defaultInitialValue)
+    .stateInViewModel(sharingStarted, if (predicate(value)) value else defaultInitialValue)
 
 context(vm: ViewModel)
 fun <T : Any> StateFlow<T?>.filterNotNullState(
     defaultInitialValue: T,
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
 ): StateFlow<T> = filterNotNull()
-    .stateIn(sharingStarted, value ?: defaultInitialValue)
+    .stateInViewModel(sharingStarted, value ?: defaultInitialValue)
+
+context(vm: ViewModel)
+fun <T, R> StateFlow<T>.runningFoldState(
+    initial: R,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
+    operation: suspend (accumulator: R, value: T) -> R
+): StateFlow<R> = runningFold(initial, operation)
+    .stateInViewModel(sharingStarted, initial)
 
 context(vm: ViewModel)
 @JvmName("combineStatesExt")
@@ -159,7 +176,7 @@ fun <T1, T2, R> combineStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (a: T1, b: T2) -> R,
 ): StateFlow<R> = flow.combine(flow2, transform)
-    .stateIn(sharingStarted, transform(flow.value, flow2.value))
+    .stateInViewModel(sharingStarted, transform(flow.value, flow2.value))
 
 context(vm: ViewModel)
 fun <T1, T2, T3, R> combineStates(
@@ -169,7 +186,7 @@ fun <T1, T2, T3, R> combineStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (T1, T2, T3) -> R,
 ): StateFlow<R> = combine(flow, flow2, flow3, transform)
-    .stateIn(sharingStarted, transform(flow.value, flow2.value, flow3.value))
+    .stateInViewModel(sharingStarted, transform(flow.value, flow2.value, flow3.value))
 
 context(vm: ViewModel)
 fun <T1, T2, T3, T4, R> combineStates(
@@ -180,7 +197,7 @@ fun <T1, T2, T3, T4, R> combineStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (T1, T2, T3, T4) -> R,
 ): StateFlow<R> = combine(flow, flow2, flow3, flow4, transform)
-    .stateIn(sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value))
+    .stateInViewModel(sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value))
 
 context(vm: ViewModel)
 fun <T1, T2, T3, T4, T5, R> combineStates(
@@ -192,7 +209,7 @@ fun <T1, T2, T3, T4, T5, R> combineStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     transform: (T1, T2, T3, T4, T5) -> R,
 ): StateFlow<R> = combine(flow, flow2, flow3, flow4, flow5, transform)
-    .stateIn(sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value, flow5.value))
+    .stateInViewModel(sharingStarted, transform(flow.value, flow2.value, flow3.value, flow4.value, flow5.value))
 
 context(vm: ViewModel)
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -200,4 +217,4 @@ fun <T> StateFlow<StateFlow<T>>.flattenMergeStates(
     sharingStarted: SharingStarted = SharingStarted.Eagerly,
     concurrency: Int = DEFAULT_CONCURRENCY
 ) = flattenMerge(concurrency)
-    .stateIn(sharingStarted, value.value)
+    .stateInViewModel(sharingStarted, value.value)

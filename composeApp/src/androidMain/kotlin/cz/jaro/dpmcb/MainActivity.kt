@@ -15,6 +15,7 @@ import cz.jaro.dpmcb.ui.loading.AppUpdater
 import org.koin.android.ext.android.get
 import org.koin.android.ext.android.getKoin
 import org.koin.android.ext.android.inject
+import org.koin.compose.ComposeContextWrapper
 import org.koin.compose.LocalKoinApplication
 import org.koin.compose.LocalKoinScope
 import org.koin.core.annotation.KoinInternalApi
@@ -44,8 +45,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CompositionLocalProvider(
-                LocalKoinApplication provides koin,
-                LocalKoinScope provides koin.scopeRegistry.rootScope
+                LocalKoinApplication provides ComposeContextWrapper { koin },
+                LocalKoinScope provides ComposeContextWrapper { koin.scopeRegistry.rootScope }
             ) {
                 SuperMainContent(
                     repo = repo,

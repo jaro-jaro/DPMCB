@@ -26,7 +26,7 @@ import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import cz.jaro.dpmcb.ui.theme.dpmcb
+import cz.jaro.dpmcb.ui.theme.Colors
 
 @Suppress("unused")
 @Composable
@@ -55,7 +55,7 @@ fun CardScreen(
 ) {
     Box(
         Modifier
-            .background(dpmcb)
+            .background(Colors.dpmcb)
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom))
     ) {

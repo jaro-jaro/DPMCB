@@ -1,50 +1,50 @@
 [versions]
 # b: 0=alpha, 1=beta, 2=pre, 3=RC
 #                 Mmmppbvv
-appVersionCode = "10700301"
-appVersionName = "1.7.0-RC.1"
+appVersionCode = "10800001"
+appVersionName = "1.8.0-alpha.1"
 #                 M.m.p-b    .v
 android-compileSdk = "36"
 android-minSdk = "26"
 # TODO: Bug in 2.9.2
-androidx-lifecycle = "2.9.1"
-compose-multiplatform = "1.8.2"
+androidx-lifecycle = "2.9.5"
+compose-multiplatform = "1.9.2"
 android-gradle-plugin = "8.13.0"
-androidx-activity-compose = "1.10.1"
+androidx-activity-compose = "1.11.0"
 androidx-core = "1.17.0"
 androidx-jetpack-glance = "1.1.1"
 # TODO: Bug in 2.9.0-beta04 and 5
-androidx-navigation = "2.9.0-beta03"
-androidx-jetpack-room = "2.7.2"
+androidx-navigation = "2.9.1"
+androidx-jetpack-room = "2.8.3"
 browser = "1.9.0"
 coil = "2.7.0"
-google-services = "4.4.3"
-firebase = "2.3.0"
+google-services = "4.4.4"
+firebase = "2.4.0"
 google-firebase-analytics = "22.5.0"
 google-firebase-crashlytics = "19.4.4"
 google-firebase-database = "21.0.0"
 google-firebase-storage = "21.0.2"
 google-firebase-config = "22.1.2"
 firebase-crashlytics-plugin = "3.0.6"
-koin-compose = "4.1.0"
-koin = "4.1.0"
+koin-compose = "4.1.1"
+koin = "4.1.1"
 # TODO: remove compat version after compose material3 adopts kotlin.time
 kotlinx-datetime = "0.7.1-0.6.x-compat"
-kotlin = "2.2.10"
+kotlin = "2.2.21"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 kotlinxBrowser = "0.5.0"
-supabase = "3.2.2"
+supabase = "3.2.6"
 semver = "3.0.0"
-zoomable = "0.16.0"
-kotlin-symbol-processing = "2.2.10-2.0.2"
+zoomable = "0.18.0"
+kotlin-symbol-processing = "2.2.21-2.0.4"
 ksoup = "0.2.5"
-transportation-consumer = "3.2.0"
+transportation-consumer = "4.0.0"
 #firebase-inappmessaging-display = "21.0.1"
 desugar_jdk_libs = "2.1.5"
 multiplatform-settings = "1.3.0"
 buildkonfig = "0.17.1"
-adaptive = "1.1.2"
+adaptive = "1.2.0"
 
 [libraries]
 coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coil" }
@@ -55,6 +55,7 @@ androidx-browser = { module = "androidx.browser:browser", version.ref = "browser
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-jetpack-glance = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-jetpack-glance" }
 androidx-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref = "androidx-navigation" }
+androidx-jetpack-room-common = { module = "androidx.room:room-common", version.ref = "androidx-jetpack-room" }
 androidx-jetpack-room = { module = "androidx.room:room-ktx", version.ref = "androidx-jetpack-room" }
 androidx-jetpack-room-compiler = { module = "androidx.room:room-compiler", version.ref = "androidx-jetpack-room" }
 androidx-jetpack-room-runtime = { module = "androidx.room:room-runtime", version.ref = "androidx-jetpack-room" }

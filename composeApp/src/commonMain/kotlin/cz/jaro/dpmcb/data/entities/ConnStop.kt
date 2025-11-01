@@ -1,26 +1,23 @@
 package cz.jaro.dpmcb.data.entities
 
+import androidx.room.Entity
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.Serializable
 
-expect class ConnStop(
-    tab: Table,
-    connNumber: BusNumber,
-    stopIndexOnLine: Int,
-    line: LongLine,
-    stopNumber: StopNumber,
-    kmFromStart: Int,
-    fixedCodes: String,
-    arrival: LocalTime?,
-    departure: LocalTime?,
+@Entity(primaryKeys = ["tab", "connNumber", "stopIndexOnLine"])
+@Serializable
+data class ConnStop(
+// Primary keys
+    val tab: Table,
+    val connNumber: BusNumber,
+    val stopIndexOnLine: Int,
+// Other
+    val line: LongLine,
+    val stopNumber: StopNumber,
+    val kmFromStart: Int,
+    val fixedCodes: String,
+    val arrival: LocalTime?,
+    val departure: LocalTime?,
 ) {
-    val tab: Table
-    val connNumber: BusNumber
-    val stopIndexOnLine: Int
-    val line: LongLine
-    val stopNumber: StopNumber
-    val kmFromStart: Int
-    val fixedCodes: String
-    val arrival: LocalTime?
-    val departure: LocalTime?
-    val time: LocalTime?
+    val time get() = departure ?: arrival
 }

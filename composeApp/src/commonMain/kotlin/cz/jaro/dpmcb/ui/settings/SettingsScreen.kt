@@ -362,7 +362,7 @@ private fun LazyListScope.settings(
         val options = remember {
             buildList {
                 if (dynamicColorsSupported) add("Dynamické")
-                addAll(Theme.entries.map { it.jmeno })
+                addAll(Theme.entries.map { it.label })
             }
         }
         var expanded by remember { mutableStateOf(false) }
@@ -370,7 +370,7 @@ private fun LazyListScope.settings(
             derivedStateOf {
                 when {
                     dynamicColorsSupported && settings.dynamicColors -> options.first()
-                    else -> settings.theme.jmeno
+                    else -> settings.theme.label
                 }
             }
         }

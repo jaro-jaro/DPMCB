@@ -19,7 +19,7 @@ import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -181,7 +181,7 @@ class DeparturesViewModel(
     }
         .flowOn(Dispatchers.IO)
         .distinctUntilChanged()
-        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
     init {
         combine(info, finalList, timeFlow) { info, list, now ->

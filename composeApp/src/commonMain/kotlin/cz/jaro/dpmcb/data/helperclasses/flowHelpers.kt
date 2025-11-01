@@ -166,7 +166,7 @@ suspend inline fun <T> ReceiveChannel<T>.forEach(action: (T) -> Unit) {
 
 
 context(vm: ViewModel)
-fun <T> Flow<T>.stateIn(
+fun <T> Flow<T>.stateInViewModel(
     started: SharingStarted,
     initialValue: T
 ): StateFlow<T> = stateIn(vm.viewModelScope, started, initialValue)

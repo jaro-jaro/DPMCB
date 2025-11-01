@@ -547,11 +547,11 @@ class LoadingViewModel(
 }
 
 @TimetableProcessing
-private suspend inline fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
+private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
     connsWithSequence: List<BusName>,
     scope: CoroutineScope,
-    noinline progress: (Float) -> Unit,
-    crossinline addConnToSequence: (conn: Conn) -> Unit,
+    progress: (Float) -> Unit,
+    addConnToSequence: (conn: Conn) -> Unit,
 ): List<Quintuple<List<ConnStop>, List<TimeCode>, List<Stop>, List<Line>, List<Conn>>> {
     val data = mapKeys { (key) ->
         Table(LongLine(key.value.substringBefore('-').toInt() + 325_000), key.number()) // TODO: Nezávislost dat na předčíslí linky

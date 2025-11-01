@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.helperclasses.combineAll
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
@@ -88,7 +88,7 @@ class FavouritesViewModel(
                 }
         }
             .distinctUntilChanged()
-            .stateIn(SharingStarted.WhileSubscribed(5.seconds), emptyMap())
+            .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), emptyMap())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val states = combine(
@@ -139,7 +139,7 @@ class FavouritesViewModel(
         }.filterNotNull()
     }
         .distinctUntilChanged()
-        .stateIn(SharingStarted.WhileSubscribed(5.seconds), null)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), null)
 
     val state =
         combineStates(states, recentBusesCount) { buses, recentBusesCount ->

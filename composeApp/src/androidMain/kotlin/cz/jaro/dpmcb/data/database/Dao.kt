@@ -16,12 +16,16 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
+import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
+import cz.jaro.dpmcb.data.realtions.connection.GraphBus
+import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
@@ -31,7 +35,6 @@ import cz.jaro.dpmcb.data.realtions.sequence.CoreBusOfSequence
 import cz.jaro.dpmcb.data.realtions.timetable.CoreBusInTimetable
 import cz.jaro.dpmcb.data.realtions.timetable.EndStop
 
-@Suppress("AndroidUnresolvedRoomSqlReference")
 @Dao
 interface Dao : SpojeQueries {
     @Transaction
@@ -262,6 +265,24 @@ interface Dao : SpojeQueries {
 
     @Query(
         """
+        SELECT Conn.name connName, Stop.stopName FROM ConnStop
+        JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
+        JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+        WHERE Conn.tab IN (:tabs)
+        AND (
+            ConnStop.departure IS NOT NULL
+            OR ConnStop.arrival IS NOT NULL
+        )
+        ORDER BY CASE
+           WHEN Conn.direction = 'POSITIVE' THEN ConnStop.stopIndexOnLine
+           ELSE -ConnStop.stopIndexOnLine
+        END;
+        """
+    )
+    override suspend fun stopNamesOnConns(tabs: List<Table>): Map<@MapColumn("connName") BusName, List<@MapColumn("stopName") StopName>>
+
+    @Query(
+        """
         
         SELECT DISTINCT Stop.stopName FROM ConnStop
         JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
@@ -272,6 +293,31 @@ interface Dao : SpojeQueries {
         """
     )
     override suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String>
+
+    @Transaction
+    @Query(
+        """
+        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, CASE
+            WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
+            ELSE ConnStop.departure
+        END time, ConnStop.departure, ConnStop.arrival, Line.vehicleType FROM ConnStop
+        JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
+        JOIN Line ON Line.tab = ConnStop.tab
+        JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+        WHERE Conn.tab IN (:tabs)
+        AND (
+            ConnStop.departure IS NOT NULL
+            OR ConnStop.arrival IS NOT NULL
+        )
+        ORDER BY CASE
+           WHEN Conn.direction = 'POSITIVE' THEN ConnStop.stopIndexOnLine
+           ELSE -ConnStop.stopIndexOnLine
+        END;
+        """
+    )
+    override suspend fun stopsOnConns(
+        tabs: List<Table>,
+    ): Map<GraphBus, List<StopNameTime>>
 
     @Transaction
     @Query(
@@ -301,6 +347,36 @@ interface Dao : SpojeQueries {
         groups: List<SequenceGroup>,
         tabs: List<Table>,
     ): Map<BusOfNowRunning, List<StopOfNowRunning>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, CASE
+            WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
+            ELSE ConnStop.departure
+        END time, ConnStop.departure, ConnStop.arrival, Line.vehicleType, SeqOfConn.sequence FROM ConnStop
+        JOIN Conn ON Conn.connNumber = ConnStop.connNumber AND Conn.tab = ConnStop.tab
+        JOIN Line ON Line.tab = ConnStop.tab
+        JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+        JOIN SeqOfConn ON SeqOfConn.connNumber = Conn.connNumber AND SeqOfConn.line = Conn.line
+        WHERE Conn.name IN (:connNames)
+        AND SeqOfConn.`group` IN (:groups)
+        AND Conn.tab IN (:tabs)
+        AND (
+            ConnStop.departure IS NOT NULL
+            OR ConnStop.arrival IS NOT NULL
+        )
+        ORDER BY CASE
+           WHEN Conn.direction = 'POSITIVE' THEN ConnStop.stopIndexOnLine
+           ELSE -ConnStop.stopIndexOnLine
+        END;
+        """
+    )
+    override suspend fun connectionResultBuses(
+        connNames: Set<BusName>,
+        groups: List<SequenceGroup>,
+        tabs: List<Table>
+    ): Map<ConnectionBusInfo, List<StopNameTime>>
 
     @Transaction
     @Query(

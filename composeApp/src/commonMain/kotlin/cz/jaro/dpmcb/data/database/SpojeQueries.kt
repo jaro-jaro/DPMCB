@@ -11,12 +11,16 @@ import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.Stop
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.TimeCode
 import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.realtions.CoreBus
 import cz.jaro.dpmcb.data.realtions.bus.CodesOfBus
+import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
+import cz.jaro.dpmcb.data.realtions.connection.GraphBus
+import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.CoreDeparture
 import cz.jaro.dpmcb.data.realtions.departures.StopOfDeparture
 import cz.jaro.dpmcb.data.realtions.now_running.BusOfNowRunning
@@ -47,7 +51,11 @@ interface SpojeQueries {
         tab: Table,
     ): List<EndStop>
 
+    suspend fun stopNamesOnConns(tabs: List<Table>): Map<BusName, List<StopName>>
+
     suspend fun stopNamesOfLine(line: LongLine, tab: Table): List<String>
+
+    suspend fun stopsOnConns(tabs: List<Table>): Map<GraphBus, List<StopNameTime>>
 
     suspend fun coreBus(connName: BusName, groups: List<SequenceGroup>, tab: Table): List<CoreBus>
 
@@ -82,6 +90,12 @@ interface SpojeQueries {
     ): Map<BusName, BusStartEnd>
 
     suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>): Map<BusOfNowRunning, List<StopOfNowRunning>>
+
+    suspend fun connectionResultBuses(
+        connNames: Set<BusName>,
+        groups: List<SequenceGroup>,
+        tabs: List<Table>
+    ): Map<ConnectionBusInfo, List<StopNameTime>>
 
     suspend fun codesOfSequences(
         tabs: List<Table>,

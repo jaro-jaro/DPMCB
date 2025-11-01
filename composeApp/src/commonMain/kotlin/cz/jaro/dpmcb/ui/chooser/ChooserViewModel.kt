@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.sorted
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -215,7 +215,7 @@ class ChooserViewModel(
     )
 
     val state =
-        list.map(::ChooserState).stateIn(SharingStarted.WhileSubscribed(5_000), ChooserState())
+        list.map(::ChooserState).stateInViewModel(SharingStarted.WhileSubscribed(5_000), ChooserState())
 }
 
 private fun String.normalize() = this

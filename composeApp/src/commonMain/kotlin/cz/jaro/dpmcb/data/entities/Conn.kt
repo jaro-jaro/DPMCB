@@ -1,19 +1,20 @@
 package cz.jaro.dpmcb.data.entities
 
+import androidx.room.Entity
 import cz.jaro.dpmcb.data.entities.types.Direction
+import kotlin.jvm.JvmName
 
-expect class Conn(
-    tab: Table,
-    connNumber: BusNumber,
-    line: LongLine,
-    fixedCodes: String,
-    direction: Direction,
+@Entity(primaryKeys = ["tab", "connNumber"])
+data class Conn(
+// Primary keys
+    val tab: Table,
+    val connNumber: BusNumber,
+// Other
+    val line: LongLine,
+    val fixedCodes: String,
+    val direction: Direction,
 ) {
-    val tab: Table
-    val connNumber: BusNumber
-    val line: LongLine
-    val fixedCodes: String
-    val direction: Direction
-    var name: BusName
+    @get:JvmName("getName")
+    var name = BusName(line, connNumber)
         internal set
 }

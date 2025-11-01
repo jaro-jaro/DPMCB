@@ -21,7 +21,7 @@ import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.runsAt
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -120,7 +120,7 @@ class SequenceViewModel(
         return@combine onlineConn
     }
         .flowOn(Dispatchers.IO)
-        .stateIn(SharingStarted.WhileSubscribed(5_000), null)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
     private val traveledSegments = combine(info, nowRunningOnlineConn, timeFlow) { info, onlineConn, now ->
 
@@ -204,7 +204,7 @@ class SequenceViewModel(
                 )
             }
         }
-    }.stateIn(SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
+    }.stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), SequenceState.Loading)
 
     fun onEvent(e: SequenceEvent) = when (e) {
         is SequenceEvent.BusClick -> navigator.navigate(Route.Bus(params.date, e.busName))

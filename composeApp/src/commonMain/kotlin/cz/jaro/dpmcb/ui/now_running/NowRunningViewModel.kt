@@ -14,7 +14,7 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
-import cz.jaro.dpmcb.data.helperclasses.stateIn
+import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.jikord.OnlineConn
@@ -111,7 +111,7 @@ class NowRunningViewModel(
         list.filter {
             filters.isEmpty() || it.lineNumber in filters
         }
-    }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
+    }.stateInViewModel(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val offlineList = repo.nowRunning.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
         repo.nowRunningBusDetails(busNames, SystemClock.todayHere()).values
@@ -137,7 +137,7 @@ class NowRunningViewModel(
         list.filter {
             filters.isEmpty() || it.lineNumber in filters
         }
-    }.stateIn(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
+    }.stateInViewModel(SharingStarted.WhileSubscribed(stopTimeout = 5.seconds), null)
 
     private val result = combine(filteredOfflineList, filteredOnlineList, allowedType) { offline, online, type ->
         when (type) {
@@ -156,7 +156,7 @@ class NowRunningViewModel(
             lineNumbers.isEmpty() -> NowRunningState.NoLines
             else -> NowRunningState.OK(lineNumbers, filters, type, result, isOnline)
         }
-    }.stateIn(SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
+    }.stateInViewModel(SharingStarted.WhileSubscribed(5_000), NowRunningState.LoadingLines(params.type))
 }
 
 private fun resultListDelay(list: List<RunningConnPlus>) = list
