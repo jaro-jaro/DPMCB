@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NoTransfer
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
@@ -68,9 +67,12 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.viewModel
@@ -153,6 +155,10 @@ fun ConnectionSearchScreen(
         initialMinute = time.minute,
         is24Hour = true,
     )
+    LaunchedEffect(time) {
+        timeState.hour = time.hour
+        timeState.minute = time.minute
+    }
     if (showTimePicker) TimePickerDialog(
         onDismissRequest = { showTimePicker = false },
         confirmButton = {
@@ -173,6 +179,7 @@ fun ConnectionSearchScreen(
             TextButton(
                 onClick = {
                     onEvent(ConnectionSearchEvent.ChangeTime(SystemClock.timeHere().truncatedToMinutes()))
+                    onEvent(ConnectionSearchEvent.ChangeDate(SystemClock.todayHere()))
                     showTimePicker = false
                 }
             ) {
@@ -216,62 +223,28 @@ fun ConnectionSearchScreen(
                 onClick = {
                     onEvent(ConnectionSearchEvent.SwitchStops)
                 },
-                //Modifier.padding(all = 4.dp)
             ) {
-                IconWithTooltip(Icons.Default.SwapVert, null)
+                IconWithTooltip(Icons.Default.SwapVert, "Prohodit start a cíl")
             }
             Column {
-                OutlinedTextField(
-                    value = state.settings.start,
-                    onValueChange = {},
-                    Modifier
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                awaitFirstDown(pass = PointerEventPass.Initial)
-                                val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-                                if (upEvent != null)
-                                    onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop1))
-                            }
-                        }
-                        .semantics {
-                            role = Role.Button
-                            onClick {
-                                onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop1))
-                                true
-                            }
-                        },
-                    readOnly = true,
-                    label = { Text("Odkud") },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                TextFieldButton(
+                    text = state.settings.start,
+                    onClick = {
+                        onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop1))
+                    },
+                    label = { Text("Odkud") }
                 )
-                OutlinedTextField(
-                    value = state.settings.destination,
-                    onValueChange = {},
-                    Modifier
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                awaitFirstDown(pass = PointerEventPass.Initial)
-                                val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-                                if (upEvent != null)
-                                    onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop2))
-                            }
-                        }
-                        .semantics {
-                            role = Role.Button
-                            onClick {
-                                onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop2))
-                                true
-                            }
-                        },
-                    readOnly = true,
-                    label = { Text("Kam") },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                TextFieldButton(
+                    text = state.settings.destination,
+                    onClick = {
+                        onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop2))
+                    },
+                    label = { Text("Kam") }
                 )
             }
             IconButton(
                 onClick = {},
                 enabled = false
-                //Modifier.padding(all = 4.dp)
             ) {
                 IconWithTooltip(Icons.Default.SwapVert, null, tint = MaterialTheme.colorScheme.surface)
             }
@@ -302,13 +275,13 @@ fun ConnectionSearchScreen(
                     onEvent(ConnectionSearchEvent.Search)
                 },
             ) {
-                Text("Vyhledat Spojení")
+                Text("Vyhledat spojení")
             }
             IconButton(
                 onClick = {},
                 enabled = false
             ) {
-                IconWithTooltip(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.surface)
+                IconWithTooltip(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.surface)
             }
         }
 
@@ -321,15 +294,20 @@ fun ConnectionSearchScreen(
         }
 
         itemsIndexed(state.history) { i, s ->
+            val datetime =
+                "${s.datetime.date.day}. ${s.datetime.date.month.number}. ${s.datetime.time.hour.two()}:${s.datetime.time.minute.two()}"
             ListItem(
                 headlineContent = {
                     Text(text = "${s.start} -> ${s.destination}")
                 },
                 Modifier.clickable {
-                    onEvent(ConnectionSearchEvent.SearchFromHistory(i))
+                    if (s.datetime > SystemClock.nowHere())
+                        onEvent(ConnectionSearchEvent.SearchFromHistoryWithDatetime(i))
+                    else
+                        onEvent(ConnectionSearchEvent.SearchFromHistory(i))
                 },
                 supportingContent = {
-                    Text(text = "${s.datetime.date.day}. ${s.datetime.date.month.number}. ${s.datetime.time.hour.two()}:${s.datetime.time.minute.two()}")
+                    Text(text = datetime)
                 },
                 trailingContent = {
                     var showDetails by remember { mutableStateOf(false) }
@@ -338,12 +316,17 @@ fun ConnectionSearchScreen(
                         onDismissRequest = { showDetails = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Vyhledat") },
+                            text = { Text("Vyhledat nyní") },
                             onClick = { onEvent(ConnectionSearchEvent.SearchFromHistory(i)) },
                             leadingIcon = { Icon(Icons.Default.Search, null) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Vyplnit") },
+                            text = { Text("Vyhledat $datetime") },
+                            onClick = { onEvent(ConnectionSearchEvent.SearchFromHistoryWithDatetime(i)) },
+                            leadingIcon = { Icon(Icons.Default.Search, null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Vyplnit zastávky") },
                             onClick = { onEvent(ConnectionSearchEvent.FillFromHistory(i)) },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                         )
@@ -361,6 +344,37 @@ fun ConnectionSearchScreen(
         }
     }
 }
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TextFieldButton(
+    text: StopName,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) = OutlinedTextField(
+    value = text,
+    onValueChange = {},
+    modifier
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(pass = PointerEventPass.Initial)
+                val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                if (upEvent != null)
+                    onClick()
+            }
+        }
+        .semantics {
+            role = Role.Button
+            onClick {
+                onClick()
+                true
+            }
+        },
+    readOnly = true,
+    label = label,
+    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+)
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -396,8 +410,8 @@ private fun SearchSettings(
 
         Switch(
             checked = true,//state.settings.showInefficientConnections,
-            onCheckedChange = { prima ->
-//                onEvent(ConnectionSearchEvent.SetShowInefficientConnections(prima))
+            onCheckedChange = { _ ->
+//                onEvent(ConnectionSearchEvent.SetShowInefficientConnections(_))
             },
         )
     }
