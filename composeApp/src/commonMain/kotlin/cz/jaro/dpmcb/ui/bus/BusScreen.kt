@@ -121,12 +121,12 @@ fun BusScreen(
                             }
                         )
 
-                        Favouritificator(
+                        /*Favouritificator(
                             onEvent = onEvent,
                             busName = state.busName,
                             favouritePartOfConn = state.favourite,
                             stops = state.stops
-                        )
+                        )*/
                     }
                     Row(
                         Modifier

@@ -39,13 +39,23 @@ class ConnectionSearchViewModel(
     private val history = repo.searchHistory
 
     private val settings =
-        MutableStateFlow(SearchSettings(
-            start = args.start ?: "",
-            destination = args.destination ?: "",
-            directOnly = args.directOnly ?: false,
-            showInefficientConnections = args.showInefficientConnections ?: true,
-            datetime = args.date.atTime(args.time?.toLocalTime() ?: SystemClock.timeHere().truncatedToMinutes()),
-        ))
+        MutableStateFlow(defaultSettings().let {
+            SearchSettings(
+                start = args.start ?: it.start,
+                destination = args.destination ?: it.destination,
+                directOnly = args.directOnly ?: it.directOnly,
+                showInefficientConnections = args.showInefficientConnections ?: it.showInefficientConnections,
+                datetime = args.date.atTime(args.time?.toLocalTime() ?: it.datetime.time),
+            )
+        })
+
+    private fun defaultSettings(): SearchSettings = SearchSettings(
+        start = "",
+        destination = "",
+        directOnly = false,
+        showInefficientConnections = true,
+        datetime = args.date.atTime(SystemClock.timeHere().truncatedToMinutes()),
+    )
 
     private fun changeCurrentRoute(settings: SearchSettings) {
         AppState.route = Route.ConnectionSearch(
@@ -63,20 +73,23 @@ class ConnectionSearchViewModel(
             Chooser(type = e.type, date = settings.value.datetime.date)
         )
 
+        is ConnectionSearchEvent.ClearAll -> settings.value = defaultSettings()
+
         is ConnectionSearchEvent.Search -> {
             repo.pushSearchToHistory(settings.value)
             navigator.navigate(ConnectionResults(settings = settings.value))
         }
 
         is ConnectionSearchEvent.SearchFromHistory -> {
-            onEvent(ConnectionSearchEvent.FillFromHistory(e.i))
+            onEvent(ConnectionSearchEvent.FillFromHistory(e.i, e.includeDatetime))
             onEvent(ConnectionSearchEvent.Search)
         }
 
         is ConnectionSearchEvent.FillFromHistory -> {
             val s = history.value[e.i]
-            settings.update { s }
-            changeCurrentRoute(s)
+            if (e.includeDatetime) settings.value = s
+            else settings.update { s.copy(datetime = it.datetime) }
+            changeCurrentRoute(settings.value)
         }
 
         is ConnectionSearchEvent.DeleteFromHistory -> {
