@@ -10,6 +10,7 @@ sealed interface ConnectionSearchEvent {
     data object SwitchStops : ConnectionSearchEvent
     data object Search : ConnectionSearchEvent
     data class WentBack(val type: ChooserType, val stop: StopName) : ConnectionSearchEvent
+    data class SearchFromHistoryWithDatetime(val i: Int) : ConnectionSearchEvent
     data class SearchFromHistory(val i: Int) : ConnectionSearchEvent
     data class FillFromHistory(val i: Int) : ConnectionSearchEvent
     data class DeleteFromHistory(val i: Int) : ConnectionSearchEvent
