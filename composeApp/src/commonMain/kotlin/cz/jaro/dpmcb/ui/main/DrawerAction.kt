@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.ui.graphics.vector.ImageVector
 import cz.jaro.dpmcb.ui.card.supportsCard
@@ -30,12 +29,12 @@ enum class DrawerAction(
         multiselect = true,
         route = { Route.ConnectionSearch(it) },
     ),
-    Favourites(
+    /*Favourites(
         label = "Oblíbené spoje",
         icon = Icons.Default.Star,
         multiselect = true,
         route = { Route.Favourites },
-    ),
+    ),*/
     Departures(
         label = "Odjezdy",
         icon = Icons.Default.DepartureBoard,

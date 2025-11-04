@@ -1,39 +1,6 @@
 package cz.jaro.dpmcb.ui.favourites
 
-import androidx.lifecycle.ViewModel
-import cz.jaro.dpmcb.data.OnlineRepository
-import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.combineAll
-import cz.jaro.dpmcb.data.helperclasses.combineStates
-import cz.jaro.dpmcb.data.helperclasses.mapState
-import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.lineTraction
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
-import cz.jaro.dpmcb.data.recordException
-import cz.jaro.dpmcb.data.vehicleName
-import cz.jaro.dpmcb.data.vehicleTraction
-import cz.jaro.dpmcb.ui.main.Navigator
-import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.map
-import kotlinx.datetime.LocalTime
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
-
-@OptIn(ExperimentalTime::class)
+/*@OptIn(ExperimentalTime::class)
 class FavouritesViewModel(
     private val repo: SpojeRepository,
     private val onlineRepo: OnlineRepository,
@@ -168,4 +135,4 @@ class FavouritesViewModel(
         val delay: Duration,
         val currentStopTime: LocalTime?,
     )
-}
+}*/

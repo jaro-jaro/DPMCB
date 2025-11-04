@@ -1,63 +1,6 @@
 package cz.jaro.dpmcb.ui.favourites
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.data.AppState
-import cz.jaro.dpmcb.data.entities.LongLine
-import cz.jaro.dpmcb.data.entities.div
-import cz.jaro.dpmcb.data.entities.toRegNum
-import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.Traction
-import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.rowItem
-import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
-import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
-import cz.jaro.dpmcb.data.viewModel
-import cz.jaro.dpmcb.ui.common.DelayBubble
-import cz.jaro.dpmcb.ui.common.Name
-import cz.jaro.dpmcb.ui.common.Vehicle
-import cz.jaro.dpmcb.ui.common.VehicleIcon
-import cz.jaro.dpmcb.ui.main.DrawerAction
-import cz.jaro.dpmcb.ui.main.Navigator
-import cz.jaro.dpmcb.ui.main.Route
-import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.ExperimentalTime
-
+/*
 @Composable
 @Suppress("unused")
 fun Favourites(
@@ -421,4 +364,4 @@ private fun FavouritesPreview(
             onEvent = {}
         )
     }
-}
+}*/

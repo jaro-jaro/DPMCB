@@ -21,8 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NoTransfer
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapVert
@@ -39,6 +41,8 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
@@ -56,6 +60,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -277,11 +282,12 @@ fun ConnectionSearchScreen(
             ) {
                 Text("Vyhledat spojení")
             }
-            IconButton(
-                onClick = {},
-                enabled = false
+            OutlinedIconButton(
+                onClick = {
+                    onEvent(ConnectionSearchEvent.ClearAll)
+                }
             ) {
-                IconWithTooltip(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.surface)
+                IconWithTooltip(Icons.Default.PlaylistRemove, "Vymazat vše")
             }
         }
 
@@ -294,55 +300,76 @@ fun ConnectionSearchScreen(
         }
 
         itemsIndexed(state.history) { i, s ->
-            val datetime =
-                "${s.datetime.date.day}. ${s.datetime.date.month.number}. ${s.datetime.time.hour.two()}:${s.datetime.time.minute.two()}"
-            ListItem(
-                headlineContent = {
-                    Text(text = "${s.start} -> ${s.destination}")
-                },
-                Modifier.clickable {
-                    if (s.datetime > SystemClock.nowHere())
-                        onEvent(ConnectionSearchEvent.SearchFromHistoryWithDatetime(i))
-                    else
-                        onEvent(ConnectionSearchEvent.SearchFromHistory(i))
-                },
-                supportingContent = {
-                    Text(text = datetime)
-                },
-                trailingContent = {
-                    var showDetails by remember { mutableStateOf(false) }
-                    DropdownMenu(
-                        expanded = showDetails,
-                        onDismissRequest = { showDetails = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Vyhledat nyní") },
-                            onClick = { onEvent(ConnectionSearchEvent.SearchFromHistory(i)) },
-                            leadingIcon = { Icon(Icons.Default.Search, null) },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Vyhledat $datetime") },
-                            onClick = { onEvent(ConnectionSearchEvent.SearchFromHistoryWithDatetime(i)) },
-                            leadingIcon = { Icon(Icons.Default.Search, null) },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Vyplnit zastávky") },
-                            onClick = { onEvent(ConnectionSearchEvent.FillFromHistory(i)) },
-                            leadingIcon = { Icon(Icons.Default.Edit, null) },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Odstranit") },
-                            onClick = { onEvent(ConnectionSearchEvent.DeleteFromHistory(i)) },
-                            leadingIcon = { Icon(Icons.Default.DeleteForever, null) },
-                        )
-                    }
-                    IconButton(onClick = { showDetails = true }) {
-                        IconWithTooltip(Icons.Default.MoreVert, "Další možnosti")
-                    }
-                }
-            )
+            HistoryItem(s, onEvent, i)
         }
     }
+}
+
+@Suppress("AssignedValueIsNeverRead")
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+private fun HistoryItem(
+    s: SearchSettings,
+    onEvent: (ConnectionSearchEvent) -> Unit,
+    i: Int,
+) {
+    val datetime =
+        "${s.datetime.date.day}. ${s.datetime.date.month.number}. ${s.datetime.time.hour.two()}:${s.datetime.time.minute.two()}"
+    val isInFuture = s.datetime > SystemClock.nowHere()
+    ListItem(
+        headlineContent = {
+            Text(text = "${s.start} -> ${s.destination}")
+        },
+        Modifier.clickable {
+            onEvent(
+                ConnectionSearchEvent.SearchFromHistory(i, includeDatetime = isInFuture)
+            )
+        },
+        supportingContent = {
+            Text(text = datetime)
+        },
+        trailingContent = {
+            var showDetails by remember { mutableStateOf(false) }
+            DropdownMenu(
+                expanded = showDetails,
+                onDismissRequest = { showDetails = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Vyhledat nyní") },
+                    onClick = { onEvent(ConnectionSearchEvent.SearchFromHistory(i, includeDatetime = false)) },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Vyhledat $datetime") },
+                    onClick = { onEvent(ConnectionSearchEvent.SearchFromHistory(i, includeDatetime = true)) },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    trailingIcon = { Icon(Icons.Default.Event, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Vyplnit zastávky a nastavení") },
+                    onClick = { onEvent(ConnectionSearchEvent.FillFromHistory(i, includeDatetime = false)) },
+                    leadingIcon = { Icon(Icons.Default.Edit, null) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Vyplnit vše") },
+                    onClick = { onEvent(ConnectionSearchEvent.FillFromHistory(i, includeDatetime = true)) },
+                    leadingIcon = { Icon(Icons.Default.Edit, null) },
+                    trailingIcon = { Icon(Icons.Default.Event, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Odstranit") },
+                    onClick = { onEvent(ConnectionSearchEvent.DeleteFromHistory(i)) },
+                    leadingIcon = { Icon(Icons.Default.DeleteForever, null) },
+                )
+            }
+            IconButton(onClick = { showDetails = true }) {
+                IconWithTooltip(Icons.Default.MoreVert, "Další možnosti")
+            }
+        },
+        colors = ListItemDefaults.colors(
+            supportingColor = if (isInFuture) LocalContentColor.current else Color.Unspecified,
+        )
+    )
 }
 
 @Composable

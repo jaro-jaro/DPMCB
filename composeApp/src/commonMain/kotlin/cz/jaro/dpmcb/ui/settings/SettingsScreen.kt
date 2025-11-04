@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,7 +51,6 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
@@ -450,7 +448,7 @@ private fun LazyListScope.settings(
         )
     }
 
-    item {
+    /*item {
         var value by remember { mutableStateOf(settings.recentBusesCount.toString()) }
 
         TextField(
@@ -473,7 +471,7 @@ private fun LazyListScope.settings(
                 keyboardType = KeyboardType.Number,
             )
         )
-    }
+    }*/
 }
 
 @Composable

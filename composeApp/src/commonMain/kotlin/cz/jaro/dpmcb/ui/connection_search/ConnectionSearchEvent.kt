@@ -9,10 +9,10 @@ sealed interface ConnectionSearchEvent {
     data class ChoseStop(val type: ChooserType) : ConnectionSearchEvent
     data object SwitchStops : ConnectionSearchEvent
     data object Search : ConnectionSearchEvent
+    data object ClearAll : ConnectionSearchEvent
     data class WentBack(val type: ChooserType, val stop: StopName) : ConnectionSearchEvent
-    data class SearchFromHistoryWithDatetime(val i: Int) : ConnectionSearchEvent
-    data class SearchFromHistory(val i: Int) : ConnectionSearchEvent
-    data class FillFromHistory(val i: Int) : ConnectionSearchEvent
+    data class SearchFromHistory(val i: Int, val includeDatetime: Boolean) : ConnectionSearchEvent
+    data class FillFromHistory(val i: Int, val includeDatetime: Boolean = false) : ConnectionSearchEvent
     data class DeleteFromHistory(val i: Int) : ConnectionSearchEvent
     data class SetOnlyDirect(val onlyDirect: Boolean) : ConnectionSearchEvent
     data class SetShowInefficientConnections(val showInefficientConnections: Boolean) : ConnectionSearchEvent
