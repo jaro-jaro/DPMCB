@@ -1,11 +1,10 @@
 package cz.jaro.dpmcb.ui.map
 
 import androidx.compose.runtime.Composable
-import dev.gitlive.firebase.storage.StorageReference
 
 interface DiagramManager {
     suspend fun downloadDiagram(
-        reference: StorageReference,
+        path: String,
         progress: (Float) -> Unit,
     )
 

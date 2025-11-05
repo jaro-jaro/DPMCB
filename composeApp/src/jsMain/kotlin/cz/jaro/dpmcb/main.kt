@@ -20,7 +20,6 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
-import dev.gitlive.firebase.storage.StorageReference
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.browser.window
@@ -73,7 +72,7 @@ fun main() = try {
         single<DetailsOpener> { DetailsOpener {} }
         single<DiagramManager> {
             object : DiagramManager {
-                override suspend fun downloadDiagram(reference: StorageReference, progress: (Float) -> Unit) = Unit
+                override suspend fun downloadDiagram(path: String, progress: (Float) -> Unit) = Unit
                 override val imageData = null
                 override fun checkDiagram() = true
             }
