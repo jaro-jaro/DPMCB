@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.loading
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildKonfig
+import cz.jaro.dpmcb.data.FileStorageManager
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
@@ -24,6 +25,7 @@ import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.toDirection
+import cz.jaro.dpmcb.data.getText
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -39,17 +41,13 @@ import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
-import cz.jaro.dpmcb.ui.common.fetch
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
-import dev.gitlive.firebase.FirebaseException
 import dev.gitlive.firebase.database.database
 import dev.gitlive.firebase.remoteconfig.remoteConfig
-import dev.gitlive.firebase.storage.StorageReference
-import dev.gitlive.firebase.storage.storage
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.CoroutineScope
@@ -219,10 +217,12 @@ class LoadingViewModel(
         return null
     }
 
-    private suspend fun downloadText(ref: StorageReference) = fetch(ref.getDownloadUrl()) { progress ->
-        _state.update {
-            require(it is LoadingState.Loading)
-            it.copy(progress = progress)
+    private suspend fun downloadText(path: String) = FileStorageManager().use { manager ->
+        manager.getText(path) { progress ->
+            _state.update {
+                require(it is LoadingState.Loading)
+                it.copy(progress = progress)
+            }
         }
     }
 
@@ -239,19 +239,18 @@ class LoadingViewModel(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)"
         )
 
-        val storage = Firebase.storage(firebase)
         val database = Firebase.database(firebase)
         val versionRef = database.reference("data${META_DATA_VERSION}/verze")
         val newVersion = versionRef.valueEvents.first().value<Int>()
         val currentVersion = repo.version.first()
 
-        val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
-        val doFullUpdate = (currentVersion + 1 != newVersion) || try {
+        val changesPath = "data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json"
+        val doFullUpdate = true/*(currentVersion + 1 != newVersion) || try {
             changesRef.getDownloadUrl()
             false
         } catch (_: FirebaseException) {
             true
-        } || !repo.needsToDownloadData
+        } || !repo.needsToDownloadData*/
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -278,18 +277,18 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            val sequencesRef = storage.reference.child("kurzy3.json")
-            val diagramRef = storage.reference.child("schema.svg")
-            val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
+            val sequencesPath = "kurzy3.json"
+            val diagramPath = "schema.svg"
+            val dataPath = "data${META_DATA_VERSION}/data${newVersion}.json"
 
-            val json = downloadText(dataRef)
+            val json = downloadText(dataPath)
 
             _state.value = LoadingState.Loading(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)",
                 progress = 0F,
             )
 
-            val json2 = downloadText(sequencesRef)
+            val json2 = downloadText(sequencesPath)
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
@@ -341,7 +340,7 @@ class LoadingViewModel(
                     progress = 0F,
                 )
 
-                diagramManager.downloadDiagram(diagramRef) { progress ->
+                diagramManager.downloadDiagram(diagramPath) { progress ->
                     _state.update {
                         require(it is LoadingState.Loading)
                         it.copy(progress = progress)
@@ -361,10 +360,10 @@ class LoadingViewModel(
 
             repo.deleteAll()
 
-            val sequencesRef = storage.reference.child("kurzy3.json")
-            val diagramRef = storage.reference.child("schema.svg")
+            val sequencesPath = "kurzy3.json"
+            val diagramPath = "schema.svg"
 
-            val json = downloadText(changesRef)
+            val json = downloadText(changesPath)
 
             val manyChanges = Json.parseToJsonElement(json).jsonObject
 
@@ -422,7 +421,7 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            val json2 = downloadText(sequencesRef)
+            val json2 = downloadText(sequencesPath)
 
             val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
 
@@ -492,7 +491,7 @@ class LoadingViewModel(
                     progress = 0F,
                 )
 
-                diagramManager.downloadDiagram(diagramRef) { progress ->
+                diagramManager.downloadDiagram(diagramPath) { progress ->
                     _state.update {
                         require(it is LoadingState.Loading)
                         it.copy(progress = progress)

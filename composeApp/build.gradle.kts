@@ -84,7 +84,7 @@ kotlin {
             // Realtime Database
             implementation(libs.google.firebase.database)
             // Storage
-            implementation(libs.google.firebase.storage)
+//            implementation(libs.google.firebase.storage)
             // Analytics
             implementation(libs.google.firebase.analytics)
             // Crashlytics
@@ -114,7 +114,7 @@ kotlin {
             // In-App Messaging
 //            implementation(libs.firebase.inappmessaging.display)
             // Storage
-            implementation(libs.firebase.storage)
+//            implementation(libs.firebase.storage)
             // Analytics
             implementation(libs.firebase.analytics)
             // Remote config

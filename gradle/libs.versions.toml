@@ -65,7 +65,7 @@ firebase-analytics = { group = "dev.gitlive", name = "firebase-analytics", versi
 #firebase-inappmessaging-display = { module = "com.google.firebase:firebase-inappmessaging-display", version.ref = "firebase-inappmessaging-display" }
 firebase-crashlytics = { group = "dev.gitlive", name = "firebase-crashlytics", version.ref = "firebase" }
 firebase-database = { group = "dev.gitlive", name = "firebase-database", version.ref = "firebase" }
-firebase-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebase" }
+#firebase-storage = { group = "dev.gitlive", name = "firebase-storage", version.ref = "firebase" }
 firebase-config = { group = "dev.gitlive", name = "firebase-config", version.ref = "firebase" }
 # TODO: remove this later
 google-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version.ref = "google-firebase-analytics" }
@@ -73,8 +73,7 @@ google-firebase-analytics = { group = "com.google.firebase", name = "firebase-an
 google-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "google-firebase-crashlytics" }
 # TODO: remove this later
 google-firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "google-firebase-database" }
-# TODO: remove this later
-google-firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "google-firebase-storage" }
+#google-firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "google-firebase-storage" }
 # TODO: remove this later
 google-firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "google-firebase-config" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-compose" }
