@@ -162,7 +162,7 @@ fun BusScreen(
                                 nextStopIndex = state.online?.running?.nextStopIndex,
                                 traveledSegments = state.traveledSegments,
                                 direction = state.direction,
-                                height = state.lineHeight,
+                                position = state.lineHeight,
                                 isOnline = state.online?.running != null,
                                 highlight = state.part,
                             )

@@ -9,7 +9,9 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
 import cz.jaro.dpmcb.data.entities.ConnStop
 import cz.jaro.dpmcb.data.entities.Line
+import cz.jaro.dpmcb.data.entities.LineStopNumber
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SeqGroup
 import cz.jaro.dpmcb.data.entities.SeqOfConn
 import cz.jaro.dpmcb.data.entities.SequenceCode
@@ -23,6 +25,7 @@ import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.toDirection
 import cz.jaro.dpmcb.data.getText
@@ -64,10 +67,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
@@ -235,22 +234,18 @@ class LoadingViewModel(
             return
         }
 
+        val m = when {
+            supportsLineDiagram() -> "6"
+            else -> "5"
+        }
+
         _state.value = LoadingState.Loading(
-            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)"
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/$m)"
         )
 
         val database = Firebase.database(firebase)
         val versionRef = database.reference("data${META_DATA_VERSION}/verze")
         val newVersion = versionRef.valueEvents.first().value<Int>()
-        val currentVersion = repo.version.first()
-
-        val changesPath = "data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json"
-        val doFullUpdate = true/*(currentVersion + 1 != newVersion) || try {
-            changesRef.getDownloadUrl()
-            false
-        } catch (_: FirebaseException) {
-            true
-        } || !repo.needsToDownloadData*/
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -260,65 +255,68 @@ class LoadingViewModel(
         val seqOfConns: MutableList<SeqOfConn> = mutableListOf()
         val seqGroups: MutableList<SeqGroup> = mutableListOf()
 
-        if (doFullUpdate) {
-            val m = when {
-                supportsLineDiagram() -> "5"
-                else -> "4"
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
+        )
+
+        repo.deleteAll()
+
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)",
+            progress = 0F,
+        )
+
+        val sequencesPath = "kurzy3.json"
+        val platformsPath = "stanoviste.json"
+        val diagramPath = "schema.svg"
+        val dataPath = "data${META_DATA_VERSION}/data${newVersion}.json"
+
+        val json = downloadText(dataPath)
+
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)",
+            progress = 0F,
+        )
+
+        val json2 = downloadText(sequencesPath)
+
+        val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
+
+        sequences.extractSequences()
+            .let { (groups, sequences) ->
+                seqGroups += groups
+                seqOfConns += sequences
             }
 
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
-            )
+        seqGroups += SeqGroup(
+            group = SequenceGroup.invalid,
+            validFrom = noCode,
+            validTo = noCode,
+        )
 
-            repo.deleteAll()
+        resetRemoteConfig()
 
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování dat (2/$m)",
-                progress = 0F,
-            )
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování stanovišť (4/$m)",
+            progress = 0F,
+        )
 
-            val sequencesPath = "kurzy3.json"
-            val diagramPath = "schema.svg"
-            val dataPath = "data${META_DATA_VERSION}/data${newVersion}.json"
+        val json3 = downloadText(platformsPath)
+        val platforms =
+            json3.fromJson<Map<LongLine, Map<Direction, Map<LineStopNumber, Platform>>>>()
 
-            val json = downloadText(dataPath)
+        _state.value = LoadingState.Loading(
+            infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (5/$m)",
+            progress = null,
+        )
 
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)",
-                progress = 0F,
-            )
+        val data: Map<Table, Map<TableType, List<List<String>>>> = Json.decodeFromString(json)
 
-            val json2 = downloadText(sequencesPath)
-
-            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
-
-            sequences.extractSequences()
-                .let { (groups, sequences) ->
-                    seqGroups += groups
-                    seqOfConns += sequences
-                }
-
-            seqGroups += SeqGroup(
-                group = SequenceGroup.invalid,
-                validFrom = noCode,
-                validTo = noCode,
-            )
-
-            resetRemoteConfig()
-
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání dat (4/$m)",
-                progress = 0F,
-            )
-
-            val data: Map<Table, Map<TableType, List<List<String>>>> = Json.decodeFromString(json)
-
-            data.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
-                _state.update {
-                    require(it is LoadingState.Loading)
-                    it.copy(progress = progress)
-                }
-            }) {
+        data.extractData(
+            connsWithSequence = seqOfConns.map { it.line / it.connNumber }.distinct(),
+            platforms = platforms,
+            scope = scope,
+            addConnToSequence = {
                 seqOfConns += SeqOfConn(
                     line = it.line,
                     connNumber = it.connNumber,
@@ -326,176 +324,25 @@ class LoadingViewModel(
                     orderInSequence = 0,
                     group = SequenceGroup.invalid,
                 )
-            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                connStops += connStopsOfTable
-                timeCodes += timeCodesOfTable
-                stops += stopsOfTable
-                lines += linesOfTable
-                conns += connsOfTable
-            }
+            },
+        ).forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
+            connStops += connStopsOfTable
+            timeCodes += timeCodesOfTable
+            stops += stopsOfTable
+            lines += linesOfTable
+            conns += connsOfTable
+        }
 
-            if (supportsLineDiagram()) {
-                _state.value = LoadingState.Loading(
-                    infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (5/5)",
-                    progress = 0F,
-                )
-
-                diagramManager.downloadDiagram(diagramPath) { progress ->
-                    _state.update {
-                        require(it is LoadingState.Loading)
-                        it.copy(progress = progress)
-                    }
-                }
-            }
-        } else {
-            val m = when {
-                supportsLineDiagram() -> "?"
-                else -> "5"
-            }
-
+        if (supportsLineDiagram()) {
             _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování aktualizačního balíčku (1/$m)",
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)",
                 progress = 0F,
             )
 
-            repo.deleteAll()
-
-            val sequencesPath = "kurzy3.json"
-            val diagramPath = "schema.svg"
-
-            val json = downloadText(changesPath)
-
-            val manyChanges = Json.parseToJsonElement(json).jsonObject
-
-            val plus = manyChanges["+"]!!.jsonObject.toString().fromJson<Map<Table, Map<TableType, List<List<String>>>>>()
-            val minus = manyChanges["-"]!!.jsonArray.toString().fromJson<List<Table>>()
-            val changes = manyChanges["Δ"]!!.jsonObject.toString().fromJson<Map<Table, Map<TableType, List<List<String>>>>>()
-            val changeDiagram = manyChanges["Δ\uD83D\uDDFA"]!!.jsonPrimitive.boolean
-
-            val minusTables = minus
-                .map {
-                    Table(
-                        LongLine(it.value.substringBefore('-').toInt() + 325_000),
-                        it.number()
-                    )
-                } // TODO: Nezávislost dat na předčíslí linky
-            val changedTables = changes
-                .map {
-                    Table(
-                        LongLine(it.key.value.substringBefore('-').toInt() + 325_000),
-                        it.key.number()
-                    )
-                } // TODO: Nezávislost dat na předčíslí linky
-
-            connStops.addAll(repo.connStops())
-            stops.addAll(repo.stops())
-            timeCodes.addAll(repo.timeCodes())
-            lines.addAll(repo.lines())
-            conns.addAll(repo.conns())
-            seqGroups.addAll(repo.seqGroups())
-            seqOfConns.addAll(repo.seqOfConns())
-
-            val n = when {
-                changeDiagram && supportsLineDiagram() -> 6
-                else -> 5
-            }
-
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání odstraněných jízdních řádů (2/$n)",
-                progress = 0F,
-            )
-
-            connStops.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { require(it is LoadingState.Loading); it.copy(progress = 1 / 5F) }
-            stops.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { require(it is LoadingState.Loading); it.copy(progress = 2 / 5F) }
-            timeCodes.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { require(it is LoadingState.Loading); it.copy(progress = 3 / 5F) }
-            lines.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { require(it is LoadingState.Loading); it.copy(progress = 4 / 5F) }
-            conns.removeAll { it.tab in minusTables || it.tab in changedTables }
-            _state.update { require(it is LoadingState.Loading); it.copy(progress = 5 / 5F) }
-
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$n)",
-                progress = 0F,
-            )
-
-            val json2 = downloadText(sequencesPath)
-
-            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
-
-            sequences.extractSequences()
-                .let { (groups, sequences) ->
-                    seqGroups += groups
-                    seqOfConns += sequences
-                }
-
-            resetRemoteConfig()
-
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání nových jízdních řádů (4/$n)",
-                progress = 0F,
-            )
-
-            plus.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
+            diagramManager.downloadDiagram(diagramPath) { progress ->
                 _state.update {
                     require(it is LoadingState.Loading)
                     it.copy(progress = progress)
-                }
-            }) {
-                seqOfConns += SeqOfConn(
-                    line = it.line,
-                    connNumber = it.connNumber,
-                    sequence = SequenceCode.invalid,
-                    orderInSequence = 0,
-                    group = SequenceGroup.invalid,
-                )
-            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                connStops += connStopsOfTable
-                timeCodes += timeCodesOfTable
-                stops += stopsOfTable
-                lines += linesOfTable
-                conns += connsOfTable
-            }
-
-            _state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nZpracovávání změněných jízdních řádů (5/$n)",
-                progress = 0F,
-            )
-
-            changes.extractData(seqOfConns.map { it.line / it.connNumber }.distinct(), scope, { progress ->
-                _state.update {
-                    require(it is LoadingState.Loading)
-                    it.copy(progress = progress)
-                }
-            }) {
-                seqOfConns += SeqOfConn(
-                    line = it.line,
-                    connNumber = it.connNumber,
-                    sequence = SequenceCode.invalid,
-                    orderInSequence = 0,
-                    group = SequenceGroup.invalid,
-                )
-            }.forEach { (connStopsOfTable, timeCodesOfTable, stopsOfTable, linesOfTable, connsOfTable) ->
-                connStops += connStopsOfTable
-                timeCodes += timeCodesOfTable
-                stops += stopsOfTable
-                lines += linesOfTable
-                conns += connsOfTable
-            }
-
-            if (changeDiagram && supportsLineDiagram()) {
-                _state.value = LoadingState.Loading(
-                    infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování schématu MHD (6/6)",
-                    progress = 0F,
-                )
-
-                diagramManager.downloadDiagram(diagramPath) { progress ->
-                    _state.update {
-                        require(it is LoadingState.Loading)
-                        it.copy(progress = progress)
-                    }
                 }
             }
         }
@@ -548,21 +395,16 @@ class LoadingViewModel(
 @TimetableProcessing
 private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
     connsWithSequence: List<BusName>,
+    platforms: Map<LongLine, Map<Direction, Map<LineStopNumber, Platform>>>,
     scope: CoroutineScope,
-    progress: (Float) -> Unit,
     addConnToSequence: (conn: Conn) -> Unit,
 ): List<Quintuple<List<ConnStop>, List<TimeCode>, List<Stop>, List<Line>, List<Conn>>> {
     val data = mapKeys { (key) ->
         Table(LongLine(key.value.substringBefore('-').toInt() + 325_000), key.number()) // TODO: Nezávislost dat na předčíslí linky
     }
 
-    val commonProgress = data.mapValues { 0F }.toMutableMap()
-
     return data.map { (tab, lineData) ->
         scope.async {
-
-            val rows = lineData.values.flatten().maxOf { it.count() }.toFloat()
-            val completed = lineData.mapValues { 0 }.toMutableMap()
 
             @TimetableProcessing
             fun <T> processTable(
@@ -573,14 +415,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                     .getOrElse(type) {
                         error("$type not found in the table $tab, available tables are: ${lineData.keys.joinToString()}")
                     }
-                    .mapIndexed { rowIndex, row ->
-                        processRow(row).also {
-                            completed[type] = rowIndex + 1
-                            commonProgress[tab] = completed.values.sum() / rows
-                            progress(commonProgress.values.average().toFloat())
-                        }
-                    }
-                    .filterNotNull()
+                    .mapNotNull(processRow)
             }
 
             val fixedCodesA = processTable(TableType.Pevnykod) { row ->
@@ -606,7 +441,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
             val fixedCodes = fixedCodesA.await().toMap()
             val timeCodes = timeCodesA.await()
 
-            val connStopsA = processTable(TableType.Zasspoje) { row ->
+            val connStopsWithoutPlatformsA = processTable(TableType.Zasspoje) { row ->
                 ConnStop(
                     line = row[0].toLongLine(),
                     connNumber = row[1].toInt(),
@@ -619,6 +454,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                     fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
                         fixedCodes[it] ?: it
                     },
+                    platform = null,
                 )
             }
 
@@ -647,7 +483,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                 )
             }
 
-            val connStops = connStopsA.await()
+            val connStopsWithoutPlatforms = connStopsWithoutPlatformsA.await()
 
             val connsA = processTable(TableType.Spoje) { row ->
                 Conn(
@@ -656,7 +492,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                     fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
                         fixedCodes[it] ?: it
                     },
-                    direction = connStops
+                    direction = connStopsWithoutPlatforms
                         .filter { it.connNumber == row[1].toInt() }
                         .sortedBy { it.stopIndexOnLine }
                         .filter { it.time != null }
@@ -673,6 +509,21 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
 //            processTable(TableType.VerzeJDF) {}
 
             val conns = connsA.await()
+
+            val connStopsA = scope.async {
+                connStopsWithoutPlatforms.groupBy { it.tab }.flatMap { (tab, stopsOfTab) ->
+                    val platformsOfLine = platforms[tab.line()]
+                    stopsOfTab.groupBy { it.line / it.connNumber }.flatMap { (connName, stops) ->
+                        val conn = conns.find { it.tab == tab && it.name == connName }
+                        val platformsOfConn = conn?.direction?.let { platformsOfLine?.get(it) }
+                        stops.map { stop ->
+                            stop.copy(
+                                platform = platformsOfConn?.get(stop.stopIndexOnLine)
+                            )
+                        }
+                    }
+                }
+            }
 
             val blankTimeCodes = conns.map { conn ->
                 val type =
@@ -695,6 +546,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
 
             val stops = stopsA.await()
             val lines = linesA.await()
+            val connStops = connStopsA.await()
 
             Quintuple(connStops, timeCodes + blankTimeCodes, stops, lines, conns)
 //            Quintuple(listOf<ConnStop>(), listOf<TimeCode>(), listOf<Stop>(), listOf<Line>(), listOf<Conn>())
@@ -716,7 +568,7 @@ private fun Map<SequenceGroup, LoadingViewModel.Group>.extractSequences(): Pair<
                     line = bus.line(),
                     connNumber = bus.bus(),
                     sequence = sequenceCode,
-                    orderInSequence = i.toInt(),
+                    orderInSequence = i,
                     group = group,
                 )
             }

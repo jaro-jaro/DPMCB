@@ -10,7 +10,7 @@ data class ConnStop(
 // Primary keys
     val tab: Table,
     val connNumber: BusNumber,
-    val stopIndexOnLine: Int,
+    val stopIndexOnLine: LineStopNumber,
 // Other
     val line: LongLine,
     val stopNumber: StopNumber,
@@ -18,6 +18,7 @@ data class ConnStop(
     val fixedCodes: String,
     val arrival: LocalTime?,
     val departure: LocalTime?,
+    val platform: Platform?,
 ) {
     val time get() = departure ?: arrival
 }

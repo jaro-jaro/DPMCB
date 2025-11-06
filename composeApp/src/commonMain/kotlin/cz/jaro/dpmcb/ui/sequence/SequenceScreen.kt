@@ -235,7 +235,7 @@ fun SequenceScreen(
                                 nextStopIndex = null,
                                 showLine = bus.isRunning || (state.buses.none { it.isRunning } && bus.shouldBeRunning),
                                 traveledSegments = state.traveledSegments,
-                                height = state.height,
+                                position = state.height,
                                 isOnline = state.online != null,
                             )
                         }

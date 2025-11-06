@@ -2,9 +2,8 @@ package cz.jaro.dpmcb.ui.common
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -13,25 +12,25 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
@@ -65,299 +64,229 @@ fun Timetable(
     isOneWay: Boolean,
     showLine: Boolean = true,
     traveledSegments: Int = 0,
-    height: Float = 0F,
+    position: Float = 0F,
     isOnline: Boolean = false,
     part: PartOfConn? = null,
     highlight: IntRange? = null,
-) = Row(
+) = Column(
     modifier = Modifier
         .fillMaxWidth()
-        .height(IntrinsicSize.Max)
         .padding(12.dp)
 ) {
-    val movedNextStopIndex = if (part != null) nextStopIndex?.minus(part.start) else nextStopIndex
-    val filteredStops = if (part != null && part.isNotEmpty()) stops.slice(part.iterator()) else stops
-
-    Column(Modifier.width(IntrinsicSize.Max)) {
-        filteredStops.forEachIndexed { index, stop ->
-            Row(Modifier.fillMaxWidth()) {
-                val middleDest = middleDestination(isOneWay, stops.map { it.name }, index)
-                val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
-                val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
-                val highlighted = highlight == null || index in highlight
-                val defaultColor =
-                    if (movedNextStopIndex != null && index == movedNextStopIndex) MaterialTheme.colorScheme.secondary
-                    else if (highlighted) MaterialTheme.colorScheme.onSurface else Colors.dimmedContent
-                val a = if (movedNextStopIndex != null && index == movedNextStopIndex || highlighted) 1F else .5F
-
-                @Composable
-                fun TT(
-                    time: LocalTime,
-                    modifier: Modifier = Modifier.padding(start = 8.dp),
-                    boxModifier: Modifier = Modifier,
-                    text: String = time.toString(),
-                    color: Color = defaultColor,
-                ) = TimetableText(
-                    text = text,
-                    onEvent = onEvent,
-                    time = time,
-                    stopName = stop.name,
-                    departs = stop.type != StopType.GetOffOnly && index < filteredStops.lastIndex,
-                    direction = if (middleDest != null) Direction.NEGATIVE else direction,
-                    line = stop.line,
-                    platform = onlineStop?.platform ?: "",
-                    modifier,
-                    boxModifier,
-                    color = color,
-                )
-
-                TT(time = stop.arrival ?: stop.time, Modifier)
-                if (stop.arrival != null) {
-                    if (previousOnlineStop != null) TT(
-                        time = stop.arrival + previousOnlineStop.delay,
-                        color = colorOfDelayText(previousOnlineStop.delay).copy(alpha = a),
-                    )
-                } else if (onlineStop != null) TT(
-                    time = stop.time + onlineStop.delay,
-                    color = colorOfDelayText(onlineStop.delay).copy(alpha = a),
-                )
-            }
-        }
+    val filteredStops =
+        if (part != null && part.isNotEmpty()) stops.withIndex().toList().slice(part) else stops.withIndex().toList()
+    val lastIndex = stops.lastIndex
+    val rowHeights = remember { mutableStateListOf(*Array(stops.size) { 0F }) }
+    val segmentLengths = remember(rowHeights.toList()) {
+        rowHeights.zipWithNext { a, b -> a / 2 + b / 2 }
     }
-
-    if (showLine) if (part != null) PartialLine(
-        stops = stops,
-        traveledSegments = traveledSegments,
-        height = height,
-        isOnline = isOnline,
-        part = part,
-        Modifier
-    ) else Line(
-        stops = stops,
-        traveledSegments = traveledSegments,
-        height = height,
-        isOnline = isOnline,
-        Modifier,
-        highlight = highlight,
-    )
-
-    Column(Modifier.weight(1F)) {
-        filteredStops.forEachIndexed { index, stop ->
-            Row(Modifier.fillMaxWidth()) {
-                val middleDest = middleDestination(isOneWay, stops.map { it.name }, index)
-                val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
-                val highlighted = highlight == null || index in highlight
-                val defaultColor =
-                    if (movedNextStopIndex != null && index == movedNextStopIndex) MaterialTheme.colorScheme.secondary
-                    else if (highlighted) MaterialTheme.colorScheme.onSurface else Colors.dimmedContent
-                val a = if (movedNextStopIndex != null && index == movedNextStopIndex || highlighted) 1F else .5F
-
-                @Composable
-                fun TT(
-                    time: LocalTime,
-                    modifier: Modifier = Modifier.padding(start = 8.dp),
-                    boxModifier: Modifier = Modifier,
-                    text: String = time.toString(),
-                    color: Color = defaultColor,
-                ) = TimetableText(
-                    text = text,
-                    onEvent = onEvent,
-                    time = time,
-                    stopName = stop.name,
-                    departs = stop.type != StopType.GetOffOnly && index < filteredStops.lastIndex,
-                    direction = if (middleDest != null) Direction.NEGATIVE else direction,
-                    line = stop.line,
-                    platform = onlineStop?.platform ?: "",
-                    modifier,
-                    boxModifier,
-                    color = color,
-                )
-
-                if (stop.arrival != null) {
-                    TT(time = stop.time, Modifier.padding(end = 8.dp))
-                    if (onlineStop != null) TT(
-                        time = stop.time.coerceAtLeast(stop.arrival + onlineStop.delay),
-                        Modifier.padding(end = 8.dp),
-                        color = colorOfDelayText(
-                            (stop.arrival + onlineStop.delay - stop.time).coerceAtLeast(0.minutes)
-                        ).copy(alpha = a),
-                    )
-                }
-
-                Row(Modifier.weight(1F), verticalAlignment = Alignment.CenterVertically) {
-                    TT(time = stop.time, Modifier, Modifier.weight(1F, fill = false), text = stop.name)
-                    if (stop.type != StopType.Normal) StopTypeIcon(stop.type, Modifier.padding(start = 8.dp), color = defaultColor)
-                }
-            }
-        }
+    val lineLength = remember(segmentLengths) {
+        segmentLengths.sum()
     }
-}
-
-@Composable
-fun PartialLine(
-    stops: List<BusStop?>,
-    traveledSegments: Int,
-    height: Float,
-    isOnline: Boolean,
-    part: PartOfConn,
-    modifier: Modifier = Modifier,
-) {
-    val filteredStops = stops.filterIndexed { i, _ -> i in part }
-    val passedColor = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    val busColor = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-    val bgColor = backgroundColorFor(MaterialTheme.colorScheme.onSurface)
-    val lineColor = variantColorFor(MaterialTheme.colorScheme.onSurface)
-    val stopCount = filteredStops.count()
-
-    val animatedHeight by animateFloatAsState(height - part.start, label = "HeightAnimation")
-
-    Canvas(
-        modifier = modifier
-            .fillMaxHeight()
-            .width(20.dp)
-            .padding(horizontal = 8.dp),
-        contentDescription = "Poloha spoje"
-    ) {
-        val canvasHeight = size.height
-        val lineWidth = 3.dp.toPx()
-        val lineXOffset = 7.dp.toPx()
-        val rowHeight = canvasHeight / stopCount
-        val circleRadius = 5.5.dp.toPx()
-        val circleStrokeWidth = 3.dp.toPx()
-
-        translate(left = lineXOffset, top = rowHeight * .5F) {
-            val drawPrevious = part.start != 0
-            val drawNext = part.end != stops.lastIndex
-            drawLine(
-                color = lineColor,
-                start = Offset(y = if (drawPrevious) -rowHeight else 0F),
-                end = Offset(y = if (drawNext) canvasHeight else canvasHeight - rowHeight),
-                strokeWidth = lineWidth,
-            )
-
-            repeat(stopCount) { i ->
-                translate(top = i * rowHeight) {
-                    val passed = (traveledSegments - part.start) >= i
-
-                    drawCircle(
-                        color = if (passed) passedColor else bgColor,
-                        radius = circleRadius,
-                        center = Offset(),
-                        style = Fill
-                    )
-                    drawCircle(
-                        color = if (passed) passedColor else lineColor,
-                        radius = circleRadius,
-                        center = Offset(),
-                        style = Stroke(
-                            width = circleStrokeWidth
-                        )
-                    )
-                }
-            }
-
-            drawLine(
-                color = passedColor,
-                start = Offset(y = if (drawPrevious) -rowHeight else 0F),
-                end = Offset(y = rowHeight * animatedHeight),
-                strokeWidth = lineWidth,
-            )
-
-            if (height > 0F) drawCircle(
-                color = busColor,
-                radius = circleRadius - circleStrokeWidth * .5F,
-                center = Offset(y = rowHeight * animatedHeight)
-            )
-        }
+    val distance = remember(segmentLengths, traveledSegments, position) {
+        if (traveledSegments == stops.lastIndex) return@remember segmentLengths.sum()
+        val posRelativeToThisStop = position - traveledSegments
+        val currentSegmentLength = segmentLengths[traveledSegments]
+        val distanceInCurrentSegment = currentSegmentLength * posRelativeToThisStop
+        val previous = segmentLengths.take(traveledSegments).sum()
+        previous + distanceInCurrentSegment
     }
-}
+    val animatedDistance = animateFloatAsState(distance, label = "HeightAnimation")
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun TimetableText(
-    text: String,
-    onEvent: (TimetableEvent) -> Unit,
-    time: LocalTime,
-    stopName: String,
-    departs: Boolean,
-    direction: Direction,
-    line: ShortLine,
-    platform: String,
-    modifier: Modifier = Modifier,
-    boxModifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    style: TextStyle = LocalTextStyle.current,
-) = Box(boxModifier) {
-    var showDropDown by rememberSaveable { mutableStateOf(false) }
+    filteredStops.forEachIndexed { index, (indexOnBus, stop) ->
+        val isFirst = indexOnBus == 0
+        val isLast = indexOnBus == lastIndex
+        val passed = traveledSegments >= indexOnBus
+        val middleDest = middleDestination(isOneWay, stops.map { it.name }, indexOnBus)
+        val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
+        val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
+        val highlighted = highlight == null || indexOnBus in highlight
+        val defaultColor =
+            if (indexOnBus == nextStopIndex) MaterialTheme.colorScheme.secondary
+            else if (highlighted) MaterialTheme.colorScheme.onSurface
+            else Colors.dimmedContent
+        val a = if (indexOnBus == nextStopIndex || highlighted) 1F else .5F
+        val platform = onlineStop?.platform ?: stop.platform
+        val departs = stop.type != StopType.GetOffOnly && index < filteredStops.lastIndex
+        val direction = if (middleDest != null) Direction.NEGATIVE else direction
 
-    DropdownMenu(
-        expanded = showDropDown,
-        onDismissRequest = {
-            showDropDown = false
-        }
-    ) {
-        DropdownMenuItem(
-            text = {
-                Text("$stopName $platform")
-            },
-            onClick = {},
-            enabled = false
-        )
-        DropdownMenuItem(
-            text = {
-                Text("Zobrazit odjezdy")
-            },
-            onClick = {
-                onEvent(
-                    TimetableEvent.StopClick(
-                        stopName = stopName,
-                        time = time,
-                    )
-                )
+        var showDropDown by rememberSaveable { mutableStateOf(false) }
+
+        DropdownMenu(
+            expanded = showDropDown,
+            onDismissRequest = {
                 showDropDown = false
-            },
-        )
-        if (departs) {
+            }
+        ) {
+            DropdownMenuItem({ Text(stop.name) }, onClick = {}, enabled = false)
             DropdownMenuItem(
-                text = {
-                    Text("Zobrazit zastávkové JŘ")
-                },
+                text = { Text("Zobrazit odjezdy") },
                 onClick = {
-                    onEvent(
-                        TimetableEvent.TimetableClick(
-                            line = line,
-                            stop = stopName,
-                            direction = direction,
-                        )
-                    )
+                    onEvent(TimetableEvent.StopClick(stop.name, stop.time))
+                    showDropDown = false
+                },
+            )
+            if (departs) DropdownMenuItem(
+                text = { Text("Zobrazit zastávkové JŘ") },
+                onClick = {
+                    onEvent(TimetableEvent.TimetableClick(stop.line, stop.name, direction))
                     showDropDown = false
                 },
             )
         }
-    }
-    Text(
-        text = text,
-        color = color,
-        modifier = modifier
-            .combinedClickable(
-                onClick = {
-                    onEvent(
-                        TimetableEvent.StopClick(
-                            stopName = stopName,
-                            time = time,
-                        )
-                    )
-                },
-                onLongClick = {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max)
+                .defaultMinSize(minHeight = 24.dp)
+                .onSizeChanged {
+                    rowHeights[index] = it.height.toFloat()
+                }
+                .combinedClickable(
+                    onClick = {
+                        onEvent(TimetableEvent.StopClick(stop.name, stop.time))
+                    },
+                    onLongClick = {
+                        showDropDown = true
+                    },
+                )
+                .onSecondaryClick(Unit) {
                     showDropDown = true
                 },
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${stop.arrival ?: stop.time}",
+                color = defaultColor,
             )
-            .onSecondaryClick(Unit) {
-                showDropDown = true
+            if (stop.arrival != null && previousOnlineStop != null) Text(
+                text = "${stop.arrival + previousOnlineStop.delay}",
+                color = colorOfDelayText(previousOnlineStop.delay).copy(alpha = a),
+            ) else if (onlineStop != null) Text(
+                text = "${stop.time + onlineStop.delay}",
+                color = colorOfDelayText(onlineStop.delay).copy(alpha = a),
+            )
+
+            if (showLine) Line(
+                height = position,
+                distance = animatedDistance,
+                lineLength = lineLength,
+                isOnline = isOnline,
+                isFirst = isFirst,
+                isLast = isLast,
+                i = index,
+                passed = passed,
+                highlight = part?.let { part ->
+                    highlight?.let { (it.first - part.start)..(it.last - part.start) } ?: 0..part.count()
+                } ?: highlight,
+            )
+
+            if (stop.arrival != null) {
+                Text(
+                    text = "${stop.time}",
+                    color = defaultColor,
+                )
+                if (onlineStop != null) Text(
+                    text = "${stop.time.coerceAtLeast(stop.arrival + onlineStop.delay)}",
+                    color = colorOfDelayText((stop.arrival + onlineStop.delay - stop.time).coerceAtLeast(0.minutes)).copy(alpha = a),
+                )
             }
-            .defaultMinSize(24.dp, 24.dp),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = style,
-    )
+
+            Text(stopNameText(stop.name, platform, stop.type), Modifier.weight(1F), color = defaultColor)
+        }
+    }
+}
+
+@Composable
+fun Line(
+    height: Float,
+    distance: State<Float>,
+    lineLength: Float,
+    isOnline: Boolean,
+    isFirst: Boolean,
+    isLast: Boolean,
+    i: Int,
+    passed: Boolean,
+    modifier: Modifier = Modifier,
+    highlight: IntRange? = null,
+) {
+    val passedColor = if (isOnline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
+    val busColor = MaterialTheme.colorScheme.secondary
+    val highlightColor = MaterialTheme.colorScheme.onSurface
+    val bgColor = MaterialTheme.colorScheme.surface
+    val lineColor = Colors.dimmedContent
+
+    val highlighted = highlight != null && i in highlight
+
+    Canvas(
+        modifier = modifier
+            .fillMaxHeight()
+            .requiredWidth(16.dp),
+        contentDescription = "Poloha spoje"
+    ) {
+        val rowHeight = size.height
+        val lineWidth = 3.dp.toPx()
+        val lineXOffset = size.width / 2
+        val circleRadius = 5.5.dp.toPx()
+        val circleStrokeWidth = 3.dp.toPx()
+
+        translate(left = lineXOffset, top = rowHeight / 2) {
+            if (!isFirst) drawLine(
+                color = lineColor,
+                start = Offset(y = -rowHeight / 2),
+                end = Offset(),
+                strokeWidth = lineWidth,
+            )
+            if (!isLast) drawLine(
+                color = lineColor,
+                start = Offset(),
+                end = Offset(y = rowHeight / 2),
+                strokeWidth = lineWidth,
+            )
+            if (highlight != null && highlight.first < i && i <= highlight.last) drawLine(
+                color = highlightColor,
+                start = Offset(y = -rowHeight / 2),
+                end = Offset(),
+                strokeWidth = lineWidth,
+            )
+            if (highlight != null && highlight.first <= i && i < highlight.last) drawLine(
+                color = highlightColor,
+                start = Offset(),
+                end = Offset(y = rowHeight / 2),
+                strokeWidth = lineWidth,
+            )
+
+            drawCircle(
+                color = if (passed && highlight == null) passedColor else bgColor,
+                radius = circleRadius,
+                center = Offset(),
+                style = Fill
+            )
+            drawCircle(
+                color = if (passed && highlight == null) passedColor else if (highlighted) highlightColor else lineColor,
+                radius = circleRadius,
+                center = Offset(),
+                style = Stroke(
+                    width = circleStrokeWidth
+                )
+            )
+
+            if (isLast && height > 0F) translate(top = -lineLength) {
+                if (highlight == null) drawLine(
+                    color = passedColor,
+                    start = Offset(),
+                    end = Offset(y = distance.value),
+                    strokeWidth = lineWidth,
+                )
+
+                drawCircle(
+                    color = busColor,
+                    radius = circleRadius - circleStrokeWidth * .5F,
+                    center = Offset(y = distance.value)
+                )
+            }
+        }
+    }
 }

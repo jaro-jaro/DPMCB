@@ -59,7 +59,7 @@ fun LocalSettingsDataSource.changeFavourite(part: PartOfConn) {
 
 fun LocalSettingsDataSource.removeFavourite(name: BusName) {
     changeFavourites { favourites ->
-        favourites - favourites.first { it.busName == name }
+        favourites - setOf(favourites.first { it.busName == name })
     }
 }
 

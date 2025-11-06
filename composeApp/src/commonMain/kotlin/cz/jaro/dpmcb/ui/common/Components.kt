@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.ui.common
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -98,8 +96,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -110,9 +106,12 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
@@ -120,7 +119,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.window.DialogProperties
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.Traction
@@ -132,7 +133,7 @@ import cz.jaro.dpmcb.data.helperclasses.isTypeOf
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.ui.common.icons.LeftHalfDisk
 import cz.jaro.dpmcb.ui.common.icons.RightHalfDisk
@@ -143,6 +144,7 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDynamicThemeUsed
 import cz.jaro.dpmcb.ui.theme.LocalTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import dpmcb.composeapp.generated.resources.Res
+import dpmcb.composeapp.generated.resources.Timetable
 import dpmcb.composeapp.generated.resources.bus
 import dpmcb.composeapp.generated.resources.diesel
 import dpmcb.composeapp.generated.resources.ebus
@@ -158,6 +160,7 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
@@ -187,109 +190,19 @@ fun StopTypeIcon(stopType: StopType, modifier: Modifier = Modifier, color: Color
     }
 }
 
-@Composable
-@ReadOnlyComposable
-fun variantColorFor(color: Color) =
-    MaterialTheme.colorScheme.variantColorFor(color).takeOrElse { color }
-
-@Stable
-fun ColorScheme.variantColorFor(color: Color): Color =
-    when (color) {
-        background -> surfaceVariant
-        surface -> surfaceVariant
-        surfaceVariant -> surface
-        onBackground -> onSurfaceVariant
-        onSurface -> onSurfaceVariant
-        onSurfaceVariant -> onSurface
-        outline -> outlineVariant
-        outlineVariant -> outline
-        else -> Color.Unspecified
-    }
-
-@Composable
-fun Line(
-    stops: List<BusStop?>,
-    traveledSegments: Int,
-    height: Float,
-    isOnline: Boolean,
-    modifier: Modifier = Modifier,
-    highlight: IntRange? = null,
-) {
-    val passedColor = if (isOnline) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
-    val busColor = MaterialTheme.colorScheme.secondary
-    val highlightColor = MaterialTheme.colorScheme.onSurface
-    val bgColor = MaterialTheme.colorScheme.surface
-    val lineColor = Colors.dimmedContent
-    val stopCount = stops.count()
-
-    val animatedHeight by animateFloatAsState(height, label = "HeightAnimation")
-
-    Canvas(
-        modifier = modifier
-            .padding(horizontal = 8.dp)
-            .fillMaxHeight()
-            .width(24.dp),
-        contentDescription = "Poloha spoje"
-    ) {
-        val canvasHeight = size.height
-        val lineWidth = 3.dp.toPx()
-        val lineXOffset = size.width / 2
-        val rowHeight = canvasHeight / stopCount
-        val circleRadius = 5.5.dp.toPx()
-        val circleStrokeWidth = 3.dp.toPx()
-
-        translate(left = lineXOffset, top = rowHeight * .5F) {
-            drawLine(
-                color = lineColor,
-                start = Offset(),
-                end = Offset(y = canvasHeight - rowHeight),
-                strokeWidth = lineWidth,
-            )
-
-            drawLine(
-                color = highlightColor,
-                start = Offset(y = rowHeight * (highlight?.first ?: 0)),
-                end = Offset(y = rowHeight * (highlight?.last ?: 0)),
-                strokeWidth = lineWidth,
-            )
-
-            repeat(stopCount) { i ->
-                translate(top = i * rowHeight) {
-                    val passed = traveledSegments >= i
-                    val highlighted = highlight != null && i in highlight
-
-                    drawCircle(
-                        color = if (passed && highlight == null) passedColor else bgColor,
-                        radius = circleRadius,
-                        center = Offset(),
-                        style = Fill
-                    )
-                    drawCircle(
-                        color = if (passed && highlight == null) passedColor else if (highlighted) highlightColor else lineColor,
-                        radius = circleRadius,
-                        center = Offset(),
-                        style = Stroke(
-                            width = circleStrokeWidth
-                        )
-                    )
-                }
-            }
-
-            if (highlight == null) drawLine(
-                color = passedColor,
-                start = Offset(),
-                end = Offset(y = rowHeight * animatedHeight),
-                strokeWidth = lineWidth,
-            )
-
-            if (height > 0F) drawCircle(
-                color = busColor,
-                radius = circleRadius - circleStrokeWidth * .5F,
-                center = Offset(y = rowHeight * animatedHeight)
-            )
-        }
-    }
+private fun stopTypeCharacter(stopType: StopType) = when (stopType) {
+    StopType.Normal -> ""
+    StopType.GetOnOnly -> "m"
+    StopType.GetOffOnly -> "l"
 }
+
+val timetableFamily
+    @Composable
+    get() = FontFamily(Font(Res.font.Timetable))
+
+@Composable
+fun stopType(stopType: StopType) =
+    AnnotatedString(stopTypeCharacter(stopType), SpanStyle(fontFamily = timetableFamily))
 
 @Stable
 fun ColorScheme.backgroundColorFor(contentColor: Color): Color =
@@ -851,5 +764,27 @@ fun TimePickerDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun stopNameText(
+    stopName: StopName,
+    platform: Platform?,
+    stopType: StopType = StopType.Normal,
+    tariffZone: Int = 100,
+): AnnotatedString = buildAnnotatedString {
+    +stopName
+    +" "
+    withStyle(SpanStyle(color = Colors.dimmedContent)) {
+        +stopType(stopType)
+    }
+    withStyle(
+        MaterialTheme.typography.bodySmall.toSpanStyle()
+            .merge(SpanStyle(color = Colors.dimmedContent))
+    ) {
+        if (stopType != StopType.Normal) +" "
+        if (platform != null) +"$platform "
+        +"$tariffZone"
     }
 }

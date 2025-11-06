@@ -40,7 +40,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Conn.direction, Line.vehicleType, CASE
+        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Conn.direction, Line.vehicleType, ConnStop.platform, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to`, SeqOfConn.`group` FROM ConnStop
@@ -87,7 +87,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.direction, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, CASE
+        SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.direction, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, ConnStop.platform, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, Line.validFrom, Line.validTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom `from`, TimeCode.validTo `to` FROM ConnStop
@@ -297,7 +297,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, CASE
+        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, ConnStop.platform, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.departure, ConnStop.arrival, Line.vehicleType FROM ConnStop
@@ -351,7 +351,7 @@ interface Dao : SpojeQueries {
     @Transaction
     @Query(
         """
-        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, CASE
+        SELECT Conn.name connName, Stop.stopName name, ConnStop.fixedCodes, ConnStop.platform, CASE
             WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
             ELSE ConnStop.departure
         END time, ConnStop.departure, ConnStop.arrival, Line.vehicleType, SeqOfConn.sequence FROM ConnStop

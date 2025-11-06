@@ -10,10 +10,12 @@ data class PartOfConn(
     val busName: BusName,
     val start: Int,
     val end: Int,
-) {
-    operator fun contains(index: Int) = index in iterator()
+): Iterable<Int> {
+    val range get() = start..end
 
-    operator fun iterator() = start..end
+    operator fun contains(index: Int): Boolean = index in range
+
+    override operator fun iterator() = range.iterator()
 }
 
 @Suppress("FunctionName")

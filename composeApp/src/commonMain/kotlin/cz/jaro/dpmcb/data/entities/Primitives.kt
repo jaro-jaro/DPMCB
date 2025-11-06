@@ -12,11 +12,12 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.jvm.JvmInline
 
-typealias SequenceID = Int
 typealias StopNumber = Int
+typealias LineStopNumber = Int
 typealias SequenceGroup = Int
 typealias SequenceGroupCompanion = Int.Companion
 typealias StopName = String
+typealias Platform = String
 
 @Serializable
 @JvmInline

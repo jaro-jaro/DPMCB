@@ -61,6 +61,7 @@ import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.invertedIconColor
 import cz.jaro.dpmcb.ui.common.invertedVehicleIconGraphicsLayer
+import cz.jaro.dpmcb.ui.common.stopNameText
 import cz.jaro.dpmcb.ui.connection_results.drawFilledCircle
 import cz.jaro.dpmcb.ui.connection_results.drawOutlinedCircle
 import cz.jaro.dpmcb.ui.departures.asString
@@ -262,7 +263,7 @@ private fun BusDetails(
         Row(Modifier.onSizeChanged {
             departureRowHeight.value = it.height
         }) {
-            Text(bus.startStop)
+            Text(stopNameText(bus.startStop, bus.startStopPlatform))
         }
         Row(Modifier.onSizeChanged {
             busRowHeight.value = it.height
@@ -287,7 +288,7 @@ private fun BusDetails(
         Row(Modifier.onSizeChanged {
             arrivalRowHeight.value = it.height
         }) {
-            Text(bus.endStop)
+            Text(stopNameText(bus.endStop, bus.endStopPlatform))
         }
     }
 }

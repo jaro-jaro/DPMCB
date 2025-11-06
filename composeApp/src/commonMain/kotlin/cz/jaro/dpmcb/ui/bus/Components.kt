@@ -639,9 +639,10 @@ fun ShareLayout(graphicsLayer: GraphicsLayer, state: BusState.OK, part: PartOfCo
             isOneWay = state.isOneWay,
             direction = state.direction,
             traveledSegments = state.traveledSegments,
-            height = state.lineHeight,
+            position = state.lineHeight,
             isOnline = state.online?.running != null,
-            part = part
+            part = part,
+            highlight = state.part,
         )
     }
 }

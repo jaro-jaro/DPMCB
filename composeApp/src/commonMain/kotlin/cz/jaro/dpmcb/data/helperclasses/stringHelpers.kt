@@ -2,6 +2,7 @@
 
 package cz.jaro.dpmcb.data.helperclasses
 
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.json.Json
@@ -27,6 +28,12 @@ operator fun CharSequence.times(times: Int) = buildString {
 
 context(builder: StringBuilder)
 operator fun String.unaryPlus() = builder.append(this)
+
+context(builder: AnnotatedString.Builder)
+operator fun String.unaryPlus() = builder.append(this)
+
+context(builder: AnnotatedString.Builder)
+operator fun AnnotatedString.unaryPlus() = builder.append(this)
 
 
 inline fun <reified T> String.fromJson(json: Json = Json): T = json.decodeFromString<T>(this)

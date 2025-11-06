@@ -18,7 +18,7 @@ import kotlinx.datetime.LocalTime
 
 @Database(
     entities = [TimeCode::class, Line::class, Conn::class, Stop::class, ConnStop::class, SeqOfConn::class, SeqGroup::class],
-    version = 1,
+    version = 2,
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

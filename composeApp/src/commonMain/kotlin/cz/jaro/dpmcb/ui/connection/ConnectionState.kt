@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.ui.connection
 
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
 import kotlinx.datetime.LocalDate
@@ -32,8 +33,10 @@ data class ConnectionBus(
     val date: LocalDate,
     val startStop: StopName,
     val departure: LocalTime,
+    val startStopPlatform: Platform,
     val endStop: StopName,
     val arrival: LocalTime,
+    val endStopPlatform: Platform,
     val stopCount: Int,
     val direction: StopName,
     val length: Duration,

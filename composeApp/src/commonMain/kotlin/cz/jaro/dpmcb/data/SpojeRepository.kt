@@ -179,6 +179,7 @@ class SpojeRepository(
                         name = it.name,
                         line = it.line.toShortLine(),
                         connName = it.connName,
+                        platform = it.platform,
                         type = StopType(it.connStopFixedCodes),
                     )
                 }.distinct(),
@@ -367,6 +368,7 @@ class SpojeRepository(
                             name = it.name,
                             line = it.line.toShortLine(),
                             connName = it.connName,
+                            platform = it.platform,
                             type = StopType(it.connStopFixedCodes),
                         )
                     }.distinct(),

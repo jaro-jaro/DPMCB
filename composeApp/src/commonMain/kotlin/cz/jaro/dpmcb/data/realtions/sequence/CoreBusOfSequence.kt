@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data.realtions.sequence
 
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.types.Direction
@@ -21,6 +22,7 @@ data class CoreBusOfSequence(
     val direction: Direction,
     val stopFixedCodes: String,
     val connStopFixedCodes: String,
+    val platform: Platform?,
     @SerialName("time_")
     val time: LocalTime,
     val arrival: LocalTime?,
