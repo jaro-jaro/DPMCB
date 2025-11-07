@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.PriorityQueue
@@ -16,6 +17,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atDate
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 data class GraphEdge(
@@ -27,6 +29,8 @@ data class GraphEdge(
     val vehicleType: VehicleType?,
     val departureIndexOnBus: Int,
     val arrivalIndexOnBus: Int,
+    val departurePlatform: Platform?,
+    val arrivalPlatform: Platform?,
 ) {
     override fun toString() = "($departure) -> ($bus) $to ($arrival)"
 }
@@ -39,10 +43,12 @@ data class ConnectionPart(
     val startStop: StopName,
     val departure: LocalDateTime,
     val departureIndexOnBus: Int,
+    val departurePlatform: Platform?,
     val bus: BusName,
     val vehicleType: VehicleType?,
     val arrival: LocalDateTime,
     val arrivalIndexOnBus: Int,
+    val arrivalPlatform: Platform?,
     val endStop: StopName,
 ) {
     override fun toString() = "$startStop ($departure) -> ($bus) $endStop ($arrival)"
@@ -52,7 +58,9 @@ private data class SearchTableRow(
     val cameFrom: StopName?,
     val arrival: LocalDateTime,
     val arrivalIndexOnBus: Int,
+    val arrivalPlatform: Platform?,
     val lastDeparture: LocalDateTime?,
+    val lastDeparturePlatform: Platform?,
     val lastBus: BusName?,
     val vehicleType: VehicleType?,
 //    val transfers: Int,
@@ -332,10 +340,12 @@ class ConnectionSearcher private constructor(
                 startStop = first.startStop,
                 departure = first.departure,
                 departureIndexOnBus = first.departureIndexOnBus,
+                departurePlatform = first.departurePlatform,
                 bus = bus,
                 vehicleType = first.vehicleType,
                 arrival = last.arrival,
                 arrivalIndexOnBus = last.arrivalIndexOnBus,
+                arrivalPlatform = last.arrivalPlatform,
                 endStop = last.endStop,
             )
         }
@@ -353,7 +363,9 @@ class ConnectionSearcher private constructor(
                 cameFrom = null,
                 arrival = settings.datetime,
                 arrivalIndexOnBus = -1,
+                arrivalPlatform = null,
                 lastDeparture = null,
+                lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
 //            transfers = 0,
@@ -363,7 +375,9 @@ class ConnectionSearcher private constructor(
                 cameFrom = null,
                 arrival = settings.datetime + 100.days,
                 arrivalIndexOnBus = -1,
+                arrivalPlatform = null,
                 lastDeparture = null,
+                lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
 //            transfers = Int.MAX_VALUE,
@@ -391,7 +405,8 @@ class ConnectionSearcher private constructor(
 
             val runningOptions = datedOptions
                 .filter { (it, date) ->
-                    val departure = it.departure.atDate(date)
+                    val transfer = if (it.departurePlatform == row.arrivalPlatform) 0.seconds else 60.seconds
+                    val departure = it.departure.atDate(date) - transfer
                     val runs = it.to in allStops && runsAt[it.bus]!!(date)
                     if (willSearchToPast) departure < row.arrival && runs
                     else row.arrival <= departure && runs
@@ -427,9 +442,11 @@ class ConnectionSearcher private constructor(
                                 cameFrom = thisStop,
                                 arrival = edge.arrival.atDate(date),
                                 arrivalIndexOnBus = edge.arrivalIndexOnBus,
+                                arrivalPlatform = edge.arrivalPlatform,
                                 lastBus = edge.bus,
                                 vehicleType = edge.vehicleType,
                                 lastDeparture = edge.departure.atDate(date),
+                                lastDeparturePlatform = edge.departurePlatform,
 //                            transfers = if (noTransfer == null) row.transfers + 1 else row.transfers
                             )
                             queue.offer(to to edge.arrival.atDate(date))
@@ -485,10 +502,12 @@ class ConnectionSearcher private constructor(
                 startStop = row.cameFrom!!,
                 departure = row.lastDeparture!!,
                 departureIndexOnBus = row.arrivalIndexOnBus - 1,
+                departurePlatform = row.lastDeparturePlatform,
                 bus = row.lastBus!!,
                 vehicleType = row.vehicleType,
                 arrival = row.arrival,
                 arrivalIndexOnBus = row.arrivalIndexOnBus,
+                arrivalPlatform = row.arrivalPlatform,
                 endStop = currentStop,
             )
 

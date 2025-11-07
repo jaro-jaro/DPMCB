@@ -10,23 +10,38 @@ import kotlinx.datetime.LocalTime
 import kotlin.time.Duration
 
 data class ConnectionState(
-    val buses: List<Alternatives>,
+    val buses: Alternatives,
     val length: Duration,
     val start: LocalDateTime,
+    val coordinates: Coordinates,
 )
 
-data class Alternatives(
+typealias Alternatives = List<ConnectionTree>
+fun Alternatives(vararg items: ConnectionTree): Alternatives = items.toList()
+
+operator fun Alternatives.get(coordinates: Coordinates): ConnectionTree {
+    require(coordinates.isNotEmpty()) { "At least one coordinate needs to be specified" }
+    val first = coordinates.first()
+    val rest = coordinates.drop(1)
+    val tree = this[first]
+    return if (rest.isEmpty()) tree else tree.next[rest]
+}
+
+fun Alternatives.getAlternatives(coordinates: Coordinates): Alternatives
+    = if (coordinates.isEmpty()) this else get(coordinates).next
+
+data class ConnectionTree(
+    val part: ConnectionBus?,
+    val next: Alternatives,
+    val page: Int,
     val level: Int,
-    val before: List<ConnectionBus?>,
-    val now: ConnectionBus?,
-    val after: List<ConnectionBus?>,
 ) {
-    val all get() = before + listOf(now) + after
-    val count = all.count { it != null }
+    override fun toString() = "$part ($level->$page) -> $next"
 }
 
 data class ConnectionBus(
     val transferTime: Duration?,
+    val transferTight: Boolean,
     val bus: BusName,
     val line: ShortLine,
     val isTrolleybus: Boolean,
@@ -40,5 +55,8 @@ data class ConnectionBus(
     val stopCount: Int,
     val direction: StopName,
     val length: Duration,
-    val cursor: Int,
-)
+) {
+    override fun toString() = "$startStop ($departure) -> ($bus) $endStop ($arrival)"
+}
+
+typealias Coordinates = List<Int>

@@ -677,6 +677,8 @@ private fun createStopGraph(
                 vehicleType = bus.vehicleType,
                 departureIndexOnBus = start.index,
                 arrivalIndexOnBus = end.index,
+                departurePlatform = start.value.platform,
+                arrivalPlatform = end.value.platform,
             )
         }
     }

@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.TransferWithinAStation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -222,19 +223,25 @@ context(_: ColumnScope)
 private fun ConnectionResult.ResultDetail() {
     FlowRow(
         Modifier.fillMaxWidth().padding(bottom = 8.dp, start = 8.dp, end = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         parts.forEachIndexed { i, bus ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 InvertedVehicleIcon(bus.isTrolleybus)
                 Name(
                     name = "${bus.line}",
-                    Modifier.padding(start = 8.dp),
                     color = invertedIconColor(bus.isTrolleybus),
                 )
-                if (i != parts.lastIndex)
-                    Icon(Icons.AutoMirrored.Default.ArrowRight, null)
+                if (i != parts.lastIndex) Icon(
+                    imageVector = if (bus.transferTight || bus.transferLong) Icons.Default.TransferWithinAStation
+                    else Icons.AutoMirrored.Default.ArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
     }

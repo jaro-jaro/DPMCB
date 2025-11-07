@@ -612,6 +612,8 @@ fun Duration.asString(): String {
         minutes > 0 && seconds == 0 -> "$minutes min"
         minutes > 0 -> "$minutes min $seconds s"
         seconds >= 15 -> "$seconds s"
-        else -> "<15 s"
+        seconds > 0  -> "<15 s"
+        seconds == 0  -> "0 min"
+        else -> "před " + unaryMinus().asString()
     }
 }

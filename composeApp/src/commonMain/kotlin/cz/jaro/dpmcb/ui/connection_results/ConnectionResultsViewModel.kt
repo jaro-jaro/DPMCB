@@ -20,6 +20,7 @@ import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.time.Duration.Companion.minutes
 
 private const val loadStep = 5
 
@@ -127,11 +128,16 @@ class ConnectionResultsViewModel(
                     val part = parts[0]
                     val nextPart = parts.getOrNull(1)
                     val lineTraction = part.vehicleType?.let { repo.lineTraction(part.bus.line(), it) }
+                    val transferTime = nextPart?.departure?.let { it - part.arrival }
+                    val samePlatforms = nextPart?.departurePlatform == part.arrivalPlatform
                     ConnectionResultBus(
                         line = part.bus.shortLine(),
                         isTrolleybus = lineTraction?.isTypeOf(Traction.Trolleybus) ?: false,
-                        transferTime = nextPart?.departure?.let { it - part.arrival },
+                        transferTime = transferTime,
                         length = part.arrival - part.departure,
+                        transferTight = transferTime != null &&
+                                (samePlatforms && transferTime < 1.minutes || !samePlatforms && transferTime < 2.minutes),
+                        transferLong = transferTime != null && transferTime >= 15.minutes,
                     )
                 },
                 length = end.arrival - start.departure,

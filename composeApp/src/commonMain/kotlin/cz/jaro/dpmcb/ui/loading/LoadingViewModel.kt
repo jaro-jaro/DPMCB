@@ -518,7 +518,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                         val platformsOfConn = conn?.direction?.let { platformsOfLine?.get(it) }
                         stops.map { stop ->
                             stop.copy(
-                                platform = platformsOfConn?.get(stop.stopIndexOnLine)
+                                platform = platformsOfConn?.get(stop.stopIndexOnLine)?.takeUnless { it.isEmpty() }
                             )
                         }
                     }

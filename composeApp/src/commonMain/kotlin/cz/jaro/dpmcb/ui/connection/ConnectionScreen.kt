@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,7 @@ import cz.jaro.dpmcb.ui.departures.asString
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
@@ -104,7 +106,6 @@ fun ConnectionScreen(
 ) {
     if (state != null) OutlinedCard(
         Modifier
-            .animateContentSize()
             .fillMaxWidth()
             .padding(all = 8.dp),
     ) {
@@ -123,53 +124,82 @@ fun ConnectionScreen(
             Text(state.length.asString())
         }
         HorizontalDivider(Modifier.fillMaxWidth())
-        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        Column(Modifier.animateContentSize().fillMaxWidth().padding(horizontal = 8.dp)) {
             val textMeasurer = rememberTextMeasurer(64)
-            val maxWidth = state.buses.flatMap { listOf(it.now?.transferTime, it.now?.length) }.filterNotNull().maxOf {
-                textMeasurer.measure(it.asString(), style = LocalTextStyle.current).size.width
-            }
-            RecursiveDetails(onEvent, state.buses, maxWidth)
+            val maxWidth = textMeasurer.measureDurationsWidth(state.buses, state.coordinates)
+            RecursiveDetails(onEvent, state.buses, state.coordinates, maxWidth, textMeasurer)
         }
     }
+}
+
+@Composable
+private fun TextMeasurer.measureDurationsWidth(
+    alternatives: Alternatives,
+    coordinates: Coordinates,
+) = alternatives.currentDurations(coordinates).filterNotNull().distinct().maxOfOrNull {
+    measure(it.asString(), style = LocalTextStyle.current).size.width
+} ?: 0
+
+fun Alternatives.currentDurations(coordinates: Coordinates): List<Duration?> {
+    if (coordinates.isEmpty()) return emptyList()
+    val first = coordinates.first()
+    val rest = coordinates.drop(1)
+    val tree = this[first]
+    return tree.next.currentDurations(rest) + tree.part?.transferTime + tree.part?.length
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun RecursiveDetails(
     onEvent: (ConnectionEvent) -> Unit,
-    left: List<Alternatives>,
+    alternatives: Alternatives,
+    setCoordinates: Coordinates,
     maxWidth: Int,
+    textMeasurer: TextMeasurer,
     level: Int = 0,
     phase: Int = 0,
 ) {
+    val setPage = setCoordinates.first()
     val isFirst = level == 0
-    val isLast = left.size == 1
-    val alternatives = left.first()
-    val pagerState = rememberPagerState { if (isFirst) 1 else alternatives.count + 1 }
+    val pagerState = rememberPagerState { /*if (isFirst) 1 else */alternatives.size + 1 }
     LaunchedEffect(pagerState.currentPage) {
-        onEvent(ConnectionEvent.Swipe(level, pagerState.currentPage))
+        val newPage = pagerState.currentPage
+        if (newPage == setPage + 1 || newPage == setPage - 1)
+            onEvent(ConnectionEvent.OnSwipe(level, newPage))
     }
     HorizontalPager(
         state = pagerState,
+        Modifier,
         beyondViewportPageCount = 0,
+        verticalAlignment = Alignment.Top,
     ) { page ->
-        val bus = alternatives.all.getOrNull(page)
-        if (page == alternatives.count || bus == null) {
+        val tree = alternatives.getOrNull(page)
+        val bus = tree?.part
+        if (page == alternatives.size || tree == null || bus == null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 CircularProgressIndicator(Modifier.padding(16.dp))
             }
-        } else Column {
+        } else Column(
+            Modifier.animateContentSize(),
+        ) {
             val totalHeight = remember { mutableStateOf(0) }
+            val next = tree.next
+            val isLast = next.isEmpty()
+            val localCoordinates: Coordinates = listOf(page) + next.getCoordinatesOfFirstConnection()
+            val localMaxWidth = textMeasurer.measureDurationsWidth(alternatives, localCoordinates)
+            val maxWidth = if (page == setPage) maxWidth else localMaxWidth
             BusDetails(
-                onEvent, bus, maxWidth, isFirst, isLast, phase,
+                onEvent, bus, maxWidth, level, isFirst, isLast, phase,
                 Modifier.onSizeChanged {
                     totalHeight.value = it.height
                 }
             )
             if (!isLast) RecursiveDetails(
                 onEvent = onEvent,
-                left = left.drop(1),
+                alternatives = next,
+                setCoordinates = if (page == setPage) setCoordinates.drop(1) else localCoordinates.drop(1),
                 maxWidth = maxWidth,
+                textMeasurer = textMeasurer,
                 level = level + 1,
                 phase = phase + totalHeight.value,
             )
@@ -183,6 +213,7 @@ private fun BusDetails(
     onEvent: (ConnectionEvent) -> Unit,
     bus: ConnectionBus,
     maxWidth: Int,
+    level: Int,
     isFirst: Boolean,
     isLast: Boolean,
     phase: Int,
@@ -190,7 +221,7 @@ private fun BusDetails(
 ) = Row(
     modifier
         .clickable {
-            onEvent(ConnectionEvent.SelectBus(bus.bus))
+            onEvent(ConnectionEvent.SelectBus(level))
         }
         .height(IntrinsicSize.Max)
 ) {
@@ -208,7 +239,7 @@ private fun BusDetails(
     val arrivalRowHeightDp = with(density) { arrivalRowHeight.value.toDp() }
 
     Column(
-        Modifier.width(with(density) { maxWidth.toDp() }),
+        Modifier.animateContentSize(alignment = Alignment.CenterEnd).fillMaxHeight().width(with(density) { maxWidth.toDp() }),
         horizontalAlignment = Alignment.End,
     ) {
         if (bus.transferTime != null) Box(
@@ -217,7 +248,7 @@ private fun BusDetails(
         ) {
             Text(
                 text = bus.transferTime.asString(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 overflow = TextOverflow.Visible,
             )
         }
@@ -250,13 +281,13 @@ private fun BusDetails(
             IconWithTooltip(
                 imageVector = Icons.Default.TransferWithinAStation,
                 contentDescription = "Přestup",
-                Modifier.size(24.dp).padding(end = 8.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Modifier.padding(end = 8.dp).size(16.dp),
+                tint = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = "přestup",
                 Modifier.weight(1F),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

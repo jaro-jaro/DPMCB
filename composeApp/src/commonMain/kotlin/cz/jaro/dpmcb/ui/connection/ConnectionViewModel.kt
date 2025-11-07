@@ -4,24 +4,19 @@ import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.ConnectionSearcher
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.launch
-import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.mutate
-import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
 import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
-import cz.jaro.dpmcb.ui.connection.ConnectionViewModel.Def.Companion.getAlternativeCursors
-import cz.jaro.dpmcb.ui.connection.ConnectionViewModel.Def.Companion.getAtLevel
-import cz.jaro.dpmcb.ui.connection.ConnectionViewModel.Def.Companion.getCurrentCursorSection
 import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -35,6 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.atDate
+import kotlin.jvm.JvmName
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -44,34 +41,31 @@ class ConnectionViewModel(
 ) : ViewModel() {
     lateinit var navigator: Navigator
 
-    private val definitions: MutableStateFlow<List<Def>> = MutableStateFlow(
-        mutableListOf(Def(startLevel = 0, args.def))
+    private val definition: MutableStateFlow<AlternativesDefinition> = MutableStateFlow(
+        AlternativesDefinition(args.def.toTreeDefinition())
     )
 
-    private val cursor: MutableStateFlow<Int> = MutableStateFlow(0)
+    private val coordinates: MutableStateFlow<Coordinates> = MutableStateFlow(args.def.map { 0 })
 
     private suspend fun addConnection(
-        new: Def,
+        newPage: Int,
+        parentCoordinates: Coordinates,
+        def: ConnectionDefinition,
     ) {
-        loadInfo(new.buses)
-        val all = definitions.value
-        val section = all.getCurrentCursorSection(cursor.value, new.startLevel)
-
-        val newPlace = section.last() + 1
-
-        definitions.update {
-            it.mutate {
-                add(newPlace, new)
-            }
+        loadInfo(def)
+        val newTree = def.toTreeDefinition()
+        val rest = newTree.next.getCoordinatesOfFirstConnection()
+        definition.update {
+            it.addAt(parentCoordinates, newTree)
         }
-        cursor.value = newPlace
+        coordinates.value = parentCoordinates + newPage + rest
     }
 
     private val info =
         MutableStateFlow(emptyMap<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>())
 
     private suspend fun loadInfo(
-        def: List<ConnectionPartDefinition>,
+        def: ConnectionDefinition,
     ) {
         def.groupBy { it.date }.mapValues { (date, buses) ->
             val busNames = buses.map { it.busName }.toSet()
@@ -111,115 +105,15 @@ class ConnectionViewModel(
         }.filterNotNull().first()
     }
 
-    data class Def(
-        val startLevel: Int,
-        val buses: ConnectionDefinition,
-    ) {
-        companion object {
-            fun List<Def>.getCurrentCursorSection(
-                cursor: Int,
-                level: Int,
-            ): IntRange {
-                if (level == 0) return 0..<size
-                val afterCursor = drop(cursor + 1)
-                val upToCursor = take(cursor + 1)
-                val startOfNext = afterCursor.indexOfFirst { it.startLevel < level }.takeUnless { it == -1 } ?: size
-                val startOfThis = upToCursor.indexOfLast { it.startLevel < level }
-                return (startOfThis..<startOfNext)
-            }
-
-            fun List<Def>.getAlternativeCursors(
-                cursor: Int,
-                level: Int,
-            ) = getCurrentCursorSection(cursor, level).map {
-                IndexedValue(it, this[it])
-            }.filter {
-                it.value.startLevel <= level
-            }
-
-            fun Def.getAtLevel(
-                level: Int,
-            ) = buses[level - startLevel]
-        }
-    }
-
-    private val currentConnection = combineStates(cursor, definitions) { cursor, definitions ->
-        val currentDef = definitions[cursor]
-        val currentParents = (0..<currentDef.startLevel).map { parentLevel ->
-            val parentCursor = definitions.getCurrentCursorSection(cursor, parentLevel + 1).first()
-            definitions[parentCursor].getAtLevel(parentLevel) to parentCursor
-        }
-        val currentBuses = (currentParents + currentDef.buses.map { it to cursor })
-
-        currentBuses.mapIndexed { level, (bus, cursor) ->
-            val alternativeCursors =
-                definitions.getAlternativeCursors(cursor, level)
-            val beforeCursors = alternativeCursors.takeWhile { it.index < cursor }
-            val afterCursors = alternativeCursors.dropWhile { it.index <= cursor }
-            val before = beforeCursors.map { IndexedValue(it.index, it.value.getAtLevel(level)) }
-            val after = afterCursors.map { IndexedValue(it.index, it.value.getAtLevel(level)) }
-            AlternativesDefinition(before, IndexedValue(cursor, bus), after)
-        }
-    }
-
-    private val buses = currentConnection.combine(info) {
-            currentConnection,
-            info,
-        ->
-        currentConnection
-            .reversed().windowed(2, partialWindows = true).reversed()
-            .mapIndexed { level, parts ->
-                val current = parts[0]
-                val previous = parts.getOrNull(1)
-
-                val previousPartEnd = previous?.let {
-                    it.now.value.busName.let(info::get)?.value?.get(it.now.value.end)?.arrival?.atDate(it.now.value.date)
-                }
-                Alternatives(
-                    level = level,
-                    before = current.before.map { createConnectionBus(info, it.value, it.index, previousPartEnd) },
-                    now = createConnectionBus(info, current.now.value, current.now.index, previousPartEnd),
-                    after = current.after.map { createConnectionBus(info, it.value, it.index, previousPartEnd) },
-                )
-            }
-    }.stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), null)
-
-    private suspend fun createConnectionBus(
-        info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
-        part: ConnectionPartDefinition,
-        cursor: Int,
-        previousPartEnd: LocalDateTime?,
-    ): ConnectionBus? {
-        val (bus, stops) = info[part.busName] ?: return null
-        val start = stops[part.start]
-        val end = stops[part.end]
-        val stopNames = stops.map { it.name }
-        val middleDestination = repo.middleDestination(part.busName.line(), stopNames, part.start)
-        return ConnectionBus(
-            transferTime = previousPartEnd?.let { start.departure!!.atDate(part.date) - it },
-            bus = part.busName,
-            line = part.busName.shortLine(),
-            isTrolleybus = repo.lineTraction(part.busName.line(), bus.vehicleType) == Traction.Trolleybus,
-            date = part.date,
-            startStop = start.name,
-            departure = start.departure!!,
-            startStopPlatform = start.platform,
-            endStop = end.name,
-            arrival = end.arrival!!,
-            endStopPlatform = end.platform,
-            stopCount = part.end - part.start,
-            direction = middleDestination ?: stopNames.last(),
-            length = end.arrival - start.departure,
-            cursor = cursor,
-        )
-    }
+    private val alternatives = combine(definition, info, ::createAlternatives)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), Alternatives())
 
     @OptIn(ExperimentalTime::class)
-    val state = buses.mapState { alternatives ->
-        if (alternatives.isNullOrEmpty()) return@mapState null
+    val state = alternatives.combineStates(coordinates) { alternatives, coordinates ->
+        if (alternatives.isEmpty()) return@combineStates null
 
-        val first = alternatives.firstNotNullOfOrNull { it.now } ?: return@mapState null
-        val last = alternatives.reversed().firstNotNullOf { it.now }
+        val first = alternatives[coordinates.first()].part ?: return@combineStates null
+        val last = alternatives[coordinates].part ?: return@combineStates null
         val start = first.departure.atDate(first.date)
         val end = last.arrival.atDate(last.date)
 
@@ -227,41 +121,125 @@ class ConnectionViewModel(
             buses = alternatives,
             length = end - start,
             start = start,
+            coordinates = coordinates,
         )
     }
 
     fun onEvent(e: ConnectionEvent) = when (e) {
         is ConnectionEvent.SelectBus -> {
-            val bus = currentConnection.value.find { it.now.value.busName == e.bus }!!.now.value
+            val clickCoordinates: Coordinates = coordinates.value.take(e.level + 1)
+            val bus = definition.value[clickCoordinates].part
             navigator.navigate(
                 Route.Bus(bus.date, bus.busName, bus.start, bus.end)
             )
         }
 
-        is ConnectionEvent.Swipe -> {
-            val buses = buses.value!!
-            val alternatives = buses[e.level]
-            if (e.page == alternatives.count) launch {
-                searchConnection(e.level)
+        is ConnectionEvent.OnSwipe -> {
+            val parentCoordinates: Coordinates = coordinates.value.take(e.level)
+            val alternatives = alternatives.value.getAlternatives(parentCoordinates)
+            if (e.newPage == alternatives.size) launch {
+                searchConnection(e.newPage, alternatives, parentCoordinates)
             } else {
-                val new = alternatives.all[e.page]
-                if (new != null) cursor.value = new.cursor
+                val rest = alternatives[e.newPage].next.getCoordinatesOfFirstConnection()
+                coordinates.value = parentCoordinates + e.newPage + rest
             }
             Unit
         }
     }
 
     private suspend fun searchConnection(
-        level: Int,
+        newPage: Int,
+        alternatives: Alternatives,
+        parentCoordinates: Coordinates,
     ) {
-        val c = buses.value!!
-        val a = c[level]
-        if (a.now == null) return
         val searcher = searcher.await()
-        val searched = searcher.search(a.count, 1, a.now.startStop, a.now.departure.atDate(a.now.date) + 59.seconds)
+        val bus = alternatives.last().part ?: return
+        val searched = searcher.search(
+            firstOffset = alternatives.size,
+            count = 1,
+            start = bus.startStop,
+            datetime = bus.departure.atDate(bus.date),
+        )
         searched.collect {
             if (it != null)
-                addConnection(Def(level, it.toConnectionDefinition()))
+                addConnection(newPage, parentCoordinates, it.toConnectionDefinition())
         }
     }
+
+    private fun ConnectionDefinition.toTreeDefinition(): TreeDefinition =
+        TreeDefinition(
+            part = first(),
+            next = if (size == 1) AlternativesDefinition()
+            else AlternativesDefinition(drop(1).toTreeDefinition()),
+        )
+
+    private suspend fun ConnectionPartDefinition.toConnectionBus(
+        info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
+        previousPartEnd: Pair<LocalDateTime, Platform>?,
+    ): Pair<Pair<LocalDateTime, Platform>?, ConnectionBus?> {
+        val (bus, stops) = info[busName] ?: return (null to null)
+        val start = stops[start]
+        val end = stops[end]
+        val stopNames = stops.map { it.name }
+        val middleDestination = repo.middleDestination(busName.line(), stopNames, this.start)
+        val transferTime = previousPartEnd?.first?.let { start.departure!!.atDate(date) - it }
+        val samePlatforms = previousPartEnd?.second == start.platform
+        val thisPartEnd = end.arrival!!.atDate(date) to end.platform
+
+        return thisPartEnd to ConnectionBus(
+            transferTime = transferTime,
+            transferTight = transferTime != null &&
+                    (samePlatforms && transferTime < 1.minutes || !samePlatforms && transferTime < 2.minutes),
+            bus = busName,
+            line = busName.shortLine(),
+            isTrolleybus = repo.lineTraction(busName.line(), bus.vehicleType) == Traction.Trolleybus,
+            date = date,
+            startStop = start.name,
+            departure = start.departure!!,
+            startStopPlatform = start.platform,
+            endStop = end.name,
+            arrival = end.arrival,
+            endStopPlatform = end.platform,
+            stopCount = this.end - this.start,
+            direction = middleDestination ?: stopNames.last(),
+            length = end.arrival - start.departure,
+        )
+    }
+
+    private suspend fun createAlternatives(
+        def: AlternativesDefinition,
+        info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
+        coordinates: Coordinates = emptyList(),
+        previousPartEnd: Pair<LocalDateTime, Platform>? = null,
+    ): Alternatives = def.mapIndexed { i, def ->
+        val (thisPartEnd, part) =
+            def.part.toConnectionBus(info, previousPartEnd)
+
+        ConnectionTree(
+            part = part,
+            next = createAlternatives(
+                def = def.next,
+                info = info,
+                coordinates = coordinates + i,
+                previousPartEnd = thisPartEnd,
+            ),
+            page = i,
+            level = coordinates.size,
+        )
+    }
+}
+
+fun Alternatives.getCoordinatesOfFirstConnection(): Coordinates =
+    if (isEmpty()) emptyList() else listOf(0) + first().next.getCoordinatesOfFirstConnection()
+
+@JvmName("getCoordinatesOfFirstConnectionDefinition")
+fun AlternativesDefinition.getCoordinatesOfFirstConnection(): Coordinates =
+    if (isEmpty()) emptyList() else listOf(0) + first().next.getCoordinatesOfFirstConnection()
+
+private fun AlternativesDefinition.addAt(coordinates: Coordinates, tree: TreeDefinition): AlternativesDefinition {
+    if (coordinates.isEmpty()) return this + tree
+    val first = coordinates.first()
+    val rest = coordinates.drop(1)
+    val (before, now, after) = divide(first)
+    return before + now.copy(next = now.next.addAt(rest, tree)) + after
 }

@@ -32,5 +32,7 @@ data class ConnectionResultBus(
     val line: ShortLine,
     val isTrolleybus: Boolean,
     val transferTime: Duration?,
+    val transferTight: Boolean,
+    val transferLong: Boolean,
     val length: Duration,
 )

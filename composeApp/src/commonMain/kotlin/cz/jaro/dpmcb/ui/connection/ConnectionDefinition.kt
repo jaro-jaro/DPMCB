@@ -24,7 +24,9 @@ data class ConnectionPartDefinition(
     val date: LocalDate,
     val start: Int,
     val end: Int,
-)
+) {
+    override fun toString() = "$busName ($start..$end)"
+}
 
 typealias ConnectionDefinition =/*
         @Serializable(with = ConnectionDefinitionSerializer::class) */List<ConnectionPartDefinition>
@@ -81,14 +83,28 @@ class ConnectionPartDefinitionSerializer : KSerializer<ConnectionPartDefinition>
         }
 }
 
-data class AlternativesDefinition(
-    val before: List<IndexedValue<ConnectionPartDefinition>>,
-    val now: IndexedValue<ConnectionPartDefinition>,
-    val after: List<IndexedValue<ConnectionPartDefinition>>,
-)
-
 fun Connection.toConnectionDefinition(): ConnectionDefinition = map {
     ConnectionPartDefinition(
         it.bus, it.departure.date, it.departureIndexOnBus, it.arrivalIndexOnBus
     )
+}
+
+typealias AlternativesDefinition = List<TreeDefinition>
+fun AlternativesDefinition(vararg items: TreeDefinition): AlternativesDefinition = items.toList()
+
+fun AlternativesDefinition.divide(i: Int): Triple<AlternativesDefinition, TreeDefinition, AlternativesDefinition> =
+    Triple(take(i), get(i), drop(i + 1))
+
+operator fun AlternativesDefinition.get(coordinates: Coordinates): TreeDefinition {
+    val first = coordinates.first()
+    val rest = coordinates.drop(1)
+    val tree = this[first]
+    return if (rest.isEmpty()) tree else tree.next[rest]
+}
+
+data class TreeDefinition(
+    val part: ConnectionPartDefinition,
+    val next: AlternativesDefinition,
+) {
+    override fun toString() = "$part -> $next"
 }
