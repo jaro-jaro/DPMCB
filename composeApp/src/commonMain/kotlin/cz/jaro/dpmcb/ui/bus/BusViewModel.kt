@@ -6,7 +6,6 @@ import cz.jaro.dpmcb.data.AppState.APP_URL
 import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.changeFavourite
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -20,8 +19,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.lineTraction
-import cz.jaro.dpmcb.data.pushRecentBus
-import cz.jaro.dpmcb.data.removeFavourite
 import cz.jaro.dpmcb.data.seqName
 import cz.jaro.dpmcb.data.vehicleName
 import cz.jaro.dpmcb.data.vehicleTraction
@@ -59,7 +56,7 @@ class BusViewModel(
 
     lateinit var navigator: Navigator
 
-    private val info: Flow<BusState> = combine(repo.favourites, onlineModeManager.hasAccessToMap, repo.vehicleNumbersOnSequences) { favourites, online, vehicles ->
+    private val info: Flow<BusState> = combine(onlineModeManager.hasAccessToMap, repo.vehicleNumbersOnSequences) { online, vehicles ->
         val exists = repo.doesBusExist(busName)
         if (!exists) return@combine BusState.DoesNotExist(busName)
         val runsAt = repo.doesConnRunAt(busName)
@@ -80,8 +77,6 @@ class BusViewModel(
             )
         }
 
-        repo.pushRecentBus(busName)
-
         val bus = repo.busDetail(busName, date)
         val restriction = repo.hasRestriction(busName, date)
         val seq = bus.info.sequence
@@ -100,7 +95,6 @@ class BusViewModel(
             deeplink = "${APP_URL}bus/$serializedDate/$busName",
             deeplink2 = "${APP_URL}bus/T/$busName",
             restriction = restriction,
-            favourite = favourites.find { it.busName == busName },
             lineHeight = 0F,
             traveledSegments = 0,
             shouldBeOnline = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
@@ -139,8 +133,6 @@ class BusViewModel(
             Unit
         }
 
-        is BusEvent.ChangeFavourite -> repo.changeFavourite(e.newFavourite)
-
         BusEvent.NextBus -> {
             val state = state.value
             if (state is BusState.OK && state.sequence != null && state.nextBus != null) {
@@ -156,8 +148,6 @@ class BusViewModel(
             }
             Unit
         }
-
-        BusEvent.RemoveFavourite -> repo.removeFavourite(busName)
 
         BusEvent.ShowSequence -> {
             val state = state.value

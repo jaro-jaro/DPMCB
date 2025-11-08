@@ -81,7 +81,6 @@ class MainViewModel(
         .replace("zastavka", "stop")
         .replace("pristiZastavka", "nextStop")
         .replace("prukazka", "card")
-        .replace("oblibene", "favourites")
 
     private fun String.transformBusIds() =
         replace("bus/S-(\\d{6})-(\\d{3})".toRegex(), "bus/$1/$2")

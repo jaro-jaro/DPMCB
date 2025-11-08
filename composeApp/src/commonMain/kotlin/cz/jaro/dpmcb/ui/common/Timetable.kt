@@ -42,9 +42,9 @@ import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.PartOfConn
 import cz.jaro.dpmcb.data.realtions.StopType
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
-import cz.jaro.dpmcb.data.realtions.favourites.isNotEmpty
+import cz.jaro.dpmcb.data.realtions.isNotEmpty
 import cz.jaro.dpmcb.ui.theme.Colors
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.minutes

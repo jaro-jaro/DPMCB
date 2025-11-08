@@ -21,23 +21,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.GpsOff
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,9 +66,9 @@ import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.toCzechAccusative
 import cz.jaro.dpmcb.data.helperclasses.toCzechLocative
 import cz.jaro.dpmcb.data.realtions.BusStop
+import cz.jaro.dpmcb.data.realtions.Empty
+import cz.jaro.dpmcb.data.realtions.PartOfConn
 import cz.jaro.dpmcb.data.realtions.StopType
-import cz.jaro.dpmcb.data.realtions.favourites.Empty
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
 import cz.jaro.dpmcb.ui.common.IconWithTooltip
@@ -242,74 +237,6 @@ fun SequenceRow(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun Favouritificator(
-    onEvent: (BusEvent) -> Unit,
-    busName: BusName,
-    favouritePartOfConn: PartOfConn?,
-    stops: List<BusStop>,
-) {
-    var show by remember { mutableStateOf(false) }
-    var part by remember { mutableStateOf(PartOfConn.Empty(busName)) }
-
-    FilledIconToggleButton(checked = favouritePartOfConn != null, onCheckedChange = {
-        part = favouritePartOfConn ?: PartOfConn.Empty(busName)
-        show = true
-    }) {
-        IconWithTooltip(Icons.Default.Star, "Oblíbené")
-    }
-
-    if (show) AlertDialog(
-        onDismissRequest = {
-            show = false
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onEvent(BusEvent.ChangeFavourite(part))
-                    show = false
-                },
-                enabled = part.start != -1 && part.end != -1
-            ) {
-                Text("Potvrdit")
-            }
-        },
-        dismissButton = {
-            if (favouritePartOfConn == null) TextButton(
-                onClick = {
-                    show = false
-                }
-            ) {
-                Text("Zrušit")
-            }
-            else TextButton(
-                onClick = {
-                    onEvent(BusEvent.RemoveFavourite)
-                    show = false
-                }
-            ) {
-                Text("Odstranit")
-            }
-        },
-        title = {
-            Text("Upravit oblíbený spoj")
-        },
-        icon = {
-            Icon(Icons.Default.Star, null)
-        },
-        text = {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-            ) {
-                Text("Vyberte Váš oblíbený úsek tohoto spoje:")
-                PartOfBusChooser(part, { part = it(part) }, stops, Modifier.verticalScroll(rememberScrollState()))
-            }
-        }
-    )
-}
-
-@Composable
 fun ColumnScope.PartOfBusChooser(
     part: PartOfConn,
     editPart: MutateFunction<PartOfConn>,
@@ -417,9 +344,9 @@ fun ColumnScope.PartOfBusChooser(
                         )
 
                         repeat(stopCount) { i ->
-                            val isInFavouritePart = end.value <= i.toFloat() || i.toFloat() <= start.value
+                            val isInSelectedPart = end.value <= i.toFloat() || i.toFloat() <= start.value
                             translate(top = i * rowHeight) {
-                                if (isInFavouritePart && isDisabled(i)) drawCircle(
+                                if (isInSelectedPart && isDisabled(i)) drawCircle(
                                     color = disabledColor1,
                                     radius = smallCircleRadius,
                                     center = Offset(),
@@ -451,9 +378,9 @@ fun ColumnScope.PartOfBusChooser(
                         )
 
                         repeat(stopCount) { i ->
-                            val isInFavouritePart = end.value <= i.toFloat() || i.toFloat() <= start.value
+                            val isInSelectedPart = end.value <= i.toFloat() || i.toFloat() <= start.value
                             translate(top = i * rowHeight) {
-                                if (isInFavouritePart && !isDisabled(i)) drawCircle(
+                                if (isInSelectedPart && !isDisabled(i)) drawCircle(
                                     color = lineColor,
                                     radius = smallCircleRadius,
                                     center = Offset(),

@@ -38,7 +38,7 @@ sealed interface Route {
 
     companion object {
         val routes = listOf(
-            Bus::class, Card::class, Chooser::class, Departures::class, /*Favourites::class, */ConnectionSearch::class, Connection::class,
+            Bus::class, Card::class, Chooser::class, Departures::class, ConnectionSearch::class, Connection::class,
             ConnectionResults::class, Map::class, NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
         )
     }
@@ -84,12 +84,6 @@ sealed interface Route {
         val onlyDepartures: Boolean? = null,
         val simple: Boolean? = null,
     ) : Route
-
-    /*@Serializable
-    @SerialName("favourites")
-    data object Favourites : Route {
-        override val date: LocalDate get() = SystemClock.todayHere()
-    }*/
 
     @Serializable
     @SerialName("map")

@@ -9,7 +9,6 @@ import cz.jaro.dpmcb.ui.connection.ConnectionViewModel
 import cz.jaro.dpmcb.ui.connection_results.ConnectionResultsViewModel
 import cz.jaro.dpmcb.ui.connection_search.ConnectionSearchViewModel
 import cz.jaro.dpmcb.ui.departures.DeparturesViewModel
-//import cz.jaro.dpmcb.ui.favourites.FavouritesViewModel
 import cz.jaro.dpmcb.ui.find_bus.FindBusViewModel
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.MainViewModel
@@ -43,7 +42,6 @@ val commonModule = module(true) {
     factory { CardViewModel(get()) }
     factory { ChooserViewModel(get(), it.get()) }
     factory { DeparturesViewModel(get(), get(), get(), it.get()) }
-//    factory { FavouritesViewModel(get(), get()) }
     factory { FindBusViewModel(get(), get(), it.get()) }
     factory { LoadingViewModel(get(), get(), get(), it.get()) }
     factory { MainViewModel(get(), get(), get(), get(), get(), it.get()) }

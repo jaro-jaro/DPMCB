@@ -29,12 +29,6 @@ enum class DrawerAction(
         multiselect = true,
         route = { Route.ConnectionSearch(it) },
     ),
-    /*Favourites(
-        label = "Oblíbené spoje",
-        icon = Icons.Default.Star,
-        multiselect = true,
-        route = { Route.Favourites },
-    ),*/
     Departures(
         label = "Odjezdy",
         icon = Icons.Default.DepartureBoard,

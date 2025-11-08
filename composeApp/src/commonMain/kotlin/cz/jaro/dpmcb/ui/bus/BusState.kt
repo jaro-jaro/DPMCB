@@ -8,7 +8,6 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 
@@ -45,7 +44,6 @@ sealed interface BusState {
         val direction: Direction,
         val isOneWay: Boolean,
         val lineHeight: Float,
-        val favourite: PartOfConn?,
         val shouldBeOnline: Boolean,
         override val date: LocalDate,
         val vehicleNumber: RegistrationNumber? = null,

@@ -45,8 +45,6 @@ import cz.jaro.dpmcb.data.realtions.bus.BusDetail
 import cz.jaro.dpmcb.data.realtions.connection.GraphBus
 import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.Departure
-import cz.jaro.dpmcb.data.realtions.favourites.Favourite
-import cz.jaro.dpmcb.data.realtions.favourites.StopOfFavourite
 import cz.jaro.dpmcb.data.realtions.invoke
 import cz.jaro.dpmcb.data.realtions.now_running.NowRunning
 import cz.jaro.dpmcb.data.realtions.sequence.BusOfSequence
@@ -196,15 +194,6 @@ class SpojeRepository(
             if (isEmpty()) return@run emptyList<RunsFromTo>() to ""
             map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to first().fixedCodes
         }
-
-    suspend fun favouriteBus(busName: BusName, date: LocalDate) =
-        ds.coreBus(busName, groupsOfDay(date), nowUsedTable(date, busName.line())!!)
-            .run {
-                Pair(
-                    first().let { Favourite(it.lowFloor, it.line, it.vehicleType, it.sequence, it.connName) },
-                    map { StopOfFavourite(it.time, it.name, it.connName) }.distinct(),
-                )
-            }
 
     suspend fun ShortLine.findLongLine() = ds.findLongLine(this)
 

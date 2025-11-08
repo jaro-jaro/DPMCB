@@ -1,4 +1,4 @@
-package cz.jaro.dpmcb.data.realtions.favourites
+package cz.jaro.dpmcb.data.realtions
 
 import cz.jaro.dpmcb.data.entities.BusName
 import kotlinx.serialization.SerialName

@@ -30,8 +30,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.bus
-import cz.jaro.dpmcb.data.realtions.favourites.Empty
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.realtions.Empty
+import cz.jaro.dpmcb.data.realtions.PartOfConn
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.common.DateSelector
 import cz.jaro.dpmcb.ui.common.DelayBubble
@@ -120,13 +120,6 @@ fun BusScreen(
                                 onEvent(BusEvent.ChangeDate(it))
                             }
                         )
-
-                        /*Favouritificator(
-                            onEvent = onEvent,
-                            busName = state.busName,
-                            favouritePartOfConn = state.favourite,
-                            stops = state.stops
-                        )*/
                     }
                     Row(
                         Modifier

@@ -6,7 +6,6 @@ import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import com.russhwolf.settings.coroutines.getIntOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import com.russhwolf.settings.set
-import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -17,7 +16,6 @@ import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
 import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,12 +33,6 @@ interface LocalSettingsDataSource {
     val version: StateFlow<Int>
     fun changeVersion(value: Int)
 
-    val favourites: StateFlow<List<PartOfConn>>
-    fun changeFavourites(update: MutateLambda<List<PartOfConn>>)
-
-    val recents: StateFlow<List<BusName>>
-    fun changeRecents(update: MutateLambda<List<BusName>>)
-
     val searchHistory: StateFlow<List<SearchSettings>>
     fun changeSearchHistory(update: MutateLambda<List<SearchSettings>>)
 
@@ -49,24 +41,6 @@ interface LocalSettingsDataSource {
 
     val vehicleNumbersOnSequences: StateFlow<Map<LocalDate, Map<SequenceCode, RegistrationNumber>>>
     fun changeVehicleNumbersOnSequences(update: MutateLambda<Map<LocalDate, Map<SequenceCode, RegistrationNumber>>>)
-}
-
-fun LocalSettingsDataSource.changeFavourite(part: PartOfConn) {
-    changeFavourites { favourites ->
-        (listOf(part) + favourites).distinctBy { it.busName }
-    }
-}
-
-fun LocalSettingsDataSource.removeFavourite(name: BusName) {
-    changeFavourites { favourites ->
-        favourites - setOf(favourites.first { it.busName == name })
-    }
-}
-
-fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
-    changeRecents { recents ->
-        (listOf(bus) + recents).distinct().take(settings.value.recentBusesCount)
-    }
 }
 
 fun LocalSettingsDataSource.pushSearchToHistory(settings: SearchSettings) {
@@ -88,7 +62,7 @@ fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<Sequence
 }
 
 fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
-    pushVehicles(date, mapOf(sequence to vehicle))
+    pushVehicles(date, mapOf(sequence to vehicle), reliable)
 
 @OptIn(ExperimentalSettingsApi::class)
 class MultiplatformSettingsDataSource(
@@ -98,11 +72,7 @@ class MultiplatformSettingsDataSource(
 
     object Keys {
         const val VERSION = "verze"
-        const val FAVOURITES = "oblibene_useky"
-        const val RECENTS = "recents"
         const val SEARCH_HISTORY = "search_history"
-
-        //        const val DEPARTURES = "odjezdy"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"
         const val VEHICLES = "vehiclesOnSequences"
@@ -110,8 +80,6 @@ class MultiplatformSettingsDataSource(
 
     object DefaultValues {
         const val VERSION = -1
-        val FAVOURITES = listOf<PartOfConn>()
-        val RECENTS = listOf<BusName>()
         @OptIn(ExperimentalTime::class)
         val SEARCH_HISTORY = listOf(
             SearchSettings(
@@ -137,7 +105,6 @@ class MultiplatformSettingsDataSource(
             )
         )
 
-        //        const val DEPARTURES = false
         val SETTINGS = Settings()
         const val CARD = false
         val VEHICLES = emptyMap<LocalDate, Map<SequenceCode, RegistrationNumber>>()
@@ -167,26 +134,6 @@ class MultiplatformSettingsDataSource(
         data[Keys.VERSION] = value
     }
 
-    override val favourites = data
-        .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
-        .mapState(scope) {
-            it?.fromJson<List<PartOfConn>>(json) ?: DefaultValues.FAVOURITES
-        }
-
-    override fun changeFavourites(update: (List<PartOfConn>) -> List<PartOfConn>) {
-        data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
-    }
-
-    override val recents = data
-        .getStringOrNullStateFlow(scope, Keys.RECENTS)
-        .mapState(scope) {
-            it?.fromJson(json) ?: DefaultValues.RECENTS
-        }
-
-    override fun changeRecents(update: (List<BusName>) -> List<BusName>) {
-        data[Keys.RECENTS] = update(recents.value).toJson(json)
-    }
-
     override val searchHistory = data
         .getStringOrNullStateFlow(scope, Keys.SEARCH_HISTORY)
         .mapState(scope) {
@@ -196,16 +143,6 @@ class MultiplatformSettingsDataSource(
     override fun changeSearchHistory(update: (List<SearchSettings>) -> List<SearchSettings>) {
         data[Keys.SEARCH_HISTORY] = update(searchHistory.value).toJson(json)
     }
-
-//    override val departures = data
-//        .getBooleanOrNullStateFlow(scope, Keys.DEPARTURES)
-//        .mapState(scope) {
-//            it ?: DefaultValues.DEPARTURES
-//        }
-//
-//    override fun changeDepartures(value: Boolean) {
-//        data[Keys.DEPARTURES] = value
-//    }
 
     override val hasCard = data
         .getBooleanOrNullStateFlow(scope, Keys.CARD)

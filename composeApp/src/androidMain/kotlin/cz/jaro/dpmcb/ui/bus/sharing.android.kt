@@ -46,8 +46,8 @@ import androidx.compose.ui.platform.toClipEntry
 import androidx.core.content.FileProvider
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
-import cz.jaro.dpmcb.data.realtions.favourites.Empty
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.realtions.Empty
+import cz.jaro.dpmcb.data.realtions.PartOfConn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

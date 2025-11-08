@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import cz.jaro.dpmcb.data.helperclasses.MutateFunction
-import cz.jaro.dpmcb.data.realtions.favourites.PartOfConn
+import cz.jaro.dpmcb.data.realtions.PartOfConn
 
 fun interface BusShareManager {
     fun shareBus()

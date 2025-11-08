@@ -13,7 +13,7 @@
         android:name=".data.App"
         android:allowBackup="true"
         android:icon="${logo}"
-        android:label="@string/app_name"
+        android:label="Lepší DPMCB"
         android:roundIcon="${logoRound}"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
@@ -53,18 +53,6 @@
         </activity>
 
         <receiver android:name=".ui.bus.BroadcastReceiver" android:exported="false" />
-
-        <receiver
-            android:name=".ui.favourites.widget.OblibeneWidget$Companion$Reciever"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/oblibene_widget_info" />
-        </receiver>
     </application>
 
 </manifest>

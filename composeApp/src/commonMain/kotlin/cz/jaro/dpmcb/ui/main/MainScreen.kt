@@ -191,10 +191,6 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
         serializationTypePair<List<ConnectionPartDefinition>>(),
     )
 
-    /*Route.Favourites::class -> mapOf(
-        localDateTypePair,
-    )*/
-
     Route.FindBus::class -> mapOf(
         localDateTypePair,
     )
@@ -328,7 +324,6 @@ fun Main(
             route<Route.ConnectionSearch> { ConnectionSearch(args = it, navigator, superNavController) }
             route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
             route<Route.Connection> { Connection(args = it, navigator, superNavController) }
-//            route<Route.Favourites> { Favourites(args = it, navigator, superNavController) }
             route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
             route<Route.Departures> { Departures(args = it, navigator, superNavController) }
             route<Route.NowRunning> { NowRunning(args = it, navigator, superNavController) }
