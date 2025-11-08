@@ -71,7 +71,7 @@ fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
 
 fun LocalSettingsDataSource.pushSearchToHistory(settings: SearchSettings) {
     changeSearchHistory { history ->
-        (listOf(settings) + history).distinct()
+        (listOf(settings) + history).distinctBy { it.key }
     }
 }
 

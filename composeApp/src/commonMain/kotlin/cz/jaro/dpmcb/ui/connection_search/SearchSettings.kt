@@ -15,4 +15,6 @@ data class SearchSettings(
     val directOnly: Boolean = false,
     val showInefficientConnections: Boolean = false,
     val datetime: LocalDateTime = SystemClock.nowHere(),
-)
+) {
+    val key get() = "$start -> $destination"
+}

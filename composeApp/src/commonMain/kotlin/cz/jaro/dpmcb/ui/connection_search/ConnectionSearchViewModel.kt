@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mutate
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
 import cz.jaro.dpmcb.data.pushSearchToHistory
@@ -88,7 +89,7 @@ class ConnectionSearchViewModel(
         is ConnectionSearchEvent.FillFromHistory -> {
             val s = history.value[e.i]
             if (e.includeDatetime) settings.value = s
-            else settings.update { s.copy(datetime = it.datetime) }
+            else settings.update { s.copy(datetime = SystemClock.nowHere()) }
             changeCurrentRoute(settings.value)
         }
 
