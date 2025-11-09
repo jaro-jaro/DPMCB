@@ -115,9 +115,10 @@ import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
 import cz.jaro.dpmcb.ui.connection.Connection
-import cz.jaro.dpmcb.ui.connection.ConnectionPartDefinition
+import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
 import cz.jaro.dpmcb.ui.connection_results.ConnectionResults
 import cz.jaro.dpmcb.ui.connection_search.ConnectionSearch
+import cz.jaro.dpmcb.ui.connection_search.Relations
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.find_bus.FindBus
 import cz.jaro.dpmcb.ui.map.Map
@@ -140,17 +141,22 @@ import kotlinx.datetime.number
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
+fun String.parseDate() =
+    if (this == "T") SystemClock.todayHere()
+    else LocalDate(
+        year = this.substring(0..<4).toInt(),
+        month = this.substring(4..<6).toInt(),
+        day = this.substring(6..<8).toInt()
+    )
+
+fun LocalDate.serialize() =
+    "${year.atLeastDigits(4)}${month.number.atLeastDigits(2)}${day.atLeastDigits(2)}"
+
+@OptIn(ExperimentalTime::class)
 val localDateTypePair = typePair(
-    parseValue = {
-        if (it == "T") SystemClock.todayHere()
-        else LocalDate(
-            year = it.substring(0..<4).toInt(),
-            month = it.substring(4..<6).toInt(),
-            day = it.substring(6..<8).toInt()
-        )
-    },
+    parseValue = { it.parseDate() },
     serializeAsValue = {
-        "${it.year.atLeastDigits(4)}${it.month.number.atLeastDigits(2)}${it.day.atLeastDigits(2)}"
+        it.serialize()
     },
 )
 
@@ -183,12 +189,12 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.ConnectionResults::class -> mapOf(
         localDateTypePair,
         stringSerializationTypePair<SimpleTime>(),
+        stringSerializationTypePair<Relations>(),
         serializationTypePair<Boolean>(),
     )
 
     Route.Connection::class -> mapOf(
-        localDateTypePair,
-        serializationTypePair<List<ConnectionPartDefinition>>(),
+        stringSerializationTypePair<ConnectionDefinition>(),
     )
 
     Route.FindBus::class -> mapOf(

@@ -14,12 +14,17 @@ import cz.jaro.dpmcb.data.helperclasses.isTypeOf
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.mutate
 import cz.jaro.dpmcb.data.lineTraction
+import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.connection.toConnectionDefinition
+import cz.jaro.dpmcb.ui.connection_search.Favourite
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.datetime.atTime
 import kotlin.time.Duration.Companion.minutes
 
 private const val loadStep = 5
@@ -30,33 +35,40 @@ class ConnectionResultsViewModel(
 ) : ViewModel() {
     lateinit var navigator: Navigator
 
-    private val settings = args.settings
+    private val relations = args.relations
+    private val showInefficientConnections = args.showInefficientConnections
+    private val datetime = args.date.atTime(args.time.toLocalTime())
     private val results = MutableStateFlow(emptyList<Connection>())
     private val loading = MutableStateFlow(false)
     private val loadingPast = MutableStateFlow(false)
-    private val loaded = MutableStateFlow(0)
-    private val loadedBack = MutableStateFlow(0)
+    private val loaded = MutableStateFlow(relations.map { 0 }.toMutableList())
+    private val loadedBack = MutableStateFlow(relations.map { 0 }.toMutableList())
 
-    val searcher = async {
-        ConnectionSearcher(
-            settings = settings,
-            repo = repo,
-        )
+    val searchers = async {
+        args.settings.map {
+            ConnectionSearcher(
+                settings = it,
+                repo = repo,
+            )
+        }
     }
 
     fun loadMore() {
         loading.value = true
         launch(Dispatchers.IO) {
-            searcher.await()
-                .search(
-                    firstOffset = loaded.value,
+            searchers.await().forEachIndexed { i, searcher ->
+                searcher.search(
+                    firstOffset = loaded.value[i],
                     count = loadStep,
-                )
-                .collect { connection ->
-                    loaded.value += 1
+                ).collect { connection ->
+                    loaded.update {
+                        it[i] += 1
+                        it
+                    }
                     if (connection != null)
                         results.value = (results.value + listOf(connection)).tidy()
                 }
+            }
             loading.value = false
         }
     }
@@ -64,7 +76,7 @@ class ConnectionResultsViewModel(
     fun List<Connection>.tidy(): List<Connection> = distinctBy { connection ->
         connection.map { it.bus }
     }.let { results ->
-        if (settings.showInefficientConnections) results
+        if (showInefficientConnections) results
         else results.groupBy { it.last().arrival }.map { (_, connections) ->
             connections.maxBy { it.first().departure }
         }
@@ -73,16 +85,19 @@ class ConnectionResultsViewModel(
     fun loadPast() {
         loadingPast.value = true
         launch(Dispatchers.IO) {
-            searcher.await()
-                .searchBack(
-                    firstOffset = loadedBack.value,
+            searchers.await().forEachIndexed { i, searcher ->
+                searcher.searchBack(
+                    firstOffset = loadedBack.value[i],
                     count = loadStep,
-                )
-                .collect { connection ->
-                    loadedBack.value += 1
+                ).collect { connection ->
+                    loadedBack.update {
+                        it[i] += 1
+                        it
+                    }
                     if (connection != null)
                         results.value = (listOf(connection) + results.value).tidy()
                 }
+            }
             loadingPast.value = false
         }
     }
@@ -103,8 +118,28 @@ class ConnectionResultsViewModel(
         }
 
         is ConnectionResultsEvent.SelectConnection -> navigator.navigate(
-            Route.Connection(date = e.startDate, def = e.def)
+            Route.Connection(def = e.def)
         )
+
+        ConnectionResultsEvent.AddToFavourites -> repo.changeFavourites {
+            listOf(relations.value) + it
+        }
+
+        is ConnectionResultsEvent.AddToOtherFavourite -> repo.changeFavourites {
+            it.toMutableList().mutate {
+                this[e.i] += relations
+            }.distinct()
+        }
+
+        ConnectionResultsEvent.RemoveFromFavourites -> repo.changeFavourites {
+            it - setOf(relations.value)
+        }
+
+        is ConnectionResultsEvent.RemoveFromOtherFavourite -> repo.changeFavourites {
+            it.toMutableList().mutate {
+                this[e.i] -= relations.single()
+            }.distinct()
+        }
     }
 
     val filteredResults = results/*.mapState { connections ->
@@ -152,13 +187,25 @@ class ConnectionResultsViewModel(
     }
 
     val state = combineStates(
-        connections, loading, loadingPast
-    ) { connections, loading, loadingPast ->
+        connections, loading, loadingPast, repo.favourites
+    ) { connections, loading, loadingPast, favourites ->
+        val isComposed = relations.size > 1
+        val relation = relations.first()
+        val isFavourite = relations.value in favourites
+        val (partOf, other) =
+            if (isComposed) listOf<IndexedValue<Favourite>>() to listOf()
+            else favourites.withIndex().partition { relation in it.value }
         ConnectionResultState(
-            settings = settings,
+            relations = relations,
+            datetime = datetime,
             results = connections,
             loading = loading,
             loadingPast = loadingPast,
+            isFavourite = isFavourite,
+            showAdd = !isFavourite,
+            showRemove = if (isComposed) isFavourite else isFavourite && partOf.size == 1,
+            partOf = partOf,
+            other = other,
         )
     }
 }

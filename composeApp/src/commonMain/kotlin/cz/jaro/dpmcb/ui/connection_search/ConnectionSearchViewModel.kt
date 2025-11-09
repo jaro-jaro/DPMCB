@@ -127,13 +127,26 @@ class ConnectionSearchViewModel(
         is ConnectionSearchEvent.ChangeTime -> settings.update {
             it.copy(datetime = it.datetime.date.atTime(e.time)).also(::changeCurrentRoute)
         }
+
+        is ConnectionSearchEvent.SearchFavourite -> {
+            navigator.navigate(ConnectionResults(
+                date = settings.value.datetime.date,
+                time = settings.value.datetime.time.toSimpleTime(),
+                relations = Relations(repo.favourites.value[e.i]),
+                directOnly = false,
+                showInefficientConnections = true,
+            ))
+        }
     }
 
-    val state = combineStates(settings, history) { settings, history ->
+    val state = combineStates(
+        settings, history, repo.favourites,
+    ) { settings, history, favourites ->
         ConnectionSearchState(
             settings = settings,
             settingsModified = settings.showInefficientConnections || settings.directOnly,
             history = history,
+            favourites = favourites,
         )
     }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -231,20 +232,24 @@ fun ConnectionSearchScreen(
             ) {
                 IconWithTooltip(Icons.Default.SwapVert, "Prohodit start a cíl")
             }
-            Column {
+            Column(
+                Modifier.width(IntrinsicSize.Max)
+            ) {
                 TextFieldButton(
                     text = state.settings.start,
                     onClick = {
                         onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop1))
                     },
-                    label = { Text("Odkud") }
+                    label = { Text("Odkud") },
+                    Modifier.fillMaxWidth(),
                 )
                 TextFieldButton(
                     text = state.settings.destination,
                     onClick = {
                         onEvent(ConnectionSearchEvent.ChoseStop(ChooserType.ReturnStop2))
                     },
-                    label = { Text("Kam") }
+                    label = { Text("Kam") },
+                    Modifier.fillMaxWidth(),
                 )
             }
             IconButton(
@@ -291,12 +296,16 @@ fun ConnectionSearchScreen(
             }
         }
 
-        item {
-            Text(text = "Historie vyhledávání:", style = MaterialTheme.typography.titleMedium)
+        if (state.favourites.isNotEmpty()) item {
+            Text(text = "Oblíbené:", style = MaterialTheme.typography.titleMedium)
         }
 
-        if (state.history.isEmpty()) item {
-            Text(text = "Zatím nic :(")
+        itemsIndexed(state.favourites) { i, f ->
+            FavouriteItem(f, onEvent, i)
+        }
+
+        if (state.history.isNotEmpty()) item {
+            Text(text = "Historie vyhledávání:", style = MaterialTheme.typography.titleMedium)
         }
 
         itemsIndexed(state.history) { i, s ->
@@ -304,6 +313,26 @@ fun ConnectionSearchScreen(
         }
     }
 }
+
+@Composable
+private fun FavouriteItem(
+    f: Favourite,
+    onEvent: (ConnectionSearchEvent) -> Unit,
+    i: Int,
+) = ListItem(
+    headlineContent = {
+        Column {
+            f.forEach {
+                Text(text = "${it.start} -> ${it.destination}")
+            }
+        }
+    },
+    Modifier.clickable {
+        onEvent(
+            ConnectionSearchEvent.SearchFavourite(i)
+        )
+    },
+)
 
 @Suppress("AssignedValueIsNeverRead")
 @Composable

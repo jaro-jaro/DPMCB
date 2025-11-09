@@ -31,13 +31,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TransferWithinAStation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconToggleButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.IndicatorBox
@@ -50,6 +58,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -71,6 +80,7 @@ import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.viewModel
+import cz.jaro.dpmcb.ui.common.IconWithTooltip
 import cz.jaro.dpmcb.ui.common.InvertedVehicleIcon
 import cz.jaro.dpmcb.ui.common.Name
 import cz.jaro.dpmcb.ui.common.invertedIconColor
@@ -115,9 +125,19 @@ fun ConnectionResultsScreen(
         .padding(horizontal = 8.dp)
         .fillMaxWidth()
 ) {
-    Text(text = "${state.settings.start} -> ${state.settings.destination}")
-    Text(text = "${state.settings.datetime.date.asString()} ${state.settings.datetime.time}")
-    if (state.settings.directOnly) Text(text = "Zobrazují se pouze přímá spojení")
+    Row(
+        Modifier.fillMaxWidth()
+    ) {
+        Column(
+            Modifier.weight(1F),
+        ) {
+            state.relations.forEach { relation ->
+                Text(text = "${relation.start} -> ${relation.destination}")
+            }
+            Text(text = "${state.datetime.date.asString()} ${state.datetime.time}")
+        }
+        Favouritificator(onEvent, state)
+    }
 
     val pullToRefreshState = rememberPullToRefreshState()
     PullToRefreshBox(
@@ -135,20 +155,21 @@ fun ConnectionResultsScreen(
         LazyColumn(
             contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
         ) {
-            items(state.results, key = { it.def }) { connection ->
+            items(state.results, key = { it.def.joinToString() }) { connection ->
                 OutlinedCard(
                     Modifier
                         .clickable {
-                            onEvent(ConnectionResultsEvent.SelectConnection(connection.def, connection.departure.date))
+                            onEvent(ConnectionResultsEvent.SelectConnection(connection.def))
                         }
                         .fillMaxWidth()
                         .padding(top = 8.dp)
+                        .animateItem()
                 ) {
                     Row(
                         Modifier.padding(all = 8.dp).fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val dateText = if (connection.departure.date == state.settings.datetime.date) "" else
+                        val dateText = if (connection.departure.date == state.datetime.date) "" else
                             connection.departure.date.asStringDM() + ". "
                         val now by nowFlow.collectAsStateWithLifecycle()
                         val runsIn = connection.departure - now
@@ -235,13 +256,15 @@ private fun ConnectionResult.ResultDetail() {
                     name = "${bus.line}",
                     color = invertedIconColor(bus.isTrolleybus),
                 )
-                if (i != parts.lastIndex) Icon(
-                    imageVector = if (bus.transferTight || bus.transferLong) Icons.Default.TransferWithinAStation
-                    else Icons.AutoMirrored.Default.ArrowRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                )
+                if (i != parts.lastIndex) {
+                    Icon(
+                        imageVector = if (bus.transferTight || bus.transferLong) Icons.Default.TransferWithinAStation
+                        else Icons.AutoMirrored.Default.ArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp).padding(if (bus.transferTight || bus.transferLong) 4.dp else 0.dp),
+                        tint = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
     }
@@ -388,5 +411,77 @@ fun DrawScope.drawOutlinedCircle(
         style = Stroke(
             width = strokeWidth,
         )
+    )
+}
+
+@Suppress("AssignedValueIsNeverRead")
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun Favouritificator(
+    onEvent: (ConnectionResultsEvent) -> Unit,
+    state: ConnectionResultState,
+) {
+    var show by remember { mutableStateOf(false) }
+
+    if (state.showAdd || state.showRemove || state.partOf.isNotEmpty() || state.other.isNotEmpty()) FilledIconToggleButton(
+        checked = state.isFavourite,
+        onCheckedChange = {
+            if (state.showAdd && !state.showRemove && state.partOf.isEmpty() && state.other.isEmpty())
+                onEvent(ConnectionResultsEvent.AddToFavourites)
+            else if (!state.showAdd && state.showRemove && state.other.isEmpty())
+                onEvent(ConnectionResultsEvent.RemoveFromFavourites)
+            else
+                show = true
+        }
+    ) { IconWithTooltip(Icons.Default.Star, "Oblíbené") }
+
+    if (show) AlertDialog(
+        onDismissRequest = { show = false },
+        confirmButton = { TextButton({ show = false }) { Text("Zrušit") } },
+        icon = { Icon(Icons.Default.Star, null) },
+        text = {
+            LazyColumn(Modifier.fillMaxWidth()) {
+                if (state.showAdd) item {
+                    FilledTonalButton({ onEvent(ConnectionResultsEvent.AddToFavourites) }) { Text("Přidat k oblíbeným") }
+                }
+                if (state.showRemove) item {
+                    FilledTonalButton({ onEvent(ConnectionResultsEvent.RemoveFromFavourites) }) { Text("Odebrat z oblíbených") }
+                }
+                else if (state.partOf.isNotEmpty()) {
+                    item {
+                        Text("Odebrat z oblíbených:", style = MaterialTheme.typography.titleMedium)
+                    }
+                    items(state.partOf, key = { it.value.joinToString() }) { (i, favourite) ->
+                        ListItem(
+                            headlineContent = {
+                                Column { favourite.forEach { Text(text = "${it.start} -> ${it.destination}") } }
+                            },
+                            Modifier.clickable { onEvent(ConnectionResultsEvent.RemoveFromOtherFavourite(i)) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = AlertDialogDefaults.containerColor,
+                                headlineColor = AlertDialogDefaults.textContentColor,
+                            )
+                        )
+                    }
+                }
+                if (state.other.isNotEmpty()) {
+                    item {
+                        Text("Přidat k existujícím oblíbeným:", style = MaterialTheme.typography.titleMedium)
+                    }
+                    items(state.other, key = { it.value.joinToString() }) { (i, favourite) ->
+                        ListItem(
+                            headlineContent = {
+                                Column { favourite.forEach { Text(text = "${it.start} -> ${it.destination}") } }
+                            },
+                            Modifier.clickable { onEvent(ConnectionResultsEvent.AddToOtherFavourite(i)) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = AlertDialogDefaults.containerColor,
+                                headlineColor = AlertDialogDefaults.textContentColor,
+                            )
+                        )
+                    }
+                }
+            }
+        }
     )
 }

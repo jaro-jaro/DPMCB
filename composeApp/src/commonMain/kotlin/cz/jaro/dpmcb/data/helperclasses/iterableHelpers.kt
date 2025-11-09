@@ -51,9 +51,9 @@ fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destinati
     return destination
 }
 
-inline fun <K, V> Map<K, V>.mutate(block: MutableMap<K, V>.() -> Unit): Map<K, V> =
+inline fun <K, V> Map<K, V>.mutate(block: MutableMap<K, V>.() -> Unit): MutableMap<K, V> =
     (this as? MutableMap<K, V> ?: toMutableMap()).apply(block)
-inline fun <T> Iterable<T>.mutate(block: MutableList<T>.() -> Unit): List<T> =
+inline fun <T> Iterable<T>.mutate(block: MutableList<T>.() -> Unit): MutableList<T> =
     (this as? MutableList<T> ?: toMutableList()).apply(block)
 
 fun <K, V> Map<K, V>.with(key: K, mutateValue: (V?) -> V): Map<K, V> = mutate {

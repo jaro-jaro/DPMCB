@@ -11,6 +11,7 @@ sealed interface ConnectionSearchEvent {
     data object Search : ConnectionSearchEvent
     data object ClearAll : ConnectionSearchEvent
     data class WentBack(val type: ChooserType, val stop: StopName) : ConnectionSearchEvent
+    data class SearchFavourite(val i: Int) : ConnectionSearchEvent
     data class SearchFromHistory(val i: Int, val includeDatetime: Boolean) : ConnectionSearchEvent
     data class FillFromHistory(val i: Int, val includeDatetime: Boolean = false) : ConnectionSearchEvent
     data class DeleteFromHistory(val i: Int) : ConnectionSearchEvent

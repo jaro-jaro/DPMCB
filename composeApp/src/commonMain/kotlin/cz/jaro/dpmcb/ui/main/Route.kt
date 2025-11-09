@@ -20,8 +20,10 @@ import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
 import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.common.toSimpleTime
-import cz.jaro.dpmcb.ui.connection.ConnectionPartDefinition
+import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
+import cz.jaro.dpmcb.ui.connection_search.Relations
 import cz.jaro.dpmcb.ui.connection_search.SearchSettings
+import cz.jaro.dpmcb.ui.connection_search.to
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import io.github.z4kn4fein.semver.Version
 import kotlinx.datetime.LocalDate
@@ -54,6 +56,7 @@ sealed interface Route {
     ) : Route {
         constructor(date: LocalDate, busName: BusName, from: Int? = null, to: Int? = null)
                 : this(date, busName.line(), busName.bus(), from, to)
+
         val busName get() = lineNumber / busNumber
         val part get() = if (from != null && to != null) from..to else null
     }
@@ -107,36 +110,37 @@ sealed interface Route {
     data class ConnectionResults(
         override val date: LocalDate,
         val time: SimpleTime,
-        val start: StopName,
-        val destination: StopName,
+        val relations: Relations,
         val directOnly: Boolean = false,
         val showInefficientConnections: Boolean = true,
     ) : Route {
         constructor(settings: SearchSettings) : this(
             date = settings.datetime.date,
             time = settings.datetime.time.toSimpleTime(),
-            start = settings.start,
-            destination = settings.destination,
+            relations = Relations(listOf(settings.start to settings.destination)),
             directOnly = settings.directOnly,
             showInefficientConnections = true,//settings.showInefficientConnections,
         )
 
         val settings
-            get() = SearchSettings(
-                datetime = date.atTime(time.toLocalTime()),
-                start = start,
-                destination = destination,
-                directOnly = directOnly,
-                showInefficientConnections = showInefficientConnections,
-            )
+            get() = relations.value.map { (start, destination) ->
+                SearchSettings(
+                    datetime = date.atTime(time.toLocalTime()),
+                    start = start,
+                    destination = destination,
+                    directOnly = directOnly,
+                    showInefficientConnections = showInefficientConnections,
+                )
+            }
     }
 
-    @Serializable()
+    @Serializable
     @SerialName("connection")
     data class Connection(
-        override val date: LocalDate,
-        val def: List<ConnectionPartDefinition> = listOf(),
-    ) : Route
+        val def: ConnectionDefinition,
+    ) : Route {
+        override val date: LocalDate get() = def.first().date
+    }
 
     @Serializable
     @SerialName("now_running")

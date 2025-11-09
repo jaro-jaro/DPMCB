@@ -4,7 +4,10 @@ import androidx.navigation.NavType
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
-import kotlinx.serialization.json.Json
+import cz.jaro.dpmcb.data.helperclasses.fromJson
+import cz.jaro.dpmcb.data.helperclasses.toJson
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.serialDescriptor
 import kotlin.reflect.typeOf
 
 inline fun <reified T : Enum<T>> enumTypePair() = typePair(
@@ -13,23 +16,39 @@ inline fun <reified T : Enum<T>> enumTypePair() = typePair(
 )
 
 inline fun <reified T> serializationTypePair() = typePair(
-    parseValue = { Json.decodeFromString<T>(it) },
-    serializeAsValue = { Json.encodeToString<T>(it) },
+    parseValue = { it.fromJson<T>() },
+    serializeAsValue = { it.toJson<T>() },
+    name = serialDescriptor<T>().serialName,
 )
 
 inline fun <reified T> stringSerializationTypePair() = typePair(
-    parseValue = { Json.decodeFromString<T>(it.run { "\"$this\"" }) },
-    serializeAsValue = { Json.encodeToString<T>(it).removeSurrounding("\"") },
+    parseValue = { it.run { "\"$this\"" }.fromJson<T>() },
+    serializeAsValue = { it.toJson<T>().removeSurrounding("\"") },
+    name = serialDescriptor<T>().serialName,
+)
+
+inline fun <reified T> serializationTypePair(serializer: KSerializer<T>) = typePair(
+    parseValue = { it.fromJson(serializer) },
+    serializeAsValue = { it.toJson(serializer) },
+    name = serializer.descriptor.serialName,
+)
+
+inline fun <reified T> stringSerializationTypePair(serializer: KSerializer<T>) = typePair(
+    parseValue = { it.run { "\"$this\"" }.fromJson(serializer) },
+    serializeAsValue = { it.toJson(serializer).removeSurrounding("\"") },
+    name = serializer.descriptor.serialName,
 )
 
 inline fun <reified T> typePair(
     crossinline parseValue: (String) -> T,
     crossinline serializeAsValue: (T) -> String,
-) = typeOf<T>() to NavType(parseValue, serializeAsValue)
+    name: String? = null,
+) = typeOf<T>() to NavType(parseValue, serializeAsValue, name)
 
 inline fun <reified T> NavType(
     crossinline parseValue: (String) -> T,
     crossinline serializeAsValue: (T) -> String,
+    name: String? = null,
 ) = object : NavType<T>(isNullableAllowed = true) {
 
     override fun get(bundle: SavedState, key: String) =
@@ -42,6 +61,6 @@ inline fun <reified T> NavType(
 
     override fun serializeAsValue(value: T) = serializeAsValue(value)
 
-    override val name: String = T::class.simpleName ?: ""
+    override val name: String = name ?: T::class.simpleName ?: ""
 }
 

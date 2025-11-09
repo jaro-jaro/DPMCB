@@ -3,16 +3,23 @@ package cz.jaro.dpmcb.ui.connection_results
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
-import cz.jaro.dpmcb.ui.connection_search.SearchSettings
+import cz.jaro.dpmcb.ui.connection_search.Favourite
+import cz.jaro.dpmcb.ui.connection_search.Relations
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 
 data class ConnectionResultState(
-    val settings: SearchSettings,
+    val relations: Relations,
+    val datetime: LocalDateTime,
     val results: List<ConnectionResult>,
     val loading: Boolean,
     val loadingPast: Boolean,
+    val isFavourite: Boolean,
+    val showAdd: Boolean,
+    val showRemove: Boolean,
+    val partOf: List<IndexedValue<Favourite>>,
+    val other: List<IndexedValue<Favourite>>,
 )
 
 @Serializable

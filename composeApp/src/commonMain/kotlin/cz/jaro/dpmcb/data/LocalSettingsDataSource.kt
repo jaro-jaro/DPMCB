@@ -16,12 +16,12 @@ import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.ui.connection_search.Favourite
 import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.atTime
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
@@ -32,6 +32,9 @@ interface LocalSettingsDataSource {
 
     val version: StateFlow<Int>
     fun changeVersion(value: Int)
+
+    val favourites: StateFlow<List<Favourite>>
+    fun changeFavourites(update: MutateLambda<List<Favourite>>)
 
     val searchHistory: StateFlow<List<SearchSettings>>
     fun changeSearchHistory(update: MutateLambda<List<SearchSettings>>)
@@ -73,6 +76,7 @@ class MultiplatformSettingsDataSource(
     object Keys {
         const val VERSION = "verze"
         const val SEARCH_HISTORY = "search_history"
+        const val FAVOURITES = "favourites"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"
         const val VEHICLES = "vehiclesOnSequences"
@@ -80,31 +84,8 @@ class MultiplatformSettingsDataSource(
 
     object DefaultValues {
         const val VERSION = -1
-        @OptIn(ExperimentalTime::class)
-        val SEARCH_HISTORY = listOf(
-            SearchSettings(
-                start = "Pětidomí",
-                destination = "Na Sádkách",
-                directOnly = false,
-                showInefficientConnections = true,
-                datetime = SystemClock.todayHere().atTime(6, 30),
-            ),
-            SearchSettings(
-                start = "Alešova",
-                destination = "Aloise Kříže",
-                directOnly = false,
-                showInefficientConnections = true,
-                datetime = SystemClock.todayHere().atTime(16, 10),
-            ),
-            SearchSettings(
-                start = "Suché Vrbné",
-                destination = "Jana Buděšínského",
-                directOnly = false,
-                showInefficientConnections = true,
-                datetime = SystemClock.todayHere().atTime(16, 10),
-            )
-        )
-
+        val SEARCH_HISTORY = emptyList<SearchSettings>()
+        val FAVOURITES = emptyList<Favourite>()
         val SETTINGS = Settings()
         const val CARD = false
         val VEHICLES = emptyMap<LocalDate, Map<SequenceCode, RegistrationNumber>>()
@@ -142,6 +123,16 @@ class MultiplatformSettingsDataSource(
 
     override fun changeSearchHistory(update: (List<SearchSettings>) -> List<SearchSettings>) {
         data[Keys.SEARCH_HISTORY] = update(searchHistory.value).toJson(json)
+    }
+
+    override val favourites = data
+        .getStringOrNullStateFlow(scope, Keys.FAVOURITES)
+        .mapState(scope) {
+            it?.fromJson(json) ?: DefaultValues.FAVOURITES
+        }
+
+    override fun changeFavourites(update: (List<Favourite>) -> List<Favourite>) {
+        data[Keys.FAVOURITES] = update(favourites.value).toJson(json)
     }
 
     override val hasCard = data
