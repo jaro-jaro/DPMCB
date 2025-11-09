@@ -42,6 +42,8 @@ import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.bus.BusDetail
+import cz.jaro.dpmcb.data.realtions.canGetOff
+import cz.jaro.dpmcb.data.realtions.canGetOn
 import cz.jaro.dpmcb.data.realtions.connection.GraphBus
 import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
 import cz.jaro.dpmcb.data.realtions.departures.Departure
@@ -225,7 +227,7 @@ class SpojeRepository(
                 val stopNames = stops.map { it.stopName }
                 stops.withIndex()
                     .filter { it.value.stopName == thisStop }
-                    .filter { it.index < stops.lastIndex && StopType(it.value.stopFixedCodes) != StopType.GetOffOnly }
+                    .filter { it.index < stops.lastIndex && StopType(it.value.stopFixedCodes).canGetOn }
                     .map { it.index }
                     .map { i ->
                         val destination = middleDestination(line.findLongLine(), stopNames, i)
@@ -659,10 +661,10 @@ private fun createStopGraph(
     connStops.forEach { (bus, stops) ->
         val indexed = stops.withIndex().toList()
         indexed.windowed(2).forEach { (thisStop, nextStop) ->
-            val start = if (StopType(thisStop.value.fixedCodes) != StopType.GetOffOnly) thisStop
-            else indexed.take(thisStop.index).findLast { StopType(thisStop.value.fixedCodes) != StopType.GetOffOnly } ?: return@forEach
-            val end = if (StopType(nextStop.value.fixedCodes) != StopType.GetOnOnly) nextStop
-            else indexed.drop(nextStop.index + 1).find { StopType(thisStop.value.fixedCodes) != StopType.GetOnOnly } ?: return@forEach
+            val start = if (StopType(thisStop.value.fixedCodes).canGetOn) thisStop
+            else indexed.take(thisStop.index).findLast { StopType(thisStop.value.fixedCodes).canGetOn } ?: return@forEach
+            val end = if (StopType(nextStop.value.fixedCodes).canGetOff) nextStop
+            else indexed.drop(nextStop.index + 1).find { StopType(thisStop.value.fixedCodes).canGetOff } ?: return@forEach
             stopGraph.getOrPut(start.value.name) { mutableListOf() } += GraphEdge(
                 departure = start.value.departure!!,
                 arrival = end.value.arrival!!,

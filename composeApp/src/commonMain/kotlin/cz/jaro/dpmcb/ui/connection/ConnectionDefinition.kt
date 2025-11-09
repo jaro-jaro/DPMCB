@@ -74,7 +74,7 @@ fun ConnectionDefinition.drop(n: Int) = (this as List<ConnectionPartDefinition>)
 @JvmName("connectionToConnectionDefinition")
 fun Connection.toConnectionDefinition(): ConnectionDefinition = map {
     ConnectionPartDefinition(
-        it.bus, it.departure.date, it.departureIndexOnBus, it.arrivalIndexOnBus
+        it.bus, it.date, it.departureIndexOnBus, it.arrivalIndexOnBus
     )
 }.toConnectionDefinition()
 

@@ -54,7 +54,7 @@ class ConnectionSearchViewModel(
         start = "",
         destination = "",
         directOnly = false,
-        showInefficientConnections = true,
+        showInefficientConnections = false,
         datetime = args.date.atTime(SystemClock.timeHere().truncatedToMinutes()),
     )
 
@@ -134,7 +134,7 @@ class ConnectionSearchViewModel(
                 time = settings.value.datetime.time.toSimpleTime(),
                 relations = Relations(repo.favourites.value[e.i]),
                 directOnly = false,
-                showInefficientConnections = true,
+                showInefficientConnections = false,
             ))
         }
     }

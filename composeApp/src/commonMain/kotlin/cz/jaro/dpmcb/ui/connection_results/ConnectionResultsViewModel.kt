@@ -1,8 +1,9 @@
 package cz.jaro.dpmcb.ui.connection_results
 
 import androidx.lifecycle.ViewModel
+import cz.jaro.dpmcb.data.CommonConnectionSearcher
 import cz.jaro.dpmcb.data.Connection
-import cz.jaro.dpmcb.data.ConnectionSearcher
+import cz.jaro.dpmcb.data.DirectConnectionSearcher
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
@@ -24,6 +25,7 @@ import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.atDate
 import kotlinx.datetime.atTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -45,9 +47,11 @@ class ConnectionResultsViewModel(
     private val loadedBack = MutableStateFlow(relations.map { 0 }.toMutableList())
 
     val searchers = async {
-        args.settings.map {
-            ConnectionSearcher(
-                settings = it,
+        args.relations.map {
+            (if (args.directOnly) DirectConnectionSearcher else CommonConnectionSearcher)(
+                start = it.start,
+                destination = it.destination,
+                datetime = datetime,
                 repo = repo,
             )
         }
@@ -77,7 +81,7 @@ class ConnectionResultsViewModel(
         connection.map { it.bus }
     }.let { results ->
         if (showInefficientConnections) results
-        else results.groupBy { it.last().arrival }.map { (_, connections) ->
+        else results.groupBy { it.last().arrival to it.last().endStop }.map { (_, connections) ->
             connections.maxBy { it.first().departure }
         }
     }.sortedWith(compareBy<Connection> { it.first().departure }.thenBy { it.last().arrival })
@@ -148,7 +152,7 @@ class ConnectionResultsViewModel(
 
     val buses = filteredResults.mapState { connections ->
         connections.flatMap { parts ->
-            parts.map { it.bus to it.departure.date }
+            parts.map { it.bus to it.date }
         }.groupBy({ it.second }, { it.first }).mapValues { (date, buses) ->
             buses.toSet()
         }
@@ -176,8 +180,8 @@ class ConnectionResultsViewModel(
                     )
                 },
                 length = end.arrival - start.departure,
-                departure = start.departure,
-                arrival = end.arrival,
+                departure = start.departure.atDate(start.date),
+                arrival = end.arrival.atDate(end.date),
                 startStop = start.startStop,
                 endStop = end.endStop,
                 transfers = parts.drop(1).map { it.startStop },

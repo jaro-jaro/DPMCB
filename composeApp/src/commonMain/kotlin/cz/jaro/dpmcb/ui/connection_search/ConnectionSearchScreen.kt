@@ -465,9 +465,9 @@ private fun SearchSettings(
         Text("Zobrazit nevýhodná spojení")
 
         Switch(
-            checked = true,//state.settings.showInefficientConnections,
-            onCheckedChange = { _ ->
-//                onEvent(ConnectionSearchEvent.SetShowInefficientConnections(_))
+            checked = state.settings.showInefficientConnections,
+            onCheckedChange = { show ->
+                onEvent(ConnectionSearchEvent.SetShowInefficientConnections(show))
             },
         )
     }

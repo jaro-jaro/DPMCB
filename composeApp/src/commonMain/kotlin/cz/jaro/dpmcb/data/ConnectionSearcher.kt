@@ -9,8 +9,15 @@ import cz.jaro.dpmcb.data.helperclasses.measure
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.work
+import cz.jaro.dpmcb.data.realtions.StopType
+import cz.jaro.dpmcb.data.realtions.canGetOff
+import cz.jaro.dpmcb.data.realtions.canGetOn
+import cz.jaro.dpmcb.data.realtions.connection.GraphBus
 import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
-import cz.jaro.dpmcb.ui.connection_search.SearchSettings
+import cz.jaro.dpmcb.data.realtions.invoke
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -19,6 +26,21 @@ import kotlinx.datetime.atDate
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+
+@Suppress("MayBeConstant", "RedundantSuppression")
+val log = false
+
+inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.log(vararg msg: R, c: Boolean = true, transform: T.() -> S): T =
+    if (log && c) work(*msg, tag = "ConnectionSearcher", transform = transform) else this
+
+inline fun <reified T : Any?, reified S : Any?> T.log(c: Boolean = true, transform: T.() -> S): T =
+    if (log && c) work(tag = "ConnectionSearcher", transform = transform) else this
+
+inline fun <reified T : Any?, reified R : Any?> T.log(vararg msg: R, c: Boolean = true): T =
+    if (log && c) work(*msg, tag = "ConnectionSearcher") else this
+
+inline fun <T, reified R : Any?> logTime(vararg msg: R, c: Boolean = true, block: () -> T) =
+    if (log && c) measure(*msg, tag = "ConnectionSearcher", block = block) else block()
 
 data class GraphEdge(
 //    val from: StopName,
@@ -41,12 +63,13 @@ typealias Connection = List<ConnectionPart>
 
 data class ConnectionPart(
     val startStop: StopName,
-    val departure: LocalDateTime,
+    val departure: LocalTime,
     val departureIndexOnBus: Int,
     val departurePlatform: Platform?,
     val bus: BusName,
     val vehicleType: VehicleType?,
-    val arrival: LocalDateTime,
+    val date: LocalDate,
+    val arrival: LocalTime,
     val arrivalIndexOnBus: Int,
     val arrivalPlatform: Platform?,
     val endStop: StopName,
@@ -56,65 +79,76 @@ data class ConnectionPart(
 
 private data class SearchTableRow(
     val cameFrom: StopName?,
-    val arrival: LocalDateTime,
+    val arrival: LocalTime,
     val arrivalIndexOnBus: Int,
     val arrivalPlatform: Platform?,
-    val lastDeparture: LocalDateTime?,
+    val lastDeparture: LocalTime?,
     val lastDeparturePlatform: Platform?,
     val lastBus: BusName?,
     val vehicleType: VehicleType?,
+    val date: LocalDate,
 //    val transfers: Int,
 ) {
-    override fun toString() = "$cameFrom (${lastDeparture?.time}) -> ($lastBus) ${arrival.time}"
+    override fun toString() = "$cameFrom ($lastDeparture) -> ($lastBus) $arrival"
 }
 
 private typealias SearchTable = Map<StopName, SearchTableRow>
 private typealias MutableSearchTable = MutableMap<StopName, SearchTableRow>
 
-class ConnectionSearcher private constructor(
-    private val settings: SearchSettings,
+interface ConnectionSearcher {
+    interface Companion {
+        suspend operator fun invoke(
+            start: StopName,
+            destination: StopName,
+            datetime: LocalDateTime,
+            repo: SpojeRepository,
+        ): ConnectionSearcher
+    }
+
+    fun search(
+        firstOffset: Int,
+        count: Int,
+    ): Flow<Connection?>
+
+    fun searchBack(
+        firstOffset: Int,
+        count: Int,
+    ): Flow<Connection?>
+}
+
+class CommonConnectionSearcher private constructor(
+    private val start: StopName,
+    private val destination: StopName,
+    private val datetime: LocalDateTime,
     private val strippedDownGraph: StopGraph,
     private val allStops: Set<StopName>,
     private val runsAt: Map<BusName, (LocalDate) -> Boolean>,
     private val stops: Map<BusName, List<StopNameTime>>,
-) {
-    companion object {
-        @Suppress("MayBeConstant", "RedundantSuppression")
-        val log = false
-
-        inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.log(vararg msg: R, c: Boolean = true, transform: T.() -> S): T =
-            if (log && c) work(*msg, tag = "ConnectionSearcher", transform = transform) else this
-
-        inline fun <reified T : Any?, reified S : Any?> T.log(c: Boolean = true, transform: T.() -> S): T =
-            if (log && c) work(tag = "ConnectionSearcher", transform = transform) else this
-
-        inline fun <reified T : Any?, reified R : Any?> T.log(vararg msg: R, c: Boolean = true): T =
-            if (log && c) work(*msg, tag = "ConnectionSearcher") else this
-
-        inline fun <T, reified R : Any?> logTime(vararg msg: R, c: Boolean = true, block: () -> T) =
-            if (log && c) measure(*msg, tag = "ConnectionSearcher", block = block) else block()
-
-        suspend operator fun invoke(
-            settings: SearchSettings,
+) : ConnectionSearcher {
+    companion object : ConnectionSearcher.Companion {
+        override suspend operator fun invoke(
+            start: StopName,
+            destination: StopName,
+            datetime: LocalDateTime,
             repo: SpojeRepository,
-        ): ConnectionSearcher {
-            settings.log("Vyhledávám")
+        ): CommonConnectionSearcher {
+            datetime.log("Vyhledávám", start, destination)
 
             val stops: Map<BusName, List<StopNameTime>> = logTime("ČAS: Zastávky nalezeny") {
-                repo.stops(settings.datetime.date).await()
+                repo.stops(datetime.date).await()
                     .mapKeys { it.key.connName }
             }
             val runsAt: Map<BusName, (LocalDate) -> Boolean> = logTime("ČAS: RunsAt získáno") {
-                repo.connsRunAt(settings.datetime.date).await()
+                repo.connsRunAt(datetime.date).await()
             }
             val stopGraph: StopGraph = logTime("ČAS: Graf získán") {
-                repo.stopGraph(settings.datetime.date).await()
+                repo.stopGraph(datetime.date).await()
             }
 
             val pathGraph: Map<StopName, Set<StopName>> = logTime("ČAS: Cesty získány") {
                 findPathGraph(
-                    start = settings.start,
-                    destination = settings.destination,
+                    start = start,
+                    destination = destination,
                     stopGraph = stopGraph.mapValues { (_, edges) -> edges.map { it.to }.toSet() }
                         .log("Graph") { entries.filter { it.value.isNotEmpty() }.joinToString("\n") }
                 )
@@ -124,9 +158,9 @@ class ConnectionSearcher private constructor(
                 stripDownGraph(pathGraph, stopGraph)
                     .log("Graph") { entries.filter { it.value.isNotEmpty() }.joinToString("\n") }
             }
-            val allStops: Set<StopName> = strippedDownGraph.keys + settings.destination
+            val allStops: Set<StopName> = strippedDownGraph.keys + destination
 
-            return ConnectionSearcher(settings, strippedDownGraph, allStops, runsAt, stops)
+            return CommonConnectionSearcher(start, destination, datetime, strippedDownGraph, allStops, runsAt, stops)
         }
 
         private fun stripDownGraph(
@@ -247,30 +281,38 @@ class ConnectionSearcher private constructor(
         }
     }
 
+    override fun search(
+        firstOffset: Int,
+        count: Int,
+    ) = search(
+        firstOffset = firstOffset, count = count,
+        searchToPast = false, startOverride = null, datetimeOverride = null,
+    )
+
+    override fun searchBack(
+        firstOffset: Int,
+        count: Int,
+    ) = search(
+        firstOffset = firstOffset, count = count,
+        searchToPast = true, startOverride = null, datetimeOverride = null,
+    )
+
     fun search(
         firstOffset: Int,
         count: Int,
-        start: StopName? = null,
-        datetime: LocalDateTime? = null,
+        startOverride: StopName,
+        datetimeOverride: LocalDateTime,
     ) = search(
         firstOffset = firstOffset, count = count,
-        searchToPast = false, start = start, datetime = datetime,
+        searchToPast = false, startOverride = startOverride, datetimeOverride = datetimeOverride,
     )
 
-    fun searchBack(
-        firstOffset: Int,
-        count: Int,
-    ) = search(
-        firstOffset = firstOffset, count = count,
-        searchToPast = true, start = null, datetime = null,
-    )
-
-    private fun search(
+    fun search(
         firstOffset: Int,
         count: Int,
         searchToPast: Boolean,
-        start: StopName?,
-        datetime: LocalDateTime?,
+        startOverride: StopName?,
+        datetimeOverride: LocalDateTime?,
     ) = flow {
         logTime("ČAS: Nalezeno všech $count spojení") {
             repeat(count) { i ->
@@ -279,14 +321,9 @@ class ConnectionSearcher private constructor(
                     val connection = find(
                         offset = skip,
                         searchToPast = searchToPast,
-                        settings = settings.copy(
-                            start = start ?: settings.start,
-                            datetime = datetime ?: settings.datetime,
-                        ),
-                        strippedDownGraph = strippedDownGraph,
-                        allStops = allStops,
-                        runsAt = runsAt,
-                        stops = stops
+                        start = startOverride ?: start,
+                        destination = destination,
+                        datetime = datetimeOverride ?: datetime,
                     )
                     emit(connection)
                 }
@@ -297,36 +334,30 @@ class ConnectionSearcher private constructor(
     private fun find(
         offset: Int,
         searchToPast: Boolean,
-        settings: SearchSettings,
-        strippedDownGraph: StopGraph,
-        allStops: Set<StopName>,
-        runsAt: Map<BusName, (LocalDate) -> Boolean>,
-        stops: Map<BusName, List<StopNameTime>>,
+        start: StopName,
+        destination: StopName,
+        datetime: LocalDateTime,
     ): Connection? {
         val searchTable = searchTroughGraph(
-            settings = settings,
+            start = start,
+            destination = destination,
+            datetime = datetime,
             offset = offset,
             searchToPast = searchToPast,
-            graph = strippedDownGraph,
-            allStops = allStops,
-            runsAt = runsAt,
         )
 
-        if (searchTable[settings.destination]!!.cameFrom == null) {
+        if (searchTable[destination]!!.cameFrom == null) {
             return null
         }
 
         val connection = searchTable.flattenTable(
-            destination = settings.destination,
-            startStop = settings.start
+            destination = destination,
+            startStop = start
         )
 
-        val joint = connection.joinSameBus()
-            .log("CONNECTION before optimization") { joinToString() }
+        val joint = connection.joinSameBus().log("CONNECTION before optimization") { joinToString() }
 
-        val extended = joint.extendBusesFromEnd(
-            stops = stops,
-        ).log("CONNECTION") { joinToString() }
+        val extended = joint.extendBusesFromEnd().log("CONNECTION") { joinToString() }
 
         return extended
     }
@@ -342,6 +373,7 @@ class ConnectionSearcher private constructor(
                 departureIndexOnBus = first.departureIndexOnBus,
                 departurePlatform = first.departurePlatform,
                 bus = bus,
+                date = first.date,
                 vehicleType = first.vehicleType,
                 arrival = last.arrival,
                 arrivalIndexOnBus = last.arrivalIndexOnBus,
@@ -351,65 +383,68 @@ class ConnectionSearcher private constructor(
         }
 
     private fun searchTroughGraph(
-        settings: SearchSettings,
+        start: StopName,
+        destination: StopName,
+        datetime: LocalDateTime,
         offset: Int,
         searchToPast: Boolean,
-        graph: StopGraph,
-        allStops: Set<StopName>,
-        runsAt: Map<BusName, (date: LocalDate) -> Boolean>,
     ): SearchTable {
         val searchTable: MutableSearchTable = (mapOf(
-            settings.start to SearchTableRow(
+            start to SearchTableRow(
                 cameFrom = null,
-                arrival = settings.datetime,
+                arrival = datetime.time,
                 arrivalIndexOnBus = -1,
                 arrivalPlatform = null,
                 lastDeparture = null,
                 lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
+                date = datetime.date,
 //            transfers = 0,
             ),
-        ) + (allStops - settings.start).associateWith {
+        ) + (allStops - start).associateWith {
             SearchTableRow(
                 cameFrom = null,
-                arrival = settings.datetime + 100.days,
+                arrival = datetime.time,
                 arrivalIndexOnBus = -1,
                 arrivalPlatform = null,
                 lastDeparture = null,
                 lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
+                date = datetime.date + 100.days
 //            transfers = Int.MAX_VALUE,
             )
         }).toMutableMap()
 
         val queue = PriorityQueue<Pair<StopName, LocalDateTime>>(compareBy { it.second })
-        queue.offer(settings.start to settings.datetime)
+        queue.offer(start to datetime)
 
         while (!queue.isEmpty()) {
             val (thisStop) = queue.poll()!!
-            if (thisStop == settings.destination) continue
+            if (thisStop == destination) continue
 
             val row = searchTable[thisStop]!!
-            val currentResult = searchTable[settings.destination]!!.arrival
+            val destinationRow = searchTable[destination]!!
+            val currentResult = destinationRow.arrival.atDate(destinationRow.date)
 
-            val allOptions = graph[thisStop.log("Current")]!!
+            val allOptions = strippedDownGraph[thisStop.log("Current")]!!
 
-            val willSearchToPast = thisStop == settings.start && searchToPast
+            val willSearchToPast = thisStop == start && searchToPast
 
-            val yesterday by lazy { allOptions.map { it to row.arrival.date - 1.days } }
-            val today by lazy { allOptions.map { it to row.arrival.date } }
-            val tomorrow by lazy { allOptions.map { it to row.arrival.date + 1.days } }
+            val yesterday by lazy { allOptions.map { it to row.date - 1.days } }
+            val today by lazy { allOptions.map { it to row.date } }
+            val tomorrow by lazy { allOptions.map { it to row.date + 1.days } }
             val datedOptions = if (willSearchToPast) yesterday + today else today + tomorrow
 
             val runningOptions = datedOptions
                 .filter { (it, date) ->
                     val transfer = if (it.departurePlatform == row.arrivalPlatform) 0.seconds else 60.seconds
                     val departure = it.departure.atDate(date) - transfer
-                    val runs = it.to in allStops && runsAt[it.bus]!!(date)
-                    if (willSearchToPast) departure < row.arrival && runs
-                    else row.arrival <= departure && runs
+                    val arrival = row.arrival.atDate(row.date)
+                    val runsToday = it.to in allStops && runsAt[it.bus]!!(date)
+                    if (willSearchToPast) departure < arrival && runsToday
+                    else arrival <= departure && runsToday
                 }
 
             val noTransfer = if (row.lastBus != null) runningOptions.find { (edge) ->
@@ -418,7 +453,7 @@ class ConnectionSearcher private constructor(
 
             val offsetOptions =
                 (if (willSearchToPast) runningOptions.dropLast(offset)
-                else runningOptions.drop(if (thisStop == settings.start) offset else 0))
+                else runningOptions.drop(if (thisStop == start) offset else 0))
                     .log("Current", thisStop, "Next options") { map { it.first } }
 
             offsetOptions
@@ -429,23 +464,25 @@ class ConnectionSearcher private constructor(
 
                     next
                         ?.takeIf { (edge, date) ->
-                            val current = searchTable[to]!!.arrival
-                            val new = edge.arrival.atDate(date).log(
-                                "Current", row.arrival.time, thisStop, edge.departure, "Next", to,
+                            val targetRow = searchTable[to]!!
+                            val current = targetRow.arrival.atDate(targetRow.date)
+                            val new = edge.arrival.log(
+                                "Current", row.arrival, thisStop, edge.departure, "Next", to,
                                 "Using", edge.bus, "No transfer", noTransfer?.first?.bus,
-                                "Best time", current.time, "New time"
-                            ) { time }
+                                "Best time", current, "New time"
+                            ).atDate(date)
                             new < current && new < currentResult
                         }
                         ?.let { (edge, date) ->
                             searchTable[to] = SearchTableRow(
                                 cameFrom = thisStop,
-                                arrival = edge.arrival.atDate(date),
+                                arrival = edge.arrival,
                                 arrivalIndexOnBus = edge.arrivalIndexOnBus,
                                 arrivalPlatform = edge.arrivalPlatform,
                                 lastBus = edge.bus,
                                 vehicleType = edge.vehicleType,
-                                lastDeparture = edge.departure.atDate(date),
+                                date = date,
+                                lastDeparture = edge.departure,
                                 lastDeparturePlatform = edge.departurePlatform,
 //                            transfers = if (noTransfer == null) row.transfers + 1 else row.transfers
                             )
@@ -458,9 +495,7 @@ class ConnectionSearcher private constructor(
     }
 
     @OptIn(ExperimentalTime::class)
-    private fun Connection.extendBusesFromEnd(
-        stops: Map<BusName, List<StopNameTime>>,
-    ): Connection {
+    private fun Connection.extendBusesFromEnd(): Connection {
         val newParts = toMutableList()
         var currentIndex = newParts.size
 
@@ -472,14 +507,14 @@ class ConnectionSearcher private constructor(
             val stopsBeforeThisPart = busStops.slice(0..<thisPart.departureIndexOnBus)
 
             val lastPartDepartureOnThisBus = stopsBeforeThisPart.withIndex()
-                .findLast { it.value.name == previousPart.startStop && it.value.time >= previousPart.departure.time }
+                .findLast { it.value.name == previousPart.startStop && it.value.time >= previousPart.departure }
 
             if (lastPartDepartureOnThisBus == null)
                 continue
 
             newParts[currentIndex] = thisPart.copy(
                 startStop = lastPartDepartureOnThisBus.value.name,
-                departure = lastPartDepartureOnThisBus.value.time.atDate(thisPart.departure.date),
+                departure = lastPartDepartureOnThisBus.value.time,
                 departureIndexOnBus = lastPartDepartureOnThisBus.index
             )
             newParts.removeAt(currentIndex - 1)
@@ -509,11 +544,117 @@ class ConnectionSearcher private constructor(
                 arrivalIndexOnBus = row.arrivalIndexOnBus,
                 arrivalPlatform = row.arrivalPlatform,
                 endStop = currentStop,
+                date = row.date,
             )
 
             currentStop = row.cameFrom
         } while (currentStop != startStop)
 
         return reversedResult.reversed()
+    }
+}
+
+class DirectConnectionSearcher private constructor(
+    private val datetime: LocalDateTime,
+    private val connections: Sequence<ConnectionPart>,
+) : ConnectionSearcher {
+    companion object : ConnectionSearcher.Companion {
+        override suspend operator fun invoke(
+            start: StopName,
+            destination: StopName,
+            datetime: LocalDateTime,
+            repo: SpojeRepository,
+        ) = coroutineScope {
+            datetime.log("Vyhledávám přímo", start, destination)
+
+            val stops = repo.stops(datetime.date)
+            val runsAtA = repo.connsRunAt(datetime.date)
+
+            val all = async {
+                stops.await().findAllConnections(start, destination, datetime.date)
+            }
+
+            val dated = async {
+                all.await().getDatedConnections(runsAtA.await())
+            }
+
+            DirectConnectionSearcher(datetime, dated.await())
+        }
+
+        private fun Sequence<ConnectionPart>.getDatedConnections(
+            runsAt: Map<BusName, (LocalDate) -> Boolean>,
+        ): Sequence<ConnectionPart> {
+            val yesterday = map { it.copy(date = it.date - 1.days) }
+            val tomorrow = map { it.copy(date = it.date + 1.days) }
+            val datedOptions = yesterday + this + tomorrow
+
+            return datedOptions.filter {
+                runsAt[it.bus]!!(it.date)
+            }
+        }
+
+        private fun Map<GraphBus, List<StopNameTime>>.findAllConnections(
+            start: StopName,
+            destination: StopName,
+            date: LocalDate,
+        ) = entries
+            .asSequence()
+            .flatMap { (bus, stops) ->
+                stops
+                    .asSequence()
+                    .withIndex()
+                    .filter { (_, stop) ->
+                        stop.name == start && StopType(stop.fixedCodes).canGetOn
+                    }
+                    .flatMap { (i, start) ->
+                        stops
+                            .asSequence()
+                            .withIndex()
+                            .drop(i + 1)
+                            .filter { (_, stop) ->
+                                stop.name == destination && StopType(stop.fixedCodes).canGetOff
+                            }
+                            .map { (j, end) ->
+                                ConnectionPart(
+                                    startStop = start.name,
+                                    departure = start.departure!!,
+                                    departureIndexOnBus = i,
+                                    departurePlatform = start.platform,
+                                    bus = bus.connName,
+                                    vehicleType = bus.vehicleType,
+                                    date = date,
+                                    arrival = end.arrival!!,
+                                    arrivalIndexOnBus = j,
+                                    arrivalPlatform = end.platform,
+                                    endStop = end.name,
+                                )
+                            }
+                    }
+            }
+    }
+
+    override fun search(firstOffset: Int, count: Int) =
+        search(firstOffset, count, searchToPast = false)
+
+    override fun searchBack(firstOffset: Int, count: Int) =
+        search(firstOffset, count, searchToPast = true)
+
+    fun search(
+        firstOffset: Int,
+        count: Int,
+        searchToPast: Boolean,
+    ) = flow {
+        logTime("ČAS: Nalezeno všech $count spojení") {
+            val filtered = connections
+                .filter {
+                    if (searchToPast) it.departure < datetime.time
+                    else datetime.time <= it.departure
+                }
+            val connections = filtered
+                .drop(firstOffset)
+            repeat(count) { i ->
+                emit(connections.elementAtOrNull(i)?.let(::listOf))
+            }
+        }
     }
 }

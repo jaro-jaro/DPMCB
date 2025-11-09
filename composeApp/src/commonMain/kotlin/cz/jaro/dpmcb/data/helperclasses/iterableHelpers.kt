@@ -19,7 +19,7 @@ inline fun <T, K1, K2, V> Iterable<T>.groupByPair(keySelector: (T) -> Pair<K1, K
 fun Iterable<Boolean>.allTrue() = all { it }
 fun Iterable<Boolean>.anyTrue() = any { it }
 
-fun <T, U: Comparable<T>> List<U>.sorted() = sortedWith(compareBy { it })
+fun <T, U : Comparable<T>> List<U>.sorted() = sortedWith(compareBy { it })
 
 inline fun <T> Iterable<T>.indexOfFirstOrNull(predicate: (T) -> Boolean): Int? {
     for ((index, item) in this.withIndex()) {
@@ -53,12 +53,14 @@ fun <K, V, M : MutableMap<in K, in V>> Iterable<Map.Entry<K, V>>.toMap(destinati
 
 inline fun <K, V> Map<K, V>.mutate(block: MutableMap<K, V>.() -> Unit): MutableMap<K, V> =
     (this as? MutableMap<K, V> ?: toMutableMap()).apply(block)
+
 inline fun <T> Iterable<T>.mutate(block: MutableList<T>.() -> Unit): MutableList<T> =
     (this as? MutableList<T> ?: toMutableList()).apply(block)
 
 fun <K, V> Map<K, V>.with(key: K, mutateValue: (V?) -> V): Map<K, V> = mutate {
     this[key] = mutateValue(this[key])
 }
+
 fun <T> Iterable<T>.with(index: Int, mutateValue: (T) -> T): List<T> = mutate {
     this[index] = mutateValue(this[index])
 }
@@ -68,4 +70,33 @@ fun <K, V> Map<K, V>.with(key: K, value: V) = with(key) { value }
 
 fun <T> Iterable<T>.countMembers(): Map<T, Int> = fold(mapOf()) { result, element ->
     result.with(element, result.getOrElse(element) { 0 } + 1)
+}
+
+fun <T> Iterable<T>.takeOnly(n: Int, predicate: (T) -> Boolean): List<T> {
+    require(n >= 0) { "Requested element count $n is less than zero." }
+    var count = 0
+    val list = ArrayList<T>(n)
+    for (item in this)
+        if (predicate(item)) {
+            list.add(item)
+            if (++count == n)
+                break
+        }
+    return list
+}
+
+fun <T> Iterable<T>.nthOrNull(n: Int, predicate: (T) -> Boolean): T? {
+    require(n >= 0) { "Requested element index $n is less than zero." }
+    var index = -1
+    for (item in this)
+        if (predicate(item) && ++index == n) return item
+    return null
+}
+
+fun <T> Sequence<T>.nthOrNull(n: Int, predicate: (T) -> Boolean): T? {
+    require(n >= 0) { "Requested element index $n is less than zero." }
+    var index = -1
+    for (item in this)
+        if (predicate(item) && ++index == n) return item
+    return null
 }

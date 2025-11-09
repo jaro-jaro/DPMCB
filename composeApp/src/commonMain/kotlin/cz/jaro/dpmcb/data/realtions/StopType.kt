@@ -9,3 +9,5 @@ operator fun StopType.Companion.invoke(connStopFixedCodes: String) = when {
     connStopFixedCodes.contains("(") -> StopType.GetOffOnly
     else -> StopType.Normal
 }
+val StopType.canGetOn get() = this != StopType.GetOffOnly
+val StopType.canGetOff get() = this != StopType.GetOnOnly

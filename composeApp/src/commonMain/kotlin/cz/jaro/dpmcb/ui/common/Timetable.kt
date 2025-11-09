@@ -43,7 +43,7 @@ import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.PartOfConn
-import cz.jaro.dpmcb.data.realtions.StopType
+import cz.jaro.dpmcb.data.realtions.canGetOn
 import cz.jaro.dpmcb.data.realtions.isNotEmpty
 import cz.jaro.dpmcb.ui.theme.Colors
 import kotlinx.datetime.LocalTime
@@ -107,7 +107,7 @@ fun Timetable(
             else Colors.dimmedContent
         val a = if (indexOnBus == nextStopIndex || highlighted) 1F else .5F
         val platform = onlineStop?.platform ?: stop.platform
-        val departs = stop.type != StopType.GetOffOnly && index < filteredStops.lastIndex
+        val departs = stop.type.canGetOn && index < filteredStops.lastIndex
         val direction = if (middleDest != null) Direction.NEGATIVE else direction
 
         var showDropDown by rememberSaveable { mutableStateOf(false) }

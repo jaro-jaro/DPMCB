@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.ui.connection
 
 import androidx.lifecycle.ViewModel
-import cz.jaro.dpmcb.data.ConnectionSearcher
+import cz.jaro.dpmcb.data.CommonConnectionSearcher
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Platform
@@ -17,7 +17,6 @@ import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
 import cz.jaro.dpmcb.data.realtions.connection.StopNameTime
-import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,14 +93,12 @@ class ConnectionViewModel(
             val (lastBus, lastStops) = info.getValue(last.busName)
             val start = firstStops[first.start]
             val end = lastStops[last.end]
-            val settings = SearchSettings(
+            return@map CommonConnectionSearcher(
                 start = start.name,
                 destination = end.name,
-                directOnly = false,
-                showInefficientConnections = true,
                 datetime = start.departure!!.atDate(first.date),
+                repo = repo,
             )
-            return@map ConnectionSearcher(settings, repo)
         }.filterNotNull().first()
     }
 
@@ -157,8 +154,8 @@ class ConnectionViewModel(
         val searched = searcher.search(
             firstOffset = alternatives.size,
             count = 1,
-            start = bus.startStop,
-            datetime = bus.departure.atDate(bus.date),
+            startOverride = bus.startStop,
+            datetimeOverride = bus.departure.atDate(bus.date),
         )
         searched.collect {
             if (it != null)

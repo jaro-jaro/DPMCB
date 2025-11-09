@@ -18,7 +18,6 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.SimpleTime
-import cz.jaro.dpmcb.ui.common.toLocalTime
 import cz.jaro.dpmcb.ui.common.toSimpleTime
 import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
 import cz.jaro.dpmcb.ui.connection_search.Relations
@@ -27,7 +26,6 @@ import cz.jaro.dpmcb.ui.connection_search.to
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import io.github.z4kn4fein.semver.Version
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.atTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
@@ -112,26 +110,15 @@ sealed interface Route {
         val time: SimpleTime,
         val relations: Relations,
         val directOnly: Boolean = false,
-        val showInefficientConnections: Boolean = true,
+        val showInefficientConnections: Boolean = false,
     ) : Route {
         constructor(settings: SearchSettings) : this(
             date = settings.datetime.date,
             time = settings.datetime.time.toSimpleTime(),
             relations = Relations(listOf(settings.start to settings.destination)),
             directOnly = settings.directOnly,
-            showInefficientConnections = true,//settings.showInefficientConnections,
+            showInefficientConnections = settings.showInefficientConnections,
         )
-
-        val settings
-            get() = relations.value.map { (start, destination) ->
-                SearchSettings(
-                    datetime = date.atTime(time.toLocalTime()),
-                    start = start,
-                    destination = destination,
-                    directOnly = directOnly,
-                    showInefficientConnections = showInefficientConnections,
-                )
-            }
     }
 
     @Serializable
