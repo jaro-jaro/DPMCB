@@ -205,7 +205,7 @@ class FindBusViewModel(
                         )
                     }
 
-                val todayRunning = repo.todayRunningSequences(date).keys
+                val todayRunning = repo.todayRunningSequences(date).await().keys
 
                 val downloaded = data.mapNotNull { (vehicle, sequence, note) ->
                     val withPart = when {

@@ -3,12 +3,12 @@ package cz.jaro.dpmcb.ui.chooser
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
+import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.ui.common.ChooserResult
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
@@ -56,7 +55,7 @@ class ChooserViewModel(
                 -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct()
 
             ChooserType.EndStop,
-                -> repo.endStopNames(params.lineNumber, params.stop!!, params.date).values
+                -> repo.endStopNames(params.lineNumber, params.stop!!, params.date).await().values
         }
     }.asFlow()
 
@@ -66,7 +65,7 @@ class ChooserViewModel(
     private val triggered = MutableStateFlow(false)
 
     init {
-        viewModelScope.launch {
+        launch {
             searchText.collect {
                 triggered.value = false
             }
@@ -151,8 +150,8 @@ class ChooserViewModel(
         )
 
         ChooserType.LineStops -> {
-            viewModelScope.launch(Dispatchers.IO) {
-                repo.endStopNames(params.lineNumber, result, params.date).let { stops ->
+            launch(Dispatchers.IO) {
+                repo.endStopNames(params.lineNumber, result, params.date).await().let { stops ->
                     withContext(Dispatchers.Main) {
                         navigator.navigate(
                             if (stops.size == 1)
@@ -177,8 +176,8 @@ class ChooserViewModel(
         }
 
         ChooserType.EndStop -> {
-            viewModelScope.launch {
-                val direction = repo.endStopNames(params.lineNumber, params.stop!!, params.date)
+            launch {
+                val direction = repo.endStopNames(params.lineNumber, params.stop!!, params.date).await()
                     .entries.find { it.value == result }!!.key
                 navigator.navigate(
                     Route.Timetable(

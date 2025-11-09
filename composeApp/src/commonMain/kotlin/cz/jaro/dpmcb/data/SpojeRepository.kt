@@ -82,7 +82,7 @@ class SpojeRepository(
 
     val allTables = scope.async { ds.lines() }
 
-    val nowUsedTable = withCache { date: LocalDate, lineNumber: LongLine ->
+    val nowUsedTable = withCache(scope) { date: LocalDate, lineNumber: LongLine ->
         val tablesByDate = allTables.await().filter { it.number == lineNumber }.filter {
             it.validFrom <= date && date <= it.validTo
         }
@@ -99,7 +99,7 @@ class SpojeRepository(
 
     private val groupsOfSequence = scope.async { ds.seqGroupsPerSequence() }
 
-    val nowUsedGroup = withCache { date: LocalDate, seq: SequenceCode ->
+    val nowUsedGroup = withCache(scope) { date: LocalDate, seq: SequenceCode ->
         val groupsByDate = groupsOfSequence.await().getValue(seq).filter {
             it.validFrom <= date && date <= it.validTo
         }
@@ -112,26 +112,26 @@ class SpojeRepository(
         sortedGroupsByDate.first().group
     }
 
-    private val tablesOfDay = withCache { date: LocalDate ->
+    private val tablesOfDay = withCache(scope) { date: LocalDate ->
         ds.allLineNumbers().mapNotNull { lineNumber ->
-            nowUsedTable(date, lineNumber)
+            nowUsedTable(date, lineNumber).await()
         }
     }
 
-    private val groupsOfDay = withCache { date: LocalDate ->
+    private val groupsOfDay = withCache(scope) { date: LocalDate ->
         ds.allSequences().map { seq ->
-            nowUsedGroup(date, seq)
+            nowUsedGroup(date, seq).await()
         }.distinct().filterNot { it.isInvalid() } + SequenceGroup.invalid
     }
 
     // --- ---
 
-    suspend fun stopNames(datum: LocalDate) = ds.stopNames(tablesOfDay(datum))
-    suspend fun lineNumbers(datum: LocalDate) = ds.lineNumbers(tablesOfDay(datum))
+    suspend fun stopNames(datum: LocalDate) = ds.stopNames(tablesOfDay(datum).await())
+    suspend fun lineNumbers(datum: LocalDate) = ds.lineNumbers(tablesOfDay(datum).await())
     suspend fun lineNumbersToday() = lineNumbers(SystemClock.todayHere())
 
     suspend fun busDetail(busName: BusName, date: LocalDate) =
-        ds.coreBus(busName, groupsOfDay(date), nowUsedTable(date, busName.line())!!).run {
+        ds.coreBus(busName, groupsOfDay(date).await(), nowUsedTable(date, busName.line()).await()!!).run {
             val noCodes = distinctBy {
                 it.copy(fixedCodes = "", type = DoesNotRun, from = SystemClock.todayHere(), to = SystemClock.todayHere())
             }
@@ -190,7 +190,7 @@ class SpojeRepository(
         }
 
     suspend fun codes(connName: BusName, date: LocalDate) =
-        ds.codes(connName, nowUsedTable(date, connName.line())!!).run {
+        ds.codes(connName, nowUsedTable(date, connName.line()).await()!!).run {
             if (isEmpty()) return@run emptyList<RunsFromTo>() to ""
             map { RunsFromTo(type = it.type, `in` = it.from..it.to) } to first().fixedCodes
         }
@@ -198,16 +198,16 @@ class SpojeRepository(
     suspend fun ShortLine.findLongLine() = ds.findLongLine(this)
 
     suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
-        ds.stopNamesOfLine(line.findLongLine(), nowUsedTable(date, line.findLongLine())!!)
+        ds.stopNamesOfLine(line.findLongLine(), nowUsedTable(date, line.findLongLine()).await()!!)
 
-    val endStopNames = withCache {
+    val endStopNames = withCache(scope) {
             line: ShortLine,
             thisStop: String,
             date: LocalDate,
         ->
         ds.endStops(
             stop = thisStop,
-            tab = nowUsedTable(date, line.findLongLine())!!,
+            tab = nowUsedTable(date, line.findLongLine()).await()!!,
         )
             .groupBy {
                 it.connName
@@ -261,7 +261,7 @@ class SpojeRepository(
         return ds.connStopsOnLineInDirection(
             stop = thisStop,
             direction = if (isOneWay) Direction.POSITIVE else direction,
-            tab = nowUsedTable(date, line.findLongLine())!!
+            tab = nowUsedTable(date, line.findLongLine()).await()!!
         )
             .groupBy {
                 it.connName
@@ -318,13 +318,13 @@ class SpojeRepository(
     }
 
     suspend fun sequence(seq: SequenceCode, date: LocalDate): Sequence? {
-        val conns = ds.coreBusOfSequence(seq, nowUsedGroup(date, seq))
+        val conns = ds.coreBusOfSequence(seq, nowUsedGroup(date, seq).await())
             .groupBy {
                 it.connName to it.tab
             }
             .filter { (a, _) ->
                 val (connName, tab) = a
-                val nowUsedTable = nowUsedTable(date, connName.line())
+                val nowUsedTable = nowUsedTable(date, connName.line()).await()
                 nowUsedTable == tab
             }
             .map { (_, stops) ->
@@ -426,9 +426,9 @@ class SpojeRepository(
         )
     }
 
-    private suspend fun sequenceBuses(seq: SequenceCode, date: LocalDate) = ds.connsOfSeq(seq, nowUsedGroup(date, seq), tablesOfDay(date))
-    suspend fun firstBusOfSequence(seq: SequenceCode, date: LocalDate) = ds.firstConnOfSeq(seq, nowUsedGroup(date, seq), tablesOfDay(date))
-    suspend fun lastBusOfSequence(seq: SequenceCode, date: LocalDate) = ds.lastConnOfSeq(seq, nowUsedGroup(date, seq), tablesOfDay(date))
+    private suspend fun sequenceBuses(seq: SequenceCode, date: LocalDate) = ds.connsOfSeq(seq, nowUsedGroup(date, seq).await(), tablesOfDay(date).await())
+    suspend fun firstBusOfSequence(seq: SequenceCode, date: LocalDate) = ds.firstConnOfSeq(seq, nowUsedGroup(date, seq).await(), tablesOfDay(date).await())
+    suspend fun lastBusOfSequence(seq: SequenceCode, date: LocalDate) = ds.lastConnOfSeq(seq, nowUsedGroup(date, seq).await(), tablesOfDay(date).await())
 
 
     suspend fun write(
@@ -478,10 +478,10 @@ class SpojeRepository(
     suspend fun seqOfConns(
         conns: Set<BusName>,
         date: LocalDate,
-    ) = ds.seqOfConns(conns, groupsOfDay(date), tablesOfDay(date))
+    ) = ds.seqOfConns(conns, groupsOfDay(date).await(), tablesOfDay(date).await())
 
     suspend fun departures(date: LocalDate, stop: String): List<Departure> =
-        ds.departures(stop, tablesOfDay(date), groupsOfDay(date))
+        ds.departures(stop, tablesOfDay(date).await(), groupsOfDay(date).await())
             .groupBy { it.line / it.connNumber to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
             .filter { (_, _, list) ->
@@ -490,7 +490,7 @@ class SpojeRepository(
             }
             .map { Triple(it.first, it.second, it.third.first()) }
             .let { list ->
-                val connStops = ds.connStops(list.map { it.first }, tablesOfDay(date))
+                val connStops = ds.connStops(list.map { it.first }, tablesOfDay(date).await())
                 list.map { Quadruple(it.first, it.second, it.third, connStops[it.first]!!) }
             }
             .map { (connName, stopIndexOnLine, info, stops) ->
@@ -513,7 +513,7 @@ class SpojeRepository(
     suspend fun isOneWay(line: LongLine) = line in oneWayLines.await()
 
     fun doesConnRunAt(connName: BusName): suspend (LocalDate) -> Boolean = runsAt@{ datum ->
-        val tab = nowUsedTable(datum, connName.line()) ?: return@runsAt false
+        val tab = nowUsedTable(datum, connName.line()).await() ?: return@runsAt false
 
         val list = ds.codes(connName, tab)
             .map { RunsFromTo(it.type, it.from..it.to) to it.fixedCodes }
@@ -527,10 +527,10 @@ class SpojeRepository(
     }
 
     suspend fun hasRestriction(busName: BusName, date: LocalDate) =
-        ds.hasRestriction(nowUsedTable(date, busName.line())!!)
+        ds.hasRestriction(nowUsedTable(date, busName.line()).await()!!)
 
     suspend fun lineValidity(busName: BusName, date: LocalDate) =
-        ds.validity(nowUsedTable(date, busName.line())!!)
+        ds.validity(nowUsedTable(date, busName.line()).await()!!)
 
     suspend fun doesBusExist(busName: BusName) =
         ds.doesConnExist(busName) != null
@@ -539,14 +539,14 @@ class SpojeRepository(
         ds.clearAllTables()
     }
 
-    val stopGraph = withCache { date: LocalDate ->
-        createStopGraph(stops(date))
+    val stopGraph = withCache(scope) { date: LocalDate ->
+        createStopGraph(stops(date).await())
     }
 
-    val connsRunAt = withCache { date: LocalDate ->
+    val connsRunAt = withCache(scope) { date: LocalDate ->
         val codes = ds.multiCodes(
-            connNames = stops(date).keys.map { it.connName },
-            tabs = tablesOfDay(date)
+            connNames = stops(date).await().keys.map { it.connName },
+            tabs = tablesOfDay(date).await()
         )
         // future: codes: Map<BusName, Map<Table, List<CodesOfBus>>>
         codes.mapValues { (_, codes) ->
@@ -560,16 +560,21 @@ class SpojeRepository(
         }
     }
 
-    val stops = withCache { date: LocalDate ->
-        ds.stopsOnConns(tablesOfDay(date))
+    val stops = withCache(scope) { date: LocalDate ->
+        ds.stopsOnConns(tablesOfDay(date).await())
+    }
+
+    init {
+        stopGraph(SystemClock.todayHere())
+        connsRunAt(SystemClock.todayHere())
     }
 
     // --- NOW RUNNING ---
 
-    val todayRunningSequences = withCache { date: LocalDate ->
+    val todayRunningSequences = withCache(scope) { date: LocalDate ->
         ds.codesOfSequences(
-            groups = groupsOfDay(date),
-            tabs = tablesOfDay(date),
+            groups = groupsOfDay(date).await(),
+            tabs = tablesOfDay(date).await(),
         )
             .mapValues { (_, conns) ->
                 conns.filter { (_, codes) ->
@@ -588,11 +593,11 @@ class SpojeRepository(
     }
 
     val todayRunningBusBoundaries =
-        withCache { date: LocalDate ->
-            val sequences = todayRunningSequences(date)
+        withCache(scope) { date: LocalDate ->
+            val sequences = todayRunningSequences(date).await()
             val times = ds.busesStartAndEnd(
                 conns = sequences.values.flatten(),
-                tabs = tablesOfDay(SystemClock.todayHere()),
+                tabs = tablesOfDay(SystemClock.todayHere()).await(),
             )
 
             sequences.mapValues { (_, buses) ->
@@ -601,7 +606,7 @@ class SpojeRepository(
         }
 
     private suspend fun getNowRunning(): List<BusName> {
-        return todayRunningBusBoundaries(SystemClock.todayHere())
+        return todayRunningBusBoundaries(SystemClock.todayHere()).await()
             .filterValues { buses ->
                 buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
             }
@@ -621,7 +626,7 @@ class SpojeRepository(
         )
 
     suspend fun nowRunningBusDetails(busNames: List<BusName>, date: LocalDate) =
-        ds.nowRunningBuses(busNames, groupsOfDay(date), tablesOfDay(date))
+        ds.nowRunningBuses(busNames, groupsOfDay(date).await(), tablesOfDay(date).await())
             .entries
             .associate { (conn, stops) ->
                 conn.connName to NowRunning(
@@ -636,7 +641,7 @@ class SpojeRepository(
     suspend fun connectionBusInfo(
         buses: Set<BusName>, date: LocalDate,
     ) = ds.connectionResultBuses(
-        buses, groupsOfDay(date), tablesOfDay(date)
+        buses, groupsOfDay(date).await(), tablesOfDay(date).await()
     )
 }
 

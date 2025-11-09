@@ -33,7 +33,7 @@ class TimetableViewModel(
     }.asFlow()
 
     val endStops = async {
-        repo.endStopNames(params.lineNumber, params.stop, params.date)
+        repo.endStopNames(params.lineNumber, params.stop, params.date).await()
             .getValue(params.direction)
             .replace("\n", " / ")
     }

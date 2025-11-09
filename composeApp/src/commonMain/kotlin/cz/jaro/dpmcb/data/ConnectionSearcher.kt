@@ -101,14 +101,14 @@ class ConnectionSearcher private constructor(
             settings.log("Vyhledávám")
 
             val stops: Map<BusName, List<StopNameTime>> = logTime("ČAS: Zastávky nalezeny") {
-                repo.stops(settings.datetime.date)
+                repo.stops(settings.datetime.date).await()
                     .mapKeys { it.key.connName }
             }
             val runsAt: Map<BusName, (LocalDate) -> Boolean> = logTime("ČAS: RunsAt získáno") {
-                repo.connsRunAt(settings.datetime.date)
+                repo.connsRunAt(settings.datetime.date).await()
             }
             val stopGraph: StopGraph = logTime("ČAS: Graf získán") {
-                repo.stopGraph(settings.datetime.date)
+                repo.stopGraph(settings.datetime.date).await()
             }
 
             val pathGraph: Map<StopName, Set<StopName>> = logTime("ČAS: Cesty získány") {
