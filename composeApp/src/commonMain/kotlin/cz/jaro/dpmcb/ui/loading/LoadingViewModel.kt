@@ -3,6 +3,12 @@ package cz.jaro.dpmcb.ui.loading
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildKonfig
+import cz.jaro.dpmcb.data.DividedSequencesWithMultipleBuses
+import cz.jaro.dpmcb.data.DownloadedData
+import cz.jaro.dpmcb.data.FileStorageManager
+import cz.jaro.dpmcb.data.LineTraction
+import cz.jaro.dpmcb.data.SequenceConnections
+import cz.jaro.dpmcb.data.SequenceTypes
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
@@ -24,6 +30,7 @@ import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.toDirection
+import cz.jaro.dpmcb.data.getText
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -39,17 +46,14 @@ import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
-import cz.jaro.dpmcb.ui.common.fetch
+import cz.jaro.dpmcb.data.version
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
-import dev.gitlive.firebase.FirebaseException
 import dev.gitlive.firebase.database.database
 import dev.gitlive.firebase.remoteconfig.remoteConfig
-import dev.gitlive.firebase.storage.StorageReference
-import dev.gitlive.firebase.storage.storage
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.toVersion
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +68,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
@@ -116,13 +121,29 @@ class LoadingViewModel(
     @Serializable
     data class Group(
         val validity: GroupValidity,
+        val dividedSequencesWithMultipleBuses: DividedSequencesWithMultipleBuses = emptyList(),
+        val lineTraction: LineTraction = emptyMap(),
+        val sequenceConnections: SequenceConnections = emptyList(),
+        val sequenceTypes: SequenceTypes = emptyMap(),
+        val label: String = "",
         val sequences: Map<SequenceCode, List<BusName>>,
+    )
+
+    @Serializable
+    data class SequencesFile(
+        @SerialName($$"$schema")
+        val schema: String = "",
+        val dividedSequencesWithMultipleBuses: DividedSequencesWithMultipleBuses = emptyList(),
+        val lineTraction: LineTraction = emptyMap(),
+        val sequenceConnections: SequenceConnections = emptyList(),
+        val sequenceTypes: SequenceTypes = emptyMap(),
+        val groups: Map<SequenceGroup, Group>,
     )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                params.update || repo.version.first() == -1
+                params.update || repo.version == -1
             } catch (e: Exception) {
                 recordException(e)
                 e.printStackTrace()
@@ -130,7 +151,7 @@ class LoadingViewModel(
                 return@launch
             }
 
-            if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
+            if (params.update || repo.needsToDownloadData && repo.version == -1) {
                 downloadNewData(this)
                 return@launch
             }
@@ -190,7 +211,7 @@ class LoadingViewModel(
     private val database = Firebase.database(firebase)
 
     private suspend fun isDataUpdateNeeded(): Boolean {
-        val localVersion = repo.version.first()
+        val localVersion = repo.version
 
         val reference = database.reference("data${META_DATA_VERSION}/verze")
 
@@ -219,10 +240,12 @@ class LoadingViewModel(
         return null
     }
 
-    private suspend fun downloadText(ref: StorageReference) = fetch(ref.getDownloadUrl()) { progress ->
-        _state.update {
-            require(it is LoadingState.Loading)
-            it.copy(progress = progress)
+    private suspend fun downloadText(path: String) = FileStorageManager().use { manager ->
+        manager.getText(path) { progress ->
+            _state.update {
+                require(it is LoadingState.Loading)
+                it.copy(progress = progress)
+            }
         }
     }
 
@@ -239,19 +262,18 @@ class LoadingViewModel(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nAnalyzování nové verze (0/?)"
         )
 
-        val storage = Firebase.storage(firebase)
         val database = Firebase.database(firebase)
         val versionRef = database.reference("data${META_DATA_VERSION}/verze")
         val newVersion = versionRef.valueEvents.first().value<Int>()
-        val currentVersion = repo.version.first()
+        val currentVersion = repo.version
 
-        val changesRef = storage.reference.child("data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json")
-        val doFullUpdate = (currentVersion + 1 != newVersion) || try {
+        val changesPath = "data${META_DATA_VERSION}/zmeny$currentVersion..$newVersion.json"
+        val doFullUpdate = true/*(currentVersion + 1 != newVersion) || try {
             changesRef.getDownloadUrl()
             false
         } catch (_: FirebaseException) {
             true
-        } || !repo.needsToDownloadData
+        } || !repo.needsToDownloadData*/
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -260,6 +282,7 @@ class LoadingViewModel(
         val conns: MutableList<Conn> = mutableListOf()
         val seqOfConns: MutableList<SeqOfConn> = mutableListOf()
         val seqGroups: MutableList<SeqGroup> = mutableListOf()
+        var data = DownloadedData(version = newVersion)
 
         if (doFullUpdate) {
             val m = when {
@@ -278,20 +301,20 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            val sequencesRef = storage.reference.child("kurzy3.json")
-            val diagramRef = storage.reference.child("schema.svg")
-            val dataRef = storage.reference.child("data${META_DATA_VERSION}/data${newVersion}.json")
+            val sequencesPath = "kurzy4.json"
+            val diagramPath = "schema.svg"
+            val dataPath = "data${META_DATA_VERSION}/data${newVersion}.json"
 
-            val json = downloadText(dataRef)
+            val json = downloadText(dataPath)
 
             _state.value = LoadingState.Loading(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nStahování kurzů (3/$m)",
                 progress = 0F,
             )
 
-            val json2 = downloadText(sequencesRef)
+            val json2 = downloadText(sequencesPath)
 
-            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
+            val sequences = json2.fromJson<SequencesFile>()
 
             sequences.extractSequences()
                 .let { (groups, sequences) ->
@@ -303,6 +326,13 @@ class LoadingViewModel(
                 group = SequenceGroup.invalid,
                 validFrom = noCode,
                 validTo = noCode,
+            )
+
+            data = data.copy(
+                dividedSequencesWithMultipleBuses = sequences.dividedSequencesWithMultipleBuses,
+                linesTraction = sequences.lineTraction,
+                sequenceConnections = sequences.sequenceConnections,
+                sequenceTypes = sequences.sequenceTypes,
             )
 
             resetRemoteConfig()
@@ -341,7 +371,7 @@ class LoadingViewModel(
                     progress = 0F,
                 )
 
-                diagramManager.downloadDiagram(diagramRef) { progress ->
+                diagramManager.downloadDiagram(diagramPath) { progress ->
                     _state.update {
                         require(it is LoadingState.Loading)
                         it.copy(progress = progress)
@@ -361,10 +391,10 @@ class LoadingViewModel(
 
             repo.deleteAll()
 
-            val sequencesRef = storage.reference.child("kurzy3.json")
-            val diagramRef = storage.reference.child("schema.svg")
+            val sequencesPath = "kurzy4.json"
+            val diagramPath = "schema.svg"
 
-            val json = downloadText(changesRef)
+            val json = downloadText(changesPath)
 
             val manyChanges = Json.parseToJsonElement(json).jsonObject
 
@@ -422,9 +452,9 @@ class LoadingViewModel(
                 progress = 0F,
             )
 
-            val json2 = downloadText(sequencesRef)
+            val json2 = downloadText(sequencesPath)
 
-            val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
+            val sequences = json2.fromJson<SequencesFile>()
 
             sequences.extractSequences()
                 .let { (groups, sequences) ->
@@ -492,7 +522,7 @@ class LoadingViewModel(
                     progress = 0F,
                 )
 
-                diagramManager.downloadDiagram(diagramRef) { progress ->
+                diagramManager.downloadDiagram(diagramPath) { progress ->
                     _state.update {
                         require(it is LoadingState.Loading)
                         it.copy(progress = progress)
@@ -521,7 +551,7 @@ class LoadingViewModel(
             conns = conns.distinctBy { it.tab to it.connNumber },
             seqOfConns = seqOfConns.distinctBy { Quadruple(it.line, it.connNumber, it.sequence, it.group) },
             seqGroups = seqGroups.distinctBy { it.group },
-            version = newVersion,
+            data = data,
         ) { progress ->
             _state.update {
                 (it as LoadingState.Loading).copy(progress = progress)
@@ -705,8 +735,8 @@ private suspend inline fun Map<Table, Map<TableType, List<List<String>>>>.extrac
 }
 
 @TimetableProcessing
-private fun Map<SequenceGroup, LoadingViewModel.Group>.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
-    map { (group, groupData) ->
+private fun LoadingViewModel.SequencesFile.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
+    groups.map { (group, groupData) ->
         SeqGroup(
             group = group,
             validFrom = groupData.validity.validFrom,

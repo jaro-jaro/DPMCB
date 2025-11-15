@@ -2,7 +2,6 @@
 
 package cz.jaro.dpmcb.data.entities
 
-import cz.jaro.dpmcb.data.helperclasses.SequenceType
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import io.ktor.utils.io.InternalAPI
@@ -78,7 +77,6 @@ fun SequenceCode.withPart(part: Int) = SequenceCode(
     }
 )
 
-fun SequenceCode.withType(type: SequenceType) = withType(type.char)
 fun SequenceCode.withType(type: Char) = SequenceCode(
     when {
         !hasModifiers() -> "$value-$type"

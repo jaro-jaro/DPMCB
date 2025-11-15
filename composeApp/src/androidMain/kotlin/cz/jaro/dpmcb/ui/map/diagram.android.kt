@@ -12,10 +12,7 @@ import coil.ImageLoader
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
 import coil.size.Dimension
-import dev.gitlive.firebase.storage.StorageReference
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.onDownload
-import io.ktor.client.request.get
+import cz.jaro.dpmcb.data.FileStorageManager
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import me.saket.telephoto.zoomable.ZoomSpec
@@ -28,21 +25,17 @@ class AndroidDiagramManager(ctx: Context) : DiagramManager {
 
     val diagramFile = File(ctx.filesDir, "schema.pdf")
 
-    private val client = HttpClient()
-
     override suspend fun downloadDiagram(
-        reference: StorageReference,
+        path: String,
         progress: (Float) -> Unit,
-    ) {
-        client.get(reference.getDownloadUrl()) {
-            onDownload { bytesSentTotal, contentLength ->
-                progress(contentLength?.let { bytesSentTotal.toFloat() / it } ?: 0F)
+    ): Unit = FileStorageManager().use { manager ->
+        manager
+            .getObject(path) { progress(it ?: 0F) }
+            .bodyAsChannel().toInputStream().use { input ->
+                diagramFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
-        }.bodyAsChannel().toInputStream().use { input ->
-            diagramFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
     }
 
     override val imageData get() = diagramFile
