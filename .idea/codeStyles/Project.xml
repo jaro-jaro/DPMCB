@@ -2,6 +2,10 @@
   <code_scheme name="Project" version="173">
     <option name="RIGHT_MARGIN" value="140" />
     <option name="SOFT_MARGINS" value="100" />
+    <JSON>
+      <option name="OBJECT_WRAPPING" value="1" />
+      <option name="ARRAY_WRAPPING" value="1" />
+    </JSON>
     <JavaCodeStyleSettings>
       <option name="IMPORT_LAYOUT_TABLE">
         <value>
@@ -41,6 +45,13 @@
       <option name="ALLOW_TRAILING_COMMA" value="true" />
       <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
     </JetCodeStyleSettings>
+    <codeStyleSettings language="JSON">
+      <option name="SPACE_WITHIN_BRACES" value="true" />
+      <indentOptions>
+        <option name="INDENT_SIZE" value="4" />
+        <option name="CONTINUATION_INDENT_SIZE" value="4" />
+      </indentOptions>
+    </codeStyleSettings>
     <codeStyleSettings language="XML">
       <option name="FORCE_REARRANGE_MODE" value="1" />
       <indentOptions>

@@ -59,7 +59,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.datetime.LocalDate
@@ -147,15 +146,15 @@ class SpojeRepository(
 
             val before = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(1))
-                    addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
+                    if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses) add(seq.withPart(1))
+                    addAll(sequenceConnections.filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
                 }
             }
 
             val after = sequence?.let { seq ->
                 buildList {
-                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(2))
-                    addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
+                    if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses) add(seq.withPart(2))
+                    addAll(sequenceConnections.filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
                 }
             }
 
@@ -400,13 +399,13 @@ class SpojeRepository(
         }
 
         val before = buildList {
-            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(1))
-            addAll(sequenceConnections.first().filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
+            if (seq.modifiers().part() == 2 && seq.generic() !in dividedSequencesWithMultipleBuses) add(seq.withPart(1))
+            addAll(sequenceConnections.filter { (_, s2) -> s2 == seq }.map { (s1, _) -> s1 })
         }
 
         val after = buildList {
-            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses.first()) add(seq.withPart(2))
-            addAll(sequenceConnections.first().filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
+            if (seq.modifiers().part() == 1 && seq.generic() !in dividedSequencesWithMultipleBuses) add(seq.withPart(2))
+            addAll(sequenceConnections.filter { (s1, _) -> s1 == seq }.map { (_, s2) -> s2 })
         }
 
         return Sequence(
@@ -446,10 +445,10 @@ class SpojeRepository(
         conns: List<Conn>,
         seqGroups: List<SeqGroup>,
         seqOfConns: List<SeqOfConn>,
-        version: Int,
+        data: DownloadedData,
         progress: (Float) -> Unit,
     ) = coroutineScope {
-        changeVersion(version)
+        changeLoadedData { data }
 
         val insertChunkFunctions = listOf(
             ds.insertConnStops(connStops),

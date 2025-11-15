@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.stateIn
 import cz.jaro.dpmcb.data.lineTraction
+import cz.jaro.dpmcb.data.version
 import cz.jaro.dpmcb.ui.loading.AppUpdater
 import cz.jaro.dpmcb.ui.loading.LoadingViewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
@@ -42,12 +43,12 @@ class SettingsViewModel(
         .stateIn(SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     val state = combineStates(
-        repo.settings, repo.version, repo.isOnline, tables
-    ) { settings, version, isOnline, tables ->
+        repo.settings, repo.isOnline, tables
+    ) { settings, isOnline, tables ->
         SettingsState(
             settings = settings,
             version = BuildKonfig.versionName,
-            dataVersion = version,
+            dataVersion = repo.version,
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
             isOnline = isOnline,
             tables = tables,
