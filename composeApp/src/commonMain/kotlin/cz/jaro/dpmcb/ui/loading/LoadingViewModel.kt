@@ -3,7 +3,12 @@ package cz.jaro.dpmcb.ui.loading
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.BuildKonfig
+import cz.jaro.dpmcb.data.DividedSequencesWithMultipleBuses
+import cz.jaro.dpmcb.data.DownloadedData
 import cz.jaro.dpmcb.data.FileStorageManager
+import cz.jaro.dpmcb.data.LineTraction
+import cz.jaro.dpmcb.data.SequenceConnections
+import cz.jaro.dpmcb.data.SequenceTypes
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Conn
@@ -44,6 +49,7 @@ import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
+import cz.jaro.dpmcb.data.version
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
@@ -65,6 +71,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.hours
@@ -113,13 +120,29 @@ class LoadingViewModel(
     @Serializable
     data class Group(
         val validity: GroupValidity,
+        val dividedSequencesWithMultipleBuses: DividedSequencesWithMultipleBuses = emptyList(),
+        val lineTraction: LineTraction = emptyMap(),
+        val sequenceConnections: SequenceConnections = emptyList(),
+        val sequenceTypes: SequenceTypes = emptyMap(),
+        val label: String = "",
         val sequences: Map<SequenceCode, List<BusName>>,
+    )
+
+    @Serializable
+    data class SequencesFile(
+        @SerialName($$"$schema")
+        val schema: String = "",
+        val dividedSequencesWithMultipleBuses: DividedSequencesWithMultipleBuses = emptyList(),
+        val lineTraction: LineTraction = emptyMap(),
+        val sequenceConnections: SequenceConnections = emptyList(),
+        val sequenceTypes: SequenceTypes = emptyMap(),
+        val groups: Map<SequenceGroup, Group>,
     )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                params.update || repo.version.first() == -1
+                params.update || repo.version == -1
             } catch (e: Exception) {
                 recordException(e)
                 e.printStackTrace()
@@ -127,7 +150,7 @@ class LoadingViewModel(
                 return@launch
             }
 
-            if (params.update || repo.needsToDownloadData && repo.version.first() == -1) {
+            if (params.update || repo.needsToDownloadData && repo.version == -1) {
                 downloadNewData(this)
                 return@launch
             }
@@ -187,7 +210,7 @@ class LoadingViewModel(
     private val database = Firebase.database(firebase)
 
     private suspend fun isDataUpdateNeeded(): Boolean {
-        val localVersion = repo.version.first()
+        val localVersion = repo.version
 
         val reference = database.reference("data${META_DATA_VERSION}/verze")
 
@@ -254,6 +277,7 @@ class LoadingViewModel(
         val conns: MutableList<Conn> = mutableListOf()
         val seqOfConns: MutableList<SeqOfConn> = mutableListOf()
         val seqGroups: MutableList<SeqGroup> = mutableListOf()
+        var loadedData = DownloadedData(version = newVersion)
 
         _state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\nProsíme, nevypínejte aplikaci.\nOdstraňování starých dat (1/$m)"
@@ -266,7 +290,7 @@ class LoadingViewModel(
             progress = 0F,
         )
 
-        val sequencesPath = "kurzy3.json"
+        val sequencesPath = "kurzy4.json"
         val platformsPath = "stanoviste.json"
         val diagramPath = "schema.svg"
         val dataPath = "data${META_DATA_VERSION}/data${newVersion}.json"
@@ -280,7 +304,7 @@ class LoadingViewModel(
 
         val json2 = downloadText(sequencesPath)
 
-        val sequences = json2.fromJson<Map<SequenceGroup, Group>>()
+        val sequences = json2.fromJson<SequencesFile>()
 
         sequences.extractSequences()
             .let { (groups, sequences) ->
@@ -292,6 +316,13 @@ class LoadingViewModel(
             group = SequenceGroup.invalid,
             validFrom = noCode,
             validTo = noCode,
+        )
+
+        loadedData = loadedData.copy(
+            dividedSequencesWithMultipleBuses = sequences.dividedSequencesWithMultipleBuses,
+            linesTraction = sequences.lineTraction,
+            sequenceConnections = sequences.sequenceConnections,
+            sequenceTypes = sequences.sequenceTypes,
         )
 
         resetRemoteConfig()
@@ -367,7 +398,7 @@ class LoadingViewModel(
             conns = conns.distinctBy { it.tab to it.connNumber },
             seqOfConns = seqOfConns.distinctBy { Quadruple(it.line, it.connNumber, it.sequence, it.group) },
             seqGroups = seqGroups.distinctBy { it.group },
-            version = newVersion,
+            data = loadedData,
         ) { progress ->
             _state.update {
                 (it as LoadingState.Loading).copy(progress = progress)
@@ -556,8 +587,8 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
 }
 
 @TimetableProcessing
-private fun Map<SequenceGroup, LoadingViewModel.Group>.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
-    map { (group, groupData) ->
+private fun LoadingViewModel.SequencesFile.extractSequences(): Pair<List<SeqGroup>, List<SeqOfConn>> =
+    groups.map { (group, groupData) ->
         SeqGroup(
             group = group,
             validFrom = groupData.validity.validFrom,

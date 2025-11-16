@@ -3,19 +3,32 @@ package cz.jaro.dpmcb.data
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
-import com.russhwolf.settings.coroutines.getIntOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import com.russhwolf.settings.set
+import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
+import cz.jaro.dpmcb.data.entities.SequenceModifiers
+import cz.jaro.dpmcb.data.entities.generic
+import cz.jaro.dpmcb.data.entities.hasPart
+import cz.jaro.dpmcb.data.entities.hasType
+import cz.jaro.dpmcb.data.entities.line
+import cz.jaro.dpmcb.data.entities.modifiers
+import cz.jaro.dpmcb.data.entities.part
+import cz.jaro.dpmcb.data.entities.sequenceNumber
+import cz.jaro.dpmcb.data.entities.typeChar
+import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateLambda
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.durationUntil
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.unaryPlus
 import cz.jaro.dpmcb.ui.connection_search.Favourite
 import cz.jaro.dpmcb.ui.connection_search.SearchSettings
 import kotlinx.coroutines.CoroutineScope
@@ -30,8 +43,8 @@ interface LocalSettingsDataSource {
     val settings: StateFlow<Settings>
     fun changeSettings(update: MutateLambda<Settings>)
 
-    val version: StateFlow<Int>
-    fun changeVersion(value: Int)
+    val loadedData: StateFlow<DownloadedData>
+    fun changeLoadedData(update: MutateLambda<DownloadedData>)
 
     val favourites: StateFlow<List<Favourite>>
     fun changeFavourites(update: MutateLambda<List<Favourite>>)
@@ -67,6 +80,64 @@ fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<Sequence
 fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
     pushVehicles(date, mapOf(sequence to vehicle), reliable)
 
+val LocalSettingsDataSource.version get() = loadedData.value.version
+val LocalSettingsDataSource.dividedSequencesWithMultipleBuses get() = loadedData.value.dividedSequencesWithMultipleBuses
+val LocalSettingsDataSource.linesTraction get() = loadedData.value.linesTraction
+val LocalSettingsDataSource.sequenceConnections get() = loadedData.value.sequenceConnections
+val LocalSettingsDataSource.sequenceTypes get() = loadedData.value.sequenceTypes
+
+context(m: LocalSettingsDataSource) fun SequenceModifiers.type() = typeChar()?.let { m.sequenceTypes[it] }
+
+fun LocalSettingsDataSource.lineTraction(line: LongLine, type: VehicleType) =
+    linesTraction.entries.find { (_, lines) -> line in lines }?.key
+        ?: when (type) {
+            VehicleType.TROLEJBUS -> Traction.Trolleybus
+            VehicleType.AUTOBUS -> Traction.Diesel
+            else -> Traction.Other
+        }
+
+fun LocalSettingsDataSource.getSequenceComparator(): Comparator<SequenceCode> {
+    return compareBy<SequenceCode> {
+        0
+    }.thenBy {
+        it.modifiers().typeChar()?.let { type ->
+            sequenceTypes[type]?.order
+        } ?: 0
+    }.thenBy {
+        it.line().toIntOrNull() ?: 20
+    }.thenBy {
+        it.sequenceNumber()
+    }.thenBy {
+        it.modifiers().part()
+    }
+}
+
+context(m: LocalSettingsDataSource) fun SequenceCode.seqName() = let {
+    val m = modifiers()
+    val (typeNominative, typeGenitive) = m.type()?.let { type ->
+        type.nominative to type.genitive
+    } ?: ("" to "")
+    buildString {
+        if (m.hasPart()) +"${m.part()}. část "
+        if (m.hasPart() && m.hasType()) +"$typeGenitive "
+        if (!m.hasPart() && m.hasType()) +"$typeNominative "
+        +generic().value
+    }
+}
+
+context(m: LocalSettingsDataSource) fun SequenceCode.seqConnection() = "Potenciální návaznost na " + let {
+    val m = modifiers()
+    val (validityAccusative, typeGenitive) = m.type()?.let { type ->
+        type.accusative to type.genitive
+    } ?: ("" to "")
+    buildString {
+        if (m.hasPart()) +"${m.part()}. část "
+        if (m.hasPart() && m.hasType()) +"$typeGenitive "
+        if (!m.hasPart() && m.hasType()) +"$validityAccusative "
+        +generic().value
+    }
+}
+
 @OptIn(ExperimentalSettingsApi::class)
 class MultiplatformSettingsDataSource(
     private val data: ObservableSettings,
@@ -74,7 +145,7 @@ class MultiplatformSettingsDataSource(
     private val scope = CoroutineScope(Dispatchers.IO)
 
     object Keys {
-        const val VERSION = "verze"
+        const val DATA = "data"
         const val SEARCH_HISTORY = "search_history"
         const val FAVOURITES = "favourites"
         const val SETTINGS = "nastaveni"
@@ -83,7 +154,7 @@ class MultiplatformSettingsDataSource(
     }
 
     object DefaultValues {
-        const val VERSION = -1
+        val DATA = DownloadedData()
         val SEARCH_HISTORY = emptyList<SearchSettings>()
         val FAVOURITES = emptyList<Favourite>()
         val SETTINGS = Settings()
@@ -105,14 +176,14 @@ class MultiplatformSettingsDataSource(
         data[Keys.SETTINGS] = update(settings.value).toJson(json)
     }
 
-    override val version = data
-        .getIntOrNullStateFlow(scope, Keys.VERSION)
+    override val loadedData = data
+        .getStringOrNullStateFlow(scope, Keys.DATA)
         .mapState(scope) {
-            it ?: DefaultValues.VERSION
+            it?.fromJson<DownloadedData>(json) ?: DefaultValues.DATA
         }
 
-    override fun changeVersion(value: Int) {
-        data[Keys.VERSION] = value
+    override fun changeLoadedData(update: MutateLambda<DownloadedData>) {
+        data[Keys.DATA] = update(loadedData.value).toJson(json)
     }
 
     override val searchHistory = data

@@ -1,0 +1,148 @@
+{
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    title: "Kurzy v4",
+    description: "Seznam kurzů v DPMCB",
+    type: "object",
+    $defs: {
+        date: {
+            type: "string",
+            description: "Datum",
+            pattern: "^\\d{4}-((1[0-2])|(0[1-9]))-((3[0-1])|(2[0-9])|(1[0-9])|(0[1-9]))$",
+        },
+        sequence: {
+            type: "string",
+            description: "Název kurzu",
+            pattern: "^\\d{1,2}/(\\d{1,3}|E)(-[A-Z]?[12]?)?$",
+        },
+        conn: {
+            type: "string",
+            description: "Název spoje",
+            pattern: "^325\\d{3}/\\d{1,4}$",
+        },
+        line: {
+            type: "number",
+            description: "Název linky",
+            minimum: 325001,
+            maximum: 325999,
+        },
+        lines: {
+            type: "array",
+            description: "Seznam linek",
+            items: { $ref: "#/$defs/line" },
+        },
+        dividedSequencesWithMultipleBuses: {
+            type: "array",
+            description: "Kurzy, kde na první a druhé části jezdí(vá) jiný vůz",
+            items: { $ref: "#/$defs/sequence" },
+        },
+        lineTraction: {
+            type: "object",
+            description: "Trakce linek",
+            properties: {
+                electro: { $ref: "#/$defs/lines" },
+                hybrid: { $ref: "#/$defs/lines" },
+                partial: { $ref: "#/$defs/lines" },
+                gas: { $ref: "#/$defs/lines" },
+                diesel: { $ref: "#/$defs/lines" },
+                trolley: { $ref: "#/$defs/lines" },
+                other: { $ref: "#/$defs/lines" },
+            },
+            additionalProperties: false,
+        },
+        sequenceConnections: {
+            type: "array",
+            description: "Návaznosti kurzů",
+            items: {
+                type: "array",
+                description: "Návaznost kurzů",
+                prefixItems: [
+                    { $ref: "#/$defs/sequence" },
+                    { $ref: "#/$defs/sequence" },
+                ],
+            },
+            additionalProperties: false,
+        },
+        sequenceTypes: {
+            type: "object",
+            description: "Typy kurzů",
+            patternProperties: {
+                "[A-Z]": {
+                    type: "object",
+                    description: "Typ kurzů",
+                    properties: {
+                        nominative: { type: "string" },
+                        genitive: { type: "string" },
+                        accusative: { type: "string" },
+                        order: { type: "number" },
+                    },
+                    additionalProperties: false,
+                },
+            },
+        },
+        validity: {
+            description: "Platnost skupiny",
+            type: "object",
+            properties: {
+                validFrom: {
+                    allOf: [
+                        { ref: "#/$defs/date" },
+                        { description: "Platnost od" },
+                    ],
+                },
+                validTo: {
+                    allOf: [
+                        { $ref: "#/$defs/date" },
+                        { description: "Platnost do" },
+                    ],
+                },
+            },
+            required: ["validFrom", "validTo"],
+            additionalProperties: false,
+        },
+        group: {
+            type: "object",
+            description: "Skupina kurzů se stejnou platností. Pokud chci aby byl kurz přepsán, musím přepsat i všechny ostatní kurzy v jeho původní skupině",
+            properties: {
+                validity: { $ref: "#/$defs/validity" },
+                dividedSequencesWithMultipleBuses: { $ref: "#/$defs/dividedSequencesWithMultipleBuses" },
+                lineTraction: { $ref: "#/$defs/lineTraction" },
+                sequenceConnections: { $ref: "#/$defs/sequenceConnections" },
+                sequenceTypes: { $ref: "#/$defs/sequenceTypes" },
+                label: {
+                    description: "Popis skupiny",
+                    type: "string",
+                },
+                sequences: {
+                    description: "Kurzy ve skupině",
+                    type: "object",
+                    patternProperties: {
+                        "^\\d{1,2}/(\\d{1,3}|E)(-[A-Z]?[12]?)?$": {
+                            description: "Seznam spojů v kurzu",
+                            type: "array",
+                            items: { $ref: "#/$defs/conn" },
+                        },
+                    },
+                    additionalProperties: false,
+                },
+            },
+            required: ["validity", "sequences"],
+            additionalProperties: false,
+        },
+    },
+    properties: {
+        dividedSequencesWithMultipleBuses: { $ref: "#/$defs/dividedSequencesWithMultipleBuses" },
+        lineTraction: { $ref: "#/$defs/lineTraction" },
+        sequenceConnections: { $ref: "#/$defs/sequenceConnections" },
+        sequenceTypes: { $ref: "#/$defs/sequenceTypes" },
+        groups: {
+            type: "object",
+            description: "Skupiny kurzů s různou platností. Pokud chci aby byl kurz přepsán, musím přepsat i všechny ostatní kurzy v jeho původní skupině",
+            patternProperties: {
+                "^\\d{1,4}$": { $ref: "#/$defs/group" },
+            },
+        },
+        "$schema": "",
+    },
+    required: ["groups"],
+    additionalProperties: false,
+}

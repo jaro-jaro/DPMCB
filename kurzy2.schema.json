@@ -1,0 +1,16 @@
+{
+    "title": "Kurzy v2",
+    "description": "Seznam kurzů v DPMCB",
+    "type": "object",
+    "patternProperties": {
+        "^\\d{1,2}/\\d{1,3}(-[A-Z]?[12]?)?$": {
+            "description": "Seznam spojů v kurzu",
+            "type": "array",
+            "items": {
+                "type": "string",
+                "description": "Název spoje",
+                "pattern": "^325\\d{3}/\\d{1,4}$"
+            }
+        }
+    }
+}
