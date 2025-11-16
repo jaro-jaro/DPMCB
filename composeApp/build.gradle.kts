@@ -176,16 +176,6 @@ kotlin {
             }
         }
     }
-
-//    compilerOptions {
-//        freeCompilerArgs.add("-Xnested-type-aliases")
-//        freeCompilerArgs.add("-Xcontext-parameters")
-//        freeCompilerArgs.add("-Xwhen-guards")
-//        freeCompilerArgs.add("-Xnon-local-break-continue")
-//        freeCompilerArgs.add("-Xmulti-dollar-interpolation")
-//        freeCompilerArgs.add("-Xexpect-actual-classes")
-//        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
-//    }
 }
 
 ksp {
