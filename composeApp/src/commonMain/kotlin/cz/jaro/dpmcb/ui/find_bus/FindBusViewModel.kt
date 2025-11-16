@@ -13,12 +13,15 @@ import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.div
+import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.withPart
+import cz.jaro.dpmcb.data.entities.withoutPart
 import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
 import cz.jaro.dpmcb.data.pushVehicles
 import cz.jaro.dpmcb.data.recordException
@@ -28,6 +31,7 @@ import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 
 class FindBusViewModel(
@@ -170,12 +174,13 @@ class FindBusViewModel(
                 }
                 val otherPages = doc
                     .body()
-                    .select("#snippet--table > div > div.visual-paginator-control:nth-child(1) > span.description")
-                    .single()
-                    .text()
-                    .substringAfterLast(' ')
-                    .toInt()
-                    .div(50)
+                    .select("#snippet--table > div > div.visual-paginator-control > span.description")
+                    .first()
+                    ?.text()
+                    ?.substringAfterLast(' ')
+                    ?.toInt()
+                    ?.div(50)
+                    ?: return@launch
 
                 val otherDocs = List(otherPages) { i ->
                     getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&strana=${i + 2}") {
@@ -207,18 +212,37 @@ class FindBusViewModel(
 
                 val todayRunning = repo.todayRunningSequences(date).keys
 
-                val downloaded = data.mapNotNull { (vehicle, sequence, note) ->
+                val downloaded = data.flatMap { (vehicle, sequence, note) ->
                     val withPart = when {
+                        note.contains("noc") -> sequence.withPart(1)
                         note.contains("ran") -> sequence.withPart(1)
                         note.contains("odpo") -> sequence.withPart(2)
                         else -> sequence
                     }
-                    val foundSequence = todayRunning.find {
+                    val foundSequences = todayRunning.find {
                         it.withoutType() == withPart
-                    }
-                    foundSequence?.to(vehicle)
+                    }?.let(::listOf)
+                        ?: if (data.count { it.second == sequence } == 1) todayRunning.filter {
+                            it.withoutType().withoutPart() == sequence
+                        } // Stejný bus na ranní i odpolední části
+                        else emptyList()
+
+                    foundSequences.map { it to vehicle }
                 }.toMap()
                 repo.pushVehicles(date, downloaded, reliable = false)
+                val night = downloaded.filterKeys {
+                    val line = it.line()
+                    line.length == 2 && line[0] == '5'
+                }
+                val tomorrow = date + 1.days
+                val tomorrowRunning =
+                    if (night.isNotEmpty()) repo.todayRunningSequences(tomorrow).keys else emptySet()
+                val downloadedTomorrow = night.mapKeys { (s, _) ->
+                    tomorrowRunning.first {
+                        it.withoutType() == s.withoutType().withPart(2)
+                    }
+                }
+                repo.pushVehicles(tomorrow, downloadedTomorrow, reliable = false)
                 e.onSuccess()
             }
             Unit
