@@ -13,8 +13,6 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.entities.withPart
-import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
@@ -224,7 +222,6 @@ class SequenceViewModel(
                         params.sequence.line().length == 2
                 val isMorning = params.sequence.modifiers().part() == 2
                 val yesterday = state.date - 1.days
-                val tomorrow = state.date + 1.days
                 val doc = try {
                     val date = if (isNight && isMorning) yesterday else state.date
 
@@ -262,25 +259,8 @@ class SequenceViewModel(
                         if (cast == null) null.also { e.onLost() }
                         else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
                     }
-                if (downloadedVehicle.value != null) {
+                if (downloadedVehicle.value != null)
                     repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!, reliable = false)
-                    if (isNight && isMorning) {
-                        val yesterdayRunning =
-                            repo.todayRunningSequences(yesterday).keys
-                        val yesterdaySequence = yesterdayRunning.first {
-                            it.withoutType() == state.sequence.withoutType().withPart(2)
-                        }
-                        repo.pushVehicle(yesterday, yesterdaySequence, downloadedVehicle.value!!, reliable = false)
-                    }
-                    if (isNight && !isMorning) {
-                        val tomorrowRunning =
-                            repo.todayRunningSequences(tomorrow).keys
-                        val tomorrowSequence = tomorrowRunning.first {
-                            it.withoutType() == state.sequence.withoutType().withPart(2)
-                        }
-                        repo.pushVehicle(tomorrow, tomorrowSequence, downloadedVehicle.value!!, reliable = false)
-                    }
-                }
             }
             Unit
         }

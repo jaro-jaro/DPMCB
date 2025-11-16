@@ -19,6 +19,8 @@ import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.sequenceNumber
 import cz.jaro.dpmcb.data.entities.typeChar
 import cz.jaro.dpmcb.data.entities.types.VehicleType
+import cz.jaro.dpmcb.data.entities.withPart
+import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateLambda
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -26,6 +28,8 @@ import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.durationUntil
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
+import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
@@ -77,7 +81,7 @@ fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
 }
 
 @OptIn(ExperimentalTime::class)
-fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean = true) {
+private fun LocalSettingsDataSource.setVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean) {
     changeVehicleNumbersOnSequences { current ->
         current.toMutableMap().also {
             if (reliable)
@@ -88,7 +92,44 @@ fun LocalSettingsDataSource.pushVehicles(date: LocalDate, vehicles: Map<Sequence
     }
 }
 
-fun LocalSettingsDataSource.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
+@OptIn(ExperimentalTime::class)
+suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean = true) {
+    val yesterday = date - 1.days
+    val tomorrow = date + 1.days
+    val yesterdayVehicles =
+        vehicles.filterKeys { sequence ->
+            val isNight = sequence.line().startsWith('5') && sequence.line().length == 2
+            val isMorning = sequence.modifiers().part() == 2
+
+            isNight && isMorning
+        }.mapKeys { (sequence) ->
+            val yesterdayRunning =
+                todayRunningSequences(yesterday).keys
+            val yesterdaySequence = yesterdayRunning.first {
+                it.withoutType() == sequence.withoutType().withPart(1)
+            }
+            yesterdaySequence
+        }
+    val tomorrowVehicles =
+        vehicles.filterKeys { sequence ->
+            val isNight = sequence.line().startsWith('5') && sequence.line().length == 2
+            val isMorning = sequence.modifiers().part() == 2
+
+            isNight && !isMorning
+        }.mapKeys { (sequence) ->
+            val tomorrowRunning =
+                todayRunningSequences(tomorrow).keys
+            val tomorrowSequence = tomorrowRunning.first {
+                it.withoutType() == sequence.withoutType().withPart(2)
+            }
+            tomorrowSequence
+        }
+    setVehicles(yesterday, yesterdayVehicles, reliable)
+    setVehicles(date, vehicles, reliable)
+    setVehicles(tomorrow, tomorrowVehicles, reliable)
+}
+
+suspend fun SpojeRepository.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
     pushVehicles(date, mapOf(sequence to vehicle))
 
 val LocalSettingsDataSource.version get() = loadedData.value.version
