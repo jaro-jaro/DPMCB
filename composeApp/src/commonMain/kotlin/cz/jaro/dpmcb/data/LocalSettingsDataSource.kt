@@ -5,7 +5,6 @@ import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanOrNullStateFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import com.russhwolf.settings.set
-import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
@@ -93,7 +92,7 @@ suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<Sequence
             isNight && isMorning
         }.mapKeys { (sequence) ->
             val yesterdayRunning =
-                todayRunningSequences(yesterday).keys
+                todayRunningSequences(yesterday).await().keys
             val yesterdaySequence = yesterdayRunning.first {
                 it.withoutType() == sequence.withoutType().withPart(1)
             }
@@ -107,7 +106,7 @@ suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<Sequence
             isNight && !isMorning
         }.mapKeys { (sequence) ->
             val tomorrowRunning =
-                todayRunningSequences(tomorrow).keys
+                todayRunningSequences(tomorrow).await().keys
             val tomorrowSequence = tomorrowRunning.first {
                 it.withoutType() == sequence.withoutType().withPart(2)
             }
