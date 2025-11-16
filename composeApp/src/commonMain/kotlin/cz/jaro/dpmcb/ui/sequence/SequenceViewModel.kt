@@ -218,12 +218,12 @@ class SequenceViewModel(
             val state = state.value
             require(state is SequenceState.OK)
             launch {
+                val isNight = params.sequence.line().startsWith('5') &&
+                        params.sequence.line().length == 2
+                val isMorning = params.sequence.modifiers().part() == 2
+                val yesterday = state.date - 1.days
                 val doc = try {
-                    val date = if (
-                        params.sequence.line().startsWith('5') &&
-                        params.sequence.line().length == 2 &&
-                        params.sequence.modifiers().part() == 2
-                    ) state.date.minus(1.days) else state.date
+                    val date = if (isNight && isMorning) yesterday else state.date
 
                     Ksoup.parseGetRequest(
                         "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"

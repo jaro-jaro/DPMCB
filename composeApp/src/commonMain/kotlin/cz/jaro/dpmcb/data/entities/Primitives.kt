@@ -79,6 +79,15 @@ fun SequenceCode.withPart(part: Int) = SequenceCode(
     }
 )
 
+fun SequenceCode.withoutPart() = SequenceCode(
+    when {
+        !hasModifiers() -> value
+        !modifiers().hasPart() -> value
+        !modifiers().hasType() -> generic().value
+        else -> value.dropLast(1)
+    }
+)
+
 fun SequenceCode.withType(type: Char) = SequenceCode(
     when {
         !hasModifiers() -> "$value-$type"
@@ -89,6 +98,7 @@ fun SequenceCode.withType(type: Char) = SequenceCode(
 fun SequenceCode.withoutType() = SequenceCode(
     when {
         !hasModifiers() -> value
+        !modifiers().hasType() -> value
         !modifiers().hasPart() -> generic().value
         else -> generic().value + '-' + modifiers().part()
     }

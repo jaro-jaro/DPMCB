@@ -16,6 +16,7 @@ import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.withPart
+import cz.jaro.dpmcb.data.entities.withoutPart
 import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
@@ -170,12 +171,13 @@ class FindBusViewModel(
                 }
                 val otherPages = doc
                     .body()
-                    .select("#snippet--table > div > div.visual-paginator-control:nth-child(1) > span.description")
-                    .single()
-                    .text()
-                    .substringAfterLast(' ')
-                    .toInt()
-                    .div(50)
+                    .select("#snippet--table > div > div.visual-paginator-control > span.description")
+                    .first()
+                    ?.text()
+                    ?.substringAfterLast(' ')
+                    ?.toInt()
+                    ?.div(50)
+                    ?: return@launch
 
                 val otherDocs = List(otherPages) { i ->
                     getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&strana=${i + 2}") {
@@ -207,16 +209,22 @@ class FindBusViewModel(
 
                 val todayRunning = repo.todayRunningSequences(date).await().keys
 
-                val downloaded = data.mapNotNull { (vehicle, sequence, note) ->
+                val downloaded = data.flatMap { (vehicle, sequence, note) ->
                     val withPart = when {
+                        note.contains("noc") -> sequence.withPart(1)
                         note.contains("ran") -> sequence.withPart(1)
                         note.contains("odpo") -> sequence.withPart(2)
                         else -> sequence
                     }
-                    val foundSequence = todayRunning.find {
+                    val foundSequences = todayRunning.find {
                         it.withoutType() == withPart
-                    }
-                    foundSequence?.to(vehicle)
+                    }?.let(::listOf)
+                        ?: if (data.count { it.second == sequence } == 1) todayRunning.filter {
+                            it.withoutType().withoutPart() == sequence
+                        } // Stejný bus na ranní i odpolední části
+                        else emptyList()
+
+                    foundSequences.map { it to vehicle }
                 }.toMap()
                 repo.pushVehicles(date, downloaded, reliable = false)
                 e.onSuccess()
