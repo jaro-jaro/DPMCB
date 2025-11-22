@@ -130,7 +130,7 @@ suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<Sequence
 }
 
 suspend fun SpojeRepository.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
-    pushVehicles(date, mapOf(sequence to vehicle))
+    pushVehicles(date, mapOf(sequence to vehicle), reliable)
 
 val LocalSettingsDataSource.version get() = loadedData.value.version
 val LocalSettingsDataSource.dividedSequencesWithMultipleBuses get() = loadedData.value.dividedSequencesWithMultipleBuses
