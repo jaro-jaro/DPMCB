@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flattenMerge
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlin.jvm.JvmName
 
@@ -104,6 +105,12 @@ fun <T> StateFlow<StateFlow<T>>.flattenMergeStates(
 ) = flattenMerge(concurrency)
     .stateIn(coroutineScope, sharingStarted, value.value)
 
+fun <T> StateFlow<T>.onEachState(
+    coroutineScope: CoroutineScope,
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
+    action: (value: T) -> Unit,
+): StateFlow<T> = onEach(action)
+    .stateIn(coroutineScope, sharingStarted, value)
 
 context(vm: ViewModel)
 inline fun <reified T, R> combineStates(
@@ -201,3 +208,10 @@ fun <T> StateFlow<StateFlow<T>>.flattenMergeStates(
     concurrency: Int = DEFAULT_CONCURRENCY
 ) = flattenMerge(concurrency)
     .stateIn(sharingStarted, value.value)
+
+context(vm: ViewModel)
+fun <T> StateFlow<T>.onEachState(
+    sharingStarted: SharingStarted = SharingStarted.Eagerly,
+    action: (value: T) -> Unit,
+): StateFlow<T> = onEach(action)
+    .stateIn(sharingStarted, value)
