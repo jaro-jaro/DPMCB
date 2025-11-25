@@ -81,13 +81,15 @@ fun LocalSettingsDataSource.pushRecentBus(bus: BusName) {
 }
 
 @OptIn(ExperimentalTime::class)
-private fun LocalSettingsDataSource.setVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean) {
+private fun LocalSettingsDataSource.setVehicles(data: Map<LocalDate, Map<SequenceCode, RegistrationNumber>>, reliable: Boolean) {
     changeVehicleNumbersOnSequences { current ->
         current.toMutableMap().also {
-            if (reliable)
-                it[date] = it.getOrElse(date) { mapOf() } + vehicles
-            else
-                it[date] = vehicles + it.getOrElse(date) { mapOf() }
+            data.forEach { (date, vehicles) ->
+                if (reliable)
+                    it[date] = it.getOrElse(date) { mapOf() } + vehicles
+                else
+                    it[date] = vehicles + it.getOrElse(date) { mapOf() }
+            }
         }.filterKeys { date -> date.durationUntil(SystemClock.todayHere()) <= 7.days }
     }
 }
@@ -124,13 +126,18 @@ suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<Sequence
             }
             tomorrowSequence
         }
-    setVehicles(yesterday, yesterdayVehicles, reliable)
-    setVehicles(date, vehicles, reliable)
-    setVehicles(tomorrow, tomorrowVehicles, reliable)
+    setVehicles(
+        data = mapOf(
+            yesterday to yesterdayVehicles,
+            date to vehicles,
+            tomorrow to tomorrowVehicles
+        ),
+        reliable = reliable,
+    )
 }
 
 suspend fun SpojeRepository.pushVehicle(date: LocalDate, sequence: SequenceCode, vehicle: RegistrationNumber, reliable: Boolean = true) =
-    pushVehicles(date, mapOf(sequence to vehicle))
+    pushVehicles(date, mapOf(sequence to vehicle), reliable)
 
 val LocalSettingsDataSource.version get() = loadedData.value.version
 val LocalSettingsDataSource.dividedSequencesWithMultipleBuses get() = loadedData.value.dividedSequencesWithMultipleBuses

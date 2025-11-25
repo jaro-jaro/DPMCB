@@ -587,7 +587,7 @@ class SpojeRepository(
                 buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
             }
             .mapValues { (_, buses) ->
-                buses.find { SystemClock.timeHere() < it.second.start }?.first ?: buses.first().first
+                buses.find { SystemClock.timeHere() < it.second.end }?.first ?: buses.last().first
             }
             .values.toList()
     }
