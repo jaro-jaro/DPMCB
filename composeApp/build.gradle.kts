@@ -1,4 +1,3 @@
-
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import de.undercouch.gradle.tasks.download.Download
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
@@ -12,7 +11,6 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.buildkonfig)
@@ -64,10 +62,6 @@ kotlin {
             // ChNT
             implementation(libs.androidx.browser)
 
-            // Room
-            implementation(libs.androidx.jetpack.room)
-            implementation(libs.androidx.jetpack.room.runtime)
-
             implementation(libs.transportation.consumer)
 
             // Firebase
@@ -96,9 +90,6 @@ kotlin {
 
             // Sqldelight
             implementation(libs.sqldelight.web.worker.driver)
-//            implementation(devNpm("copy-webpack-plugin", libs.versions.copy.webpack.plugin.get()))
-//            implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
-//            implementation(npm("sql.js", libs.versions.sqljs.get()))
         }
         commonMain.get().dependencies {
             // Kotlin reflection
@@ -161,9 +152,6 @@ kotlin {
             implementation(libs.multiplatform.settings.coroutines)
             implementation(libs.multiplatform.settings.make.observable)
 
-            // Room
-            implementation(libs.androidx.jetpack.room.common)
-
             // Sqldelight
             implementation(libs.sqldelight.primitive.adapters)
         }
@@ -182,11 +170,6 @@ kotlin {
             resources.srcDir(layout.buildDirectory.dir("sqlite"))
         }
     }
-}
-
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.generateKotlin", "true")
 }
 
 buildkonfig {
@@ -287,8 +270,6 @@ configurations {
 }
 
 dependencies {
-    add("kspAndroid", libs.androidx.jetpack.room.compiler)
-
     debugImplementation(compose.uiTooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
