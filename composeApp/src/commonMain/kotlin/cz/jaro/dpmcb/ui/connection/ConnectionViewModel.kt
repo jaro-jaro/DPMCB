@@ -172,8 +172,8 @@ class ConnectionViewModel(
 
     private suspend fun ConnectionPartDefinition.toConnectionBus(
         info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
-        previousPartEnd: Pair<LocalDateTime, Platform>?,
-    ): Pair<Pair<LocalDateTime, Platform>?, ConnectionBus?> {
+        previousPartEnd: Pair<LocalDateTime, Platform?>?,
+    ): Pair<Pair<LocalDateTime, Platform?>?, ConnectionBus?> {
         val (bus, stops) = info[busName] ?: return (null to null)
         val start = stops[start]
         val end = stops[end]
@@ -207,7 +207,7 @@ class ConnectionViewModel(
         def: AlternativesDefinition,
         info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
         coordinates: Coordinates = emptyList(),
-        previousPartEnd: Pair<LocalDateTime, Platform>? = null,
+        previousPartEnd: Pair<LocalDateTime, Platform?>? = null,
     ): Alternatives = def.mapIndexed { i, def ->
         val (thisPartEnd, part) =
             def.part.toConnectionBus(info, previousPartEnd)

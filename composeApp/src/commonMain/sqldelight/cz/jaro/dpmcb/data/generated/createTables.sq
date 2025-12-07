@@ -1,0 +1,88 @@
+import cz.jaro.dpmcb.data.entities.BusNumber;
+import cz.jaro.dpmcb.data.entities.LongLine;
+import cz.jaro.dpmcb.data.entities.ShortLine;
+import cz.jaro.dpmcb.data.entities.StopNumber;
+import cz.jaro.dpmcb.data.entities.Table;
+import cz.jaro.dpmcb.data.entities.BusName;
+import cz.jaro.dpmcb.data.entities.Platform;
+import cz.jaro.dpmcb.data.entities.LineStopNumber;
+import cz.jaro.dpmcb.data.entities.SequenceGroup;
+import cz.jaro.dpmcb.data.entities.SequenceCode;
+import cz.jaro.dpmcb.data.entities.types.Direction;
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType;
+import cz.jaro.dpmcb.data.entities.types.LineType;
+import cz.jaro.dpmcb.data.entities.types.VehicleType;
+import kotlinx.datetime.LocalDate;
+import kotlinx.datetime.LocalTime;
+import kotlin.Short;
+import kotlin.Int;
+import kotlin.Boolean;
+
+CREATE TABLE IF NOT EXISTS TimeCode (
+    tab TEXT AS Table NOT NULL,
+    connNumber INTEGER AS BusNumber NOT NULL,
+    code INTEGER AS Short NOT NULL,
+    termIndex INTEGER AS Short NOT NULL,
+    line INTEGER AS LongLine NOT NULL,
+    type TEXT AS TimeCodeType NOT NULL,
+    validFrom TEXT AS LocalDate NOT NULL,
+    validTo TEXT AS LocalDate NOT NULL,
+    runs2 INTEGER AS Boolean NOT NULL,
+    PRIMARY KEY(tab, connNumber, code, termIndex)
+);
+CREATE TABLE IF NOT EXISTS Line (
+    tab TEXT AS Table NOT NULL,
+    number INTEGER AS LongLine NOT NULL,
+    route TEXT NOT NULL,
+    vehicleType TEXT AS VehicleType NOT NULL,
+    lineType TEXT AS LineType NOT NULL,
+    hasRestriction INTEGER AS Boolean NOT NULL,
+    validFrom TEXT AS LocalDate NOT NULL,
+    validTo TEXT AS LocalDate NOT NULL,
+    shortNumber INTEGER AS ShortLine NOT NULL,
+    PRIMARY KEY(tab)
+);
+CREATE TABLE IF NOT EXISTS Conn (
+    tab TEXT AS Table NOT NULL,
+    connNumber INTEGER AS BusNumber NOT NULL,
+    line INTEGER AS LongLine NOT NULL,
+    fixedCodes TEXT NOT NULL,
+    direction TEXT AS Direction NOT NULL,
+    name TEXT AS BusName NOT NULL,
+    PRIMARY KEY(tab, connNumber)
+);
+CREATE TABLE IF NOT EXISTS Stop (
+    tab TEXT AS Table NOT NULL,
+    stopNumber INTEGER AS StopNumber NOT NULL,
+    line INTEGER AS LongLine NOT NULL,
+    stopName TEXT NOT NULL,
+    fixedCodes TEXT NOT NULL,
+    PRIMARY KEY(tab, stopNumber)
+);
+CREATE TABLE IF NOT EXISTS ConnStop (
+    tab TEXT AS Table NOT NULL,
+    connNumber INTEGER AS BusNumber NOT NULL,
+    stopIndexOnLine INTEGER AS LineStopNumber NOT NULL,
+    line INTEGER AS LongLine NOT NULL,
+    stopNumber INTEGER AS StopNumber NOT NULL,
+    kmFromStart INTEGER AS Int NOT NULL,
+    fixedCodes TEXT NOT NULL,
+    arrival TEXT AS LocalTime,
+    departure TEXT AS LocalTime,
+    platform TEXT AS Platform,
+    PRIMARY KEY(tab, connNumber, stopIndexOnLine)
+);
+CREATE TABLE IF NOT EXISTS SeqOfConn (
+    line INTEGER AS LongLine NOT NULL,
+    connNumber INTEGER AS BusNumber NOT NULL,
+    sequence TEXT AS SequenceCode NOT NULL,
+    seqGroup INTEGER AS SequenceGroup NOT NULL,
+    orderInSequence INTEGER AS Int,
+    PRIMARY KEY(line, connNumber, sequence, seqGroup)
+);
+CREATE TABLE IF NOT EXISTS SeqGroup (
+    seqGroup INTEGER AS SequenceGroup NOT NULL,
+    validFrom TEXT AS LocalDate NOT NULL,
+    validTo TEXT AS LocalDate NOT NULL,
+    PRIMARY KEY(seqGroup)
+);

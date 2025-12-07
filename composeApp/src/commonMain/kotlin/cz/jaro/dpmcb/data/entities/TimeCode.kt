@@ -12,8 +12,8 @@ data class TimeCode(
 // Primary keys
     val tab: Table,
     val connNumber: BusNumber,
-    val code: Int,
-    val termIndex: Int,
+    val code: Short,
+    val termIndex: Short,
 // Other
     val line: LongLine,
     val type: TimeCodeType,

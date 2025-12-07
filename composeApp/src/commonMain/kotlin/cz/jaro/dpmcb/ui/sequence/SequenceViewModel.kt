@@ -1,17 +1,12 @@
 package cz.jaro.dpmcb.ui.sequence
 
+//import com.fleeksoft.ksoup.Ksoup
+//import com.fleeksoft.ksoup.network.parseGetRequest
 import androidx.lifecycle.ViewModel
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.entities.modifiers
-import cz.jaro.dpmcb.data.entities.part
-import cz.jaro.dpmcb.data.entities.sequenceNumber
-import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -26,8 +21,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
-import cz.jaro.dpmcb.data.pushVehicle
-import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.seqConnection
 import cz.jaro.dpmcb.data.seqName
 import cz.jaro.dpmcb.data.vehicleName
@@ -46,7 +39,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -218,49 +210,49 @@ class SequenceViewModel(
             val state = state.value
             require(state is SequenceState.OK)
             launch {
-                val isNight = params.sequence.line().startsWith('5') &&
-                        params.sequence.line().length == 2
-                val isMorning = params.sequence.modifiers().part() == 2
-                val yesterday = state.date - 1.days
-                val doc = try {
-                    val date = if (isNight && isMorning) yesterday else state.date
-
-                    Ksoup.parseGetRequest(
-                        "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
-                    )
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                    recordException(ex)
-                    e.onLost()
-                    return@launch
-                }
-                val data = doc
-                    .body()
-                    .select("#snippet--table > div > table > tbody")
-                    .single()
-                    .children()
-                    .filter { !it.hasClass("table-header") }
-                    .map {
-                        Pair(
-                            it.getElementsByClass("car").single().text().toRegNum(),
-                            it.getElementsByClass("note").single().text(),
-                        )
-                    }
-
-                downloadedVehicle.value =
-                    if (data.isEmpty()) null.also { e.onLost() }
-                    else if (data.size == 1) data.single().first.also(e.onFound)
-                    else {
-                        val cast = when (params.sequence.modifiers().part()) {
-                            1 -> "ran"
-                            2 -> "odpo"
-                            else -> null
-                        }
-                        if (cast == null) null.also { e.onLost() }
-                        else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
-                    }
-                if (downloadedVehicle.value != null)
-                    repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!, reliable = false)
+//                val isNight = params.sequence.line().startsWith('5') &&
+//                        params.sequence.line().length == 2
+//                val isMorning = params.sequence.modifiers().part() == 2
+//                val yesterday = state.date - 1.days
+//                val doc = try {
+//                    val date = if (isNight && isMorning) yesterday else state.date
+//
+//                    Ksoup.parseGetRequest(
+//                        "https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&linka=${params.sequence.line()}&kurz=${params.sequence.sequenceNumber()}"
+//                    )
+//                } catch (ex: Exception) {
+//                    ex.printStackTrace()
+//                    recordException(ex)
+//                    e.onLost()
+//                    return@launch
+//                }
+//                val data = doc
+//                    .body()
+//                    .select("#snippet--table > div > table > tbody")
+//                    .single()
+//                    .children()
+//                    .filter { !it.hasClass("table-header") }
+//                    .map {
+//                        Pair(
+//                            it.getElementsByClass("car").single().text().toRegNum(),
+//                            it.getElementsByClass("note").single().text(),
+//                        )
+//                    }
+//
+//                downloadedVehicle.value =
+//                    if (data.isEmpty()) null.also { e.onLost() }
+//                    else if (data.size == 1) data.single().first.also(e.onFound)
+//                    else {
+//                        val cast = when (params.sequence.modifiers().part()) {
+//                            1 -> "ran"
+//                            2 -> "odpo"
+//                            else -> null
+//                        }
+//                        if (cast == null) null.also { e.onLost() }
+//                        else data.find { it.second.contains(cast) }?.first?.also(e.onFound) ?: null.also { e.onLost() }
+//                    }
+//                if (downloadedVehicle.value != null)
+//                    repo.pushVehicle(state.date, state.sequence, downloadedVehicle.value!!, reliable = false)
             }
             Unit
         }

@@ -7,7 +7,6 @@ import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.jvm.JvmInline
 
 data class ConnectionSearchState(
     val settings: SearchSettings,
@@ -37,13 +36,12 @@ class FavouriteRelationSerializer : KSerializer<FavouriteRelation> {
 }
 
 @Serializable(with = RelationsSerializer::class)
-@JvmInline
-value class Relations(val value: List<FavouriteRelation>) : List<FavouriteRelation> by value
+data class Relations(val value: List<FavouriteRelation>)
 
 class RelationsSerializer : KSerializer<Relations> {
     override val descriptor = PrimitiveSerialDescriptor("Relations", PrimitiveKind.STRING)
     private val child = FavouriteRelationSerializer()
     override fun deserialize(decoder: Decoder) = Relations(decoder.decodeString().split("+").map { child.fromString(it) })
     override fun serialize(encoder: Encoder, value: Relations) =
-        encoder.encodeString(value.joinToString("+") { child.toString(it) })
+        encoder.encodeString(value.value.joinToString("+") { child.toString(it) })
 }

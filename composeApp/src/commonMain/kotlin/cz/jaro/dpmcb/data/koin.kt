@@ -2,6 +2,10 @@ package cz.jaro.dpmcb.data
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
+import cz.jaro.dpmcb.Database
+import cz.jaro.dpmcb.data.database.SpojeDataSource
+import cz.jaro.dpmcb.data.database.SpojeDataSourceImpl
+import cz.jaro.dpmcb.data.database.createDatabase
 import cz.jaro.dpmcb.ui.bus.BusViewModel
 import cz.jaro.dpmcb.ui.card.CardViewModel
 import cz.jaro.dpmcb.ui.chooser.ChooserViewModel
@@ -33,7 +37,7 @@ fun initKoin(
 }
 
 val commonModule = module(true) {
-    single<SpojeRepository> { SpojeRepository(get(), get(), get(), get()) }
+    single { SpojeRepository(get(), get(), get(), get()) }
     single<GlobalSettingsDataSource> { RemoteConfigDataSource(get(), get()) }
     single<LocalSettingsDataSource> { MultiplatformSettingsDataSource(get()) }
     single { OnlineModeManager(get(), get()) }
@@ -52,6 +56,9 @@ val commonModule = module(true) {
     factory { ConnectionSearchViewModel(get(), get(), it.get()) }
     factory { ConnectionResultsViewModel(get(), it.get()) }
     factory { ConnectionViewModel(get(), it.get()) }
+    single { createDatabase(get()) }
+    single { get<Database>().spojeQueries }
+    single<SpojeDataSource> { SpojeDataSourceImpl(get(), get()) }
 }
 
 @OptIn(KoinInternalApi::class)

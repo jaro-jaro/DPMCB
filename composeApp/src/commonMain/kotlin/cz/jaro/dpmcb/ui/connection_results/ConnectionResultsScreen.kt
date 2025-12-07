@@ -131,7 +131,7 @@ fun ConnectionResultsScreen(
         Column(
             Modifier.weight(1F),
         ) {
-            state.relations.forEach { relation ->
+            state.relations.value.forEach { relation ->
                 Text(text = "${relation.start} -> ${relation.destination}")
             }
             Text(text = "${state.datetime.date.asString()} ${state.datetime.time}")

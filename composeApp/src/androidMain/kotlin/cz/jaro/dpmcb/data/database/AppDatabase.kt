@@ -1,4 +1,5 @@
 package cz.jaro.dpmcb.data.database
+/*
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
@@ -42,4 +43,4 @@ abstract class AppDatabase : RoomDatabase() {
             fun fromLocalTime(value: LocalTime?) = value?.toString()
         }
     }
-}
+}*/

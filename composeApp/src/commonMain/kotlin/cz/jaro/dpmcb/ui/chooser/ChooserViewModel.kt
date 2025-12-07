@@ -11,6 +11,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -52,7 +53,7 @@ class ChooserViewModel(
                 -> repo.stopNames(params.date).sortedBy { it.normalize() }
 
             ChooserType.LineStops,
-                -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct()
+                -> repo.stopNamesOfLine(params.lineNumber.work("00"), params.date).distinct()
 
             ChooserType.EndStop,
                 -> repo.endStopNames(params.lineNumber, params.stop!!, params.date).await().values

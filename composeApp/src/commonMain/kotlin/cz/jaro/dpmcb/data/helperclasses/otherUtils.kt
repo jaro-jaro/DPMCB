@@ -7,6 +7,7 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import dev.gitlive.firebase.database.DatabaseReference
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -44,3 +45,9 @@ fun Modifier.onSecondaryClick(vararg keys: Any?, onClick: (event: PointerEvent) 
             }
         }
     }
+
+expect suspend inline fun <reified T> DatabaseReference.getValue(): T
+
+expect val maxDatabaseInsertBatchSize: Int
+
+expect val backgroundInfo: String

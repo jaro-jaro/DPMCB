@@ -65,6 +65,7 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,11 +115,7 @@ import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
-import cz.jaro.dpmcb.ui.connection.Connection
-import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
-import cz.jaro.dpmcb.ui.connection_results.ConnectionResults
 import cz.jaro.dpmcb.ui.connection_search.ConnectionSearch
-import cz.jaro.dpmcb.ui.connection_search.Relations
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.find_bus.FindBus
 import cz.jaro.dpmcb.ui.map.Map
@@ -134,10 +131,12 @@ import dev.gitlive.firebase.analytics.logEvent
 import io.github.z4kn4fein.semver.Version
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -189,12 +188,15 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.ConnectionResults::class -> mapOf(
         localDateTypePair,
         stringSerializationTypePair<SimpleTime>(),
-        stringSerializationTypePair<Relations>(),
+//        typePair(
+//            parseValue = { "\"$it\"".fromJson(RelationsSerializer()) },
+//            serializeAsValue = { it.toJson(RelationsSerializer()).removeSurrounding("\"") },
+//        ),
         serializationTypePair<Boolean>(),
     )
 
     Route.Connection::class -> mapOf(
-        stringSerializationTypePair<ConnectionDefinition>(),
+//        stringSerializationTypePair<ConnectionDefinition>(),
     )
 
     Route.FindBus::class -> mapOf(
@@ -266,12 +268,11 @@ fun Main(
     val navigator = rememberNavigator(navController)
 
     LaunchedEffect(Unit) {
-        viewModel.navigator = navigator
-        viewModel.currentBackStack.value = navController.navigatorProvider[ComposeNavigator::class].backStack
-        viewModel.superNavigate = superNavController.superNavigateFunction
+        viewModel.navigator = navigator.work()
+        viewModel.superNavigate = superNavController.superNavigateFunction.work()
         viewModel.confirmDeeplink(
             confirmDeeplink(navController, scope, drawerState),
-            navController.navGraphOrNull(),
+            navController.navGraphOrNull().work(),
         )
         viewModel.updateDrawerState = { mutate ->
             val newValue = mutate(drawerState.isOpen)
@@ -279,6 +280,10 @@ fun Main(
                 if (newValue) drawerState.open() else drawerState.close()
             }
         }
+        while (!navController.navigatorProvider[ComposeNavigator::class].isAttached) {
+            delay(500.milliseconds)
+        }
+        viewModel.currentBackStack.value = navController.navigatorProvider[ComposeNavigator::class].backStack.work()
     }
 
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -301,7 +306,7 @@ fun Main(
     ) {
         NavHost(
             navController = navController,
-            startDestination = Route.ConnectionSearch(SystemClock.todayHere()),
+            startDestination = Route.Initial,
             popEnterTransition = {
                 scaleIn(
                     animationSpec = tween(
@@ -328,8 +333,8 @@ fun Main(
             },
         ) {
             route<Route.ConnectionSearch> { ConnectionSearch(args = it, navigator, superNavController) }
-            route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
-            route<Route.Connection> { Connection(args = it, navigator, superNavController) }
+//            route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
+//            route<Route.Connection> { Connection(args = it, navigator, superNavController) }
             route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
             route<Route.Departures> { Departures(args = it, navigator, superNavController) }
             route<Route.NowRunning> { NowRunning(args = it, navigator, superNavController) }
@@ -373,20 +378,33 @@ fun MainScreen(
     onEvent: (MainEvent) -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass.work()
+    val windowSizeClass = currentWindowAdaptiveInfo(true).windowSizeClass.work()
 
-    val widthAtLeastMedium = remember { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) }
-    val widthAtLeastExpanded = remember { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) }
+    val widthAtLeastMedium by derivedStateOf { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) }
+    val widthAtLeastExpanded by derivedStateOf { windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) }
 
-    val heightAtLeastExpanded = remember { windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_EXPANDED_LOWER_BOUND) }
+    val heightAtLeastExpanded by derivedStateOf { windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_EXPANDED_LOWER_BOUND) }
 
-    val useModal = remember { !widthAtLeastMedium }
-    val useRail = remember { widthAtLeastMedium && !widthAtLeastExpanded }
-    val useDrawer = remember { widthAtLeastExpanded }
+    val useModal by derivedStateOf { !widthAtLeastMedium }
+    val useRail by derivedStateOf { widthAtLeastMedium && !widthAtLeastExpanded }
+    val useDrawer by derivedStateOf { widthAtLeastExpanded }
 
-    val useTopBar = remember { heightAtLeastExpanded || !widthAtLeastMedium }
-    val infoInDrawer = remember { !heightAtLeastExpanded && widthAtLeastExpanded }
-    val infoInRail = remember { !heightAtLeastExpanded && widthAtLeastMedium && !widthAtLeastExpanded }
+    val useTopBar by derivedStateOf { heightAtLeastExpanded || !widthAtLeastMedium }
+    val infoInDrawer by derivedStateOf { !heightAtLeastExpanded && widthAtLeastExpanded }
+    val infoInRail by derivedStateOf { !heightAtLeastExpanded && widthAtLeastMedium && !widthAtLeastExpanded }
+
+    mapOf(
+        "windowSizeClass" to windowSizeClass,
+        "widthAtLeastMedium" to widthAtLeastMedium,
+        "widthAtLeastExpanded" to widthAtLeastExpanded,
+        "heightAtLeastExpanded" to heightAtLeastExpanded,
+        "useModal" to useModal,
+        "useRail" to useRail,
+        "useDrawer" to useDrawer,
+        "useTopBar" to useTopBar,
+        "infoInDrawer" to infoInDrawer,
+        "infoInRail" to infoInRail,
+    ).work()
 
     Scaffold(
         topBar = {

@@ -1,7 +1,7 @@
 package cz.jaro.dpmcb.data.realtions.sequence
 
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.Validity
+import cz.jaro.dpmcb.data.generated.Validity
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 

@@ -43,11 +43,11 @@ class ConnectionResultsViewModel(
     private val results = MutableStateFlow(emptyList<Connection>())
     private val loading = MutableStateFlow(false)
     private val loadingPast = MutableStateFlow(false)
-    private val loaded = MutableStateFlow(relations.map { 0 }.toMutableList())
-    private val loadedBack = MutableStateFlow(relations.map { 0 }.toMutableList())
+    private val loaded = MutableStateFlow(relations.value.map { 0 }.toMutableList())
+    private val loadedBack = MutableStateFlow(relations.value.map { 0 }.toMutableList())
 
     val searchers = async {
-        args.relations.map {
+        args.relations.value.map {
             (if (args.directOnly) DirectConnectionSearcher else CommonConnectionSearcher)(
                 start = it.start,
                 destination = it.destination,
@@ -131,7 +131,7 @@ class ConnectionResultsViewModel(
 
         is ConnectionResultsEvent.AddToOtherFavourite -> repo.changeFavourites {
             it.toMutableList().mutate {
-                this[e.i] += relations
+                this[e.i] += relations.value
             }.distinct()
         }
 
@@ -141,7 +141,7 @@ class ConnectionResultsViewModel(
 
         is ConnectionResultsEvent.RemoveFromOtherFavourite -> repo.changeFavourites {
             it.toMutableList().mutate {
-                this[e.i] -= relations.single()
+                this[e.i] -= relations.value.single()
             }.distinct()
         }
     }
@@ -193,8 +193,8 @@ class ConnectionResultsViewModel(
     val state = combineStates(
         connections, loading, loadingPast, repo.favourites
     ) { connections, loading, loadingPast, favourites ->
-        val isComposed = relations.size > 1
-        val relation = relations.first()
+        val isComposed = relations.value.size > 1
+        val relation = relations.value.first()
         val isFavourite = relations.value in favourites
         val (partOf, other) =
             if (isComposed) listOf<IndexedValue<Favourite>>() to listOf()

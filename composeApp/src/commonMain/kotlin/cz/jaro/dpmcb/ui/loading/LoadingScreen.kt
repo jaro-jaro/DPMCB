@@ -1,5 +1,7 @@
 package cz.jaro.dpmcb.ui.loading
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,10 +37,11 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastRoundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
+import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.viewModel
 import cz.jaro.dpmcb.ui.main.SuperRoute
@@ -121,22 +124,27 @@ fun LoadingScreen(
             )
             when (state) {
                 is LoadingState.Loading -> {
-                    Text(state.infoText, textAlign = TextAlign.Center)
-//                    if (state.progress == null) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    )
-//                    } else {
-//                        val animatedProgress by animateFloatAsState(state.progress, label = "Loading progress", animationSpec = spring(dampingRatio = 2F))
-//                        LinearProgressIndicator(
-//                            progress = { animatedProgress },
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(top = 8.dp),
-//                        )
-//                    }
+                    if (state.progress == null) {
+                        Text(state.infoText, textAlign = TextAlign.Center)
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        )
+                    } else {
+                        Text("${state.infoText} ${state.progress.times(100).fastRoundToInt()} %", textAlign = TextAlign.Center)
+                        val animatedProgress by animateFloatAsState(
+                            state.progress,
+                            label = "Loading progress",
+                            animationSpec = spring(dampingRatio = 2F)
+                        )
+                        LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                        )
+                    }
                 }
 
                 LoadingState.Error -> {

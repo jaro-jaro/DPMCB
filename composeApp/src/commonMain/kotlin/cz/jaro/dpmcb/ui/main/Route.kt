@@ -26,6 +26,7 @@ import cz.jaro.dpmcb.ui.connection_search.to
 import cz.jaro.dpmcb.ui.now_running.NowRunningType
 import io.github.z4kn4fein.semver.Version
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
@@ -41,6 +42,10 @@ sealed interface Route {
             Bus::class, Card::class, Chooser::class, Departures::class, ConnectionSearch::class, Connection::class,
             ConnectionResults::class, Map::class, NowRunning::class, Sequence::class, Timetable::class, FindBus::class, Settings::class
         )
+
+        val Initial = ConnectionSearch(SystemClock.todayHere())
+        @OptIn(InternalSerializationApi::class)
+        val initialRoute = "connection_search/" + SystemClock.todayHere().serialize()
     }
 
     @Serializable

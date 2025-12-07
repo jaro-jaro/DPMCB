@@ -1,4 +1,5 @@
 package cz.jaro.dpmcb.data.database
+/*
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -662,3 +663,4 @@ interface Dao : SpojeQueries {
     override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String>
 
 }
+*/

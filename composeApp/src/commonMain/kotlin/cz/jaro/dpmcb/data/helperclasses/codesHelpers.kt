@@ -1,11 +1,11 @@
 package cz.jaro.dpmcb.data.helperclasses
 
-import cz.jaro.dpmcb.data.entities.Validity
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.Runs
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsAlso
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.RunsOnly
+import cz.jaro.dpmcb.data.generated.Validity
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate

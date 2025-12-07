@@ -1,10 +1,10 @@
 
 import com.codingfeline.buildkonfig.compiler.FieldSpec
+import de.undercouch.gradle.tasks.download.Download
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
-import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.compose.compiler)
@@ -16,6 +16,8 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.buildkonfig)
+    alias(libs.plugins.sqldelight)
+    alias(libs.plugins.download)
 }
 
 kotlin {
@@ -27,19 +29,8 @@ kotlin {
     }
 
     @OptIn(ExperimentalWasmDsl::class)
-    js(IR) {
-        outputModuleName = "composeApp"
-        browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                outputFileName = "composeApp.js"
-                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static(rootDirPath)
-                    static(projectDirPath)
-                }
-            }
-        }
+    js {
+        browser()
         binaries.executable()
     }
 
@@ -90,6 +81,9 @@ kotlin {
             implementation(libs.google.firebase.crashlytics)
             // Remote config
             implementation(libs.google.firebase.config)
+
+            // Sqldelight
+            implementation(libs.sqldelight.android.driver)
         }
         jsMain.get().dependencies {
             implementation(compose.html.core)
@@ -99,6 +93,12 @@ kotlin {
             // Supabase
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.auth)
+
+            // Sqldelight
+            implementation(libs.sqldelight.web.worker.driver)
+//            implementation(devNpm("copy-webpack-plugin", libs.versions.copy.webpack.plugin.get()))
+//            implementation(npm("@cashapp/sqldelight-sqljs-worker", libs.versions.sqldelight.get()))
+//            implementation(npm("sql.js", libs.versions.sqljs.get()))
         }
         commonMain.get().dependencies {
             // Kotlin reflection
@@ -163,6 +163,9 @@ kotlin {
 
             // Room
             implementation(libs.androidx.jetpack.room.common)
+
+            // Sqldelight
+            implementation(libs.sqldelight.primitive.adapters)
         }
         all {
             languageSettings {
@@ -174,6 +177,9 @@ kotlin {
                 enableLanguageFeature(LanguageFeature.ExpectActualClasses.name)
                 enableLanguageFeature(LanguageFeature.ContextSensitiveResolutionUsingExpectedType.name)
             }
+        }
+        jsMain {
+            resources.srcDir(layout.buildDirectory.dir("sqlite"))
         }
     }
 }
@@ -194,6 +200,42 @@ buildkonfig {
             FieldSpec.Type.INT, "versionCode", libs.versions.appVersionCode.get()
         )
     }
+}
+
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("cz.jaro.dpmcb")
+            generateAsync.set(true)
+        }
+    }
+}
+
+// https://sqlite.org/download.html
+val sqlite = 3510000
+
+val sqliteDownload = tasks.register("sqliteDownload", Download::class.java) {
+    src("https://sqlite.org/2025/sqlite-wasm-$sqlite.zip")
+    dest(layout.buildDirectory.dir("tmp"))
+    onlyIfModified(true)
+}
+
+val sqliteUnzip = tasks.register("sqliteUnzip", Copy::class.java) {
+    dependsOn(sqliteDownload)
+    from(zipTree(layout.buildDirectory.dir("tmp/sqlite-wasm-$sqlite.zip"))) {
+        include("sqlite-wasm-$sqlite/jswasm/**")
+        exclude("**/*worker1*")
+
+        eachFile {
+            relativePath = RelativePath(true, *relativePath.segments.drop(2).toTypedArray())
+        }
+    }
+    into(layout.buildDirectory.dir("sqlite"))
+    includeEmptyDirs = false
+}
+
+tasks.named("jsProcessResources").configure {
+    dependsOn(sqliteUnzip)
 }
 
 android {

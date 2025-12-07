@@ -8,7 +8,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Route
 
 object AppState {
-    var route by mutableStateOf(Route.ConnectionSearch.serializer().descriptor.serialName)
+    var route by mutableStateOf(Route.initialRoute)
     var title by mutableStateOf("Lepší DPMCB")
     var selected by mutableStateOf(null as DrawerAction?)
     var menuState by mutableStateOf(DrawerValue.Closed)

@@ -11,5 +11,5 @@ data class StopNameTime(
     val arrival: LocalTime?,
     val time: LocalTime,
     val fixedCodes: String,
-    val platform: Platform,
+    val platform: Platform?,
 )

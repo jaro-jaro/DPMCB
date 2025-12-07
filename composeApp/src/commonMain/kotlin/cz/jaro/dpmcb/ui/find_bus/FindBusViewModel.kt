@@ -1,10 +1,10 @@
 package cz.jaro.dpmcb.ui.find_bus
 
+//import com.fleeksoft.ksoup.Ksoup
+//import com.fleeksoft.ksoup.network.parseGetRequest
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
-import com.fleeksoft.ksoup.Ksoup
-import com.fleeksoft.ksoup.network.parseGetRequest
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
@@ -15,14 +15,9 @@ import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.toRegNum
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.entities.withPart
-import cz.jaro.dpmcb.data.entities.withoutPart
-import cz.jaro.dpmcb.data.entities.withoutType
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
-import cz.jaro.dpmcb.data.pushVehicles
-import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.seqName
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -165,82 +160,82 @@ class FindBusViewModel(
 
         is FindBusEvent.DownloadVehicles -> {
             launch {
-                val doc = getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}") {
-                    e.onFail()
-                    return@launch
-                }
-                val otherPages = doc
-                    .body()
-                    .select("#snippet--table > div > div.visual-paginator-control > span.description")
-                    .first()
-                    ?.text()
-                    ?.substringAfterLast(' ')
-                    ?.toInt()
-                    ?.div(50)
-                    ?: return@launch
-
-                val otherDocs = List(otherPages) { i ->
-                    getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&strana=${i + 2}") {
-                        e.onFail()
-                        return@launch
-                    }
-                }
-                val data = (listOf(doc) + otherDocs).flatMap {
-                    it
-                        .body()
-                        .select("#snippet--table > div > table > tbody")
-                        .single()
-                        .children()
-                }
-                    .filter { !it.hasClass("table-header") }
-                    .map {
-                        Triple(
-                            it.getElementsByClass("car").single().text().toRegNum(),
-                            SequenceCode(
-                                "${
-                                    it.getElementsByClass("order-on-line").single().text()
-                                }/${
-                                    it.getElementsByClass("route").single().text()
-                                }"
-                            ),
-                            it.getElementsByClass("note").single().text(),
-                        )
-                    }
-
-                val todayRunning = repo.todayRunningSequences(date).await().keys
-
-                val downloaded = data.flatMap { (vehicle, sequence, note) ->
-                    val withPart = when {
-                        note.contains("noc") -> sequence.withPart(1)
-                        note.contains("ran") -> sequence.withPart(1)
-                        note.contains("odpo") -> sequence.withPart(2)
-                        else -> sequence
-                    }
-                    val foundSequences = todayRunning.find {
-                        it.withoutType() == withPart
-                    }?.let(::listOf)
-                        ?: if (data.count { it.second == sequence } == 1) todayRunning.filter {
-                            it.withoutType().withoutPart() == sequence
-                        } // Stejný bus na ranní i odpolední části
-                        else emptyList()
-
-                    foundSequences.map { it to vehicle }
-                }.toMap()
-                repo.pushVehicles(date, downloaded, reliable = false)
-                e.onSuccess()
+//                val doc = getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}") {
+//                    e.onFail()
+//                    return@launch
+//                }
+//                val otherPages = doc
+//                    .body()
+//                    .select("#snippet--table > div > div.visual-paginator-control > span.description")
+//                    .first()
+//                    ?.text()
+//                    ?.substringAfterLast(' ')
+//                    ?.toInt()
+//                    ?.div(50)
+//                    ?: return@launch
+//
+//                val otherDocs = List(otherPages) { i ->
+//                    getDoc("https://seznam-autobusu.cz/vypravenost/mhd-cb/vypis?datum=${date}&strana=${i + 2}") {
+//                        e.onFail()
+//                        return@launch
+//                    }
+//                }
+//                val data = (listOf(doc) + otherDocs).flatMap {
+//                    it
+//                        .body()
+//                        .select("#snippet--table > div > table > tbody")
+//                        .single()
+//                        .children()
+//                }
+//                    .filter { !it.hasClass("table-header") }
+//                    .map {
+//                        Triple(
+//                            it.getElementsByClass("car").single().text().toRegNum(),
+//                            SequenceCode(
+//                                "${
+//                                    it.getElementsByClass("order-on-line").single().text()
+//                                }/${
+//                                    it.getElementsByClass("route").single().text()
+//                                }"
+//                            ),
+//                            it.getElementsByClass("note").single().text(),
+//                        )
+//                    }
+//
+//                val todayRunning = repo.todayRunningSequences(date).await().keys
+//
+//                val downloaded = data.flatMap { (vehicle, sequence, note) ->
+//                    val withPart = when {
+//                        note.contains("noc") -> sequence.withPart(1)
+//                        note.contains("ran") -> sequence.withPart(1)
+//                        note.contains("odpo") -> sequence.withPart(2)
+//                        else -> sequence
+//                    }
+//                    val foundSequences = todayRunning.find {
+//                        it.withoutType() == withPart
+//                    }?.let(::listOf)
+//                        ?: if (data.count { it.second == sequence } == 1) todayRunning.filter {
+//                            it.withoutType().withoutPart() == sequence
+//                        } // Stejný bus na ranní i odpolední části
+//                        else emptyList()
+//
+//                    foundSequences.map { it to vehicle }
+//                }.toMap()
+//                repo.pushVehicles(date, downloaded, reliable = false)
+//                e.onSuccess()
             }
             Unit
         }
     }
 
-    suspend inline fun getDoc(
-        url: String,
-        onFail: () -> Nothing,
-    ) = try {
-        Ksoup.parseGetRequest(url)
-    } catch (ex: Exception) {
-        ex.printStackTrace()
-        recordException(ex)
-        onFail()
-    }
+//    suspend inline fun getDoc(
+//        url: String,
+//        onFail: () -> Nothing,
+//    ) = try {
+//        Ksoup.parseGetRequest(url)
+//    } catch (ex: Exception) {
+//        ex.printStackTrace()
+//        recordException(ex)
+//        onFail()
+//    }
 }

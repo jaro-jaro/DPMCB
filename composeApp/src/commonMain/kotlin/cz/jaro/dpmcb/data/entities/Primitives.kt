@@ -107,7 +107,7 @@ fun SequenceCode.withoutType() = SequenceCode(
 val ShortLine.Companion.invalid get() = ShortLine(-1)
 fun ShortLine.isInvalid() = this == ShortLine.invalid
 fun ShortLine?.isInvalid() = this == null || isInvalid()
-val SequenceGroupCompanion.invalid get() = -1
+val SequenceGroupCompanion.invalid: SequenceGroup get() = -1
 fun SequenceGroup.isInvalid() = this == SequenceGroup.invalid
 val SequenceCode.Companion.invalid get() = SequenceCode("0/0")
 fun SequenceCode.isInvalid() = this == SequenceCode.invalid

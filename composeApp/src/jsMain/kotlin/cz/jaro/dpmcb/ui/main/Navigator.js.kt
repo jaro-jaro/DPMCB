@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.main
 
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import kotlinx.browser.window
 import org.w3c.dom.url.URL
@@ -10,7 +11,7 @@ actual fun Navigator(
     navController: NavController,
 ): Navigator {
     window.onpopstate = {
-        navController.navigate(window.location.hash.removePrefix("#"))
+        navController.navigate(window.location.hash.removePrefix("#").ifBlank { Route.initialRoute }.work("BBBBBBBBBB"))
     }
     return object : Navigator {
         override fun navigate(route: Route, replaceCurrentRoute: Boolean) {
