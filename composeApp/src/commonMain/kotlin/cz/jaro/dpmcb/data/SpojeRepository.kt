@@ -4,6 +4,7 @@ import cz.jaro.dpmcb.data.database.SpojeDataSource
 import cz.jaro.dpmcb.data.database.SpojeQueries
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -16,7 +17,7 @@ import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
-import cz.jaro.dpmcb.data.entities.types.TimeCodeType.*
+import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.withPart
 import cz.jaro.dpmcb.data.generated.Validity
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -175,7 +176,6 @@ class SpojeRepository(
                         connName = it.connName,
                         sequence = sequence,
                         vehicleType = it.vehicleType,
-                        direction = it.direction,
                     )
                 },
                 stops = noCodes.mapIndexed { i, it ->
@@ -203,17 +203,17 @@ class SpojeRepository(
             map { RunsFromTo(type = it.type, `in` = it.validFrom..it.validTo) } to first().fixedCodes
         }
 
-    suspend fun ShortLine.findLongLine() = q().findLongLine(this.work("01")).work("02")
+    suspend fun ShortLine.findLongLine() = q().findLongLine(this)
 
     suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
-        q().stopNamesOfLine(nowUsedTable(date, line.findLongLine()).await()!!.work("04")).work("05")
+        q().stopNamesOfLine(nowUsedTable(date, line.findLongLine()).await()!!)
 
-    val endStopNames = withCache(scope) {
+    val platformsAndDirections = withCache(scope) {
             line: ShortLine,
             thisStop: String,
             date: LocalDate,
         ->
-        q().endStops(
+        q().platformsAndDirections(
             stop = thisStop,
             tab = nowUsedTable(date, line.findLongLine()).await()!!,
         )
@@ -227,25 +227,30 @@ class SpojeRepository(
                     date = date,
                 )
             }
-            .flatMap { (_, codes) ->
-                val stops = codes
-                    .distinctBy { it.stopName to it.stopIndexOnLine }
+            .mapValues { (_, codes) ->
+                codes.distinctBy { it.stopName to it.stopIndexOnLine }
+            }
+            .flatMap { (_, stops) ->
                 val stopNames = stops.map { it.stopName }
                 stops.withIndex()
                     .filter { it.value.stopName == thisStop }
                     .filter { it.index < stops.lastIndex && StopType(it.value.stopFixedCodes).canGetOn }
-                    .map { it.index }
-                    .map { i ->
+                    .filter { (_, stop) ->
+                        stop.platform != null
+                    }
+                    .map { (i, stop) ->
                         val destination = middleDestination(line.findLongLine(), stopNames, i)
-                        Triple(
-                            destination ?: codes.last().stopName,
-                            stopNames.indexOf(destination ?: codes.last().stopName),
-                            if (destination != null) Direction.NEGATIVE else codes.first().direction
-                        )
+                        Quadruple(
+                            destination ?: stops.last().stopName,
+                            stopNames.indexOf(destination ?: stops.last().stopName),
+                            stop.platform!!,
+                            if (destination != null) Direction.NEGATIVE else stops.first().direction,
+                        ).work(stop.connName, stop.stopIndexOnLine)
                     }
             }
             .sortedBy { it.second }
-            .map { it.first to it.third }
+            .work()
+            .map { Triple(it.first, it.third, it.fourth) }
             .let { endStops ->
                 val total = endStops.count().toFloat()
                 endStops.countMembers()
@@ -256,18 +261,25 @@ class SpojeRepository(
                         it >= .1F
                     }
                     .keys
-                    .groupBy({ (_, dir) -> dir }, { (stop) -> stop })
-                    .mapValues { it.value.joinToString("\n") }
+                    .groupBy({ (_, platform, direction) -> platform to direction }, { (stop) -> stop })
                     .entries
-                    .sortedBy { it.key.ordinal }
+                    .sortedBy { it.key.second }
+                    .sortedBy { it.key.first }
                     .toMap()
             }
     }
 
-    suspend fun timetable(line: ShortLine, thisStop: String, direction: Direction, date: LocalDate): Set<BusInTimetable> {
+    suspend fun timetable(
+        line: ShortLine,
+        thisStop: String,
+        platform: Platform,
+        direction: Direction,
+        date: LocalDate,
+    ): Set<BusInTimetable> {
         val isOneWay = isOneWay(line.findLongLine())
-        return q().connStopsOnLineInDirection(
+        return q().connStopsOnLineOnPlatformInDirection(
             stop = thisStop,
+            platform = platform,
             direction = if (isOneWay) Direction.POSITIVE else direction,
             tab = nowUsedTable(date, line.findLongLine()).await()!!
         )
@@ -282,25 +294,26 @@ class SpojeRepository(
                 )
             }
             .flatMap { (busName, codes) ->
-                val stops = codes.map { it.stopName to it.time!! }.distinct()
+                val stops = codes.map { Triple(it.stopName, it.time, it.platform) }.distinct()
                 val middleDestination = if (isOneWay) findMiddleStop(stops.map { it.first }) else null
 
-                val indices =
-                    if (middleDestination != null && direction == Direction.NEGATIVE)
-                        stops.withIndex().filter { it.value.first == thisStop && it.index < middleDestination.index - 1 }.map { it.index }
-                    else if (middleDestination != null && direction == Direction.POSITIVE)
-                        stops.withIndex().filter { it.value.first == thisStop && middleDestination.index - 1 <= it.index }.map { it.index }
-                    else stops.withIndex().filter { it.value.first == thisStop }.map { it.index }
-                indices.map { i ->
-                    val stop = stops[i]
-                    BusInTimetable(
-                        departure = stop.second,
-                        busName = busName,
-                        destination = if (middleDestination != null && direction == Direction.NEGATIVE)
-                            middleDestination.name
-                        else stops.last().first,
-                    )
+                val stopsOnThisPart = if (middleDestination == null) stops
+                else when (direction) {
+                    Direction.NEGATIVE -> stops.take(middleDestination.index - 1)
+                    Direction.POSITIVE -> stops.drop(middleDestination.index - 1)
                 }
+
+                stopsOnThisPart
+                    .filter { (stopName, _, stopPlatform) ->
+                        stopName == thisStop && stopPlatform == platform
+                    }
+                    .map { (_, time) ->
+                        BusInTimetable(
+                            departure = time!!,
+                            busName = busName,
+                            destination = middleDestination?.name.takeIf { direction == Direction.NEGATIVE } ?: stops.last().first,
+                        )
+                    }
             }
             .toSet()
     }
@@ -355,7 +368,6 @@ class SpojeRepository(
                             connName = it.connName,
                             sequence = it.sequence,
                             vehicleType = it.vehicleType,
-                            direction = it.direction,
                         )
                     },
                     noCodes.mapIndexed { i, it ->
@@ -539,6 +551,7 @@ class SpojeRepository(
                     stopType = StopType(info.connStopFixedCodes),
                     direction = info.direction,
                     sequence = info.sequence,
+                    platform = info.platform,
                 )
             }
 

@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
@@ -117,8 +118,6 @@ class BusViewModel(
                     }
             },
             date = date,
-            direction = bus.info.direction,
-            isOneWay = repo.isOneWay(bus.info.line),
             vehicleNumber = vehicleNumber,
             vehicleName = vehicleNumber?.let(repo::vehicleName),
             vehicleTraction = vehicleNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
@@ -160,7 +159,7 @@ class BusViewModel(
         is BusEvent.TimetableClick -> {
             when (e.e) {
                 is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
-                is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.direction))
+                is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.platform, Direction.POSITIVE /*TODO*/))
             }
         }
     }

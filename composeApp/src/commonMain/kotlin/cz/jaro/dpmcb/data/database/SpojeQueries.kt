@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.data.database
 
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -15,8 +16,8 @@ import cz.jaro.dpmcb.data.generated.CoreBus
 import cz.jaro.dpmcb.data.generated.CoreBusInTimetable
 import cz.jaro.dpmcb.data.generated.CoreBusOfSequence
 import cz.jaro.dpmcb.data.generated.CoreDeparture
-import cz.jaro.dpmcb.data.generated.EndStop
 import cz.jaro.dpmcb.data.generated.Line
+import cz.jaro.dpmcb.data.generated.PlatformAndDirection
 import cz.jaro.dpmcb.data.generated.SeqGroup
 import cz.jaro.dpmcb.data.generated.SeqOfConn
 import cz.jaro.dpmcb.data.generated.Stop
@@ -38,9 +39,9 @@ interface SpojeQueries {
 
     suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String>
 
-    suspend fun connStopsOnLineInDirection(stop: String, direction: Direction, tab: Table): List<CoreBusInTimetable>
+    suspend fun connStopsOnLineOnPlatformInDirection(stop: String, platform: Platform, direction: Direction, tab: Table): List<CoreBusInTimetable>
 
-    suspend fun endStops(stop: String, tab: Table): List<EndStop>
+    suspend fun platformsAndDirections(stop: String, tab: Table): List<PlatformAndDirection>
 
     suspend fun stopNamesOnConns(tabs: List<Table>): Map<BusName, List<StopName>>
 

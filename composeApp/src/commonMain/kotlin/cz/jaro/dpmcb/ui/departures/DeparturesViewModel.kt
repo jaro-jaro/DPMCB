@@ -156,8 +156,8 @@ class DeparturesViewModel(
                     vehicleTraction = registrationNumber?.let { repo.vehicleTraction(it) ?: lineTraction },
                     delay = onlineConn?.delayMin?.toDouble()?.minutes,
                     runsVia = stopNames.slice((thisStopIndex + 1)..lastIndexOfThisStop),
-                    directionIfNotLast = if (destination != null) Direction.NEGATIVE
-                    else stop.direction.takeUnless { thisStopIndex == busStops.lastIndex },
+                    platform = stop.platform,
+                    isLastStop = thisStopIndex == busStops.lastIndex,
                     stopType = stop.stopType,
                 )
             }
@@ -176,7 +176,7 @@ class DeparturesViewModel(
                 info.stopFilter?.let { filter -> it.runsVia.contains(filter) } != false
             }
             .remove {
-                info.justDepartures && (it.directionIfNotLast == null || it.stopType == StopType.GetOffOnly)
+                info.justDepartures && (it.isLastStop || it.stopType == StopType.GetOffOnly)
             }
     }
         .flowOn(Dispatchers.IO)
@@ -242,16 +242,15 @@ class DeparturesViewModel(
         }
 
         is DeparturesEvent.GoToTimetable -> {
-            e.bus.directionIfNotLast?.let {
-                navigator.navigate(
-                    Route.Timetable(
-                        lineNumber = e.bus.lineNumber,
-                        stop = info.value.stop,
-                        direction = e.bus.directionIfNotLast,
-                        date = info.value.date,
-                    )
+            if (e.bus.platform != null) navigator.navigate(
+                Route.Timetable(
+                    lineNumber = e.bus.lineNumber,
+                    stop = info.value.stop,
+                    platform = e.bus.platform,
+                    date = info.value.date,
+                    direction = Direction.POSITIVE, // TODO
                 )
-            }
+            ) else Unit
         }
 
         is DeparturesEvent.ChangeTime -> {

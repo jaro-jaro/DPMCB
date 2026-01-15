@@ -58,14 +58,7 @@ fun Timetable(
     args: Route.Timetable,
     navigator: Navigator,
     superNavController: NavHostController,
-    viewModel: TimetableViewModel = viewModel(
-        TimetableViewModel.Parameters(
-            lineNumber = args.lineNumber,
-            stop = args.stop,
-            direction = args.direction,
-            date = args.date,
-        )
-    ),
+    viewModel: TimetableViewModel = viewModel(args),
 ) {
     AppState.title = "Jízdní řády"
     AppState.selected = DrawerAction.Timetable
@@ -114,7 +107,8 @@ fun TimetableScreen(
         }
 
         Text(
-            text = "${state.stop} -> ${(state as? TimetableState.Success)?.endStops ?: ""}",
+            text = if (state !is TimetableState.Success) "${state.stop}: ${state.platform}"
+            else "${state.stop}: ${state.platform} (-> ${state.endStops})",
             fontSize = 20.sp,
             color = MaterialTheme.colorScheme.primary,
         )

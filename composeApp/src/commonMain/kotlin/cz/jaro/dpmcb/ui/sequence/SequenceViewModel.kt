@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
@@ -90,8 +91,6 @@ class SequenceViewModel(
                     timeCodes = filterTimeCodesAndMakeReadable(bus.uniqueTimeCodes),
                     fixedCodes = filterFixedCodesAndMakeReadable(bus.uniqueFixedCodes, bus.uniqueTimeCodes),
                     lineCode = bus.uniqueValidity?.let { validityString(it) } ?: "",
-                    direction = bus.info.direction,
-                    isOneWay = repo.isOneWay(bus.info.line),
                 )
             },
             runsToday = runsAt(timeCodes = sequence.commonTimeCodes, fixedCodes = sequence.commonFixedCodes, date = params.date),
@@ -203,7 +202,7 @@ class SequenceViewModel(
         is SequenceEvent.SequenceClick -> navigator.navigate(Route.Sequence(params.date, e.sequence))
         is SequenceEvent.TimetableClick -> when (e.e) {
             is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.direction))
+            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.platform, Direction.POSITIVE, /*TODO*/))
         }
 
         is SequenceEvent.FindBus -> {

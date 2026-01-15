@@ -228,8 +228,6 @@ fun SequenceScreen(
                         ) {
                             Timetable(
                                 stops = bus.stops,
-                                isOneWay = bus.isOneWay,
-                                direction = bus.direction,
                                 onEvent = onEvent.fromTimetable,
                                 onlineConnStops = null,
                                 nextStopIndex = null,

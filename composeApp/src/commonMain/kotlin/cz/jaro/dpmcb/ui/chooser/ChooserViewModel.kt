@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -55,8 +56,9 @@ class ChooserViewModel(
             ChooserType.LineStops,
                 -> repo.stopNamesOfLine(params.lineNumber.work("00"), params.date).distinct()
 
-            ChooserType.EndStop,
-                -> repo.endStopNames(params.lineNumber, params.stop!!, params.date).await().values
+            ChooserType.Platforms,
+                -> repo.platformsAndDirections(params.lineNumber, params.stop!!, params.date).await()
+                    .map { (platform, directions) -> "${platform.first} (-> ${directions.joinToString(" / ")})" }
         }
     }.asFlow()
 
@@ -152,21 +154,22 @@ class ChooserViewModel(
 
         ChooserType.LineStops -> {
             launch(Dispatchers.IO) {
-                repo.endStopNames(params.lineNumber, result, params.date).await().let { stops ->
+                repo.platformsAndDirections(params.lineNumber, result, params.date).await().let { stops ->
                     withContext(Dispatchers.Main) {
                         navigator.navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    direction = stops.entries.single().key,
+                                    platform = stops.entries.single().key.first,
                                     date = params.date,
+                                    direction = stops.entries.single().key.second,
                                 )
                             else
                                 Route.Chooser(
                                     lineNumber = params.lineNumber,
                                     stop = result,
-                                    type = ChooserType.EndStop,
+                                    type = ChooserType.Platforms,
                                     date = params.date,
                                 )
                         )
@@ -176,16 +179,17 @@ class ChooserViewModel(
             Unit
         }
 
-        ChooserType.EndStop -> {
+        ChooserType.Platforms -> {
             launch {
-                val direction = repo.endStopNames(params.lineNumber, params.stop!!, params.date).await()
-                    .entries.find { it.value == result }!!.key
+                val all = repo.platformsAndDirections(params.lineNumber, params.stop!!, params.date).await().toList()
+                val (platform, direction) = all[originalList.first().indexOf(result)].first
                 navigator.navigate(
                     Route.Timetable(
                         lineNumber = params.lineNumber,
                         stop = params.stop,
-                        direction = direction,
+                        platform = platform,
                         date = params.date,
+                        direction = direction,
                     )
                 )
             }
@@ -206,8 +210,8 @@ class ChooserViewModel(
         type = params.type,
         search = search,
         info = when (params.type) {
-            ChooserType.LineStops -> "${params.lineNumber}: ? -> ?"
-            ChooserType.EndStop -> "${params.lineNumber}: ${params.stop} -> ?"
+            ChooserType.LineStops -> "${params.lineNumber}: ?"
+            ChooserType.Platforms -> "${params.lineNumber}: ${params.stop}"
             else -> ""
         },
         list = list.toList(),

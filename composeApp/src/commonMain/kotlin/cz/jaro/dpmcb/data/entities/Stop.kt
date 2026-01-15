@@ -1,9 +1,7 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import kotlinx.serialization.Serializable
 
-@Entity(primaryKeys = ["tab", "stopNumber"])
 @Serializable
 data class Stop(
 // Primary keys

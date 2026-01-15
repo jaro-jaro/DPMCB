@@ -7,9 +7,9 @@ appVersionName = "1.8.0-alpha.8"
 android-compileSdk = "36"
 android-minSdk = "26"
 androidx-lifecycle = "2.9.6"
-compose-multiplatform = "1.9.3"
-android-gradle-plugin = "8.13.1"
-androidx-activity-compose = "1.11.0"
+compose-multiplatform = "1.10.0"
+android-gradle-plugin = "8.13.2"
+androidx-activity-compose = "1.12.2"
 androidx-core = "1.17.0"
 androidx-jetpack-glance = "1.1.1"
 androidx-navigation = "2.9.1"
@@ -26,10 +26,13 @@ koin-compose = "4.1.1"
 koin = "4.1.1"
 # TODO: remove compat version after compose material3 adopts kotlin.time
 kotlinx-datetime = "0.7.1-0.6.x-compat"
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
-supabase = "3.2.6"
+material3 = "1.9.0"
+materialIconsExtended = "1.7.3"
+runtime = "1.10.0"
+supabase = "3.3.0"
 semver = "3.0.0"
 zoomable = "0.18.0"
 ksoup = "0.2.5"
@@ -43,6 +46,13 @@ sqldelight = "2.2.1"
 download = "5.6.0"
 
 [libraries]
+components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose-multiplatform" }
+foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose-multiplatform" }
+html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "compose-multiplatform" }
+material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+org-jetbrains-compose-ui-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-multiplatform" }
+runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "runtime" }
 sqldelight-primitive-adapters = { module = "app.cash.sqldelight:primitive-adapters", version.ref = "sqldelight" }
 sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-web-worker-driver = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqldelight" }
@@ -78,6 +88,8 @@ kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-
 supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
 semver = { module = "io.github.z4kn4fein:semver", version.ref = "semver" }
+ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose-multiplatform" }
+ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "compose-multiplatform" }
 zoomable-image-coil = { module = "me.saket.telephoto:zoomable-image-coil", version.ref = "zoomable" }
 ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
 ksoup-network = { module = "com.fleeksoft.ksoup:ksoup-network", version.ref = "ksoup" }

@@ -1,10 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
-@Entity(primaryKeys = ["tab", "connNumber", "stopIndexOnLine"])
 @Serializable
 data class ConnStop(
 // Primary keys

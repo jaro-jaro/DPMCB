@@ -38,7 +38,7 @@ kotlin {
             implementation(libs.androidx.core)
 
             // Compose preview
-            implementation(compose.preview)
+            implementation(libs.org.jetbrains.compose.ui.ui.tooling.preview)
 
             // SVG Viewer
             implementation(libs.coil.svg)
@@ -80,7 +80,7 @@ kotlin {
             implementation(libs.sqldelight.android.driver)
         }
         jsMain.get().dependencies {
-            implementation(compose.html.core)
+            implementation(libs.html.core)
 
             // Multiplatform Settings
 
@@ -111,18 +111,18 @@ kotlin {
             implementation(libs.firebase.config)
 
             // Jetpack Compose
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.ui)
+            implementation(libs.components.resources)
+            implementation(libs.org.jetbrains.compose.ui.ui.tooling.preview)
             // Lifecycle
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.viewmodel.compose)
             implementation(libs.androidx.lifecycle.runtime.compose)
             // Material
-            implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.material3)
+            implementation(libs.material.icons.extended)
 
             // Androidx adaptive
             implementation(libs.androidx.adaptive)
@@ -270,7 +270,7 @@ configurations {
 }
 
 dependencies {
-    debugImplementation(compose.uiTooling)
+    debugImplementation(libs.ui.tooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 

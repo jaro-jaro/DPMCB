@@ -501,7 +501,7 @@ private fun BusDeparture(
             showDropDown = true
         }
     ) {
-        departureState.directionIfNotLast?.let {
+        if (!departureState.isLastStop && departureState.platform != null) {
             DropdownMenu(
                 expanded = showDropDown,
                 onDismissRequest = {

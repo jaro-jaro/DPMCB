@@ -42,6 +42,7 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.backgroundInfo
 import cz.jaro.dpmcb.data.helperclasses.fromJson
+import cz.jaro.dpmcb.data.helperclasses.getValue
 import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.noCode
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
@@ -278,7 +279,7 @@ class LoadingViewModel(
         )
 
         val versionRef = database.reference("data${META_DATA_VERSION}/verze").work()
-        val newVersion = 66//versionRef.getValue<Int>().work()
+        val newVersion = versionRef.getValue<Int>().work()
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()

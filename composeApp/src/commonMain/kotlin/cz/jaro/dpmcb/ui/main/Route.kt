@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.main
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
@@ -163,6 +164,7 @@ sealed interface Route {
         override val date: LocalDate,
         val lineNumber: ShortLine,
         val stop: String,
+        val platform: Platform,
         val direction: Direction,
     ) : Route
 

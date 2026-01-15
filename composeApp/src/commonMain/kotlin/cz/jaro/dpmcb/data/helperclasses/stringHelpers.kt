@@ -37,11 +37,11 @@ operator fun AnnotatedString.unaryPlus() = builder.append(this)
 
 
 inline fun <reified T> String.fromJson(json: Json = Json): T = json.decodeFromString<T>(this)
-fun <T> String.fromJson(deserializer: DeserializationStrategy<T>, json: Json = Json): T = json.decodeFromString<T>(deserializer, this) as T
-inline fun <reified T> T.toJson(json: Json = Json): String = json.encodeToString<T>(serializer(), this)
-fun <T> T.toJson(serializer: SerializationStrategy<T>, json: Json = Json): String = json.encodeToString<T>(serializer, this)
+fun <T> String.fromJson(deserializer: DeserializationStrategy<T>, json: Json = Json): T = json.decodeFromString(deserializer, this)
+inline fun <reified T> T.toJson(json: Json = Json): String = json.encodeToString(serializer(), this)
+fun <T> T.toJson(serializer: SerializationStrategy<T>, json: Json = Json): String = json.encodeToString(serializer, this)
 
 inline fun <reified T> JsonElement.fromJsonElement(json: Json = Json): T = json.decodeFromJsonElement<T>(this)
-fun <T> JsonElement.fromJsonElement(deserializer: DeserializationStrategy<T>, json: Json = Json): T = json.decodeFromJsonElement<T>(deserializer, this)
+fun <T> JsonElement.fromJsonElement(deserializer: DeserializationStrategy<T>, json: Json = Json): T = json.decodeFromJsonElement(deserializer, this)
 inline fun <reified T> T.toJsonElement(json: Json = Json): JsonElement = json.encodeToJsonElement<T>(this)
-fun <T> T.toJsonElement(serializer: SerializationStrategy<T>, json: Json = Json): JsonElement = json.encodeToJsonElement<T>(serializer, this)
+fun <T> T.toJsonElement(serializer: SerializationStrategy<T>, json: Json = Json): JsonElement = json.encodeToJsonElement(serializer, this)

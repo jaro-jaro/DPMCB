@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.ui.timetable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.ui.main.Navigator
@@ -12,30 +11,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.datetime.LocalDate
 
 class TimetableViewModel(
     private val repo: SpojeRepository,
-    private val params: Parameters,
+    private val params: Route.Timetable,
 ) : ViewModel() {
-
-    data class Parameters(
-        val lineNumber: ShortLine,
-        val stop: String,
-        val direction: Direction,
-        val date: LocalDate,
-    )
 
     lateinit var navigator: Navigator
 
     private val list = suspend {
-        repo.timetable(params.lineNumber, params.stop, params.direction, params.date).sortedBy { it.departure }
+        repo.timetable(params.lineNumber, params.stop, params.platform, params.direction, params.date).sortedBy { it.departure }
     }.asFlow()
 
     val endStops = async {
-        repo.endStopNames(params.lineNumber, params.stop, params.date).await()
-            .getValue(params.direction)
-            .replace("\n", " / ")
+        repo.platformsAndDirections(params.lineNumber, params.stop, params.date).await()
+            .getValue(params.platform to params.direction)
+            .joinToString(" / ")
     }
 
     val state = list.map { list ->
@@ -44,6 +35,7 @@ class TimetableViewModel(
             date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
+            platform = params.platform,
             endStops = endStops.await(),
         )
     }.stateIn(
@@ -53,6 +45,7 @@ class TimetableViewModel(
             date = params.date,
             lineNumber = params.lineNumber,
             stop = params.stop,
+            platform = params.platform,
         )
     )
 
@@ -61,8 +54,9 @@ class TimetableViewModel(
             Route.Timetable(
                 lineNumber = params.lineNumber,
                 stop = params.stop,
-                direction = params.direction,
+                platform = params.platform,
                 date = e.date,
+                direction = Direction.POSITIVE, // TODO
             )
         )
 

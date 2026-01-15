@@ -1,10 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Entity(primaryKeys = ["line", "connNumber", "sequence", "group"])
 @Serializable
 data class SeqOfConn(
 // Primary keys

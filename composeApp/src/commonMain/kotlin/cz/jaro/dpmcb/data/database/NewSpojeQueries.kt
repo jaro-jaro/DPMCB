@@ -8,6 +8,7 @@ import app.cash.sqldelight.db.SqlDriver
 import cz.jaro.dpmcb.Database
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
@@ -73,11 +74,11 @@ class SpojeDataSourceImpl(
         override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table) =
             sq.nextStops(thisStop, line, tab).awaitAsList()
 
-        override suspend fun connStopsOnLineInDirection(stop: String, direction: Direction, tab: Table) =
-            sq.coreBusInTimetable(tab, stop, direction).awaitAsList()
+        override suspend fun connStopsOnLineOnPlatformInDirection(stop: String, platform: Platform, direction: Direction, tab: Table) =
+            sq.coreBusInTimetable(tab, stop, platform, direction).awaitAsList()
 
-        override suspend fun endStops(stop: String, tab: Table) =
-            sq.endStop(tab, stop).awaitAsList()
+        override suspend fun platformsAndDirections(stop: String, tab: Table) =
+            sq.platformAndDirection(tab, stop).awaitAsList()
 
         override suspend fun stopNamesOnConns(tabs: List<Table>) =
             sq.stopNamesOnConns(tabs).awaitGrouped({ it.connName }, { it.stopName })
