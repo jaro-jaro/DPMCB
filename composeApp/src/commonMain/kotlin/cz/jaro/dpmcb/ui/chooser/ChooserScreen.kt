@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,7 +50,6 @@ import cz.jaro.dpmcb.ui.common.autoFocus
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.ExperimentalTime
 
 @Suppress("unused")
@@ -71,7 +71,7 @@ fun Chooser(
         ChooserType.Stops -> "Odjezdy"
         ChooserType.Lines -> "Jízdní řády"
         ChooserType.LineStops -> "Jízdní řády"
-        ChooserType.EndStop -> "Jízdní řády"
+        ChooserType.Platforms -> "Jízdní řády"
         ChooserType.ReturnStop1 -> "Vyhledat spojení"
         ChooserType.ReturnStop2 -> "Vyhledat spojení"
         ChooserType.ReturnLine -> "Odjezdy"
@@ -81,7 +81,7 @@ fun Chooser(
     AppState.selected = when (args.type) {
         ChooserType.Lines,
         ChooserType.LineStops,
-        ChooserType.EndStop,
+        ChooserType.Platforms,
             -> DrawerAction.Timetable
 
         ChooserType.Stops,
@@ -148,8 +148,8 @@ fun ChooserScreen(
                         ChooserType.ReturnLine,
                             -> "Vyberte linku"
 
-                        ChooserType.EndStop,
-                            -> "Vyberte směr"
+                        ChooserType.Platforms,
+                            -> "Vyberte stanoviště"
                     },
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 20.sp,
@@ -185,7 +185,7 @@ fun ChooserScreen(
                 keyboardType = when (state.type) {
                     ChooserType.Stops,
                     ChooserType.LineStops,
-                    ChooserType.EndStop,
+                    ChooserType.Platforms,
                     ChooserType.ReturnStop1,
                     ChooserType.ReturnStop2,
                     ChooserType.ReturnStop,
@@ -198,7 +198,7 @@ fun ChooserScreen(
                 },
                 imeAction = when (state.type) {
                     ChooserType.Stops,
-                    ChooserType.EndStop,
+                    ChooserType.Platforms,
                         -> ImeAction.Search
 
                     ChooserType.Lines,

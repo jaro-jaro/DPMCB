@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -31,28 +32,28 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
-import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.PartOfConn
 import cz.jaro.dpmcb.data.realtions.canGetOn
-import cz.jaro.dpmcb.data.realtions.isNotEmpty
+import cz.jaro.dpmcb.data.realtions.isNullOrEmpty
 import cz.jaro.dpmcb.ui.theme.Colors
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.minutes
 
 sealed interface TimetableEvent {
     data class StopClick(val stopName: String, val time: LocalTime) : TimetableEvent
-    data class TimetableClick(val line: ShortLine, val stop: String, val direction: Direction) : TimetableEvent
+    data class TimetableClick(val line: ShortLine, val stop: String, val platform: Platform) : TimetableEvent
 }
 
 @Composable
@@ -61,8 +62,6 @@ fun Timetable(
     onEvent: (TimetableEvent) -> Unit,
     onlineConnStops: List<OnlineConnStop>?,
     nextStopIndex: Int?,
-    direction: Direction,
-    isOneWay: Boolean,
     showLine: Boolean = true,
     traveledSegments: Int = 0,
     position: Float = 0F,
@@ -75,9 +74,12 @@ fun Timetable(
         .padding(12.dp)
 ) {
     val filteredStops =
-        if (part != null && part.isNotEmpty()) stops.withIndex().toList().slice(part) else stops.withIndex().toList()
+        if (!part.isNullOrEmpty()) stops.withIndex().toList().slice(part) else stops.withIndex().toList()
     val lastIndex = stops.lastIndex
     val rowHeights = remember { mutableStateListOf(*Array(stops.size) { 0F }) }
+    val leftPartWidths = remember { mutableStateListOf(*Array(stops.size) { 0F }) }
+    val density = LocalDensity.current
+    val leftPartMaxWidth = with(density) { leftPartWidths.max().toDp() }
     val segmentLengths = remember(rowHeights.toList()) {
         rowHeights.zipWithNext { a, b -> a / 2 + b / 2 }
     }
@@ -98,7 +100,6 @@ fun Timetable(
         val isFirst = indexOnBus == 0
         val isLast = indexOnBus == lastIndex
         val passed = traveledSegments >= indexOnBus
-        val middleDest = middleDestination(isOneWay, stops.map { it.name }, indexOnBus)
         val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
         val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
         val highlighted = highlight == null || indexOnBus in highlight
@@ -109,7 +110,6 @@ fun Timetable(
         val a = if (indexOnBus == nextStopIndex || highlighted) 1F else .5F
         val platform = onlineStop?.platform ?: stop.platform
         val departs = stop.type.canGetOn && index < filteredStops.lastIndex
-        val direction = if (middleDest != null) Direction.NEGATIVE else direction
 
         var showDropDown by rememberSaveable { mutableStateOf(false) }
 
@@ -127,10 +127,10 @@ fun Timetable(
                     showDropDown = false
                 },
             )
-            if (departs) DropdownMenuItem(
+            if (departs && stop.platform != null) DropdownMenuItem(
                 text = { Text("Zobrazit zastávkové JŘ") },
                 onClick = {
-                    onEvent(TimetableEvent.TimetableClick(stop.line, stop.name, direction))
+                    onEvent(TimetableEvent.TimetableClick(stop.line, stop.name, stop.platform))
                     showDropDown = false
                 },
             )
@@ -158,20 +158,26 @@ fun Timetable(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "${stop.arrival ?: stop.time}",
-                color = defaultColor,
-                fontFamily = FontFamily.Monospace,
-            )
-            if (stop.arrival != null && previousOnlineStop != null) Text(
-                text = "${stop.arrival + previousOnlineStop.delay}",
-                color = colorOfDelayText(previousOnlineStop.delay).copy(alpha = a),
-                fontFamily = FontFamily.Monospace,
-            ) else if (onlineStop != null) Text(
-                text = "${stop.time + onlineStop.delay}",
-                color = colorOfDelayText(onlineStop.delay).copy(alpha = a),
-                fontFamily = FontFamily.Monospace,
-            )
+            Row(
+                modifier = Modifier
+                    .widthIn(min = leftPartMaxWidth)
+                    .onSizeChanged {
+                        leftPartWidths[index] = it.width.toFloat()
+                    },
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "${stop.arrival ?: stop.time}",
+                    color = defaultColor,
+                )
+                if (stop.arrival != null && previousOnlineStop != null) Text(
+                    text = "${stop.arrival + previousOnlineStop.delay}",
+                    color = colorOfDelayText(previousOnlineStop.delay).copy(alpha = a),
+                ) else if (onlineStop != null) Text(
+                    text = "${stop.time + onlineStop.delay}",
+                    color = colorOfDelayText(onlineStop.delay).copy(alpha = a),
+                )
+            }
 
             if (showLine) Line(
                 height = position,

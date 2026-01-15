@@ -1,13 +1,11 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import cz.jaro.dpmcb.data.entities.types.LineType
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import kotlin.jvm.JvmName
 
-@Entity(primaryKeys = ["tab"])
 @Serializable
 data class Line(
 // Primary keys

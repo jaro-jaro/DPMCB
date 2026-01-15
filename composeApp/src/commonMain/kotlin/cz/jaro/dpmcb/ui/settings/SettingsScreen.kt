@@ -54,6 +54,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withAnnotation
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -76,7 +77,6 @@ import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.theme.DPMCBTheme
 import cz.jaro.dpmcb.ui.theme.Theme
 import cz.jaro.dpmcb.ui.theme.areDynamicColorsSupported
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.ExperimentalTime
 
 @Suppress("unused")

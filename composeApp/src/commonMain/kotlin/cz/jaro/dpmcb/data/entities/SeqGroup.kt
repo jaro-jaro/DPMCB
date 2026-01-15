@@ -1,11 +1,9 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Entity(primaryKeys = ["group"])
 @Serializable
 data class SeqGroup(
 // Primary keys

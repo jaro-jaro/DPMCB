@@ -149,12 +149,10 @@ fun BusScreen(
                         ) {
                             Timetable(
                                 stops = state.stops,
-                                isOneWay = state.isOneWay,
                                 onEvent = onEvent.fromTimetable,
                                 onlineConnStops = state.online?.onlineConnStops,
                                 nextStopIndex = state.online?.running?.nextStopIndex,
                                 traveledSegments = state.traveledSegments,
-                                direction = state.direction,
                                 position = state.lineHeight,
                                 isOnline = state.online?.running != null,
                                 highlight = state.part,

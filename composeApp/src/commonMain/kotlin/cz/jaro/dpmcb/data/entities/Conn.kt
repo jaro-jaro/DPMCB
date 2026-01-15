@@ -1,10 +1,8 @@
 package cz.jaro.dpmcb.data.entities
 
-import androidx.room.Entity
 import cz.jaro.dpmcb.data.entities.types.Direction
 import kotlin.jvm.JvmName
 
-@Entity(primaryKeys = ["tab", "connNumber"])
 data class Conn(
 // Primary keys
     val tab: Table,
