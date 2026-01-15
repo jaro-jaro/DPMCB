@@ -279,7 +279,7 @@ class LoadingViewModel(
         )
 
         val versionRef = database.reference("data${META_DATA_VERSION}/verze").work()
-        val newVersion = versionRef.getValue<Int>().work()
+        val newVersion = versionRef.getValue<Long>().toInt().work()
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
