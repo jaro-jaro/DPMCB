@@ -68,6 +68,8 @@ kotlin {
             // Firebase
             // Realtime Database
             implementation(libs.google.firebase.database)
+            // Auth
+            implementation(libs.google.firebase.auth)
             // Storage
 //            implementation(libs.google.firebase.storage)
             // Analytics
@@ -98,8 +100,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
 
             // Firebase
-            // Realtime Databse
+            // Realtime Database
             implementation(libs.firebase.database)
+            // Auth
+            implementation(libs.firebase.auth)
             // In-App Messaging
 //            implementation(libs.firebase.inappmessaging.display)
             // Storage

@@ -80,6 +80,9 @@ class SpojeDataSourceImpl(
         override suspend fun platformsAndDirections(stop: String, tab: Table) =
             sq.platformAndDirection(tab, stop).awaitAsList()
 
+        override suspend fun platformsOfStop(stop: String, tabs: List<Table>) =
+            sq.platformOfStop(tabs, stop).awaitAsList()
+
         override suspend fun stopNamesOnConns(tabs: List<Table>) =
             sq.stopNamesOnConns(tabs).awaitGrouped({ it.connName }, { it.stopName })
 
@@ -177,36 +180,43 @@ class SpojeDataSourceImpl(
         override suspend fun seqGroups() =
             sq.allSeqGroups().awaitAsList()
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertConnStops(connStops: List<ConnStop>) =
             sq.transaction(false) {
                 connStops.forEach { sq.insertConnStop(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertStops(stops: List<Stop>) =
             sq.transaction(false) {
                 stops.forEach { sq.insertStop(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertTimeCodes(timeCodes: List<TimeCode>) =
             sq.transaction(false) {
                 timeCodes.forEach { sq.insertTimeCode(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertLines(lines: List<Line>) =
             sq.transaction(false) {
                 lines.forEach { sq.insertLine(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertConns(conns: List<Conn>) =
             sq.transaction(false) {
                 conns.forEach { sq.insertConn(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertSeqOfConns(seqsOfBuses: List<SeqOfConn>) =
             sq.transaction(false) {
                 seqsOfBuses.forEach { sq.insertSeqOfConn(it) }
             }
 
+        @Suppress("RETURN_VALUE_NOT_USED")
         override suspend fun insertSeqGroups(seqGroups: List<SeqGroup>) =
             sq.transaction(false) {
                 seqGroups.forEach { sq.insertSeqGroup(it) }

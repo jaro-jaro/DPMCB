@@ -60,6 +60,9 @@ class ChooserViewModel(
             ChooserType.Platforms,
                 -> repo.platformsAndDirections(params.lineNumber, params.stop!!, params.date).await()
                     .map { (platform, directions) -> "${platform.first} (-> ${directions.joinToString(" / ")})" }
+
+            ChooserType.ReturnPlatform,
+                -> repo.platformsOfStop(params.stop!!, params.date).await()
         }
     }.asFlow()
 
@@ -202,6 +205,7 @@ class ChooserViewModel(
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
         ChooserType.ReturnStopVia,
+        ChooserType.ReturnPlatform,
             -> navigator.navigateBackWithResult(ChooserResult(result, params.type))
     }
 

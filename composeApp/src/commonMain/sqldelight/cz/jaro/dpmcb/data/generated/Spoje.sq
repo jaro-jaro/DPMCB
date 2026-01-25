@@ -353,6 +353,18 @@ ORDER BY CASE
     ELSE ConnStop.stopIndexOnLine
 END;
 
+platformOfStop:
+SELECT ConnStop.platform, Conn.name connName, Conn.fixedCodes, TimeCode.type, TimeCode.validFrom, TimeCode.validTo FROM TimeCode
+JOIN Conn ON Conn.connNumber = TimeCode.connNumber AND Conn.tab = TimeCode.tab
+JOIN ConnStop ON ConnStop.connNumber = TimeCode.connNumber AND ConnStop.tab = TimeCode.tab
+JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
+WHERE ConnStop.tab IN :tabs
+AND Stop.stopName = :stop
+AND (
+    ConnStop.departure IS NOT NULL
+    OR ConnStop.arrival IS NOT NULL
+);
+
 findLongLine:
 SELECT number FROM Line
 WHERE shortNumber = :line

@@ -271,6 +271,7 @@ fun ColumnScope.PartOfBusChooser(
             val alpha by animateFloatAsState(if (part.start == -1) 0F else 1F, label = "AlphaAnimation")
 
             val scope = rememberCoroutineScope()
+            @IgnorableReturnValue
             fun click(i: Int) = scope.launch {
                 when {
                     part.start == -1 && stops[i].type == StopType.GetOffOnly -> {}

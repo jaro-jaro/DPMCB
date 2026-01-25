@@ -68,15 +68,19 @@ fun Chooser(
     ),
 ) {
     AppState.title = when (args.type) {
-        ChooserType.Stops -> "Odjezdy"
-        ChooserType.Lines -> "Jízdní řády"
-        ChooserType.LineStops -> "Jízdní řády"
-        ChooserType.Platforms -> "Jízdní řády"
-        ChooserType.ReturnStop1 -> "Vyhledat spojení"
-        ChooserType.ReturnStop2 -> "Vyhledat spojení"
-        ChooserType.ReturnLine -> "Odjezdy"
-        ChooserType.ReturnStop -> "Odjezdy"
-        ChooserType.ReturnStopVia -> "Odjezdy"
+        ChooserType.Lines,
+        ChooserType.LineStops,
+        ChooserType.Platforms,
+             -> "Jízdní řády"
+        ChooserType.ReturnStop1,
+        ChooserType.ReturnStop2,
+            -> "Vyhledat spojení"
+        ChooserType.Stops,
+        ChooserType.ReturnLine,
+        ChooserType.ReturnStop,
+        ChooserType.ReturnStopVia,
+        ChooserType.ReturnPlatform,
+            -> "Odjezdy"
     }
     AppState.selected = when (args.type) {
         ChooserType.Lines,
@@ -88,11 +92,12 @@ fun Chooser(
         ChooserType.ReturnLine,
         ChooserType.ReturnStop,
         ChooserType.ReturnStopVia,
+        ChooserType.ReturnPlatform,
             -> DrawerAction.Departures
 
         ChooserType.ReturnStop1,
         ChooserType.ReturnStop2,
-            -> null
+            -> DrawerAction.Connection
     }
 
     LaunchedEffect(Unit) {
@@ -149,6 +154,7 @@ fun ChooserScreen(
                             -> "Vyberte linku"
 
                         ChooserType.Platforms,
+                        ChooserType.ReturnPlatform,
                             -> "Vyberte stanoviště"
                     },
                     color = MaterialTheme.colorScheme.primary,
@@ -190,6 +196,7 @@ fun ChooserScreen(
                     ChooserType.ReturnStop2,
                     ChooserType.ReturnStop,
                     ChooserType.ReturnStopVia,
+                    ChooserType.ReturnPlatform,
                         -> KeyboardType.Text
 
                     ChooserType.Lines,
@@ -210,6 +217,7 @@ fun ChooserScreen(
                     ChooserType.ReturnLine,
                     ChooserType.ReturnStop,
                     ChooserType.ReturnStopVia,
+                    ChooserType.ReturnPlatform,
                         -> ImeAction.Done
                 },
             ),

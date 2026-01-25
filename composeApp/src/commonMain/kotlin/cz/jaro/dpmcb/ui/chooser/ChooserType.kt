@@ -12,5 +12,6 @@ enum class ChooserType {
     ReturnStop2,
     ReturnLine,
     ReturnStop,
+    ReturnPlatform,
     ReturnStopVia,
 }

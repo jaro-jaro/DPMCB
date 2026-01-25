@@ -20,6 +20,7 @@ firebase = "2.4.0"
 google-firebase-analytics = "22.5.0"
 google-firebase-crashlytics = "19.4.4"
 google-firebase-database = "21.0.0"
+google-firebase-auth = "23.2.1"
 google-firebase-config = "22.1.2"
 firebase-crashlytics-plugin = "3.0.6"
 koin-compose = "4.1.1"
@@ -69,6 +70,7 @@ firebase-analytics = { group = "dev.gitlive", name = "firebase-analytics", versi
 #firebase-inappmessaging-display = { module = "com.google.firebase:firebase-inappmessaging-display", version.ref = "firebase-inappmessaging-display" }
 firebase-crashlytics = { group = "dev.gitlive", name = "firebase-crashlytics", version.ref = "firebase" }
 firebase-database = { group = "dev.gitlive", name = "firebase-database", version.ref = "firebase" }
+firebase-auth = { group = "dev.gitlive", name = "firebase-auth", version.ref = "firebase" }
 firebase-config = { group = "dev.gitlive", name = "firebase-config", version.ref = "firebase" }
 # TODO: remove this later
 google-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version.ref = "google-firebase-analytics" }
@@ -76,6 +78,8 @@ google-firebase-analytics = { group = "com.google.firebase", name = "firebase-an
 google-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx", version.ref = "google-firebase-crashlytics" }
 # TODO: remove this later
 google-firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "google-firebase-database" }
+# TODO: remove this later
+google-firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "google-firebase-auth" }
 # TODO: remove this later
 google-firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "google-firebase-config" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-compose" }

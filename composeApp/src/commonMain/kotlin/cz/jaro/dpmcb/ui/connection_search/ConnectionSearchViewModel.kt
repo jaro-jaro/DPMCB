@@ -152,8 +152,8 @@ class ConnectionSearchViewModel(
 
     init {
         settings.map { it.datetime.date }.distinctUntilChanged().onEach {
-            repo.stopGraph(it)
-            repo.connsRunAt(it)
+            val _ = repo.stopGraph(it)
+            val _ = repo.connsRunAt(it)
         }.launch()
     }
 }
