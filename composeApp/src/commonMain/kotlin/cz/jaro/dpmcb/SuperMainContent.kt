@@ -27,8 +27,8 @@ fun SuperMainContent(
         val navController = rememberNavController()
         NavHost(
             navController = navController,
-//            startDestination = SuperRoute.Loading(link = link),
-            startDestination = SuperRoute.Main(link = link),
+            startDestination = SuperRoute.Loading(link = link),
+//            startDestination = SuperRoute.Main(link = link),
         ) {
             composable<SuperRoute.Main>(
                 typeMap = mapOf(
