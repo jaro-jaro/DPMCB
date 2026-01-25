@@ -5,7 +5,7 @@ import io.ktor.client.plugins.onDownload
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 
-class FileStorageManager() : AutoCloseable {
+class FileStorageManager : AutoCloseable {
     private val client = HttpClient()
     private val proxyUrl = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/storage-proxy"
 

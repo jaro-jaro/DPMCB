@@ -125,6 +125,7 @@ fun Departures(
             time = args.time.takeUnless { it.isInvalid() }?.toLocalTime(),
             line = args.line.takeUnless { it.isInvalid() },
             via = args.via,
+            platform = args.platform,
             onlyDepartures = args.onlyDepartures,
             simple = args.simple,
             date = args.date,
@@ -413,6 +414,27 @@ private fun ChipRow(
     }
     item {
         FilterChip(
+            selected = state.info.platformFilter != null,
+            onClick = {
+                onEvent(
+                    if (state.info.platformFilter != null)
+                        DeparturesEvent.Canceled(ChooserType.ReturnPlatform)
+                    else DeparturesEvent.ChangePlatform
+                )
+            },
+            label = {
+                Text(state.info.platformFilter?.let { "Stanoviště: $it" } ?: "Stanoviště")
+            },
+            leadingIcon = {
+                if (state.info.platformFilter != null) Icon(Icons.Default.Check, null)
+            },
+            trailingIcon = {
+                if (state.info.platformFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+            },
+        )
+    }
+    item {
+        FilterChip(
             selected = state.info.stopFilter != null,
             onClick = {
                 onEvent(
@@ -425,10 +447,10 @@ private fun ChipRow(
                 Text(state.info.stopFilter?.let { "Pojede přes: $it" } ?: "Pojede přes")
             },
             leadingIcon = {
-                if (state.info.lineFilter != null) Icon(Icons.Default.Check, null)
+                if (state.info.stopFilter != null) Icon(Icons.Default.Check, null)
             },
             trailingIcon = {
-                if (state.info.lineFilter == null) Icon(Icons.Default.ArrowDropDown, null)
+                if (state.info.stopFilter == null) Icon(Icons.Default.ArrowDropDown, null)
             },
         )
     }
@@ -541,6 +563,11 @@ private fun BusDeparture(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
             ) {
+                Text(
+                    modifier = Modifier,
+                    text = departureState.platform ?: "  ",
+                    fontSize = 20.sp
+                )
                 VehicleIcon(departureState.lineTraction, departureState.vehicleTraction)
                 Text(
                     modifier = Modifier.padding(start = 8.dp),

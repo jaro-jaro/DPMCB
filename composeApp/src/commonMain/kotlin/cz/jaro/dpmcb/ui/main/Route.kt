@@ -84,10 +84,11 @@ sealed interface Route {
     @SerialName("departures")
     data class Departures(
         override val date: LocalDate,
-        val stop: String,
+        val stop: StopName,
         val time: SimpleTime = SimpleTime.invalid,
         val line: ShortLine? = null,
-        val via: String? = null,
+        val via: StopName? = null,
+        val platform: Platform? = null,
         val onlyDepartures: Boolean? = null,
         val simple: Boolean? = null,
     ) : Route

@@ -43,7 +43,6 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.backgroundInfo
 import cz.jaro.dpmcb.data.helperclasses.fromJson
-import cz.jaro.dpmcb.data.helperclasses.getValue
 import cz.jaro.dpmcb.data.helperclasses.noCode
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
@@ -58,17 +57,18 @@ import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
-import dev.gitlive.firebase.database.database
 import dev.gitlive.firebase.remoteconfig.remoteConfig
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.toVersion
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,6 +77,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
@@ -209,6 +210,7 @@ class LoadingViewModel(
         return null
     }
 
+    @IgnorableReturnValue
     fun onEvent(e: LoadingEvent) = viewModelScope.launch {
         when (e) {
             LoadingEvent.DownloadDataIfError -> withContext(Dispatchers.Main) {
@@ -218,16 +220,15 @@ class LoadingViewModel(
         }
     }
 
-    private val database = Firebase.database(firebase)
+    private val client = HttpClient()
+    private val versionProxy = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/version"
 
     private suspend fun isDataUpdateNeeded(): Boolean {
         val localVersion = repo.version
 
-        val reference = database.reference("data${META_DATA_VERSION}/verze")
-
         val onlineVersion = async {
             withTimeoutOrNull(3_000) {
-                reference.valueEvents.first().value<Int>()
+                client.get(versionProxy).body()
             } ?: -2
         }
 
@@ -277,8 +278,7 @@ class LoadingViewModel(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nAnalyzování nové verze (0/$m)"
         )
 
-        val versionRef = database.reference("data${META_DATA_VERSION}/verze").work()
-        val newVersion = versionRef.getValue<Long>().toInt().work()
+        val newVersion = client.get(versionProxy).body<Int>()
 
         val connStops: MutableList<ConnStop> = mutableListOf()
         val stops: MutableList<Stop> = mutableListOf()
@@ -410,10 +410,11 @@ class LoadingViewModel(
             seqOfConns = seqOfConns.distinctBy { Quadruple(it.line, it.connNumber, it.sequence, it.seqGroup) },
             seqGroups = seqGroups.distinctBy { it.seqGroup },
             data = loadedData,
-        ) { progress ->
-            state.update {
-                (it as LoadingState.Loading).copy(progress = progress)
-            }
+        ) { progress, label, groupProgress ->
+            state.value = LoadingState.Loading(
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nUkládání ($label – ${groupProgress.times(100).roundToInt()} %)",
+                progress = progress,
+            )
         }
         state.update {
             (it as LoadingState.Loading).copy(progress = null)

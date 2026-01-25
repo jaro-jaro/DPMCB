@@ -21,4 +21,5 @@ sealed interface DeparturesEvent {
     data object ChangeStop : DeparturesEvent
     data object ChangeLine : DeparturesEvent
     data object ChangeVia : DeparturesEvent
+    data object ChangePlatform : DeparturesEvent
 }

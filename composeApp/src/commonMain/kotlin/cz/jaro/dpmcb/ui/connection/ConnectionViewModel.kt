@@ -67,7 +67,7 @@ class ConnectionViewModel(
     private suspend fun loadInfo(
         def: ConnectionDefinition,
     ) {
-        def.groupBy { it.date }.mapValues { (date, buses) ->
+        def.groupBy { it.date }.forEach { (date, buses) ->
             val busNames = buses.map { it.busName }.toSet()
             val new = busNames - info.value.keys
             val values = repo.connectionBusInfo(new, date).map {

@@ -52,7 +52,7 @@ inline fun <reified T> NavType(
 ) = object : NavType<T>(isNullableAllowed = true) {
 
     override fun get(bundle: SavedState, key: String) =
-        bundle.read { getStringOrNull(key)?.let(::parseValue) }
+        bundle.read { getStringOrNull(key)?.let { parseValue(it) } }
 
     override fun put(bundle: SavedState, key: String, value: T) =
         bundle.write { putString(key, serializeAsValue(value)) }

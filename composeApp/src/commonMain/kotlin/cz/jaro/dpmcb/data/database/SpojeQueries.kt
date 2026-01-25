@@ -18,6 +18,7 @@ import cz.jaro.dpmcb.data.generated.CoreBusOfSequence
 import cz.jaro.dpmcb.data.generated.CoreDeparture
 import cz.jaro.dpmcb.data.generated.Line
 import cz.jaro.dpmcb.data.generated.PlatformAndDirection
+import cz.jaro.dpmcb.data.generated.PlatformOfStop
 import cz.jaro.dpmcb.data.generated.SeqGroup
 import cz.jaro.dpmcb.data.generated.SeqOfConn
 import cz.jaro.dpmcb.data.generated.Stop
@@ -42,6 +43,8 @@ interface SpojeQueries {
     suspend fun connStopsOnLineOnPlatformInDirection(stop: String, platform: Platform, direction: Direction, tab: Table): List<CoreBusInTimetable>
 
     suspend fun platformsAndDirections(stop: String, tab: Table): List<PlatformAndDirection>
+
+    suspend fun platformsOfStop(stop: String, tabs: List<Table>): List<PlatformOfStop>
 
     suspend fun stopNamesOnConns(tabs: List<Table>): Map<BusName, List<StopName>>
 

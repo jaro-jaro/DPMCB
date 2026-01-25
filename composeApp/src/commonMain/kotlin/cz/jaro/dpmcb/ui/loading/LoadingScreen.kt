@@ -49,7 +49,6 @@ import cz.jaro.dpmcb.ui.theme.LocalIsDarkThemeUsed
 import dpmcb.composeapp.generated.resources.Res
 import dpmcb.composeapp.generated.resources.logo_jaro_black
 import dpmcb.composeapp.generated.resources.logo_jaro_white
-import kotlinx.coroutines.Job
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -80,7 +79,7 @@ fun Loading(
 @Composable
 fun LoadingScreen(
     state: LoadingState,
-    onEvent: (LoadingEvent) -> Job,
+    onEvent: (LoadingEvent) -> Unit,
 ) {
     Surface(
         modifier = Modifier
@@ -161,7 +160,7 @@ fun LoadingScreen(
 }
 
 @Composable
-private fun DownloadButton(onEvent: (LoadingEvent) -> Job) {
+private fun DownloadButton(onEvent: (LoadingEvent) -> Unit) {
     TextButton(
         onClick = {
             onEvent(LoadingEvent.DownloadDataIfError)

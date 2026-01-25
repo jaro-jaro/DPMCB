@@ -116,7 +116,7 @@ class MainViewModel(
             try {
                 withContext(Dispatchers.Main) {
                     AppState.selected = null
-                    navGraph()
+                    val _ = navGraph()
 
                     confirmDeeplink(url.translateOldCzechLinks().transformBusIds().addInvalidDepartureTime())
                 }

@@ -21,5 +21,10 @@ context(logger: Logger)
 actual suspend inline fun <reified T> DatabaseReference.getValue(): T =
     dev.gitlive.firebase.database.externals.get(js).work().await().also { Unit.work(it) }.`val`().work() as T
 
-actual const val maxDatabaseInsertBatchSize = 1_000
+actual const val maxDatabaseInsertBatchSize = 4_096
 actual val backgroundInfo = "Proces můžete nechat běžet na pozadí, ale prosíme, nezavírejte tuto kartu."
+
+//    500: 1:38
+//  1 000: 1:17
+//  5 000: 1:20
+// 10 000: 1:45

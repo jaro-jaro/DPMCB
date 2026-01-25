@@ -29,6 +29,7 @@ import cz.jaro.dpmcb.data.helperclasses.maxDatabaseInsertBatchSize
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.runsAt
+import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -177,7 +178,7 @@ class SpojeRepository(
                         vehicleType = it.vehicleType,
                     )
                 },
-                stops = noCodes.mapIndexed { i, it ->
+                stops = noCodes.map {
                     BusStop(
                         time = it.time!!,
                         arrival = it.arrival.takeIf { a -> a != it.time },
@@ -245,11 +246,11 @@ class SpojeRepository(
                             stopNames.indexOf(destination ?: stops.last().stopName),
                             stop.platform!!,
                             if (destination != null) Direction.NEGATIVE else stops.first().direction,
-                        ).work(stop.connName, stop.stopIndexOnLine)
+                        ).work<Quadruple<String, Int, Platform, Direction>>(stop.connName, stop.stopIndexOnLine)
                     }
             }
             .sortedBy { it.second }
-            .work()
+            .work<List<Quadruple<String, Int, Platform, Direction>>>()
             .map { Triple(it.first, it.third, it.fourth) }
             .let { endStops ->
                 val total = endStops.count().toFloat()
@@ -267,6 +268,31 @@ class SpojeRepository(
                     .sortedBy { it.key.first }
                     .toMap()
             }
+    }
+
+    val platformsOfStop = withCache(scope) {
+            thisStop: String,
+            date: LocalDate,
+        ->
+        q().platformsOfStop(
+            stop = thisStop,
+            tabs = tablesOfDay(date).await().work(),
+        ).work()
+            .groupBy {
+                it.connName
+            }
+            .filter { (_, codes) ->
+                runsAt(
+                    timeCodes = codes.map { RunsFromTo(it.type, it.validFrom..it.validTo) },
+                    fixedCodes = codes.first().fixedCodes,
+                    date = date,
+                )
+            }
+            .flatMap { (_, codes) ->
+                codes.mapNotNull { it.platform }
+            }
+            .distinct()
+            .sorted()
     }
 
     suspend fun timetable(
@@ -370,7 +396,7 @@ class SpojeRepository(
                             vehicleType = it.vehicleType,
                         )
                     },
-                    noCodes.mapIndexed { i, it ->
+                    noCodes.map {
                         BusStop(
                             time = it.time!!,
                             arrival = it.arrival.takeIf { a -> a != it.time },
@@ -466,36 +492,38 @@ class SpojeRepository(
         seqGroups: List<cz.jaro.dpmcb.data.generated.SeqGroup>,
         seqOfConns: List<cz.jaro.dpmcb.data.generated.SeqOfConn>,
         data: DownloadedData,
-        progress: (Float) -> Unit,
+        progress: (Float, String, Float) -> Unit,
     ) = coroutineScope {
         measure("Saving") {
             changeLoadedData { data }
 
             val all = listOf(
                 connStops.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertConnStops(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertConnStops(it) } } to "Zastávky spojů",
                 stops.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertStops(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertStops(it) } } to "Zastávky linek",
                 timeCodes.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertTimeCodes(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertTimeCodes(it) } } to "Časové kódy",
                 lines.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertLines(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertLines(it) } } to "Linky",
                 conns.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertConns(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertConns(it) } } to "Spoje",
                 seqGroups.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertSeqGroups(it) } },
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertSeqGroups(it) } } to "Skupiny kurzů",
                 seqOfConns.chunked(maxDatabaseInsertBatchSize)
-                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertSeqOfConns(it) } },
-            ).flatten().work()
-            val count = all.size * 1F
+                    .map { scope.async(start = CoroutineStart.LAZY) { q().insertSeqOfConns(it) } } to "Kurzy spojů",
+            ).work()
+            val count = all.sumOf { it.first.size } * 1F
             var done = 0
-            progress(0F)
-            all.forEach { deferred ->
-//            scope.async {
-                deferred.await()
-                progress((++done / count).work())
-//            }
-            }//.awaitAll()
+            all.forEach { (group, label) ->
+                val groupCount = group.size * 1F
+                var groupDone = 0
+                progress(0F, label, 0F)
+                group.forEach { deferred ->
+                    deferred.await()
+                    progress((++done / count).work(), label, (++groupDone / groupCount).work())
+                }
+            }
             "DONE".work()
             Unit
         }
@@ -618,8 +646,8 @@ class SpojeRepository(
     }
 
     init {
-        stopGraph(SystemClock.todayHere())
-        connsRunAt(SystemClock.todayHere())
+        val _ = stopGraph(SystemClock.todayHere())
+        val _ = connsRunAt(SystemClock.todayHere())
     }
 
     // --- NOW RUNNING ---
@@ -730,7 +758,7 @@ private fun createStopGraph(
         }
     }
 
-    stopGraph.mapValues { (_, e) ->
+    val g: StopGraph = stopGraph.mapValues { (_, e) ->
         e.sortedBy { it.departure }
     }/*.toList().sortedBy { it.first }.toMap()*/
 
@@ -745,5 +773,5 @@ private fun createStopGraph(
 //        .replace("&&&", " ")
 //    )
 
-    return stopGraph.toStopGraph()
+    return g
 }

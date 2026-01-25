@@ -28,18 +28,22 @@ import kotlin.time.ExperimentalTime
 @Suppress("MayBeConstant", "RedundantSuppression")
 val log = false
 
+@IgnorableReturnValue
 context(logger: Logger)
 inline fun <reified T, reified R, reified S> T.log(vararg msg: R, c: Boolean = true, transform: T.() -> S): T =
     if (log && c) work(*msg, tag = "ConnectionSearcher", transform = transform) else this@log
 
+@IgnorableReturnValue
 context(logger: Logger)
 inline fun <reified T, reified S> T.log(c: Boolean = true, transform: T.() -> S): T =
     if (log && c) work(tag = "ConnectionSearcher", transform = transform) else this@log
 
+@IgnorableReturnValue
 context(logger: Logger)
 inline fun <reified T, reified R> T.log(vararg msg: R, c: Boolean = true): T =
     if (log && c) work(*msg, tag = "ConnectionSearcher") else this@log
 
+@IgnorableReturnValue
 context(logger: Logger)
 inline fun <reified T, reified R> logTime(vararg msg: R, c: Boolean = true, block: () -> T) =
     if (log && c) measure(*msg, tag = "ConnectionSearcher", block = block) else block()

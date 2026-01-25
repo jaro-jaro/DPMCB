@@ -346,7 +346,7 @@ private fun ConnectionResult.Line(
                 end = Offset(y = circleRadius),
                 strokeWidth = lineWidth,
             )
-            (colors zip lengths).foldIndexed(circleRadius) { i, previous, (color, length) ->
+            val _ = (colors zip lengths).foldIndexed(circleRadius) { i, previous, (color, length) ->
                 val transfer = if (i != 0) transferLength else 0F
                 translate(top = previous) {
                     if (i != 0) drawLine(

@@ -6,7 +6,9 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -66,11 +68,12 @@ class DeparturesViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val stop: String,
+        val stop: StopName,
         val time: LocalTime?,
         val date: LocalDate,
         val line: ShortLine?,
-        val via: String?,
+        val via: StopName?,
+        val platform: Platform?,
         val onlyDepartures: Boolean?,
         val simple: Boolean?,
     )
@@ -96,6 +99,7 @@ class DeparturesViewModel(
             time = info.time?.toSimpleTime().orInvalid(),
             line = info.lineFilter,
             via = info.stopFilter,
+            platform = info.platformFilter,
             onlyDepartures = info.justDepartures,
             simple = info.compactMode,
             date = info.date,
@@ -175,6 +179,9 @@ class DeparturesViewModel(
             .filter {
                 info.stopFilter?.let { filter -> it.runsVia.contains(filter) } != false
             }
+            .filter {
+                info.platformFilter?.let { filter -> it.platform == filter } != false
+            }
             .remove {
                 info.justDepartures && (it.isLastStop || it.stopType == StopType.GetOffOnly)
             }
@@ -214,9 +221,10 @@ class DeparturesViewModel(
 
                 filteredList.isEmpty() -> DeparturesState.NothingRuns(
                     reason = when {
-                        info.lineFilter == null && info.stopFilter == null -> DeparturesState.NothingRunsReason.NothingRunsAtAll
+                        info.lineFilter == null && info.stopFilter == null && info.platformFilter == null ->
+                            DeparturesState.NothingRunsReason.NothingRunsAtAll
                         info.lineFilter == null -> DeparturesState.NothingRunsReason.NothingRunsHere
-                        info.stopFilter == null -> DeparturesState.NothingRunsReason.LineDoesNotRun
+                        info.stopFilter == null || info.platformFilter == null -> DeparturesState.NothingRunsReason.LineDoesNotRun
                         else -> DeparturesState.NothingRunsReason.LineDoesNotRunHere
                     },
                     info = info,
@@ -282,6 +290,7 @@ class DeparturesViewModel(
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
                         ChooserType.ReturnStop -> oldState.copy(stop = e.result.value)
                         ChooserType.ReturnStopVia -> oldState.copy(stopFilter = e.result.value)
+                        ChooserType.ReturnPlatform -> oldState.copy(platformFilter = e.result.value)
                         else -> return@launch
                     }.also(::changeCurrentRoute)
                 }
@@ -295,6 +304,7 @@ class DeparturesViewModel(
                     when (e.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = null)
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = null)
+                        ChooserType.ReturnPlatform -> oldState.copy(platformFilter = null)
                         else -> return@launch
                     }
                 }
@@ -333,6 +343,7 @@ class DeparturesViewModel(
                 time = SimpleTime(0, 0),
                 line = info.value.lineFilter,
                 via = info.value.stopFilter,
+                platform = info.value.platformFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = info.value.date + 1.days,
@@ -345,6 +356,7 @@ class DeparturesViewModel(
                 time = SimpleTime(23, 59),
                 line = info.value.lineFilter,
                 via = info.value.stopFilter,
+                platform = info.value.platformFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = info.value.date - 1.days,
@@ -357,6 +369,7 @@ class DeparturesViewModel(
                 time = info.value.time?.toSimpleTime().orInvalid(),
                 line = info.value.lineFilter,
                 via = info.value.stopFilter,
+                platform = info.value.platformFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
                 date = e.date,
@@ -366,6 +379,7 @@ class DeparturesViewModel(
         DeparturesEvent.ChangeLine -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnLine))
         DeparturesEvent.ChangeStop -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnStop))
         DeparturesEvent.ChangeVia -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnStopVia))
+        DeparturesEvent.ChangePlatform -> navigator.navigate(Route.Chooser(info.value.date, ChooserType.ReturnPlatform, stop = info.value.stop))
     }
 
     val scrolled = MutableStateFlow(false)
