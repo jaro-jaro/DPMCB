@@ -2,7 +2,7 @@ coreBus:
 SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Line.vehicleType, ConnStop.platform, CASE
     WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
     ELSE ConnStop.departure
-END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom, TimeCode.validTo, SeqOfConn.seqGroup FROM ConnStop
+END time, ConnStop.arrival, Conn.direction, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom, TimeCode.validTo, SeqOfConn.seqGroup FROM ConnStop
 JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
 JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
 JOIN Line ON Line.tab = ConnStop.tab
@@ -36,7 +36,7 @@ coreBusOfSequence:
 SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, ConnStop.platform, CASE
    WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
    ELSE ConnStop.departure
-END time, ConnStop.arrival, Stop.fixedCodes stopFixedCodes, Line.validFrom lineValidFrom, Line.validTo lineValidTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom, TimeCode.validTo FROM ConnStop
+END time, ConnStop.arrival, Conn.direction, Stop.fixedCodes stopFixedCodes, Line.validFrom lineValidFrom, Line.validTo lineValidTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom, TimeCode.validTo FROM ConnStop
 JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
 JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
 JOIN Line ON Line.tab = Conn.tab AND Line.number = Conn.line

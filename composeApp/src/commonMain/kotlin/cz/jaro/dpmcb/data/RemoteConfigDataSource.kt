@@ -34,7 +34,8 @@ interface GlobalSettingsDataSource {
 class RemoteConfigDataSource(
     onlineManager: UserOnlineManager,
     firebase: FirebaseApp,
-) : UserOnlineManager by onlineManager, GlobalSettingsDataSource {
+    logger: Logger,
+) : UserOnlineManager by onlineManager, GlobalSettingsDataSource, Logger by logger {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private val remoteConfig = Firebase.remoteConfig(firebase)

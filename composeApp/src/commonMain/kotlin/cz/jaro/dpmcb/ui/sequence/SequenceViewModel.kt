@@ -202,7 +202,7 @@ class SequenceViewModel(
         is SequenceEvent.SequenceClick -> navigator.navigate(Route.Sequence(params.date, e.sequence))
         is SequenceEvent.TimetableClick -> when (e.e) {
             is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
-            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.platform, Direction.POSITIVE, /*TODO*/))
+            is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.platform, e.e.direction))
         }
 
         is SequenceEvent.FindBus -> {

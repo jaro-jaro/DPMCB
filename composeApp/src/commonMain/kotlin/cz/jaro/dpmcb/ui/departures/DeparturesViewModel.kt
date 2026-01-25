@@ -39,7 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapConcat
@@ -78,7 +78,7 @@ class DeparturesViewModel(
     private lateinit var scroll: suspend (Int, animate: Boolean) -> Unit
     lateinit var navigator: Navigator
 
-    private val _info = MutableStateFlow(
+    val info: StateFlow<DeparturesInfo> field = MutableStateFlow(
         DeparturesInfo(
             stop = params.stop,
             time = params.time ?: if (params.date == SystemClock.todayHere()) null else SystemClock.timeHere(),
@@ -89,7 +89,6 @@ class DeparturesViewModel(
             compactMode = params.simple ?: (params.time == null && params.date == SystemClock.todayHere()),
         )
     )
-    val info = _info.asStateFlow()
 
     private fun changeCurrentRoute(info: DeparturesInfo) {
         AppState.route = Route.Departures(
@@ -159,6 +158,7 @@ class DeparturesViewModel(
                     platform = stop.platform,
                     isLastStop = thisStopIndex == busStops.lastIndex,
                     stopType = stop.stopType,
+                    direction = if (destination != null) Direction.NEGATIVE else stop.direction,
                 )
             }
     }
@@ -248,14 +248,14 @@ class DeparturesViewModel(
                     stop = info.value.stop,
                     platform = e.bus.platform,
                     date = info.value.date,
-                    direction = Direction.POSITIVE, // TODO
+                    direction = e.bus.direction,
                 )
             ) else Unit
         }
 
         is DeparturesEvent.ChangeTime -> {
             viewModelScope.launch(Dispatchers.Main) {
-                _info.update { oldState ->
+                info.update { oldState ->
                     oldState.copy(
                         time = e.time,
                     ).also(::changeCurrentRoute)
@@ -266,7 +266,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.Scroll -> {
             viewModelScope.launch(Dispatchers.Main) {
-                _info.update {
+                info.update {
                     it.copy(
                         scrollIndex = e.i,
                     )
@@ -277,7 +277,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.WentBack -> {
             viewModelScope.launch(Dispatchers.Main) {
-                _info.update { oldState ->
+                info.update { oldState ->
                     when (e.result.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
                         ChooserType.ReturnStop -> oldState.copy(stop = e.result.value)
@@ -291,7 +291,7 @@ class DeparturesViewModel(
 
         is DeparturesEvent.Canceled -> {
             viewModelScope.launch(Dispatchers.IO) {
-                _info.update { oldState ->
+                info.update { oldState ->
                     when (e.chooserType) {
                         ChooserType.ReturnLine -> oldState.copy(lineFilter = null)
                         ChooserType.ReturnStop -> oldState.copy(stopFilter = null)
@@ -303,7 +303,7 @@ class DeparturesViewModel(
         }
 
         DeparturesEvent.ChangeCompactMode -> {
-            _info.update {
+            info.update {
                 it.copy(
                     compactMode = !it.compactMode
                 )
@@ -311,7 +311,7 @@ class DeparturesViewModel(
         }
 
         DeparturesEvent.ChangeJustDepartures -> {
-            _info.update {
+            info.update {
                 it.copy(
                     justDepartures = !it.justDepartures
                 )

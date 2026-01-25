@@ -11,6 +11,7 @@ data class MainState(
     val date: LocalDate = SystemClock.todayHere(),
     val hasCard: Boolean = false,
     val canGoBack: Boolean = false,
+    val isDebug: Boolean,
 ) {
     sealed interface OnlineStatus {
         data object Offline : OnlineStatus

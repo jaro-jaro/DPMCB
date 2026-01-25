@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.connection
 
 import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.CommonConnectionSearcher
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Platform
@@ -83,23 +84,25 @@ class ConnectionViewModel(
     }
 
     private val searcher = async {
-        info.map { info ->
-            if (info.keys.isEmpty()) return@map null
+        context(repo as Logger) {
+            info.map { info ->
+                if (info.keys.isEmpty()) return@map null
 
-            val def = args.def
-            val first = def.first()
-            val last = def.last()
-            val (firstBus, firstStops) = info.getValue(first.busName)
-            val (lastBus, lastStops) = info.getValue(last.busName)
-            val start = firstStops[first.start]
-            val end = lastStops[last.end]
-            return@map CommonConnectionSearcher(
-                start = start.name,
-                destination = end.name,
-                datetime = start.departure!!.atDate(first.date),
-                repo = repo,
-            )
-        }.filterNotNull().first()
+                val def = args.def
+                val first = def.first()
+                val last = def.last()
+                val (firstBus, firstStops) = info.getValue(first.busName)
+                val (lastBus, lastStops) = info.getValue(last.busName)
+                val start = firstStops[first.start]
+                val end = lastStops[last.end]
+                return@map CommonConnectionSearcher(
+                    start = start.name,
+                    destination = end.name,
+                    datetime = start.departure!!.atDate(first.date),
+                    repo = repo,
+                )
+            }.filterNotNull().first()
+        }
     }
 
     private val alternatives = combine(definition, info, ::createAlternatives)

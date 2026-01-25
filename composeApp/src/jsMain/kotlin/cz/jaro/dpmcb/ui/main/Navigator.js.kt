@@ -2,11 +2,13 @@ package cz.jaro.dpmcb.ui.main
 
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
-import cz.jaro.dpmcb.data.helperclasses.work
+import cz.jaro.dpmcb.data.Logger
+import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.common.generateRouteWithArgs
 import kotlinx.browser.window
 import org.w3c.dom.url.URL
 
+context(logger: Logger)
 actual fun Navigator(
     navController: NavController,
 ): Navigator {

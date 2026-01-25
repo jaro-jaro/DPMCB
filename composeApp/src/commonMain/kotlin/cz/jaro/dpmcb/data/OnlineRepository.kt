@@ -39,7 +39,7 @@ import kotlin.time.ExperimentalTime
 class OnlineRepository(
     private val onlineModeManager: OnlineModeManager,
     private val repo: SpojeRepository,
-) : UserOnlineManager by repo {
+) : UserOnlineManager by repo, Logger by repo {
     private val scope = MainScope()
 
     private val client = HttpClient()

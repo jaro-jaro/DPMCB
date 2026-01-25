@@ -3,7 +3,9 @@ package cz.jaro.dpmcb.ui.main
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
+import cz.jaro.dpmcb.data.Logger
 
+context(logger: Logger)
 actual fun Navigator(
     navController: NavController,
 ) = object : Navigator {

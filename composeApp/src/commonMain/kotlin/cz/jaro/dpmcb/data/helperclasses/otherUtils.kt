@@ -7,6 +7,7 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
+import cz.jaro.dpmcb.data.Logger
 import dev.gitlive.firebase.database.DatabaseReference
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -15,8 +16,6 @@ import kotlinx.coroutines.coroutineScope
 fun Offset(x: Float = 0F, y: Float = 0F) = androidx.compose.ui.geometry.Offset(x, y)
 
 expect val Dispatchers.IO: CoroutineDispatcher
-
-expect val isDebug: Boolean
 
 expect suspend fun awaitFrame()
 
@@ -46,6 +45,7 @@ fun Modifier.onSecondaryClick(vararg keys: Any?, onClick: (event: PointerEvent) 
         }
     }
 
+context(logger: Logger)
 expect suspend inline fun <reified T> DatabaseReference.getValue(): T
 
 expect val maxDatabaseInsertBatchSize: Int

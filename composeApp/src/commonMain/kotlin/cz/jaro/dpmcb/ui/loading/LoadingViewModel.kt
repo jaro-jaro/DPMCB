@@ -7,6 +7,7 @@ import cz.jaro.dpmcb.data.DividedSequencesWithMultipleBuses
 import cz.jaro.dpmcb.data.DownloadedData
 import cz.jaro.dpmcb.data.FileStorageManager
 import cz.jaro.dpmcb.data.LineTraction
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SequenceConnections
 import cz.jaro.dpmcb.data.SequenceTypes
 import cz.jaro.dpmcb.data.SpojeRepository
@@ -43,17 +44,15 @@ import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.backgroundInfo
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.getValue
-import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.noCode
 import cz.jaro.dpmcb.data.helperclasses.popUpTo
 import cz.jaro.dpmcb.data.helperclasses.toDateWeirdly
 import cz.jaro.dpmcb.data.helperclasses.toTimeWeirdly
 import cz.jaro.dpmcb.data.helperclasses.todayHere
-import cz.jaro.dpmcb.data.helperclasses.work
-import cz.jaro.dpmcb.data.recordException
 import cz.jaro.dpmcb.data.tuples.Quadruple
 import cz.jaro.dpmcb.data.tuples.Quintuple
 import cz.jaro.dpmcb.data.version
+import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.main.SuperRoute
 import cz.jaro.dpmcb.ui.map.DiagramManager
 import cz.jaro.dpmcb.ui.map.supportsLineDiagram
@@ -68,7 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -88,9 +87,9 @@ private annotation class TimetableProcessing
 class LoadingViewModel(
     private val repo: SpojeRepository,
     private val diagramManager: DiagramManager,
-    private val firebase: FirebaseApp,
+    firebase: FirebaseApp,
     private val params: Parameters,
-) : ViewModel() {
+) : ViewModel(), Logger by repo {
 
     data class Parameters(
         val update: Boolean,
@@ -110,8 +109,8 @@ class LoadingViewModel(
         const val META_DATA_VERSION = 5
     }
 
-    private val _state = MutableStateFlow<LoadingState>(LoadingState.Loading())
-    val state = _state.asStateFlow()
+    val state: StateFlow<LoadingState>
+        field = MutableStateFlow<LoadingState>(LoadingState.Loading())
 
     val settings = repo.settings
 
@@ -146,11 +145,11 @@ class LoadingViewModel(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                params.update || repo.version == -1
+                val _ = params.update || repo.version == -1
             } catch (e: Exception) {
                 recordException(e)
                 e.printStackTrace()
-                _state.value = LoadingState.Error
+                state.value = LoadingState.Error
                 return@launch
             }
             repo.connStops().work()
@@ -172,7 +171,7 @@ class LoadingViewModel(
             } catch (e: Exception) {
                 recordException(e)
                 e.printStackTrace()
-                _state.value = LoadingState.Error
+                state.value = LoadingState.Error
                 return@launch
             }
 
@@ -184,7 +183,7 @@ class LoadingViewModel(
                 return@launch
             }
 
-            _state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
+            state.value = LoadingState.Loading("Kontrola dostupnosti aktualizací")
 
             goTo.value = SuperRoute.Main(params.link, isDataUpdateNeeded(), appVersionToUpdate())
             withContext(Dispatchers.Main) {
@@ -201,7 +200,7 @@ class LoadingViewModel(
     }
 
     private suspend fun doesEverythingWork(): Nothing? {
-        repo.lineNumbers(SystemClock.todayHere()).ifEmpty {
+        if (repo.lineNumbers(SystemClock.todayHere()).isEmpty()) {
             error("No lines loaded")
         }
         if (!diagramManager.checkDiagram()) {
@@ -236,7 +235,7 @@ class LoadingViewModel(
     }
 
     private suspend fun appVersionToUpdate(): Version? {
-        if (isDebug) return null
+        if (isDebug()) return null
 
         val newestVersion = latestAppVersion().work()
         val localVersion = BuildKonfig.versionName.toVersion(false)
@@ -253,7 +252,7 @@ class LoadingViewModel(
 
     private suspend fun downloadText(path: String) = FileStorageManager().use { manager ->
         manager.getText(path) { progress ->
-            _state.update {
+            state.update {
                 require(it is LoadingState.Loading)
                 it.copy(progress = progress)
             }
@@ -265,7 +264,7 @@ class LoadingViewModel(
     ) {
 
         if (!repo.isOnline()) {
-            _state.value = LoadingState.Offline
+            state.value = LoadingState.Offline
             return
         }
 
@@ -274,7 +273,7 @@ class LoadingViewModel(
             else -> "5"
         }
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nAnalyzování nové verze (0/$m)"
         )
 
@@ -290,14 +289,14 @@ class LoadingViewModel(
         val seqGroups: MutableList<SeqGroup> = mutableListOf()
         var loadedData = DownloadedData(version = newVersion).work()
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nOdstraňování starých dat (1/$m)"
         )
 
         repo.dropAllTables()
         repo.createTables()
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nStahování dat (2/$m)",
             progress = null,
         )
@@ -309,7 +308,7 @@ class LoadingViewModel(
 
         val json = downloadText(dataPath)
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nStahování kurzů (3/$m)",
             progress = null,
         )
@@ -339,7 +338,7 @@ class LoadingViewModel(
 
         resetRemoteConfig()
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nStahování stanovišť (4/$m)",
             progress = null,
         )
@@ -348,7 +347,7 @@ class LoadingViewModel(
         val platforms =
             json3.fromJson<Map<LongLine, Map<Direction, Map<LineStopNumber, Platform>>>>()
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nZpracovávání dat (5/$m)",
             progress = null,
         )
@@ -377,20 +376,20 @@ class LoadingViewModel(
         }
 
         if (supportsLineDiagram()) {
-            _state.value = LoadingState.Loading(
+            state.value = LoadingState.Loading(
                 infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nStahování schématu MHD (6/6)",
                 progress = null,
             )
 
             diagramManager.downloadDiagram(diagramPath) { progress ->
-                _state.update {
+                state.update {
                     require(it is LoadingState.Loading)
                     it.copy(progress = progress)
                 }
             }
         }
 
-        _state.value = LoadingState.Loading(
+        state.value = LoadingState.Loading(
             infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nUkládání",
         )
 
@@ -412,11 +411,11 @@ class LoadingViewModel(
             seqGroups = seqGroups.distinctBy { it.seqGroup },
             data = loadedData,
         ) { progress ->
-            _state.update {
+            state.update {
                 (it as LoadingState.Loading).copy(progress = progress)
             }
         }
-        _state.update {
+        state.update {
             (it as LoadingState.Loading).copy(progress = null)
         }
 //        repo.write(
@@ -502,7 +501,7 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                 )
             }
 
-            processTable(TableType.Zaslinky) {}
+            val _ = processTable(TableType.Zaslinky) {}
 
             val fixedCodes = fixedCodesA.await().toMap()
             val timeCodes = timeCodesA.await()
@@ -574,9 +573,9 @@ private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
                 )
             }
 
-            processTable(TableType.LinExt) {}
-            processTable(TableType.Dopravci) {}
-            processTable(TableType.Udaje) {}
+            val _ = processTable(TableType.LinExt) {}
+            val _ = processTable(TableType.Dopravci) {}
+            val _ = processTable(TableType.Udaje) {}
 //            processTable(TableType.VerzeJDF) {}
 
             val conns = connsA.await()

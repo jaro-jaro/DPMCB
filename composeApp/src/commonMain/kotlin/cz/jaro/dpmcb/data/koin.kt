@@ -37,8 +37,8 @@ fun initKoin(
 }
 
 val commonModule = module(true) {
-    single { SpojeRepository(get(), get(), get(), get()) }
-    single<GlobalSettingsDataSource> { RemoteConfigDataSource(get(), get()) }
+    single { SpojeRepository(get(), get(), get(), get(), get()) }
+    single<GlobalSettingsDataSource> { RemoteConfigDataSource(get(), get(), get()) }
     single<LocalSettingsDataSource> { MultiplatformSettingsDataSource(get()) }
     single { OnlineModeManager(get(), get()) }
     single { OnlineRepository(get(), get()) }
@@ -48,10 +48,10 @@ val commonModule = module(true) {
     factory { DeparturesViewModel(get(), get(), get(), it.get()) }
     factory { FindBusViewModel(get(), get(), it.get()) }
     factory { LoadingViewModel(get(), get(), get(), it.get()) }
-    factory { MainViewModel(get(), get(), get(), get(), get(), it.get()) }
+    factory { MainViewModel(get(), get(), get(), get(), get(), get(), it.get()) }
     factory { NowRunningViewModel(get(), get(), get(), it.get()) }
     factory { SequenceViewModel(get(), get(), it.get()) }
-    factory { SettingsViewModel(get(), get()) }
+    factory { SettingsViewModel(get(), get(), get()) }
     factory { TimetableViewModel(get(), it.get()) }
     factory { ConnectionSearchViewModel(get(), get(), it.get()) }
     factory { ConnectionResultsViewModel(get(), it.get()) }

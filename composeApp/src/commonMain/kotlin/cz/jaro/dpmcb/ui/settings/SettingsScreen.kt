@@ -63,7 +63,6 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Settings
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asString
-import cz.jaro.dpmcb.data.helperclasses.isDebug
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.textItem
@@ -216,7 +215,7 @@ fun SettingsScreen(
     }
 
     textItem("Aktuální verze dat: ${state.dataMetaVersion}.${state.dataVersion}")
-    textItem("Aktuální verze aplikace: ${state.version}${if (isDebug) "+DEBUG" else ""}")
+    textItem("Aktuální verze aplikace: ${state.version}${if (state.isDebug) "+DEBUG" else ""}")
 
     textItem("")
 
@@ -511,6 +510,7 @@ private fun SettingsPreview() {
                     dataVersion = 5,
                     dataMetaVersion = 1,
                     isOnline = false,
+                    isDebug = true,
                     tables = emptyList(),
                 )
             )

@@ -7,6 +7,9 @@ import app.cash.sqldelight.db.SqlDriver
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.StorageSettings
 import com.russhwolf.settings.observable.makeObservable
+import cz.jaro.dpmcb.data.DebugManager
+import cz.jaro.dpmcb.data.JsLogger
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.UserOnlineManager
 import cz.jaro.dpmcb.data.database.WebWorkerDriverFactory
@@ -20,6 +23,7 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.FirebaseApp
 import dev.gitlive.firebase.FirebaseOptions
 import dev.gitlive.firebase.initialize
+import io.github.z4kn4fein.semver.toVersion
 import kotlinx.browser.window
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.skiko.wasm.onWasmReady
@@ -64,6 +68,8 @@ val jsModule = module(false) {
             override val card = MutableStateFlow(null)
         }
     }
+    single { DebugManager { BuildKonfig.versionName.toVersion(strict = false).isPreRelease } }
+    single<Logger> { JsLogger(get()) }
 }
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalSettingsApi::class, KoinInternalApi::class)

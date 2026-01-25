@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.DebugManager
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.IO
@@ -35,8 +37,9 @@ class MainViewModel(
     private val detailsOpener: DetailsOpener,
     private val appUpdater: AppUpdater,
     private val cardManager: CardManager,
+    private val debugManager: DebugManager,
     private val params: Parameters,
-) : ViewModel() {
+) : ViewModel(), Logger by repo {
 
     data class Parameters(
         val link: String?,
@@ -99,6 +102,7 @@ class MainViewModel(
     var currentBackStack: MutableStateFlow<StateFlow<List<NavBackStackEntry>>> = MutableStateFlow(MutableStateFlow(emptyList()))
     private val _currentBackStack = currentBackStack.flattenMergeStates()
 
+    @IgnorableReturnValue
     fun confirmDeeplink(
         confirmDeeplink: (String) -> Unit,
         navGraph: () -> NavGraph?,
@@ -154,6 +158,7 @@ class MainViewModel(
             hasCard = hasCard != null,
             date = currentBackStackEntry.date(),
             canGoBack = currentBackStack.count() > 1,
+            isDebug = debugManager.isDebug(),
         )
     }
 

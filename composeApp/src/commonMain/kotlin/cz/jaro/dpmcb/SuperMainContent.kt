@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.loading.Loading
@@ -20,7 +21,7 @@ fun SuperMainContent(
     repo: SpojeRepository,
     link: String?,
     reset: suspend () -> Unit,
-) {
+) = context(repo as Logger) {
     val settings by repo.settings.collectAsStateWithLifecycle()
     DPMCBTheme(settings) {
         val navController = rememberNavController()

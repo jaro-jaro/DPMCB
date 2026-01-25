@@ -88,6 +88,7 @@ import androidx.navigation.get
 import androidx.window.core.layout.WindowSizeClass
 import cz.jaro.dpmcb.BuildKonfig
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
@@ -101,8 +102,8 @@ import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.viewModel
+import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.bus.Bus
 import cz.jaro.dpmcb.ui.card.Card
 import cz.jaro.dpmcb.ui.chooser.Chooser
@@ -231,6 +232,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     else -> emptyMap()
 }
 
+context(logger: Logger)
 @OptIn(ExperimentalTime::class)
 @Composable
 fun Main(
@@ -349,6 +351,7 @@ fun Main(
     }
 }
 
+context(logger: Logger)
 private fun confirmDeeplink(
     navController: NavHostController,
     scope: CoroutineScope,
@@ -370,6 +373,7 @@ private fun NavHostController.navGraphOrNull(): () -> NavGraph? = {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+context(logger: Logger)
 fun MainScreen(
     state: MainState,
     drawerState: DrawerState,

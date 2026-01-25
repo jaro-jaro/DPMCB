@@ -5,10 +5,8 @@ import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.PriorityQueue
-import cz.jaro.dpmcb.data.helperclasses.measure
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.canGetOff
 import cz.jaro.dpmcb.data.realtions.canGetOn
@@ -30,16 +28,20 @@ import kotlin.time.ExperimentalTime
 @Suppress("MayBeConstant", "RedundantSuppression")
 val log = false
 
-inline fun <reified T : Any?, reified R : Any?, reified S : Any?> T.log(vararg msg: R, c: Boolean = true, transform: T.() -> S): T =
-    if (log && c) work(*msg, tag = "ConnectionSearcher", transform = transform) else this
+context(logger: Logger)
+inline fun <reified T, reified R, reified S> T.log(vararg msg: R, c: Boolean = true, transform: T.() -> S): T =
+    if (log && c) work(*msg, tag = "ConnectionSearcher", transform = transform) else this@log
 
-inline fun <reified T : Any?, reified S : Any?> T.log(c: Boolean = true, transform: T.() -> S): T =
-    if (log && c) work(tag = "ConnectionSearcher", transform = transform) else this
+context(logger: Logger)
+inline fun <reified T, reified S> T.log(c: Boolean = true, transform: T.() -> S): T =
+    if (log && c) work(tag = "ConnectionSearcher", transform = transform) else this@log
 
-inline fun <reified T : Any?, reified R : Any?> T.log(vararg msg: R, c: Boolean = true): T =
-    if (log && c) work(*msg, tag = "ConnectionSearcher") else this
+context(logger: Logger)
+inline fun <reified T, reified R> T.log(vararg msg: R, c: Boolean = true): T =
+    if (log && c) work(*msg, tag = "ConnectionSearcher") else this@log
 
-inline fun <T, reified R : Any?> logTime(vararg msg: R, c: Boolean = true, block: () -> T) =
+context(logger: Logger)
+inline fun <reified T, reified R> logTime(vararg msg: R, c: Boolean = true, block: () -> T) =
     if (log && c) measure(*msg, tag = "ConnectionSearcher", block = block) else block()
 
 data class GraphEdge(
@@ -97,6 +99,7 @@ private typealias MutableSearchTable = MutableMap<StopName, SearchTableRow>
 
 interface ConnectionSearcher {
     interface Companion {
+        context(logger: Logger)
         suspend operator fun invoke(
             start: StopName,
             destination: StopName,
@@ -124,8 +127,10 @@ class CommonConnectionSearcher private constructor(
     private val allStops: Set<StopName>,
     private val runsAt: Map<BusName, (LocalDate) -> Boolean>,
     private val stops: Map<BusName, List<StopNameTime>>,
-) : ConnectionSearcher {
+    logger: Logger,
+) : ConnectionSearcher, Logger by logger {
     companion object : ConnectionSearcher.Companion {
+        context(logger: Logger)
         override suspend operator fun invoke(
             start: StopName,
             destination: StopName,
@@ -160,7 +165,7 @@ class CommonConnectionSearcher private constructor(
             }
             val allStops: Set<StopName> = strippedDownGraph.keys + destination
 
-            return CommonConnectionSearcher(start, destination, datetime, strippedDownGraph, allStops, runsAt, stops)
+            return CommonConnectionSearcher(start, destination, datetime, strippedDownGraph, allStops, runsAt, stops, logger)
         }
 
         private fun stripDownGraph(
@@ -174,6 +179,7 @@ class CommonConnectionSearcher private constructor(
                 .mapValues { (v, e) -> e.filter { it.to in pathGraph[v]!! }.sortedBy { it.departure } }
         }
 
+        context(logger: Logger)
         private fun findPathGraph(
             start: StopName,
             destination: StopName,
@@ -201,6 +207,7 @@ class CommonConnectionSearcher private constructor(
         @Suppress("MayBeConstant", "RedundantSuppression")
         val logPaths = false
 
+        context(logger: Logger)
         private fun doesThisStopLeadToTheDestination(
             thisStop: StopName,
             destination: StopName,
@@ -557,8 +564,10 @@ class CommonConnectionSearcher private constructor(
 class DirectConnectionSearcher private constructor(
     private val datetime: LocalDateTime,
     private val connections: Sequence<ConnectionPart>,
-) : ConnectionSearcher {
+    logger: Logger,
+) : ConnectionSearcher, Logger by logger {
     companion object : ConnectionSearcher.Companion {
+        context(logger: Logger)
         override suspend operator fun invoke(
             start: StopName,
             destination: StopName,
@@ -578,7 +587,7 @@ class DirectConnectionSearcher private constructor(
                 all.await().getDatedConnections(runsAtA.await())
             }
 
-            DirectConnectionSearcher(datetime, dated.await())
+            DirectConnectionSearcher(datetime, dated.await(), logger)
         }
 
         private fun Sequence<ConnectionPart>.getDatedConnections(

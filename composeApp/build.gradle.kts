@@ -1,6 +1,5 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import de.undercouch.gradle.tasks.download.Download
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
@@ -9,20 +8,25 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.buildkonfig)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.download)
 }
 
 kotlin {
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    androidLibrary {
+        namespace = "cz.jaro.dpmcb"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
+        }
+
+        androidResources {
+            enable = true
         }
     }
 
@@ -43,9 +47,6 @@ kotlin {
             // SVG Viewer
             implementation(libs.coil.svg)
             implementation(libs.zoomable.image.coil)
-
-            // Firebase Crashlytics
-            implementation(libs.firebase.crashlytics)
 
             // Jetpack Glance
             implementation(libs.androidx.jetpack.glance)
@@ -71,8 +72,6 @@ kotlin {
 //            implementation(libs.google.firebase.storage)
             // Analytics
             implementation(libs.google.firebase.analytics)
-            // Crashlytics
-            implementation(libs.google.firebase.crashlytics)
             // Remote config
             implementation(libs.google.firebase.config)
 
@@ -160,15 +159,29 @@ kotlin {
                 enableLanguageFeature(LanguageFeature.NestedTypeAliases.name)
                 enableLanguageFeature(LanguageFeature.ContextParameters.name)
                 enableLanguageFeature(LanguageFeature.WhenGuards.name)
-//                enableLanguageFeature(LanguageFeature.NonLocalBreakContinue.name)
                 enableLanguageFeature(LanguageFeature.MultiDollarInterpolation.name)
                 enableLanguageFeature(LanguageFeature.ExpectActualClasses.name)
                 enableLanguageFeature(LanguageFeature.ContextSensitiveResolutionUsingExpectedType.name)
+                enableLanguageFeature(LanguageFeature.ExplicitBackingFields.name)
+                enableLanguageFeature(LanguageFeature.JsAllowExportingSuspendFunctions.name)
+                enableLanguageFeature(LanguageFeature.JsAllowExportingSuspendFunctions.name)
             }
         }
         jsMain {
             resources.srcDir(layout.buildDirectory.dir("sqlite"))
         }
+    }
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xnested-type-aliases")
+        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.add("-Xwhen-guards")
+        freeCompilerArgs.add("-Xmulti-dollar-interpolation")
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+        freeCompilerArgs.add("-Xcontext-sensitive-resolution")
+        freeCompilerArgs.add("-Xexplicit-backing-fields")
+        freeCompilerArgs.add("-Xenable-suspend-function-exporting")
+        freeCompilerArgs.add("-Xreturn-value-checker=full")
     }
 }
 
@@ -220,57 +233,3 @@ val sqliteUnzip = tasks.register("sqliteUnzip", Copy::class.java) {
 tasks.named("jsProcessResources").configure {
     dependsOn(sqliteUnzip)
 }
-
-android {
-    namespace = "cz.jaro.dpmcb"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-
-    defaultConfig {
-        applicationId = "cz.jaro.dpmcb"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = 36
-        versionCode = libs.versions.appVersionCode.get().toInt()
-        versionName = libs.versions.appVersionName.get()
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
-
-            manifestPlaceholders += "logo" to "@mipmap/logo_chytra_cesta"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_chytra_cesta_round"
-        }
-        debug {
-            applicationIdSuffix = ".debug"
-
-            manifestPlaceholders += "logo" to "@mipmap/logo_jaro"
-            manifestPlaceholders += "logoRound" to "@mipmap/logo_jaro_round"
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-
-        isCoreLibraryDesugaringEnabled = true
-    }
-    buildFeatures {
-        buildConfig = true
-    }
-}
-configurations {
-    implementation.get().exclude(group = "org.jetbrains", module = "annotations")
-}
-
-dependencies {
-    debugImplementation(libs.ui.tooling)
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
-}
-

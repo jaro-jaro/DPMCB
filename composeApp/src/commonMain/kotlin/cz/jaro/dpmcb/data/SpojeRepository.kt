@@ -26,7 +26,6 @@ import cz.jaro.dpmcb.data.helperclasses.asRepeatingFlow
 import cz.jaro.dpmcb.data.helperclasses.countMembers
 import cz.jaro.dpmcb.data.helperclasses.findMiddleStop
 import cz.jaro.dpmcb.data.helperclasses.maxDatabaseInsertBatchSize
-import cz.jaro.dpmcb.data.helperclasses.measure
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.runsAt
@@ -34,7 +33,6 @@ import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.toMap
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.withCache
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.realtions.BusInfo
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.RunsFromTo
@@ -75,7 +73,8 @@ class SpojeRepository(
     private val spojeDataSource: SpojeDataSource,
     ls: LocalSettingsDataSource,
     gs: GlobalSettingsDataSource,
-) : UserOnlineManager by onlineManager, GlobalSettingsDataSource by gs, LocalSettingsDataSource by ls {
+    lg: Logger,
+) : UserOnlineManager by onlineManager, GlobalSettingsDataSource by gs, LocalSettingsDataSource by ls, Logger by lg {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     val loaded = scope.async {
@@ -187,6 +186,7 @@ class SpojeRepository(
                         connName = it.connName,
                         platform = it.platform,
                         type = StopType(it.connStopFixedCodes),
+                        direction = it.direction,
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
@@ -379,6 +379,7 @@ class SpojeRepository(
                             connName = it.connName,
                             platform = it.platform,
                             type = StopType(it.connStopFixedCodes),
+                            direction = it.direction,
                         )
                     }.distinct(),
                     timeCodes,
@@ -496,6 +497,7 @@ class SpojeRepository(
 //            }
             }//.awaitAll()
             "DONE".work()
+            Unit
         }
     }
 

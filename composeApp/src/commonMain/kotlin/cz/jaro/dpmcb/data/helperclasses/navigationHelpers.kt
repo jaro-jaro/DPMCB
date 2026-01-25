@@ -5,8 +5,11 @@ package cz.jaro.dpmcb.data.helperclasses
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
+import cz.jaro.dpmcb.data.Logger
+import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.main.SuperRoute
 
+context(logger: Logger)
 inline val NavHostController.navigateToRouteFunction get() = { it: String -> this.navigate(it.work()) }
 inline val NavHostController.superNavigateFunction: SuperNavigateFunction
     get() = { route: SuperRoute, navOptions: NavOptions? ->

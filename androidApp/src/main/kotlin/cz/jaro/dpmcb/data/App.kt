@@ -7,6 +7,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.SharedPreferencesSettings
 import com.russhwolf.settings.observable.makeObservable
+import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.data.database.AndroidDriverFactory
 import cz.jaro.dpmcb.ui.main.DetailsOpener
 import cz.jaro.dpmcb.ui.map.AndroidDiagramManager
@@ -26,12 +27,14 @@ val androidModule get() = module(true) {
     single { UserOnlineManager(ctx) }
     single { DetailsOpener(ctx) }
     single<DiagramManager> { AndroidDiagramManager(ctx) }
+    single { DebugManager { BuildConfig.DEBUG } }
+    single<Logger> { AndroidLogger(get()) }
 }
 
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        initKoin(androidModule)
+        val _ = initKoin(androidModule)
     }
 }

@@ -13,7 +13,7 @@ import androidx.navigation.serialization.decodeArguments
 import androidx.navigation.serialization.generateRouteWithArgs
 import androidx.navigation.toRoute
 import cz.jaro.dpmcb.data.AppState.APP_URL
-import cz.jaro.dpmcb.data.recordException
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.ui.main.Route
 import cz.jaro.dpmcb.ui.main.typeMap
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -22,6 +22,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.serializer
 import kotlin.jvm.JvmName
 
+context(logger: Logger)
 inline fun <reified T : Route> NavGraphBuilder.route(
     crossinline content: @Composable AnimatedVisibilityScope.(T) -> Unit,
 ) =
@@ -38,15 +39,18 @@ inline fun <reified T : Route> NavGraphBuilder.route(
             it.toRoute<T>()
         } catch (e: SerializationException) {
             e.printStackTrace()
-            recordException(e)
+            logger.recordException(e)
             null
         }
         if (args != null) content(args)
     }
 
+context(logger: Logger)
 fun NavBackStackEntry.generateRouteWithArgs() = route?.generateRouteWithArgs(destination)
+context(logger: Logger)
 fun NavBackStackEntry.getRoute() = route
 
+context(logger: Logger)
 @get:JvmName("getPrivateRoute")
 private val NavBackStackEntry.route
     get() = try {
@@ -57,7 +61,7 @@ private val NavBackStackEntry.route
         }
     } catch (e: SerializationException) {
         e.printStackTrace()
-        recordException(e)
+        logger.recordException(e)
         null
     }
 

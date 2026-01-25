@@ -3,7 +3,6 @@ package cz.jaro.dpmcb.ui.timetable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -56,7 +55,7 @@ class TimetableViewModel(
                 stop = params.stop,
                 platform = params.platform,
                 date = e.date,
-                direction = Direction.POSITIVE, // TODO
+                direction = params.direction,
             )
         )
 

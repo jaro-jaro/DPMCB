@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.CommonConnectionSearcher
 import cz.jaro.dpmcb.data.Connection
 import cz.jaro.dpmcb.data.DirectConnectionSearcher
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
@@ -47,13 +48,15 @@ class ConnectionResultsViewModel(
     private val loadedBack = MutableStateFlow(relations.value.map { 0 }.toMutableList())
 
     val searchers = async {
-        args.relations.value.map {
-            (if (args.directOnly) DirectConnectionSearcher else CommonConnectionSearcher)(
-                start = it.start,
-                destination = it.destination,
-                datetime = datetime,
-                repo = repo,
-            )
+        context(repo as Logger) {
+            args.relations.value.map {
+                (if (args.directOnly) DirectConnectionSearcher else CommonConnectionSearcher)(
+                    start = it.start,
+                    destination = it.destination,
+                    datetime = datetime,
+                    repo = repo,
+                )
+            }
         }
     }
 

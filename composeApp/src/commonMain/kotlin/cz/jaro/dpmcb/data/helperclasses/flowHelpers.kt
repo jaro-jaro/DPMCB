@@ -178,6 +178,7 @@ fun <T> async(
     block: suspend CoroutineScope.() -> T
 ): Deferred<T> = vm.viewModelScope.async(context, start, block)
 
+@IgnorableReturnValue
 context(vm: ViewModel)
 fun launch(
     context: CoroutineContext = EmptyCoroutineContext,
@@ -185,5 +186,6 @@ fun launch(
     block: suspend CoroutineScope.() -> Unit
 ): Job = vm.viewModelScope.launch(context, start, block)
 
+@IgnorableReturnValue
 context(vm: ViewModel)
 fun <T> Flow<T>.launch(): Job = launchIn(vm.viewModelScope)

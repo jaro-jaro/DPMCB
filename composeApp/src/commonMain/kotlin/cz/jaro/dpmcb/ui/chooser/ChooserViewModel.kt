@@ -3,6 +3,7 @@ package cz.jaro.dpmcb.ui.chooser
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.invalid
@@ -11,7 +12,7 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.helperclasses.work
+import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -29,7 +30,7 @@ import kotlinx.datetime.LocalDate
 class ChooserViewModel(
     private val repo: SpojeRepository,
     private val params: Parameters,
-) : ViewModel() {
+) : ViewModel(), Logger by repo {
 
     data class Parameters(
         val type: ChooserType,

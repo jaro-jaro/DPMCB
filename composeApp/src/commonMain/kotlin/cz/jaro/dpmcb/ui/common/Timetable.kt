@@ -36,12 +36,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.helperclasses.plus
-import cz.jaro.dpmcb.data.helperclasses.work
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.realtions.BusStop
 import cz.jaro.dpmcb.data.realtions.PartOfConn
@@ -53,7 +53,7 @@ import kotlin.time.Duration.Companion.minutes
 
 sealed interface TimetableEvent {
     data class StopClick(val stopName: String, val time: LocalTime) : TimetableEvent
-    data class TimetableClick(val line: ShortLine, val stop: String, val platform: Platform) : TimetableEvent
+    data class TimetableClick(val line: ShortLine, val stop: String, val platform: Platform, val direction: Direction,) : TimetableEvent
 }
 
 @Composable
@@ -130,7 +130,7 @@ fun Timetable(
             if (departs && stop.platform != null) DropdownMenuItem(
                 text = { Text("Zobrazit zastávkové JŘ") },
                 onClick = {
-                    onEvent(TimetableEvent.TimetableClick(stop.line, stop.name, stop.platform))
+                    onEvent(TimetableEvent.TimetableClick(stop.line, stop.name, stop.platform, stop.direction)) // TODO: direction on onw-way lines works differently
                     showDropDown = false
                 },
             )

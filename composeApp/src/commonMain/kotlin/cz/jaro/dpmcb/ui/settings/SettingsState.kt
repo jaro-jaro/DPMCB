@@ -12,6 +12,7 @@ data class SettingsState(
     val dataVersion: Int,
     val dataMetaVersion: Int,
     val isOnline: Boolean,
+    val isDebug: Boolean,
     val tables: List<LineTable>,
 )
 

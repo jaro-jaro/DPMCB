@@ -2,6 +2,7 @@ package cz.jaro.dpmcb.ui.settings
 
 import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.BuildKonfig
+import cz.jaro.dpmcb.data.DebugManager
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.helperclasses.SuperNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.combineStates
@@ -20,6 +21,7 @@ import kotlin.time.Duration.Companion.seconds
 class SettingsViewModel(
     private val repo: SpojeRepository,
     private val appUpdater: AppUpdater,
+    debugManager: DebugManager,
 ) : ViewModel() {
 
     lateinit var superNavigate: SuperNavigateFunction
@@ -51,6 +53,7 @@ class SettingsViewModel(
             dataVersion = repo.version,
             dataMetaVersion = LoadingViewModel.META_DATA_VERSION,
             isOnline = isOnline,
+            isDebug = debugManager.isDebug(),
             tables = tables,
         )
     }

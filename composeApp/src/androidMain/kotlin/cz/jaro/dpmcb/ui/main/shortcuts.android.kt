@@ -7,7 +7,6 @@ import android.graphics.drawable.Icon.createWithResource
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
-import cz.jaro.dpmcb.BuildConfig
 import cz.jaro.dpmcb.R
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.AppState.APP_URL
@@ -30,7 +29,7 @@ actual val shortcutCreator: ShortcutCreator
                     .setLongLabel(label)
                     .setIcon(
                         createWithResource(
-                            ctx, if (BuildConfig.DEBUG) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
+                            ctx, if (state.isDebug) R.mipmap.logo_jaro else R.mipmap.logo_chytra_cesta
                         )
                     )
                     .setIntent(Intent(Intent.ACTION_VIEW, "${APP_URL}$route".toUri()))
