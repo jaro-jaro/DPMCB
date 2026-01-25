@@ -36,9 +36,9 @@ jobs:
       - name: Rename APK
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          mv composeApp/build/outputs/apk/debug/composeApp-debug.apk "composeApp/build/outputs/apk/debug/Lepší-DPMCB-DEBUG-branch-$(echo ${BRANCH_NAME//\//\-}).apk"
+          mv androidApp/build/outputs/apk/debug/androidApp-debug.apk "androidApp/build/outputs/apk/debug/Lepší-DPMCB-DEBUG-branch-$(echo ${BRANCH_NAME//\//\-}).apk"
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: composeApp/build/outputs/apk/debug/*.apk
+          path: androidApp/build/outputs/apk/debug/*.apk

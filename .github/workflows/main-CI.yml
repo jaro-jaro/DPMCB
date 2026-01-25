@@ -39,20 +39,20 @@ jobs:
           git config --global user.email 'jaro-jaro@users.noreply.github.com'
           git push --tags
       - name: Rename APK
-        run: mv composeApp/build/outputs/apk/release/composeApp-release.apk "composeApp/build/outputs/apk/release/Lepší-DPMCB-v$(cat ./composeApp/version.txt).apk"
+        run: mv androidApp/build/outputs/apk/release/androidApp-release.apk "androidApp/build/outputs/apk/release/Lepší-DPMCB-v$(cat ./composeApp/version.txt).apk"
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: composeApp/build/outputs/apk/release/*.apk
+          path: androidApp/build/outputs/apk/release/*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: reports
-          path: composeApp/build/reports/*.html
+          path: androidApp/build/reports/*.html
       - name: Publish release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "composeApp/build/outputs/apk/release/Lepší-DPMCB-*.apk"
+          artifacts: "androidApp/build/outputs/apk/release/Lepší-DPMCB-*.apk"
           commit: "main"
           generateReleaseNotes: true
           tag: ${{ env.VERSION_NAME }}
