@@ -25,6 +25,7 @@ import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.onlineBus
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -84,10 +85,12 @@ class DeparturesViewModel(
     val info: StateFlow<DeparturesInfo> field = MutableStateFlow(
         DeparturesInfo(
             stop = params.stop,
-            time = params.time ?: if (params.date == SystemClock.todayHere()) null else SystemClock.timeHere(),
+            setTime = params.time,
+            usedTime = calculateUsedTime(params.time, params.date),
             date = params.date,
             lineFilter = params.line,
             stopFilter = params.via,
+            platformFilter = params.platform,
             justDepartures = params.onlyDepartures != false,
             compactMode = params.simple ?: (params.time == null && params.date == SystemClock.todayHere()),
         )
@@ -96,7 +99,7 @@ class DeparturesViewModel(
     private fun changeCurrentRoute(info: DeparturesInfo) {
         AppState.route = Route.Departures(
             stop = info.stop,
-            time = info.time?.toSimpleTime().orInvalid(),
+            time = info.setTime?.toSimpleTime().orInvalid(),
             line = info.lineFilter,
             via = info.stopFilter,
             platform = info.platformFilter,
@@ -192,7 +195,7 @@ class DeparturesViewModel(
 
     init {
         combine(info, finalList, timeFlow) { info, list, now ->
-            Quadruple(info, list, list?.indexOfNext(info.time ?: now, now), list?.map { it.busName }?.toSet())
+            Quadruple(info, list, list?.indexOfNext(info.usedTime ?: now, now), list?.map { it.busName }?.toSet())
         }.compare(Quadruple(null, null, null, null)) {
                 (lastInfo, lastList, lastScrollIndex, lastBuses),
                 (info, list, scrollIndex, buses),
@@ -201,7 +204,7 @@ class DeparturesViewModel(
             if (
                 lastInfo.stop == info.stop &&
                 lastBuses == buses &&
-                (info.time != null && lastInfo.time == info.time || info.time == null && scrollIndex == lastScrollIndex)
+                (info.usedTime != null && lastInfo.usedTime == info.usedTime || info.usedTime == null && scrollIndex == lastScrollIndex)
             ) return@compare
             withContext(Dispatchers.Main) {
                 scroll(scrollIndex, true)
@@ -265,7 +268,8 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 info.update { oldState ->
                     oldState.copy(
-                        time = e.time,
+                        setTime = e.time,
+                        usedTime = calculateUsedTime(e.time, oldState.date),
                     ).also(::changeCurrentRoute)
                 }
             }
@@ -332,7 +336,7 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 val state = state.value
                 if (state !is DeparturesState.Runs) return@launch
-                scroll(state.departures.indexOfNext(state.info.time ?: exactTime, exactTime), true)
+                scroll(state.departures.indexOfNext(state.info.usedTime ?: exactTime, exactTime), true)
             }
             Unit
         }
@@ -366,7 +370,7 @@ class DeparturesViewModel(
         is DeparturesEvent.ChangeDate -> navigator.navigate(
             Route.Departures(
                 stop = info.value.stop,
-                time = info.value.time?.toSimpleTime().orInvalid(),
+                time = info.value.setTime?.toSimpleTime().orInvalid(),
                 line = info.value.lineFilter,
                 via = info.value.stopFilter,
                 platform = info.value.platformFilter,
@@ -401,4 +405,7 @@ class DeparturesViewModel(
             }
         }.flowOn(Dispatchers.IO).launch()
     }
+
+    private fun calculateUsedTime(setTime: LocalTime?, date: LocalDate) =
+        setTime ?: if (date == SystemClock.todayHere()) null else SystemClock.timeHere().truncatedToMinutes()
 }

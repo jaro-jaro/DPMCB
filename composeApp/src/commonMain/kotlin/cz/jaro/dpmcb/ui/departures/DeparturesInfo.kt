@@ -8,7 +8,7 @@ import kotlinx.datetime.LocalTime
 
 data class DeparturesInfo(
     val stop: String,
-    val time: LocalTime?,
+    val setTime: LocalTime?,
     val date: LocalDate,
     val scrollIndex: Int = 0,
     val lineFilter: ShortLine? = null,
@@ -16,4 +16,5 @@ data class DeparturesInfo(
     val platformFilter: Platform? = null,
     val compactMode: Boolean = false,
     val justDepartures: Boolean = false,
+    val usedTime: LocalTime?,
 )

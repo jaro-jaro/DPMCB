@@ -153,14 +153,6 @@ class LoadingViewModel(
                 state.value = LoadingState.Error
                 return@launch
             }
-            repo.connStops().work()
-            repo.stops().work()
-            repo.timeCodes().work()
-            repo.lines().work()
-            repo.conns().work()
-            repo.seqOfConns().work()
-            repo.seqGroups().work()
-            repo.lineNumbers(SystemClock.todayHere()).work()
 
             if (params.update || repo.needsToDownloadData && repo.version == -1) {
                 downloadNewData(this)

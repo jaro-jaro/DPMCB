@@ -194,7 +194,7 @@ fun DeparturesScreen(
             val i = listState.firstVisibleItemIndex
             val isAtBottom by remember { derivedStateOf { !listState.canScrollForward } }
             val now by timeFlow.collectAsStateWithLifecycle()
-            val home by derivedStateOf { state.departures.indexOfNext(state.info.time ?: now, now) }
+            val home by derivedStateOf { state.departures.indexOfNext(state.info.usedTime ?: now, now) }
             val hideBecauseTooLow by remember(home, i, isAtBottom) { derivedStateOf { isAtBottom && i < home } }
             val hideBecauseNear by remember(home, i) { derivedStateOf { (i - home).absoluteValue < 1 } }
 
@@ -266,7 +266,7 @@ fun DeparturesScreen(
             )
             var showDialog by rememberSaveable { mutableStateOf(false) }
             val now by timeFlow.collectAsStateWithLifecycle()
-            val time = state.info.time ?: now
+            val time = state.info.usedTime ?: now
             val timeState = rememberTimePickerState(
                 initialHour = time.hour,
                 initialMinute = time.minute,
@@ -309,7 +309,7 @@ fun DeparturesScreen(
             ) {
                 IconWithTooltip(Icons.Default.AccessTime, "Změnit čas", Modifier.size(ButtonDefaults.IconSize))
                 Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                Text(text = state.info.time?.toString() ?: "Nyní")
+                Text(text = state.info.usedTime?.toString() ?: "Nyní")
             }
         }
 
