@@ -44,7 +44,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.durationUntil
 import cz.jaro.dpmcb.data.helperclasses.rowItem
 import cz.jaro.dpmcb.data.helperclasses.textItem
 import cz.jaro.dpmcb.data.helperclasses.todayHere
@@ -57,6 +56,7 @@ import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.daysUntil
 import kotlin.time.ExperimentalTime
 
 @Suppress("unused")
@@ -226,7 +226,7 @@ fun FindBusScreen(
             FlowRow(
                 Modifier.fillMaxWidth(),
             ) {
-                if (SystemClock.todayHere().durationUntil(state.date).inWholeDays in -6L..0L)
+                if (SystemClock.todayHere().daysUntil(state.date) in -6L..0L)
                     VehicleDownloader(onEvent, state, Modifier.padding(top = 8.dp))
                 Spacer(Modifier.weight(1F))
                 TextButton(
@@ -299,9 +299,9 @@ fun VehicleDownloader(onEvent: (FindBusEvent) -> Unit, state: FindBusState, modi
             contentPadding = ButtonDefaults.TextButtonWithIconContentPadding,
         ) {
             Text(
-                text = "Stáhnout " + when (SystemClock.todayHere().durationUntil(state.date).inWholeDays) {
-                    0L -> "dnešní"
-                    -1L -> "včerejší"
+                text = "Stáhnout " + when (SystemClock.todayHere().daysUntil(state.date)) {
+                    0 -> "dnešní"
+                    -1 -> "včerejší"
                     else -> when (state.date.dayOfWeek) {
                         DayOfWeek.MONDAY -> "pondělní"
                         DayOfWeek.TUESDAY -> "úterní"

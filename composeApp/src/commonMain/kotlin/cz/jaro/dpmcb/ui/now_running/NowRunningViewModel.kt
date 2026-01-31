@@ -26,7 +26,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.atDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -95,7 +96,8 @@ class NowRunningViewModel(
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
-                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time ?: return@mapNotNull null,
+                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time?.atDate(SystemClock.todayHere())
+                        ?: return@mapNotNull null,
                     delay = onlineConn.delayMin?.toDouble()?.minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
@@ -116,12 +118,13 @@ class NowRunningViewModel(
     private val offlineList = repo.nowRunning.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
         repo.nowRunningBusDetails(busNames, SystemClock.todayHere()).values
             .map { bus ->
-                val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex().last()
+                val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex()
+                    .last()
                 val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
-                    nextStopTime = nextStop.time,
+                    nextStopTime = nextStop.time.atDate(SystemClock.todayHere()),
                     delay = (-1).minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
@@ -196,7 +199,7 @@ private fun RunningLineInDirection(it: Triple<ShortLine, String, List<RunningBus
 data class RunningConnPlus(
     val busName: BusName,
     val nextStopName: String,
-    val nextStopTime: LocalTime,
+    val nextStopTime: LocalDateTime,
     val delay: Duration?,
     val indexOnLine: Int,
     val direction: Direction,

@@ -16,27 +16,56 @@ data class ConnectionState(
     val coordinates: Coordinates,
 )
 
-typealias Alternatives = List<ConnectionTree>
-fun Alternatives(vararg items: ConnectionTree): Alternatives = items.toList()
+/**
+ * Nodes with a common parent, all on the same level
+ */
+typealias Alternatives = List<ConnectionTreeNode>
 
-operator fun Alternatives.get(coordinates: Coordinates): ConnectionTree {
+fun Alternatives(vararg items: ConnectionTreeNode): Alternatives = items.toList()
+
+data class ConnectionData(
+    val rootAlternatives: Alternatives,
+    val currentCoordinates: Coordinates,
+)
+
+/**
+ * Finds the node specified by the [coordinates] in the tree
+ */
+operator fun Alternatives.get(coordinates: Coordinates): ConnectionTreeNode {
     require(coordinates.isNotEmpty()) { "At least one coordinate needs to be specified" }
-    val first = coordinates.first()
+    require(isNotEmpty()) { "Can't get coordinates $coordinates of empty alternatives" }
+    val firstCoordinate = coordinates.first()
     val rest = coordinates.drop(1)
-    val tree = this[first]
-    return if (rest.isEmpty()) tree else tree.next[rest]
+    require(firstCoordinate < size) { "Page coordinate $firstCoordinate is out of bounds for $size children. Current level: ${first().level}" }
+    val node = this[firstCoordinate]
+    return if (rest.isEmpty()) node else node.next[rest]
 }
 
-fun Alternatives.getAlternatives(coordinates: Coordinates): Alternatives
-    = if (coordinates.isEmpty()) this else get(coordinates).next
+/**
+ * @return The children of the node at the [coordinates]. The root alternatives if [coordinates] is empty.
+ */
+fun Alternatives.getAlternatives(coordinates: Coordinates): Alternatives =
+    if (coordinates.isEmpty()) this else get(coordinates).next
 
-data class ConnectionTree(
+/**
+ * A node in a tree of buses in a connection
+ */
+data class ConnectionTreeNode(
     val part: ConnectionBus?,
+    /**
+     * Children
+     */
     val next: Alternatives,
+    /**
+     * Horizontal coordinate (index in the parent children list)
+     */
     val page: Int,
+    /**
+     * Vertical coordinate
+     */
     val level: Int,
 ) {
-    override fun toString() = "$part ($level->$page) -> $next"
+    override fun toString() = "$part ($level:$page) -> $next"
 }
 
 data class ConnectionBus(
@@ -59,4 +88,7 @@ data class ConnectionBus(
     override fun toString() = "$startStop ($departure) -> ($bus) $endStop ($arrival)"
 }
 
+/**
+ * A list of the page coordinates in a tree specifying a node
+ */
 typealias Coordinates = List<Int>

@@ -24,11 +24,9 @@ import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.MutateLambda
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.Traction
-import cz.jaro.dpmcb.data.helperclasses.durationUntil
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.mapState
-import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
@@ -38,8 +36,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlinx.serialization.json.Json
-import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 
 interface LocalSettingsDataSource {
@@ -78,14 +78,14 @@ private fun LocalSettingsDataSource.setVehicles(data: Map<LocalDate, Map<Sequenc
                 else
                     it[date] = vehicles + it.getOrElse(date) { mapOf() }
             }
-        }.filterKeys { date -> date.durationUntil(SystemClock.todayHere()) <= 7.days }
+        }.filterKeys { date -> date.daysUntil(SystemClock.todayHere()) <= 7 }
     }
 }
 
 @OptIn(ExperimentalTime::class)
 suspend fun SpojeRepository.pushVehicles(date: LocalDate, vehicles: Map<SequenceCode, RegistrationNumber>, reliable: Boolean = true) {
-    val yesterday = date - 1.days
-    val tomorrow = date + 1.days
+    val yesterday = date - 1.dayPeriod
+    val tomorrow = date + 1.dayPeriod
     val yesterdayVehicles =
         vehicles.filterKeys { sequence ->
             val isNight = sequence.line().startsWith('5') && sequence.line().length == 2

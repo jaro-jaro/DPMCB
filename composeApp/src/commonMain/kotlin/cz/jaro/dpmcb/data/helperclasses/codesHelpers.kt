@@ -10,7 +10,7 @@ import cz.jaro.dpmcb.data.realtions.RunsFromTo
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
-import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.plus
 
 val noCode = LocalDate(1970, 1, 1)
 
@@ -128,13 +128,13 @@ fun positionOfEasterInYear(year: Int): Pair<LocalDate, LocalDate>? {
 
     val isException = (d == 29 && e == 6) || (d == 28 && e == 6 && a > 10)
 
-    val eaterSundayFromTheStartOfMarch = (d + e).days + if (isException) 15.days else 22.days
+    val eaterSundayFromTheStartOfMarch = (d + e) + if (isException) 15 else 22
 
-    val bigFridayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch - 2.days
-    val bigFriday = LocalDate(year, Month.MARCH, 1) + (bigFridayFromTheStartOfMarch - 1.days)
+    val bigFridayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch - 2
+    val bigFriday = LocalDate(year, Month.MARCH, 1) + (bigFridayFromTheStartOfMarch - 1).dayPeriod
 
-    val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1.days
-    val easterMonday = LocalDate(year, Month.MARCH, 1) + (easterMondayFromTheStartOfMarch - 1.days)
+    val easterMondayFromTheStartOfMarch = eaterSundayFromTheStartOfMarch + 1
+    val easterMonday = LocalDate(year, Month.MARCH, 1) + (easterMondayFromTheStartOfMarch - 1).dayPeriod
 
     val result = bigFriday to easterMonday
     cahedEaster[year] = result

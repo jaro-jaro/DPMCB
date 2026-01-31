@@ -26,7 +26,6 @@ import cz.jaro.dpmcb.ui.main.Route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.datetime.atDate
 import kotlinx.datetime.atTime
 import kotlin.time.Duration.Companion.minutes
 
@@ -49,7 +48,7 @@ class ConnectionResultsViewModel(
 
     val searchers = async {
         context(repo as Logger) {
-            args.relations.value.map {
+            relations.value.map {
                 (if (args.directOnly) DirectConnectionSearcher else CommonConnectionSearcher)(
                     start = it.start,
                     destination = it.destination,
@@ -183,8 +182,8 @@ class ConnectionResultsViewModel(
                     )
                 },
                 length = end.arrival - start.departure,
-                departure = start.departure.atDate(start.date),
-                arrival = end.arrival.atDate(end.date),
+                departure = start.departure,
+                arrival = end.arrival,
                 startStop = start.startStop,
                 endStop = end.endStop,
                 transfers = parts.drop(1).map { it.startStop },

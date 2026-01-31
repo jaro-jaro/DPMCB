@@ -193,8 +193,8 @@ fun DeparturesScreen(
             val scope = rememberCoroutineScope()
             val i = listState.firstVisibleItemIndex
             val isAtBottom by remember { derivedStateOf { !listState.canScrollForward } }
-            val now by timeFlow.collectAsStateWithLifecycle()
-            val home by derivedStateOf { state.departures.indexOfNext(state.info.usedTime ?: now, now) }
+            val now by nowFlow.collectAsStateWithLifecycle()
+            val home by derivedStateOf { state.departures.indexOfNext(state.info.usedTime?.atDate(state.info.date) ?: now, now) }
             val hideBecauseTooLow by remember(home, i, isAtBottom) { derivedStateOf { isAtBottom && i < home } }
             val hideBecauseNear by remember(home, i) { derivedStateOf { (i - home).absoluteValue < 1 } }
 
@@ -557,7 +557,7 @@ private fun BusDeparture(
             val nextStop = departureState.currentNextStop
             val now by nowFlow.collectAsStateWithLifecycle()
             val delay = departureState.delay.takeUnless { info.date != now.date }
-            val runsIn = departureState.time.atDate(info.date) + (delay ?: 0.minutes) - now
+            val runsIn = departureState.time + (delay ?: 0.minutes) - now
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -590,15 +590,15 @@ private fun BusDeparture(
 
                 if (info.compactMode) {
                     Text(
-                        text = if (0.minutes <= runsIn && runsIn < 30.minutes) runsIn.asString() else "${departureState.time}",
+                        text = if (0.minutes <= runsIn && runsIn < 30.minutes) runsIn.asString() else "${departureState.time.time}",
                         color = if (delay == null || runsIn < 0.minutes) MaterialTheme.colorScheme.onSurface else colorOfDelayText(delay),
                     )
                 } else {
                     Text(
-                        text = "${departureState.time}"
+                        text = "${departureState.time.time}"
                     )
                     if (delay != null && runsIn > 0.minutes) Text(
-                        text = "${departureState.time + delay.truncatedToSeconds()}",
+                        text = "${(departureState.time + delay.truncatedToSeconds()).time}",
                         color = colorOfDelayText(delay),
                         modifier = Modifier.padding(start = 8.dp)
                     )

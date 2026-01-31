@@ -170,7 +170,7 @@ fun ConnectionResultsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         val dateText = if (connection.departure.date == state.datetime.date) "" else
-                            connection.departure.date.asStringDM() + ". "
+                            connection.departure.date.asStringDM() + " "
                         val now by nowFlow.collectAsStateWithLifecycle()
                         val runsIn = connection.departure - now
                         if (runsIn <= 0.hours || runsIn >= 5.hours)

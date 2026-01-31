@@ -2,7 +2,7 @@ package cz.jaro.dpmcb.ui.departures
 
 import cz.jaro.dpmcb.data.helperclasses.indexOfFirstOrNull
 import cz.jaro.dpmcb.data.helperclasses.plus
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDateTime
 
 sealed interface DeparturesState {
 
@@ -36,7 +36,7 @@ sealed interface DeparturesState {
     ) : Loaded
 }
 
-fun List<DepartureState>.indexOfNext(time: LocalTime, now: LocalTime) = (indexOfFirstOrNull { bus ->
+fun List<DepartureState>.indexOfNext(time: LocalDateTime, now: LocalDateTime) = (indexOfFirstOrNull { bus ->
     val departure = if (bus.delay != null && (bus.time + bus.delay) > now) bus.time + bus.delay else bus.time
     departure >= time
 } ?: lastIndex) + 1 // <-- an item with the previous day button

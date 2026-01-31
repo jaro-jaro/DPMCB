@@ -46,7 +46,7 @@ sealed interface Route {
 
         val Initial = ConnectionSearch(SystemClock.todayHere())
         @OptIn(InternalSerializationApi::class)
-        val initialRoute = "connection_search/" + SystemClock.todayHere().serialize()
+        val initialRoute = "connection_search/T"
     }
 
     @Serializable

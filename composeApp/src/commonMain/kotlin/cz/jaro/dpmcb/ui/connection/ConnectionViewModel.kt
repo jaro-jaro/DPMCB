@@ -10,8 +10,8 @@ import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.async
-import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.launch
+import cz.jaro.dpmcb.data.helperclasses.mapState
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
@@ -38,14 +38,15 @@ import kotlin.time.ExperimentalTime
 class ConnectionViewModel(
     private val repo: SpojeRepository,
     args: Route.Connection,
-) : ViewModel() {
+) : ViewModel(), Logger by repo {
     lateinit var navigator: Navigator
 
-    private val definition: MutableStateFlow<AlternativesDefinition> = MutableStateFlow(
-        AlternativesDefinition(args.def.toTreeDefinition())
+    private val definition: MutableStateFlow<DefinitionData> = MutableStateFlow(
+        DefinitionData(
+            rootAlternatives = AlternativesDefinition(args.def.toTreeDefinition()),
+            currentCoordinates = args.def.map { 0 },
+        )
     )
-
-    private val coordinates: MutableStateFlow<Coordinates> = MutableStateFlow(args.def.map { 0 })
 
     private suspend fun addConnection(
         newPage: Int,
@@ -56,9 +57,11 @@ class ConnectionViewModel(
         val newTree = def.toTreeDefinition()
         val rest = newTree.next.getCoordinatesOfFirstConnection()
         definition.update {
-            it.addAt(parentCoordinates, newTree)
+            DefinitionData(
+                rootAlternatives = it.rootAlternatives.addAt(parentCoordinates, newTree),
+                currentCoordinates = parentCoordinates + newPage + rest
+            )
         }
-        coordinates.value = parentCoordinates + newPage + rest
     }
 
     private val info =
@@ -105,15 +108,15 @@ class ConnectionViewModel(
         }
     }
 
-    private val alternatives = combine(definition, info, ::createAlternatives)
-        .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), Alternatives())
+    private val alternatives = combine(definition, info, ::createDataFromDefinition)
+        .stateInViewModel(SharingStarted.WhileSubscribed(5.seconds), ConnectionData(Alternatives(), definition.value.currentCoordinates))
 
     @OptIn(ExperimentalTime::class)
-    val state = alternatives.combineStates(coordinates) { alternatives, coordinates ->
-        if (alternatives.isEmpty()) return@combineStates null
+    val state = alternatives.mapState { (alternatives, coordinates) ->
+        if (alternatives.isEmpty()) return@mapState null
 
-        val first = alternatives[coordinates.first()].part ?: return@combineStates null
-        val last = alternatives[coordinates].part ?: return@combineStates null
+        val first = alternatives[coordinates.first()].part ?: return@mapState null
+        val last = alternatives[coordinates].part ?: return@mapState null
         val start = first.departure.atDate(first.date)
         val end = last.arrival.atDate(last.date)
 
@@ -127,21 +130,25 @@ class ConnectionViewModel(
 
     fun onEvent(e: ConnectionEvent) = when (e) {
         is ConnectionEvent.SelectBus -> {
-            val clickCoordinates: Coordinates = coordinates.value.take(e.level + 1)
-            val bus = definition.value[clickCoordinates].part
+            val (rootAlternatives, currentCoordinates) = definition.value
+            val clickCoordinates: Coordinates = currentCoordinates.take(e.level + 1)
+            val bus = rootAlternatives[clickCoordinates].part
             navigator.navigate(
                 Route.Bus(bus.date, bus.busName, bus.start, bus.end)
             )
         }
 
         is ConnectionEvent.OnSwipe -> {
-            val parentCoordinates: Coordinates = coordinates.value.take(e.level)
-            val alternatives = alternatives.value.getAlternatives(parentCoordinates)
+            val (rootAlternatives, currentCoordinates) = alternatives.value
+            val parentCoordinates: Coordinates = currentCoordinates.take(e.level)
+            val alternatives = rootAlternatives.getAlternatives(parentCoordinates)
             if (e.newPage == alternatives.size) launch {
                 searchConnection(e.newPage, alternatives, parentCoordinates)
             } else {
                 val rest = alternatives[e.newPage].next.getCoordinatesOfFirstConnection()
-                coordinates.value = parentCoordinates + e.newPage + rest
+                definition.update {
+                    it.copy(currentCoordinates = parentCoordinates + e.newPage + rest)
+                }
             }
             Unit
         }
@@ -202,23 +209,29 @@ class ConnectionViewModel(
             endStopPlatform = end.platform,
             stopCount = this.end - this.start,
             direction = middleDestination ?: stopNames.last(),
-            length = end.arrival - start.departure,
+            length = end.arrival.atDate(date) - start.departure.atDate(date),
         )
     }
 
-    private suspend fun createAlternatives(
-        def: AlternativesDefinition,
+    private suspend fun createDataFromDefinition(
+        def: DefinitionData,
+        info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
+    ) = ConnectionData(
+        rootAlternatives = def.rootAlternatives.toAlternatives(info),
+        currentCoordinates = def.currentCoordinates,
+    )
+
+    private suspend fun AlternativesDefinition.toAlternatives(
         info: Map<BusName, Map.Entry<ConnectionBusInfo, List<StopNameTime>>>,
         coordinates: Coordinates = emptyList(),
         previousPartEnd: Pair<LocalDateTime, Platform?>? = null,
-    ): Alternatives = def.mapIndexed { i, def ->
+    ): Alternatives = mapIndexed { i, def ->
         val (thisPartEnd, part) =
             def.part.toConnectionBus(info, previousPartEnd)
 
-        ConnectionTree(
+        ConnectionTreeNode(
             part = part,
-            next = createAlternatives(
-                def = def.next,
+            next = def.next.toAlternatives(
                 info = info,
                 coordinates = coordinates + i,
                 previousPartEnd = thisPartEnd,
@@ -229,13 +242,23 @@ class ConnectionViewModel(
     }
 }
 
+/**
+ * @return [Coordinates] of the left-most path in this tree
+ */
 fun Alternatives.getCoordinatesOfFirstConnection(): Coordinates =
     if (isEmpty()) emptyList() else listOf(0) + first().next.getCoordinatesOfFirstConnection()
 
+/**
+ * @return [Coordinates] of the left-most path in this tree
+ */
 @JvmName("getCoordinatesOfFirstConnectionDefinition")
 fun AlternativesDefinition.getCoordinatesOfFirstConnection(): Coordinates =
     if (isEmpty()) emptyList() else listOf(0) + first().next.getCoordinatesOfFirstConnection()
 
+/**
+ * Adds a child to the node at the [coordinates]
+ * @return The modified tree
+ */
 private fun AlternativesDefinition.addAt(coordinates: Coordinates, tree: TreeDefinition): AlternativesDefinition {
     if (coordinates.isEmpty()) return this + tree
     val first = coordinates.first()

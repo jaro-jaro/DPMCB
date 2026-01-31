@@ -28,6 +28,7 @@ import cz.jaro.dpmcb.data.helperclasses.findMiddleStop
 import cz.jaro.dpmcb.data.helperclasses.maxDatabaseInsertBatchSize
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.runsAt
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.timeHere
@@ -62,6 +63,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atDate
 import kotlin.collections.filterNot
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -180,8 +182,8 @@ class SpojeRepository(
                 },
                 stops = noCodes.map {
                     BusStop(
-                        time = it.time!!,
-                        arrival = it.arrival.takeIf { a -> a != it.time },
+                        time = it.time!!.atDate(date),
+                        arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                         name = it.name,
                         line = it.line.toShortLine(),
                         connName = it.connName,
@@ -398,8 +400,8 @@ class SpojeRepository(
                     },
                     noCodes.map {
                         BusStop(
-                            time = it.time!!,
-                            arrival = it.arrival.takeIf { a -> a != it.time },
+                            time = it.time!!.atDate(date),
+                            arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                             name = it.name,
                             line = it.line.toShortLine(),
                             connName = it.connName,
@@ -689,7 +691,8 @@ class SpojeRepository(
     private suspend fun getNowRunning(): List<BusName> {
         return todayRunningBusBoundaries(SystemClock.todayHere()).await()
             .filterValues { buses ->
-                buses.first().second.start - 30.minutes < SystemClock.timeHere() && SystemClock.timeHere() < buses.last().second.end
+                buses.first().second.start.atDate(SystemClock.todayHere()) - 30.minutes < SystemClock.nowHere()
+                        && SystemClock.timeHere() < buses.last().second.end
             }
             .mapValues { (_, buses) ->
                 buses.find { SystemClock.timeHere() < it.second.end }?.first ?: buses.last().first

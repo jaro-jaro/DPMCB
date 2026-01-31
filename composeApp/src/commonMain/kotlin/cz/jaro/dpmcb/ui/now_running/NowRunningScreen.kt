@@ -260,7 +260,7 @@ private fun LazyListScope.line(
             Text(text = bus.nextStopTime.toString())
             if (online) bus.delay?.let { delay ->
                 Text(
-                    text = (bus.nextStopTime + delay.truncatedToSeconds()).toString(),
+                    text = (bus.nextStopTime + delay.truncatedToSeconds()).time.toString(),
                     Modifier.padding(start = 8.dp),
                     color = colorOfDelayText(delay),
                 )

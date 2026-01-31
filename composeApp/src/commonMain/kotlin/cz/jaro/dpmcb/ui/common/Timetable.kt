@@ -48,11 +48,11 @@ import cz.jaro.dpmcb.data.realtions.PartOfConn
 import cz.jaro.dpmcb.data.realtions.canGetOn
 import cz.jaro.dpmcb.data.realtions.isNullOrEmpty
 import cz.jaro.dpmcb.ui.theme.Colors
-import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDateTime
 import kotlin.time.Duration.Companion.minutes
 
 sealed interface TimetableEvent {
-    data class StopClick(val stopName: String, val time: LocalTime) : TimetableEvent
+    data class StopClick(val stopName: String, val time: LocalDateTime) : TimetableEvent
     data class TimetableClick(val line: ShortLine, val stop: String, val platform: Platform, val direction: Direction,) : TimetableEvent
 }
 
@@ -100,7 +100,7 @@ fun Timetable(
         val isFirst = indexOnBus == 0
         val isLast = indexOnBus == lastIndex
         val passed = traveledSegments >= indexOnBus
-        val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time }
+        val onlineStop = onlineConnStops?.find { it.scheduledTime == stop.time.time }
         val previousOnlineStop = onlineConnStops?.getOrNull(onlineConnStops.indexOf(onlineStop) - 1)
         val highlighted = highlight == null || indexOnBus in highlight
         val defaultColor =
@@ -167,14 +167,14 @@ fun Timetable(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "${stop.arrival ?: stop.time}",
+                    text = "${stop.arrival?.time ?: stop.time.time}",
                     color = defaultColor,
                 )
                 if (stop.arrival != null && previousOnlineStop != null) Text(
-                    text = "${stop.arrival + previousOnlineStop.delay}",
+                    text = "${(stop.arrival + previousOnlineStop.delay).time}",
                     color = colorOfDelayText(previousOnlineStop.delay).copy(alpha = a),
                 ) else if (onlineStop != null) Text(
-                    text = "${stop.time + onlineStop.delay}",
+                    text = "${(stop.time + onlineStop.delay).time}",
                     color = colorOfDelayText(onlineStop.delay).copy(alpha = a),
                 )
             }
@@ -195,11 +195,11 @@ fun Timetable(
 
             if (stop.arrival != null) {
                 Text(
-                    text = "${stop.time}",
+                    text = "${stop.time.time}",
                     color = defaultColor,
                 )
                 if (onlineStop != null) Text(
-                    text = "${stop.time.coerceAtLeast(stop.arrival + onlineStop.delay)}",
+                    text = "${stop.time.coerceAtLeast(stop.arrival + onlineStop.delay).time}",
                     color = colorOfDelayText((stop.arrival + onlineStop.delay - stop.time).coerceAtLeast(0.minutes)).copy(alpha = a),
                 )
             }

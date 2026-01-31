@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -69,10 +70,12 @@ import cz.jaro.dpmcb.ui.departures.asString
 import cz.jaro.dpmcb.ui.main.DrawerAction
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
+import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
+context(logger: Logger)
 @Suppress("unused")
 @Composable
 fun Connection(
@@ -96,6 +99,7 @@ fun Connection(
     )
 }
 
+context(logger: Logger)
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalTime::class)
 @Composable
 fun ConnectionScreen(
@@ -127,7 +131,7 @@ fun ConnectionScreen(
         Column(Modifier.animateContentSize().fillMaxWidth().padding(horizontal = 8.dp)) {
             val textMeasurer = rememberTextMeasurer(64)
             val maxWidth = textMeasurer.measureDurationsWidth(state.buses, state.coordinates)
-            RecursiveDetails(onEvent, state.buses, state.coordinates, maxWidth, textMeasurer)
+            RecursiveDetails(onEvent, state.buses, state.start.date, state.coordinates, maxWidth, textMeasurer)
         }
     }
 }
@@ -148,21 +152,28 @@ fun Alternatives.currentDurations(coordinates: Coordinates): List<Duration?> {
     return tree.next.currentDurations(rest) + tree.part?.transferTime + tree.part?.length
 }
 
+context(logger: Logger)
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun RecursiveDetails(
     onEvent: (ConnectionEvent) -> Unit,
     alternatives: Alternatives,
+    startDate: LocalDate,
     setCoordinates: Coordinates,
     maxWidth: Int,
     textMeasurer: TextMeasurer,
     level: Int = 0,
     phase: Int = 0,
+    isInSetConnection: Boolean = true,
 ) {
     val setPage = setCoordinates.first()
     val isFirst = level == 0
-    val pagerState = rememberPagerState { /*if (isFirst) 1 else */alternatives.size + 1 }
+    val pagerState = rememberPagerState(initialPage = 0) { alternatives.size + 1 }
+    LaunchedEffect(Unit) {
+        pagerState.scrollToPage(0)
+    }
     LaunchedEffect(pagerState.currentPage) {
+        if (!isInSetConnection) return@LaunchedEffect
         val newPage = pagerState.currentPage
         if (newPage == setPage + 1 || newPage == setPage - 1)
             onEvent(ConnectionEvent.OnSwipe(level, newPage))
@@ -189,7 +200,7 @@ private fun RecursiveDetails(
             val localMaxWidth = textMeasurer.measureDurationsWidth(alternatives, localCoordinates)
             val maxWidth = if (page == setPage) maxWidth else localMaxWidth
             BusDetails(
-                onEvent, bus, maxWidth, level, isFirst, isLast, phase,
+                onEvent, startDate, bus, maxWidth, level, isFirst, isLast, phase,
                 Modifier.onSizeChanged {
                     totalHeight.value = it.height
                 }
@@ -197,11 +208,13 @@ private fun RecursiveDetails(
             if (!isLast) RecursiveDetails(
                 onEvent = onEvent,
                 alternatives = next,
+                startDate = startDate,
                 setCoordinates = if (page == setPage) setCoordinates.drop(1) else localCoordinates.drop(1),
                 maxWidth = maxWidth,
                 textMeasurer = textMeasurer,
                 level = level + 1,
                 phase = phase + totalHeight.value,
+                isInSetConnection = page == setPage,
             )
         }
     }
@@ -211,6 +224,7 @@ private fun RecursiveDetails(
 @OptIn(ExperimentalMaterial3Api::class)
 private fun BusDetails(
     onEvent: (ConnectionEvent) -> Unit,
+    startDate: LocalDate,
     bus: ConnectionBus,
     maxWidth: Int,
     level: Int,
@@ -218,62 +232,40 @@ private fun BusDetails(
     isLast: Boolean,
     phase: Int,
     modifier: Modifier = Modifier,
-) = Row(
-    modifier
-        .clickable {
-            onEvent(ConnectionEvent.SelectBus(level))
-        }
-        .height(IntrinsicSize.Max)
-) {
-    val busRowHeight = remember { mutableStateOf(0) }
-    val directionRowHeight = remember { mutableStateOf(0) }
+) = Column {
     val transferRowHeight = remember { mutableStateOf(null as Int?) }
-    val departureRowHeight = remember { mutableStateOf(0) }
-    val arrivalRowHeight = remember { mutableStateOf(0) }
-
     val density = LocalDensity.current
-    val transferRowHeightDp = with(density) { transferRowHeight.value?.toDp() }
-    val departureRowHeightDp = with(density) { departureRowHeight.value.toDp() }
-    val busRowHeightDp = with(density) { busRowHeight.value.toDp() }
-    val directionRowHeightDp = with(density) { directionRowHeight.value.toDp() }
-    val arrivalRowHeightDp = with(density) { arrivalRowHeight.value.toDp() }
 
-    Column(
-        Modifier.animateContentSize(alignment = Alignment.CenterEnd).fillMaxHeight().width(with(density) { maxWidth.toDp() }),
-        horizontalAlignment = Alignment.End,
+    Row(
+        modifier
+            .height(IntrinsicSize.Max)
     ) {
-        if (bus.transferTime != null) Box(
-            Modifier.height(transferRowHeightDp ?: 0.dp),
-            contentAlignment = Alignment.CenterEnd
+        Column(
+            Modifier.animateContentSize(alignment = Alignment.CenterEnd).fillMaxHeight().width(with(density) { maxWidth.toDp() }),
+            horizontalAlignment = Alignment.End,
         ) {
-            Text(
-                text = bus.transferTime.asString(),
-                color = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                overflow = TextOverflow.Visible,
-            )
+            val transferRowHeightDp = with(density) { transferRowHeight.value?.toDp() }
+            if (bus.transferTime != null) Box(
+                Modifier.height(transferRowHeightDp ?: 0.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    text = bus.transferTime.asString(),
+                    color = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    overflow = TextOverflow.Visible,
+                )
+            }
         }
 
-        Box(Modifier.height(departureRowHeightDp), contentAlignment = Alignment.CenterEnd) {
-            Text("${bus.departure}")
-        }
-        Box(Modifier.height(busRowHeightDp), contentAlignment = Alignment.CenterEnd) {
-            Text(
-                text = bus.length.asString(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                overflow = TextOverflow.Visible,
-            )
-        }
-        Spacer(Modifier.height(directionRowHeightDp))
-        Box(Modifier.height(arrivalRowHeightDp), contentAlignment = Alignment.CenterEnd) {
-            Text("${bus.arrival}")
-        }
-    }
+        Spacer(
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+                .fillMaxHeight()
+                .width(24.dp)
+        )
 
-    Line(bus, isFirst, isLast, busRowHeight, directionRowHeight, transferRowHeight, departureRowHeight, arrivalRowHeight, phase)
-
-    Column(Modifier.weight(1F)) {
         if (bus.transferTime != null) Row(
-            Modifier.onSizeChanged {
+            Modifier.weight(1F).onSizeChanged {
                 transferRowHeight.value = it.height
             },
             verticalAlignment = Alignment.CenterVertically,
@@ -290,36 +282,78 @@ private fun BusDetails(
                 color = if (bus.transferTight) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        Row(Modifier.onSizeChanged {
-            departureRowHeight.value = it.height
-        }) {
-            Text(stopNameText(bus.startStop, bus.startStopPlatform))
-        }
-        Row(Modifier.onSizeChanged {
-            busRowHeight.value = it.height
-        }) {
-            Name(
-                name = "${bus.line}",
-                Modifier.padding(end = 8.dp),
-                suffix = "/" + bus.bus.bus(),
-                color = invertedIconColor(bus.isTrolleybus),
-            )
-        }
-        Row(Modifier.onSizeChanged {
-            directionRowHeight.value = it.height
-        }) {
-            val stops = when (bus.stopCount) {
-                1 -> "zastávka"
-                2, 3, 4 -> "zastávky"
-                else -> "zastávek"
+    }
+    Row(
+        modifier
+            .clickable {
+                onEvent(ConnectionEvent.SelectBus(level))
             }
-            Text("-> ${bus.direction}, ${bus.stopCount} $stops", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            .height(IntrinsicSize.Max)
+    ) {
+        val busRowHeight = remember { mutableStateOf(0) }
+        val directionRowHeight = remember { mutableStateOf(0) }
+        val departureRowHeight = remember { mutableStateOf(0) }
+        val arrivalRowHeight = remember { mutableStateOf(0) }
+
+        val departureRowHeightDp = with(density) { departureRowHeight.value.toDp() }
+        val busRowHeightDp = with(density) { busRowHeight.value.toDp() }
+        val directionRowHeightDp = with(density) { directionRowHeight.value.toDp() }
+        val arrivalRowHeightDp = with(density) { arrivalRowHeight.value.toDp() }
+
+        Column(
+            Modifier.animateContentSize(alignment = Alignment.CenterEnd).fillMaxHeight().width(with(density) { maxWidth.toDp() }),
+            horizontalAlignment = Alignment.End,
+        ) {
+            val dateText = if (bus.date == startDate) "" else bus.date.asStringDM() + " "
+            Box(Modifier.height(departureRowHeightDp), contentAlignment = Alignment.CenterEnd) {
+                Text("${dateText}${bus.departure}")
+            }
+            Box(Modifier.height(busRowHeightDp), contentAlignment = Alignment.CenterEnd) {
+                Text(
+                    text = bus.length.asString(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    overflow = TextOverflow.Visible,
+                )
+            }
+            Spacer(Modifier.height(directionRowHeightDp))
+            Box(Modifier.height(arrivalRowHeightDp), contentAlignment = Alignment.CenterEnd) {
+                Text("${dateText}${bus.arrival}")
+            }
         }
-        Row(Modifier.onSizeChanged {
-            arrivalRowHeight.value = it.height
-        }) {
-            Text(stopNameText(bus.endStop, bus.endStopPlatform))
+
+        Line(bus, isFirst, isLast, busRowHeight, directionRowHeight, transferRowHeight, departureRowHeight, arrivalRowHeight, phase)
+
+        Column(Modifier.weight(1F)) {
+            Row(Modifier.onSizeChanged {
+                departureRowHeight.value = it.height
+            }) {
+                Text(stopNameText(bus.startStop, bus.startStopPlatform))
+            }
+            Row(Modifier.onSizeChanged {
+                busRowHeight.value = it.height
+            }) {
+                Name(
+                    name = "${bus.line}",
+                    Modifier.padding(end = 8.dp),
+                    suffix = "/" + bus.bus.bus(),
+                    color = invertedIconColor(bus.isTrolleybus),
+                )
+            }
+            Row(Modifier.onSizeChanged {
+                directionRowHeight.value = it.height
+            }) {
+                val stops = when (bus.stopCount) {
+                    1 -> "zastávka"
+                    2, 3, 4 -> "zastávky"
+                    else -> "zastávek"
+                }
+                Text("-> ${bus.direction}, ${bus.stopCount} $stops", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(Modifier.onSizeChanged {
+                arrivalRowHeight.value = it.height
+            }) {
+                Text(stopNameText(bus.endStop, bus.endStopPlatform))
+            }
         }
     }
 }
@@ -364,11 +398,11 @@ private fun Line(
             val transferRowHeight = (transferRowHeightState.value ?: 0) * 1F
             val busIconOffset = (busRowHeight - canvasWidth) / 2
 
-            val lineEnd = transferRowHeight + departureRowHeight + busRowHeight + directionRowHeight + arrivalRowHeight / 2
-            val lineStart = transferRowHeight + departureRowHeight / 2
+            val lineEnd = departureRowHeight + busRowHeight + directionRowHeight + arrivalRowHeight / 2
+            val lineStart = departureRowHeight / 2
             if (!isFirst) drawLine(
                 color = transferColor,
-                start = Offset(),
+                start = Offset(y = -transferRowHeight),
                 end = Offset(y = lineStart),
                 strokeWidth = lineWidth,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(lineDashLength, lineDashLength), phase * 1F),
@@ -386,7 +420,7 @@ private fun Line(
                 strokeWidth = lineWidth,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(lineDashLength, lineDashLength), phase * 1F + lineEnd),
             )
-            translate(left = -lineXOffset, top = transferRowHeight + departureRowHeight + busIconOffset) {
+            translate(left = -lineXOffset, top = departureRowHeight + busIconOffset) {
                 drawLayer(layer)
 //                drawRoundRect(lineColor, Offset(), Size(canvasWidth, canvasWidth), cornerRadius = CornerRadius(canvasWidth / 4, canvasWidth / 4))
             }

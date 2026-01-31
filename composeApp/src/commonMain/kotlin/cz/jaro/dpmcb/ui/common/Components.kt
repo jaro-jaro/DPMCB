@@ -130,8 +130,8 @@ import cz.jaro.dpmcb.data.helperclasses.awaitFrame
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleContainer
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayBubbleText
 import cz.jaro.dpmcb.data.helperclasses.cz
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.data.helperclasses.isTypeOf
-import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.toDelay
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.unaryPlus
@@ -154,12 +154,12 @@ import dpmcb.composeapp.generated.resources.parcial
 import dpmcb.composeapp.generated.resources.trolejbus
 import dpmcb.composeapp.generated.resources.zemeplyn
 import kotlinx.coroutines.delay
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.number
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.vectorResource
@@ -571,7 +571,7 @@ fun DateSelector(
 
     if (!hideArrows) IconButton(
         onClick = {
-            onDateChange(date - DatePeriod(days = 1))
+            onDateChange(date - 1.dayPeriod)
         },
     ) {
         IconWithTooltip(Icons.AutoMirrored.Default.ArrowLeft, "O den dříve")
@@ -588,7 +588,7 @@ fun DateSelector(
     }
     if (!hideArrows) IconButton(
         onClick = {
-            onDateChange(date + DatePeriod(days = 1))
+            onDateChange(date + 1.dayPeriod)
         },
     ) {
         IconWithTooltip(Icons.AutoMirrored.Default.ArrowRight, "O den později")

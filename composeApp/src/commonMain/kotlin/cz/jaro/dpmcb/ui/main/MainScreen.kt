@@ -97,9 +97,11 @@ import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
+import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
+import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.viewModel
@@ -116,7 +118,11 @@ import cz.jaro.dpmcb.ui.common.route
 import cz.jaro.dpmcb.ui.common.serializationTypePair
 import cz.jaro.dpmcb.ui.common.stringSerializationTypePair
 import cz.jaro.dpmcb.ui.common.typePair
+import cz.jaro.dpmcb.ui.connection.Connection
+import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
+import cz.jaro.dpmcb.ui.connection_results.ConnectionResults
 import cz.jaro.dpmcb.ui.connection_search.ConnectionSearch
+import cz.jaro.dpmcb.ui.connection_search.RelationsSerializer
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.find_bus.FindBus
 import cz.jaro.dpmcb.ui.map.Map
@@ -189,15 +195,15 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     Route.ConnectionResults::class -> mapOf(
         localDateTypePair,
         stringSerializationTypePair<SimpleTime>(),
-//        typePair(
-//            parseValue = { "\"$it\"".fromJson(RelationsSerializer()) },
-//            serializeAsValue = { it.toJson(RelationsSerializer()).removeSurrounding("\"") },
-//        ),
+        typePair(
+            parseValue = { "\"$it\"".fromJson(RelationsSerializer()) },
+            serializeAsValue = { it.toJson(RelationsSerializer()).removeSurrounding("\"") },
+        ),
         serializationTypePair<Boolean>(),
     )
 
     Route.Connection::class -> mapOf(
-//        stringSerializationTypePair<ConnectionDefinition>(),
+        stringSerializationTypePair<ConnectionDefinition>(),
     )
 
     Route.FindBus::class -> mapOf(
@@ -335,8 +341,8 @@ fun Main(
             },
         ) {
             route<Route.ConnectionSearch> { ConnectionSearch(args = it, navigator, superNavController) }
-//            route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
-//            route<Route.Connection> { Connection(args = it, navigator, superNavController) }
+            route<Route.ConnectionResults> { ConnectionResults(args = it, navigator, superNavController) }
+            route<Route.Connection> { Connection(args = it, navigator, superNavController) }
             route<Route.Chooser> { Chooser(args = it, navigator, superNavController) }
             route<Route.Departures> { Departures(args = it, navigator, superNavController) }
             route<Route.NowRunning> { NowRunning(args = it, navigator, superNavController) }

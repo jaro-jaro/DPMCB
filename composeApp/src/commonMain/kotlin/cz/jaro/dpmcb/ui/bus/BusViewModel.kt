@@ -9,14 +9,16 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
-import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
+import cz.jaro.dpmcb.data.helperclasses.truncatedToSeconds
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.lineTraction
 import cz.jaro.dpmcb.data.seqName
@@ -36,9 +38,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.datetime.toDateTimePeriod
+import kotlinx.datetime.plus
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -67,8 +68,8 @@ class BusViewModel(
             return@combine BusState.DoesNotRun(
                 busName = busName,
                 date = date,
-                runsNextTimeAfterToday = List(365) { SystemClock.todayHere() + it.days }.firstOrNull { runsAt(it) },
-                runsNextTimeAfterDate = List(365) { date + it.days }.firstOrNull { runsAt(it) },
+                runsNextTimeAfterToday = List(365) { SystemClock.todayHere() + it.dayPeriod }.firstOrNull { runsAt(it) },
+                runsNextTimeAfterDate = List(365) { date + it.dayPeriod }.firstOrNull { runsAt(it) },
                 timeCodes = filterTimeCodesAndMakeReadable(timeCodes),
                 fixedCodes = filterFixedCodesAndMakeReadable(fixedCodes, timeCodes),
                 lineCode = validityString(validity),
@@ -97,7 +98,7 @@ class BusViewModel(
             restriction = restriction,
             lineHeight = 0F,
             traveledSegments = 0,
-            shouldBeOnline = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= bus.stops.last().time,
+            shouldBeOnline = online && date == SystemClock.todayHere() && bus.stops.first().time <= SystemClock.nowHere() && SystemClock.nowHere() <= bus.stops.last().time,
             sequence = seq,
             sequenceName = with(repo) { seq?.seqName() },
             previousBus = bus.sequence?.let { seq ->
@@ -157,7 +158,7 @@ class BusViewModel(
 
         is BusEvent.TimetableClick -> {
             when (e.e) {
-                is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.toSimpleTime()))
+                is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(date, e.e.stopName, e.e.time.time.toSimpleTime()))
                 is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(date, e.e.line, e.e.stop, e.e.platform, e.e.direction))
             }
         }
@@ -174,7 +175,7 @@ class BusViewModel(
         .flowOn(Dispatchers.IO)
         .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
-    private val traveledSegments = combine(info, onlineState, timeFlow) { info, state, now ->
+    private val traveledSegments = combine(info, onlineState, nowFlow) { info, state, now ->
         when {
             info !is BusState.OK -> null
             info.stops.isEmpty() -> null
@@ -187,7 +188,7 @@ class BusViewModel(
         }
     }
 
-    private val lineHeight = combine(info, onlineState, timeFlow, traveledSegments) { info, state, now, traveledSegments ->
+    private val lineHeight = combine(info, onlineState, nowFlow, traveledSegments) { info, state, now, traveledSegments ->
 
         if (info !is BusState.OK) return@combine 0F
 
@@ -200,7 +201,7 @@ class BusViewModel(
         val netStopScheduledArrival = info.stops.getOrNull(traveledSegments + 1)?.run { arrival ?: time }
         val nextOnlineStop = state?.onlineTimetable?.stops?.getOrNull(traveledSegments + 1)
         val arrivalToNextStop = if (nextOnlineStop != null && netStopScheduledArrival != null)
-            netStopScheduledArrival + nextOnlineStop.delay + delay.toDateTimePeriod().seconds.seconds
+            netStopScheduledArrival + nextOnlineStop.delay + delay.truncatedToSeconds()
         else netStopScheduledArrival?.plus(delay)
 
         val length = arrivalToNextStop?.minus(departureFromLastStop) ?: Duration.INFINITE

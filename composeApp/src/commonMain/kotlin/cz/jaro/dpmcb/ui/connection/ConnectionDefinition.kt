@@ -2,11 +2,12 @@ package cz.jaro.dpmcb.ui.connection
 
 import cz.jaro.dpmcb.data.Connection
 import cz.jaro.dpmcb.data.entities.BusName
-import cz.jaro.dpmcb.data.helperclasses.plus
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.ui.main.parseDate
 import cz.jaro.dpmcb.ui.main.serialize
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
+import kotlinx.datetime.plus
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -18,7 +19,6 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmName
-import kotlin.time.Duration.Companion.days
 
 @Serializable
 @SerialName("ConnectionPartDefinition")
@@ -63,7 +63,7 @@ class ConnectionDefinitionSerializer : KSerializer<ConnectionDefinition> {
             val part = split[1]
             val (start, end) = part.split("..").map { it.toInt() }
             val offset = split.getOrElse(2) { "0" }
-            val date = if (p == null) offset.parseDate() else p.second + offset.toInt().days
+            val date = if (p == null) offset.parseDate() else p.second + offset.toInt().dayPeriod
             ConnectionPartDefinition(busName, date, start, end) to date
         }.drop(1).map { it!!.first }.toConnectionDefinition()
 }
@@ -80,6 +80,11 @@ fun Connection.toConnectionDefinition(): ConnectionDefinition = map {
 
 typealias AlternativesDefinition = List<TreeDefinition>
 fun AlternativesDefinition(vararg items: TreeDefinition): AlternativesDefinition = items.toList()
+
+data class DefinitionData(
+    val rootAlternatives: AlternativesDefinition,
+    val currentCoordinates: Coordinates,
+)
 
 fun AlternativesDefinition.divide(i: Int): Triple<AlternativesDefinition, TreeDefinition, AlternativesDefinition> =
     Triple(take(i), get(i), drop(i + 1))

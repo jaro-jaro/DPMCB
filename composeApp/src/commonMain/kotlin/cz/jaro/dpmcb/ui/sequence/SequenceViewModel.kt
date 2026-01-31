@@ -8,18 +8,17 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.toShortLine
-import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.filterFixedCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.filterTimeCodesAndMakeReadable
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.runsAt
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
-import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.validityString
 import cz.jaro.dpmcb.data.seqConnection
@@ -63,7 +62,7 @@ class SequenceViewModel(
             ?: return@info SequenceState.DoesNotExist(params.sequence, with(repo) { params.sequence.seqName() }, params.date)
 
         val runningBus = sequence.buses.find { (_, stops) ->
-            stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
+            stops.first().time <= SystemClock.nowHere() && SystemClock.nowHere() <= stops.last().time
         }
 
         SequenceState.OK(
@@ -113,13 +112,13 @@ class SequenceViewModel(
         .flowOn(Dispatchers.IO)
         .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
-    private val traveledSegments = combine(info, nowRunningOnlineConn, timeFlow) { info, onlineConn, now ->
+    private val traveledSegments = combine(info, nowRunningOnlineConn, nowFlow) { info, onlineConn, now ->
 
         if (info !is SequenceState.OK) return@combine null
 
         val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
-                stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
+                stops.first().time <= SystemClock.nowHere() && SystemClock.nowHere() <= stops.last().time
             }
 
         when {
@@ -132,7 +131,7 @@ class SequenceViewModel(
         }
     }
 
-    private val lineHeight = combine(info, nowRunningOnlineConn, timeFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
+    private val lineHeight = combine(info, nowRunningOnlineConn, nowFlow, traveledSegments) { info, onlineConn, now, traveledSegments ->
 
         if (info !is SequenceState.OK) return@combine 0F
 
@@ -140,7 +139,7 @@ class SequenceViewModel(
 
         val runningBus = onlineConn?.let { info.buses.find { it.busName == onlineConn.name } }
             ?: info.buses.find { (_, stops) ->
-                stops.first().time <= SystemClock.timeHere() && SystemClock.timeHere() <= stops.last().time
+                stops.first().time <= SystemClock.nowHere() && SystemClock.nowHere() <= stops.last().time
             }
 
         if (runningBus == null) return@combine 0F
@@ -201,7 +200,7 @@ class SequenceViewModel(
         is SequenceEvent.BusClick -> navigator.navigate(Route.Bus(params.date, e.busName))
         is SequenceEvent.SequenceClick -> navigator.navigate(Route.Sequence(params.date, e.sequence))
         is SequenceEvent.TimetableClick -> when (e.e) {
-            is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(params.date, e.e.stopName, e.e.time.toSimpleTime()))
+            is TimetableEvent.StopClick -> navigator.navigate(Route.Departures(params.date, e.e.stopName, e.e.time.time.toSimpleTime()))
             is TimetableEvent.TimetableClick -> navigator.navigate(Route.Timetable(params.date, e.e.line, e.e.stop, e.e.platform, e.e.direction))
         }
 

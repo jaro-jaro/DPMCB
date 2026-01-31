@@ -28,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.timeHere
+import cz.jaro.dpmcb.data.helperclasses.nowHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import kotlinx.coroutines.launch
 import kotlin.time.ExperimentalTime
@@ -41,15 +41,15 @@ fun FABs(state: SequenceState.OK, lazyListState: LazyListState) {
     val now = remember(state.buses, state.date) {
         if (
             state.date != SystemClock.todayHere() || !state.runsToday ||
-            SystemClock.timeHere() < state.buses.first().stops.first().time ||
-            state.buses.last().stops.last().time < SystemClock.timeHere()
+            SystemClock.nowHere() < state.buses.first().stops.first().time ||
+            state.buses.last().stops.last().time < SystemClock.nowHere()
         ) null else
             state.buses.indexOfFirst {
                 it.isRunning
             }.takeUnless {
                 it == -1
             } ?: state.buses.indexOfFirst {
-                SystemClock.timeHere() < it.stops.last().time
+                SystemClock.nowHere() < it.stops.last().time
             }
     }
 

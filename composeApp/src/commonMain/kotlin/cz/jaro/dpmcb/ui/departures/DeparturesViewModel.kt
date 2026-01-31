@@ -16,13 +16,13 @@ import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combine
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.compare
-import cz.jaro.dpmcb.data.helperclasses.exactTime
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
+import cz.jaro.dpmcb.data.helperclasses.exactDatetime
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
-import cz.jaro.dpmcb.data.helperclasses.minus
+import cz.jaro.dpmcb.data.helperclasses.nowFlow
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.helperclasses.timeFlow
 import cz.jaro.dpmcb.data.helperclasses.timeHere
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.truncatedToMinutes
@@ -55,7 +55,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.atDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.collections.filterNot as remove
@@ -139,12 +141,12 @@ class DeparturesViewModel(
                 val currentNextStop = onlineConn?.nextStop?.let { nextStop ->
                     busStops
                         .findLast { it.time == nextStop }
-                        ?.let { it.name to it.time }
+                        ?.let { it.name to it.time.atDate(date) }
                 } ?: busStops
                     .takeIf { date == SystemClock.todayHere() }
                     ?.find { SystemClock.timeHere() < it.time }
                     ?.takeIf { it.time > busStops.first().time }
-                    ?.let { it.name to it.time }
+                    ?.let { it.name to it.time.atDate(date) }
                 val lastIndexOfThisStop = stopNames.lastIndexOf(stop.name).let {
                     if (it == thisStopIndex) busStops.lastIndex else it
                 }
@@ -155,7 +157,7 @@ class DeparturesViewModel(
                 DepartureState(
                     destination = destination ?: stopNames.last(),
                     lineNumber = stop.line.toShortLine(),
-                    time = stop.time,
+                    time = stop.time.atDate(date),
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
                     lineTraction = lineTraction,
@@ -171,7 +173,7 @@ class DeparturesViewModel(
     }
         .flowOn(Dispatchers.IO)
 
-    private val finalList = combine(list, info, timeFlow) { list, info, now ->
+    private val finalList = combine(list, info, nowFlow) { list, info, now ->
         list
             .sortedBy {
                 if (it.delay != null && (it.time + it.delay) > now) it.time + it.delay else it.time
@@ -194,8 +196,8 @@ class DeparturesViewModel(
         .stateInViewModel(SharingStarted.WhileSubscribed(5_000), null)
 
     init {
-        combine(info, finalList, timeFlow) { info, list, now ->
-            Quadruple(info, list, list?.indexOfNext(info.usedTime ?: now, now), list?.map { it.busName }?.toSet())
+        combine(info, finalList, nowFlow) { info, list, now ->
+            Quadruple(info, list, list?.indexOfNext(info.usedTime?.atDate(info.date) ?: now, now), list?.map { it.busName }?.toSet())
         }.compare(Quadruple(null, null, null, null)) {
                 (lastInfo, lastList, lastScrollIndex, lastBuses),
                 (info, list, scrollIndex, buses),
@@ -336,7 +338,7 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 val state = state.value
                 if (state !is DeparturesState.Runs) return@launch
-                scroll(state.departures.indexOfNext(state.info.usedTime ?: exactTime, exactTime), true)
+                scroll(state.departures.indexOfNext(state.info.usedTime?.atDate(state.info.date) ?: exactDatetime, exactDatetime), true)
             }
             Unit
         }
@@ -350,7 +352,7 @@ class DeparturesViewModel(
                 platform = info.value.platformFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
-                date = info.value.date + 1.days,
+                date = info.value.date + 1.dayPeriod,
             )
         )
 
@@ -363,7 +365,7 @@ class DeparturesViewModel(
                 platform = info.value.platformFilter,
                 onlyDepartures = info.value.justDepartures,
                 simple = info.value.compactMode,
-                date = info.value.date - 1.days,
+                date = info.value.date - 1.dayPeriod,
             )
         )
 
@@ -392,12 +394,12 @@ class DeparturesViewModel(
         this.scroll = scroll
         if (scrolled.value) return
         state.takeWhile {
-            when (state.value) {
+            when (val state = state.value) {
                 is DeparturesState.Loading -> true
                 is DeparturesState.NothingRuns -> false
                 is DeparturesState.Runs -> withContext(Dispatchers.Main) {
-                    val list = (state.value as DeparturesState.Runs).departures
-                    scroll(list.indexOfNext(params.time ?: exactTime, exactTime), false)
+                    val list = state.departures
+                    scroll(list.indexOfNext(params.time?.atDate(state.info.date) ?: exactDatetime, exactDatetime), false)
                     scrolled.value = true
 
                     false

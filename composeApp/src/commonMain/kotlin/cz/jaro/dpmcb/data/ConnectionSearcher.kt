@@ -5,8 +5,8 @@ import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.VehicleType
 import cz.jaro.dpmcb.data.helperclasses.PriorityQueue
+import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.data.helperclasses.minus
-import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.realtions.StopType
 import cz.jaro.dpmcb.data.realtions.canGetOff
 import cz.jaro.dpmcb.data.realtions.canGetOn
@@ -21,7 +21,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atDate
-import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
@@ -69,33 +70,37 @@ typealias Connection = List<ConnectionPart>
 
 data class ConnectionPart(
     val startStop: StopName,
-    val departure: LocalTime,
+    val departureTime: LocalTime,
     val departureIndexOnBus: Int,
     val departurePlatform: Platform?,
     val bus: BusName,
     val vehicleType: VehicleType?,
     val date: LocalDate,
-    val arrival: LocalTime,
+    val arrivalTime: LocalTime,
     val arrivalIndexOnBus: Int,
     val arrivalPlatform: Platform?,
     val endStop: StopName,
 ) {
-    override fun toString() = "$startStop ($departure) -> ($bus) $endStop ($arrival)"
+    val departure: LocalDateTime = departureTime.atDate(date)
+    val arrival: LocalDateTime = arrivalTime.atDate(date)
+    override fun toString() = "$startStop ($departureTime) -> ($bus) $endStop ($arrivalTime)"
 }
 
 private data class SearchTableRow(
     val cameFrom: StopName?,
-    val arrival: LocalTime,
+    val arrivalTime: LocalTime,
     val arrivalIndexOnBus: Int,
     val arrivalPlatform: Platform?,
-    val lastDeparture: LocalTime?,
+    val lastDepartureTime: LocalTime?,
     val lastDeparturePlatform: Platform?,
     val lastBus: BusName?,
     val vehicleType: VehicleType?,
     val date: LocalDate,
 //    val transfers: Int,
 ) {
-    override fun toString() = "$cameFrom ($lastDeparture) -> ($lastBus) $arrival"
+    val lastDeparture: LocalDateTime? = lastDepartureTime?.atDate(date)
+    val arrival: LocalDateTime = arrivalTime.atDate(date)
+    override fun toString() = "$cameFrom ($lastDepartureTime) -> ($lastBus) $arrivalTime"
 }
 
 private typealias SearchTable = Map<StopName, SearchTableRow>
@@ -380,13 +385,13 @@ class CommonConnectionSearcher private constructor(
             val last = parts.last()
             ConnectionPart(
                 startStop = first.startStop,
-                departure = first.departure,
+                departureTime = first.departureTime,
                 departureIndexOnBus = first.departureIndexOnBus,
                 departurePlatform = first.departurePlatform,
                 bus = bus,
                 date = first.date,
                 vehicleType = first.vehicleType,
-                arrival = last.arrival,
+                arrivalTime = last.arrivalTime,
                 arrivalIndexOnBus = last.arrivalIndexOnBus,
                 arrivalPlatform = last.arrivalPlatform,
                 endStop = last.endStop,
@@ -403,10 +408,10 @@ class CommonConnectionSearcher private constructor(
         val searchTable: MutableSearchTable = (mapOf(
             start to SearchTableRow(
                 cameFrom = null,
-                arrival = datetime.time,
+                arrivalTime = datetime.time,
                 arrivalIndexOnBus = -1,
                 arrivalPlatform = null,
-                lastDeparture = null,
+                lastDepartureTime = null,
                 lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
@@ -416,14 +421,14 @@ class CommonConnectionSearcher private constructor(
         ) + (allStops - start).associateWith {
             SearchTableRow(
                 cameFrom = null,
-                arrival = datetime.time,
+                arrivalTime = datetime.time,
                 arrivalIndexOnBus = -1,
                 arrivalPlatform = null,
-                lastDeparture = null,
+                lastDepartureTime = null,
                 lastDeparturePlatform = null,
                 lastBus = null,
                 vehicleType = null,
-                date = datetime.date + 100.days
+                date = datetime.date + 100.dayPeriod
 //            transfers = Int.MAX_VALUE,
             )
         }).toMutableMap()
@@ -437,22 +442,22 @@ class CommonConnectionSearcher private constructor(
 
             val row = searchTable[thisStop]!!
             val destinationRow = searchTable[destination]!!
-            val currentResult = destinationRow.arrival.atDate(destinationRow.date)
+            val currentResult = destinationRow.arrival
 
             val allOptions = strippedDownGraph[thisStop.log("Current")]!!
 
             val willSearchToPast = thisStop == start && searchToPast
 
-            val yesterday by lazy { allOptions.map { it to row.date - 1.days } }
+            val yesterday by lazy { allOptions.map { it to row.date - 1.dayPeriod } }
             val today by lazy { allOptions.map { it to row.date } }
-            val tomorrow by lazy { allOptions.map { it to row.date + 1.days } }
+            val tomorrow by lazy { allOptions.map { it to row.date + 1.dayPeriod } }
             val datedOptions = if (willSearchToPast) yesterday + today else today + tomorrow
 
             val runningOptions = datedOptions
                 .filter { (it, date) ->
                     val transfer = if (it.departurePlatform == row.arrivalPlatform) 0.seconds else 60.seconds
                     val departure = it.departure.atDate(date) - transfer
-                    val arrival = row.arrival.atDate(row.date)
+                    val arrival = row.arrival
                     val runsToday = it.to in allStops && runsAt[it.bus]!!(date)
                     if (willSearchToPast) departure < arrival && runsToday
                     else arrival <= departure && runsToday
@@ -476,9 +481,9 @@ class CommonConnectionSearcher private constructor(
                     next
                         ?.takeIf { (edge, date) ->
                             val targetRow = searchTable[to]!!
-                            val current = targetRow.arrival.atDate(targetRow.date)
+                            val current = targetRow.arrival
                             val new = edge.arrival.log(
-                                "Current", row.arrival, thisStop, edge.departure, "Next", to,
+                                "Current", row.arrivalTime, thisStop, edge.departure, "Next", to,
                                 "Using", edge.bus, "No transfer", noTransfer?.first?.bus,
                                 "Best time", current, "New time"
                             ).atDate(date)
@@ -487,13 +492,13 @@ class CommonConnectionSearcher private constructor(
                         ?.let { (edge, date) ->
                             searchTable[to] = SearchTableRow(
                                 cameFrom = thisStop,
-                                arrival = edge.arrival,
+                                arrivalTime = edge.arrival,
                                 arrivalIndexOnBus = edge.arrivalIndexOnBus,
                                 arrivalPlatform = edge.arrivalPlatform,
                                 lastBus = edge.bus,
                                 vehicleType = edge.vehicleType,
                                 date = date,
-                                lastDeparture = edge.departure,
+                                lastDepartureTime = edge.departure,
                                 lastDeparturePlatform = edge.departurePlatform,
 //                            transfers = if (noTransfer == null) row.transfers + 1 else row.transfers
                             )
@@ -508,25 +513,24 @@ class CommonConnectionSearcher private constructor(
     @OptIn(ExperimentalTime::class)
     private fun Connection.extendBusesFromEnd(): Connection {
         val newParts = toMutableList()
-        var currentIndex = newParts.size
 
-        while (--currentIndex > 0) {
+        (newParts.lastIndex downTo 1).forEach { currentIndex ->
             val thisPart = newParts[currentIndex]
             val previousPart = newParts[currentIndex - 1]
 
             val busStops = stops.getValue(thisPart.bus)
             val stopsBeforeThisPart = busStops.slice(0..<thisPart.departureIndexOnBus)
 
-            val lastPartDepartureOnThisBus = stopsBeforeThisPart.withIndex()
-                .findLast { it.value.name == previousPart.startStop && it.value.time >= previousPart.departure }
+            val lastPartStartOnThisBus = stopsBeforeThisPart.withIndex()
+                .findLast { it.value.name == previousPart.startStop && previousPart.departure <= it.value.time.atDate(thisPart.date) }
 
-            if (lastPartDepartureOnThisBus == null)
-                continue
+            if (lastPartStartOnThisBus == null)
+                return@forEach
 
             newParts[currentIndex] = thisPart.copy(
-                startStop = lastPartDepartureOnThisBus.value.name,
-                departure = lastPartDepartureOnThisBus.value.time,
-                departureIndexOnBus = lastPartDepartureOnThisBus.index
+                startStop = lastPartStartOnThisBus.value.name,
+                departureTime = lastPartStartOnThisBus.value.time,
+                departureIndexOnBus = lastPartStartOnThisBus.index
             )
             newParts.removeAt(currentIndex - 1)
         }
@@ -546,12 +550,12 @@ class CommonConnectionSearcher private constructor(
 
             reversedResult += ConnectionPart(
                 startStop = row.cameFrom!!,
-                departure = row.lastDeparture!!,
+                departureTime = row.lastDepartureTime!!,
                 departureIndexOnBus = row.arrivalIndexOnBus - 1,
                 departurePlatform = row.lastDeparturePlatform,
                 bus = row.lastBus!!,
                 vehicleType = row.vehicleType,
-                arrival = row.arrival,
+                arrivalTime = row.arrivalTime,
                 arrivalIndexOnBus = row.arrivalIndexOnBus,
                 arrivalPlatform = row.arrivalPlatform,
                 endStop = currentStop,
@@ -597,8 +601,8 @@ class DirectConnectionSearcher private constructor(
         private fun Sequence<ConnectionPart>.getDatedConnections(
             runsAt: Map<BusName, (LocalDate) -> Boolean>,
         ): Sequence<ConnectionPart> {
-            val yesterday = map { it.copy(date = it.date - 1.days) }
-            val tomorrow = map { it.copy(date = it.date + 1.days) }
+            val yesterday = map { it.copy(date = it.date - 1.dayPeriod) }
+            val tomorrow = map { it.copy(date = it.date + 1.dayPeriod) }
             val datedOptions = yesterday + this + tomorrow
 
             return datedOptions.filter {
@@ -630,13 +634,13 @@ class DirectConnectionSearcher private constructor(
                             .map { (j, end) ->
                                 ConnectionPart(
                                     startStop = start.name,
-                                    departure = start.departure!!,
+                                    departureTime = start.departure!!,
                                     departureIndexOnBus = i,
                                     departurePlatform = start.platform,
                                     bus = bus.connName,
                                     vehicleType = bus.vehicleType,
                                     date = date,
-                                    arrival = end.arrival!!,
+                                    arrivalTime = end.arrival!!,
                                     arrivalIndexOnBus = j,
                                     arrivalPlatform = end.platform,
                                     endStop = end.name,
@@ -660,8 +664,8 @@ class DirectConnectionSearcher private constructor(
         logTime("ČAS: Nalezeno všech $count spojení") {
             val filtered = connections
                 .filter {
-                    if (searchToPast) it.departure < datetime.time
-                    else datetime.time <= it.departure
+                    if (searchToPast) it.departure < datetime
+                    else datetime <= it.departure
                 }
             val connections = filtered
                 .drop(firstOffset)
