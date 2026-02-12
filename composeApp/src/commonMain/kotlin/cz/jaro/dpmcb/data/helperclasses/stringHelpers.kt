@@ -25,7 +25,6 @@ operator fun CharSequence.times(times: Int) = buildString {
     }
 }
 
-@IgnorableReturnValue
 context(builder: StringBuilder)
 operator fun String.unaryPlus() = builder.append(this)
 
