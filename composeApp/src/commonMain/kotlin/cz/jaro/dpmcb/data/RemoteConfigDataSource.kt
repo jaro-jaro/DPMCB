@@ -1,6 +1,7 @@
 package cz.jaro.dpmcb.data
 
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
+import cz.jaro.dpmcb.data.entities.RegistrationPlate
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import dev.gitlive.firebase.Firebase
@@ -29,6 +30,7 @@ import kotlin.time.Duration.Companion.hours
 interface GlobalSettingsDataSource {
     val vehiclesTraction: StateFlow<Map<Traction, List<ClosedRange<RegistrationNumber>>>?>
     val vehicleNames: StateFlow<Map<RegistrationNumber, String>?>
+    val vehicleNumbers: StateFlow<Map<RegistrationPlate, RegistrationNumber>?>
 }
 
 class RemoteConfigDataSource(
@@ -70,6 +72,10 @@ class RemoteConfigDataSource(
         Json.decodeFromString<Map<RegistrationNumber, String>>(remoteConfig["vehicleNames"])
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
+    override val vehicleNumbers = configActive.map {
+        Json.decodeFromString<Map<RegistrationPlate, RegistrationNumber>>(remoteConfig["vehicleNumbers"])
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
     object RegistrationNumberRangeSerializer : KSerializer<ClosedRange<RegistrationNumber>> {
         override val descriptor: SerialDescriptor get() = PrimitiveSerialDescriptor("RegistrationNumberRange", PrimitiveKind.STRING)
         override fun deserialize(decoder: Decoder) =
@@ -84,4 +90,8 @@ fun GlobalSettingsDataSource.vehicleTraction(vehicle: RegistrationNumber) =
         ranges.any { range -> vehicle in range }
     }?.key
 
-fun GlobalSettingsDataSource.vehicleName(vehicle: RegistrationNumber) = vehicleNames.value?.get(vehicle)
+fun GlobalSettingsDataSource.vehicleNumber(vehicle: RegistrationPlate) =
+    if (vehicle.startsWith("TROL")) vehicle.removePrefix("TROL").toInt().let(::RegistrationNumber)
+    else vehicleNumbers.value?.get(vehicle)
+fun GlobalSettingsDataSource.vehicleName(vehicle: RegistrationNumber?) = vehicleNames.value?.get(vehicle)
+fun GlobalSettingsDataSource.vehicleName(vehicle: RegistrationPlate) = vehicleName(vehicleNumber(vehicle))

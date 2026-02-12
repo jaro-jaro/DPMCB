@@ -13,7 +13,6 @@ import cz.jaro.dpmcb.data.jikord.MapData
 import cz.jaro.dpmcb.data.jikord.OnlineConn
 import cz.jaro.dpmcb.data.jikord.OnlineConnStop
 import cz.jaro.dpmcb.data.jikord.OnlineTimetable
-import cz.jaro.dpmcb.data.jikord.Transmitter
 import cz.jaro.dpmcb.data.jikord.toOnlineConn
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -38,7 +37,7 @@ import kotlin.time.ExperimentalTime
 class OnlineRepository(
     private val onlineModeManager: OnlineModeManager,
     private val repo: SpojeRepository,
-) : UserOnlineManager by repo {
+) : UserOnlineManager by repo, GlobalSettingsDataSource by repo {
     private val scope = MainScope()
 
     private val client = HttpClient()
@@ -70,7 +69,7 @@ class OnlineRepository(
             ?.filter {
                 it.cn?.startsWith("325") == true
             }
-            ?.map(Transmitter::toOnlineConn)
+            ?.map { it.toOnlineConn() }
             ?: emptyList()
         else emptyList()
 
