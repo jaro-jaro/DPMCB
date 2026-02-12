@@ -17,6 +17,7 @@ typealias SequenceGroup = Int
 typealias SequenceGroupCompanion = Int.Companion
 typealias StopName = String
 typealias Platform = String
+typealias RegistrationPlate = String
 
 @Serializable
 @JvmInline
