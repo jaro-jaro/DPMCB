@@ -5,14 +5,15 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.Platform
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.invalid
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.sorted
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
-import cz.jaro.dpmcb.data.work
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import cz.jaro.dpmcb.ui.main.Navigator
 import cz.jaro.dpmcb.ui.main.Route
@@ -34,9 +35,14 @@ class ChooserViewModel(
 
     data class Parameters(
         val type: ChooserType,
-        val lineNumber: ShortLine = ShortLine.invalid,
-        val stop: String?,
+        val lineNumber: LongLine = LongLine.invalid,
+        val stop: StopName?,
         val date: LocalDate,
+    )
+
+    data class Item(
+        val textValue: String,
+        val item: Any?,
     )
 
     lateinit var navigator: Navigator
@@ -45,24 +51,29 @@ class ChooserViewModel(
         when (params.type) {
             ChooserType.Lines,
             ChooserType.ReturnLine,
-                -> repo.lineNumbers(params.date).sorted().map { it.toString() }
+                -> repo.lineNumbers(params.date).sortedBy { it.toShortLine() }.map { Item(it.toShortLine().toString(), it) }
 
             ChooserType.Stops,
             ChooserType.ReturnStop1,
             ChooserType.ReturnStop2,
             ChooserType.ReturnStop,
             ChooserType.ReturnStopVia,
-                -> repo.stopNames(params.date).sortedBy { it.normalize() }
+                -> repo.stopNames(params.date)
+                .groupBy({ it.stopName }, { it.fareZone }).entries
+                .sortedBy { it.key.fullName.normalize() }
+                .map { Item("${it.key.printName} (${it.value.filterNotNull().sorted().joinToString()})", it.key) }
 
             ChooserType.LineStops,
-                -> repo.stopNamesOfLine(params.lineNumber.work("00"), params.date).distinct()
+                -> repo.stopNamesOfLine(params.lineNumber, params.date).distinct().map { Item(it.printName, it) }
 
             ChooserType.Platforms,
                 -> repo.platformsAndDirections(params.lineNumber, params.stop!!, params.date).await()
-                    .map { (platform, directions) -> "${platform.first} (-> ${directions.joinToString(" / ")})" }
+                .map { (platform, directions) ->
+                    Item("${platform.first} (-> ${directions.joinToString(" / ")})", platform to directions)
+                }
 
             ChooserType.ReturnPlatform,
-                -> repo.platformsOfStop(params.stop!!, params.date).await()
+                -> repo.platformsOfStop(params.stop!!, params.date).await().map { Item(it, it) }
         }
     }.asFlow()
 
@@ -84,7 +95,7 @@ class ChooserViewModel(
         else originalList
             .asSequence()
             .map { item ->
-                var normalisedItem = item.lowercase().removeNSM().split(" ")
+                var normalisedItem = item.textValue.lowercase().removeNSM().split(" ")
                 item to filter.toString().lowercase().removeNSM().split(" ").map { searchedWord ->
                     normalisedItem.indexOfFirst { itemWord ->
                         itemWord.startsWith(searchedWord)
@@ -99,7 +110,7 @@ class ChooserViewModel(
                 searchedWordIndexes.all { it != -1 }
             }
             .sortedBy { (item, _) ->
-                item
+                item.textValue
             }
             .sortedWith(
                 Comparator { (_, aList), (_, bList) ->
@@ -139,18 +150,18 @@ class ChooserViewModel(
     private fun String.removeNSM() = normalize().replace("[ˇ'°]".toRegex(), "")
 
     private fun done(
-        result: String,
+        result: Item,
     ) = when (params.type) {
         ChooserType.Stops -> navigator.navigate(
             Route.Departures(
-                stop = result,
+                stop = result.item as StopName,
                 date = params.date,
             )
         )
 
         ChooserType.Lines -> navigator.navigate(
             Route.Chooser(
-                lineNumber = result.toShortLine(),
+                lineNumber = result.item as LongLine,
                 type = ChooserType.LineStops,
                 date = params.date,
             )
@@ -158,13 +169,14 @@ class ChooserViewModel(
 
         ChooserType.LineStops -> {
             launch(Dispatchers.IO) {
-                repo.platformsAndDirections(params.lineNumber, result, params.date).await().let { stops ->
+                val stop = result.item as StopName
+                repo.platformsAndDirections(params.lineNumber, stop, params.date).await().let { stops ->
                     withContext(Dispatchers.Main) {
                         navigator.navigate(
                             if (stops.size == 1)
                                 Route.Timetable(
                                     lineNumber = params.lineNumber,
-                                    stop = result,
+                                    stop = stop,
                                     platform = stops.entries.single().key.first,
                                     date = params.date,
                                     direction = stops.entries.single().key.second,
@@ -172,7 +184,7 @@ class ChooserViewModel(
                             else
                                 Route.Chooser(
                                     lineNumber = params.lineNumber,
-                                    stop = result,
+                                    stop = stop,
                                     type = ChooserType.Platforms,
                                     date = params.date,
                                 )
@@ -202,21 +214,23 @@ class ChooserViewModel(
 
         ChooserType.ReturnStop1,
         ChooserType.ReturnStop2,
-        ChooserType.ReturnLine,
         ChooserType.ReturnStop,
         ChooserType.ReturnStopVia,
+            -> navigator.navigateBackWithResult(ChooserResult(result.item as StopName, params.type))
+        ChooserType.ReturnLine,
+            -> navigator.navigateBackWithResult(ChooserResult(result.item as LongLine, params.type))
         ChooserType.ReturnPlatform,
-            -> navigator.navigateBackWithResult(ChooserResult(result, params.type))
+            -> navigator.navigateBackWithResult(ChooserResult(result.item as Platform, params.type))
     }
 
     fun ChooserState(
-        list: Collection<String> = emptyList(),
+        list: Collection<Item> = emptyList(),
     ) = ChooserState(
         type = params.type,
         search = search,
         info = when (params.type) {
-            ChooserType.LineStops -> "${params.lineNumber}: ?"
-            ChooserType.Platforms -> "${params.lineNumber}: ${params.stop}"
+            ChooserType.LineStops -> "${params.lineNumber.toShortLine()}: ?"
+            ChooserType.Platforms -> "${params.lineNumber.toShortLine()}: ${params.stop}"
             else -> ""
         },
         list = list.toList(),

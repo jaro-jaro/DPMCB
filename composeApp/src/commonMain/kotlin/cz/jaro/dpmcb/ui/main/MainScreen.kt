@@ -92,16 +92,14 @@ import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
-import cz.jaro.dpmcb.data.helperclasses.fromJson
 import cz.jaro.dpmcb.data.helperclasses.navigateToRouteFunction
 import cz.jaro.dpmcb.data.helperclasses.superNavigateFunction
 import cz.jaro.dpmcb.data.helperclasses.timeFlow
-import cz.jaro.dpmcb.data.helperclasses.toJson
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.helperclasses.two
 import cz.jaro.dpmcb.data.viewModel
@@ -122,7 +120,7 @@ import cz.jaro.dpmcb.ui.connection.Connection
 import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
 import cz.jaro.dpmcb.ui.connection_results.ConnectionResults
 import cz.jaro.dpmcb.ui.connection_search.ConnectionSearch
-import cz.jaro.dpmcb.ui.connection_search.RelationsSerializer
+import cz.jaro.dpmcb.ui.connection_search.Relations
 import cz.jaro.dpmcb.ui.departures.Departures
 import cz.jaro.dpmcb.ui.find_bus.FindBus
 import cz.jaro.dpmcb.ui.map.Map
@@ -175,30 +173,31 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
-        serializationTypePair<ShortLine>(),
+        serializationTypePair<LongLine>(),
+        stringSerializationTypePair<StopName?>(),
         localDateTypePair,
     )
 
     Route.Departures::class -> mapOf(
         stringSerializationTypePair<SimpleTime>(),
+        stringSerializationTypePair<StopName>(),
+        stringSerializationTypePair<StopName?>(),
         serializationTypePair<Boolean?>(),
-        serializationTypePair<ShortLine?>(),
+        serializationTypePair<LongLine?>(),
         localDateTypePair,
     )
 
     Route.ConnectionSearch::class -> mapOf(
         localDateTypePair,
         stringSerializationTypePair<SimpleTime?>(),
+        stringSerializationTypePair<StopName?>(),
         serializationTypePair<Boolean?>(),
     )
 
     Route.ConnectionResults::class -> mapOf(
         localDateTypePair,
         stringSerializationTypePair<SimpleTime>(),
-        typePair(
-            parseValue = { "\"$it\"".fromJson(RelationsSerializer()) },
-            serializeAsValue = { it.toJson(RelationsSerializer()).removeSurrounding("\"") },
-        ),
+        stringSerializationTypePair<Relations>(),
         serializationTypePair<Boolean>(),
     )
 
@@ -212,7 +211,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
-        serializationTypePair<List<ShortLine>>(),
+        serializationTypePair<List<LongLine>>(),
         localDateTypePair,
     )
 
@@ -222,8 +221,9 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     )
 
     Route.Timetable::class -> mapOf(
-        serializationTypePair<ShortLine>(),
+        serializationTypePair<LongLine>(),
         stringSerializationTypePair<Direction>(),
+        stringSerializationTypePair<StopName>(),
         localDateTypePair,
     )
 

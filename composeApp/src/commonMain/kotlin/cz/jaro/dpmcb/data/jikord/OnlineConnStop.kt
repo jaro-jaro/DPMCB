@@ -1,6 +1,5 @@
 package cz.jaro.dpmcb.data.jikord
 
-//import com.fleeksoft.ksoup.nodes.Element
 import com.fleeksoft.ksoup.nodes.Element
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.StopName
@@ -19,7 +18,7 @@ data class OnlineConnStop(
 fun OnlineConnStop(row: Element): OnlineConnStop {
     val children = row.getElementsByTag("td").map { it.text() }
     return OnlineConnStop(
-        name = children[0],
+        name = StopName("", "", children[0]), // TODO!!!
         platform = children[1],
         scheduledTime = children[2].toTime(),
         delay = children[3].toInt().minutes,

@@ -10,6 +10,7 @@ import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.generated.Conn
 import cz.jaro.dpmcb.data.generated.ConnStop
@@ -29,7 +30,7 @@ class ValueColumnAdapter<T : Any, S>(
     override fun encode(value: T): S = value.getter()
 }
 
-class AliasColumnAdapter<T : Any>() : ColumnAdapter<T, T> {
+class AliasColumnAdapter<T : Any> : ColumnAdapter<T, T> {
     override fun decode(databaseValue: T): T = databaseValue
     override fun encode(value: T): T = value
 }
@@ -53,6 +54,11 @@ object LocalDateColumnAdapter : ColumnAdapter<LocalDate, String> {
 object LocalTimeColumnAdapter : ColumnAdapter<LocalTime, String> {
     override fun decode(databaseValue: String) = LocalTime.parse(databaseValue)
     override fun encode(value: LocalTime) = value.toString()
+}
+
+object StopNameColumnAdapter : ColumnAdapter<StopName, String> {
+    override fun decode(databaseValue: String) = StopName.deserialize(databaseValue)
+    override fun encode(value: StopName) = value.serialize()
 }
 
 private val adapterTable = ValueColumnAdapter(::Table, Table::value)
@@ -108,6 +114,8 @@ fun createDatabase(
         tabAdapter = adapterTable,
         stopNumberAdapter = IntColumnAdapter,
         lineAdapter = adapterLongLine,
+        stopNameAdapter = StopNameColumnAdapter,
+        fareZoneAdapter = IntColumnAdapter,
     ),
     TimeCodeAdapter = TimeCode.Adapter(
         tabAdapter = adapterTable,

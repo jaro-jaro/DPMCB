@@ -107,7 +107,7 @@ fun ConnectionSearch(
     AppState.selected = DrawerAction.Connection
 
     LifecycleResumeEffect(Unit) {
-        val result = navigator.getResult<ChooserResult>()
+        val result = navigator.getResult<ChooserResult<StopName>>()
 
         if (result != null) viewModel.onEvent(
             ConnectionSearchEvent.WentBack(type = result.chooserType, stop = result.value)
@@ -409,7 +409,7 @@ private fun TextFieldButton(
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) = OutlinedTextField(
-    value = text,
+    value = text.toString(),
     onValueChange = {},
     modifier
         .pointerInput(Unit) {

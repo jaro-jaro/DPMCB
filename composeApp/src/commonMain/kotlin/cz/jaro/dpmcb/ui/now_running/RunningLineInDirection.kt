@@ -1,9 +1,12 @@
 package cz.jaro.dpmcb.ui.now_running
 
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.FareZone
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.StopName
 
 data class RunningLineInDirection(
-    val lineNumber: ShortLine,
-    val destination: String,
+    val lineNumber: LongLine,
+    val destination: StopName,
+    val destinationZone: FareZone?,
     val buses: List<RunningBus>,
 )

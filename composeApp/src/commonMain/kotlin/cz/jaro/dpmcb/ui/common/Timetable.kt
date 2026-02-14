@@ -34,8 +34,9 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
@@ -52,8 +53,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlin.time.Duration.Companion.minutes
 
 sealed interface TimetableEvent {
-    data class StopClick(val stopName: String, val time: LocalDateTime) : TimetableEvent
-    data class TimetableClick(val line: ShortLine, val stop: String, val platform: Platform, val direction: Direction,) : TimetableEvent
+    data class StopClick(val stopName: StopName, val time: LocalDateTime) : TimetableEvent
+    data class TimetableClick(val line: LongLine, val stop: StopName, val platform: Platform, val direction: Direction,) : TimetableEvent
 }
 
 @Composable
@@ -119,7 +120,7 @@ fun Timetable(
                 showDropDown = false
             }
         ) {
-            DropdownMenuItem({ Text(stop.name) }, onClick = {}, enabled = false)
+            DropdownMenuItem({ Text(stop.name.toString()) }, onClick = {}, enabled = false)
             DropdownMenuItem(
                 text = { Text("Zobrazit odjezdy") },
                 onClick = {
@@ -204,7 +205,7 @@ fun Timetable(
                 )
             }
 
-            Text(stopNameText(stop.name, platform, stop.type), Modifier.weight(1F), color = defaultColor)
+            Text(stopNameText(stop.name, platform, stop.type, stop.fareZone), Modifier.weight(1F), color = defaultColor)
         }
     }
 }

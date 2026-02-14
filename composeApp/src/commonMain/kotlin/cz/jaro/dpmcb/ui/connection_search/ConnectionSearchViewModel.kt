@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.launch
@@ -51,8 +52,8 @@ class ConnectionSearchViewModel(
         })
 
     private fun defaultSettings(): SearchSettings = SearchSettings(
-        start = "",
-        destination = "",
+        start = StopName.Empty,
+        destination = StopName.Empty,
         directOnly = false,
         showInefficientConnections = false,
         datetime = args.date.atTime(SystemClock.timeHere().truncatedToMinutes()),

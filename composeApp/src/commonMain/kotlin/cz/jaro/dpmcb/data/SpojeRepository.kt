@@ -8,6 +8,7 @@ import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.generic
 import cz.jaro.dpmcb.data.entities.invalid
@@ -15,7 +16,6 @@ import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
-import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.withPart
@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.atDate
 import kotlin.collections.filterNot
@@ -137,7 +136,8 @@ class SpojeRepository(
 
     // --- ---
 
-    suspend fun stopNames(datum: LocalDate) = q().stopNames(tablesOfDay(datum).await())
+    suspend fun stopNames(datum: LocalDate) = q().stopNamesAndZones(tablesOfDay(datum).await())
+
     suspend fun lineNumbers(datum: LocalDate) = q().lineNumbers(tablesOfDay(datum).await().work())
     suspend fun lineNumbersToday() = lineNumbers(SystemClock.todayHere())
 
@@ -185,11 +185,12 @@ class SpojeRepository(
                         time = it.time!!.atDate(date),
                         arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                         name = it.name,
-                        line = it.line.toShortLine(),
+                        line = it.line,
                         connName = it.connName,
                         platform = it.platform,
                         type = StopType(it.connStopFixedCodes),
                         direction = it.direction,
+                        fareZone = it.fareZone,
                     )
                 }.distinct(),
                 timeCodes = timeCodes,
@@ -208,17 +209,17 @@ class SpojeRepository(
 
     suspend fun ShortLine.findLongLine() = q().findLongLine(this)
 
-    suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
-        q().stopNamesOfLine(nowUsedTable(date, line.findLongLine()).await()!!)
+    suspend fun stopNamesOfLine(line: LongLine, date: LocalDate) =
+        q().stopNamesOfLine(nowUsedTable(date, line).await()!!)
 
     val platformsAndDirections = withCache(scope) {
-            line: ShortLine,
-            thisStop: String,
+            line: LongLine,
+            thisStop: StopName,
             date: LocalDate,
         ->
         q().platformsAndDirections(
             stop = thisStop,
-            tab = nowUsedTable(date, line.findLongLine()).await()!!,
+            tab = nowUsedTable(date, line).await()!!,
         )
             .groupBy {
                 it.connName
@@ -242,17 +243,17 @@ class SpojeRepository(
                         stop.platform != null
                     }
                     .map { (i, stop) ->
-                        val destination = middleDestination(line.findLongLine(), stopNames, i)
+                        val destination = middleDestination(line, stopNames, i)
                         Quadruple(
                             destination ?: stops.last().stopName,
                             stopNames.indexOf(destination ?: stops.last().stopName),
                             stop.platform!!,
                             if (destination != null) Direction.NEGATIVE else stops.first().direction,
-                        ).work<Quadruple<String, Int, Platform, Direction>>(stop.connName, stop.stopIndexOnLine)
+                        ).work<Quadruple<StopName, Int, Platform, Direction>>(stop.connName, stop.stopIndexOnLine)
                     }
             }
             .sortedBy { it.second }
-            .work<List<Quadruple<String, Int, Platform, Direction>>>()
+            .work<List<Quadruple<StopName, Int, Platform, Direction>>>()
             .map { Triple(it.first, it.third, it.fourth) }
             .let { endStops ->
                 val total = endStops.count().toFloat()
@@ -273,7 +274,7 @@ class SpojeRepository(
     }
 
     val platformsOfStop = withCache(scope) {
-            thisStop: String,
+            thisStop: StopName,
             date: LocalDate,
         ->
         q().platformsOfStop(
@@ -298,18 +299,18 @@ class SpojeRepository(
     }
 
     suspend fun timetable(
-        line: ShortLine,
-        thisStop: String,
+        line: LongLine,
+        thisStop: StopName,
         platform: Platform,
         direction: Direction,
         date: LocalDate,
     ): Set<BusInTimetable> {
-        val isOneWay = isOneWay(line.findLongLine())
+        val isOneWay = isOneWay(line)
         return q().connStopsOnLineOnPlatformInDirection(
             stop = thisStop,
             platform = platform,
             direction = if (isOneWay) Direction.POSITIVE else direction,
-            tab = nowUsedTable(date, line.findLongLine()).await()!!
+            tab = nowUsedTable(date, line).await()!!
         )
             .groupBy {
                 it.connName
@@ -403,11 +404,12 @@ class SpojeRepository(
                             time = it.time!!.atDate(date),
                             arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                             name = it.name,
-                            line = it.line.toShortLine(),
+                            line = it.line,
                             connName = it.connName,
                             platform = it.platform,
                             type = StopType(it.connStopFixedCodes),
                             direction = it.direction,
+                            fareZone = it.fareZone,
                         )
                     }.distinct(),
                     timeCodes,
@@ -541,24 +543,12 @@ class SpojeRepository(
     suspend fun seqGroups() = q().seqGroups()
     suspend fun seqOfConns() = q().seqOfConns()
 
-    init {
-        scope.launch {
-            connStops().work("connStops") { size }
-            stops().work("stops") { size }
-            timeCodes().work("timeCodes") { size }
-            lines().work("lines") { size }
-            conns().work("conns") { size }
-            seqGroups().work("seqGroups") { size }
-            seqOfConns().work("seqOfConns") { size }
-        }
-    }
-
     suspend fun seqOfConns(
         conns: Set<BusName>,
         date: LocalDate,
     ) = q().seqOfConns(conns, groupsOfDay(date).await(), tablesOfDay(date).await())
 
-    suspend fun departures(date: LocalDate, stop: String): List<Departure> =
+    suspend fun departures(date: LocalDate, stop: StopName): List<Departure> =
         q().departures(stop, tablesOfDay(date).await(), groupsOfDay(date).await())
             .groupBy { it.line / it.connNumber to it.stopIndexOnLine }
             .map { Triple(it.key.first, it.key.second, it.value) }
@@ -584,10 +574,11 @@ class SpojeRepository(
                     direction = info.direction,
                     sequence = info.sequence,
                     platform = info.platform,
+                    fareZone = info.fareZone,
                 )
             }
 
-    private val oneWayLines = scope.async { -> q().oneDirectionLines() }
+    private val oneWayLines = scope.async { q().oneDirectionLines() }
 
     suspend fun isOneWay(line: LongLine) = line in oneWayLines.await()
 

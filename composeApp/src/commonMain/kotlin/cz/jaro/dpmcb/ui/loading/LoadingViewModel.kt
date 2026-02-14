@@ -12,17 +12,19 @@ import cz.jaro.dpmcb.data.SequenceConnections
 import cz.jaro.dpmcb.data.SequenceTypes
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.FareZone
 import cz.jaro.dpmcb.data.entities.LineStopNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
 import cz.jaro.dpmcb.data.entities.invalid
+import cz.jaro.dpmcb.data.entities.isCityZone
 import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.entities.number
 import cz.jaro.dpmcb.data.entities.toLongLine
 import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
@@ -107,7 +109,7 @@ class LoadingViewModel(
     }
 
     companion object {
-        const val META_DATA_VERSION = 5
+        const val META_DATA_VERSION = 6
     }
 
     val state: StateFlow<LoadingState>
@@ -161,6 +163,7 @@ class LoadingViewModel(
 
             try {
                 doesEverythingWork()
+                val _ = repo.stopNamesOfLine(LongLine(325009), SystemClock.todayHere())
             } catch (e: Exception) {
                 recordException(e)
                 e.printStackTrace()
@@ -213,7 +216,7 @@ class LoadingViewModel(
     }
 
     private val client = HttpClient()
-    private val versionProxy = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/version"
+    private val versionProxy = "https://ygbqqztfvcnqxxbqvxwb.supabase.co/functions/v1/version?m=$META_DATA_VERSION"
 
     private suspend fun isDataUpdateNeeded(): Boolean {
         val localVersion = repo.version
@@ -404,7 +407,11 @@ class LoadingViewModel(
             data = loadedData,
         ) { progress, label, groupProgress ->
             state.value = LoadingState.Loading(
-                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nUkládání ($label – ${groupProgress.times(100).roundToInt()} %)",
+                infoText = "Aktualizování jízdních řádů.\nTato akce může trvat několik minut.\n$backgroundInfo\nUkládání ($label – ${
+                    groupProgress.times(
+                        100
+                    ).roundToInt()
+                } %)",
                 progress = progress,
             )
         }
@@ -449,174 +456,236 @@ class LoadingViewModel(
     }
 }
 
+context(logger: Logger)
 @TimetableProcessing
 private suspend fun Map<Table, Map<TableType, List<List<String>>>>.extractData(
     connsWithSequence: List<BusName>,
     platforms: Map<LongLine, Map<Direction, Map<LineStopNumber, Platform>>>,
     scope: CoroutineScope,
     addConnToSequence: (conn: Conn) -> Unit,
-): List<Quintuple<List<ConnStop>, List<TimeCode>, List<Stop>, List<Line>, List<Conn>>> {
-    val data = mapKeys { (key) ->
-        Table(LongLine(key.value.substringBefore('-').toInt() + 325_000), key.number()) // TODO: Nezávislost dat na předčíslí linky
-    }
+) = map { (tab, lineData) ->
+    scope.async {
+        @TimetableProcessing
+        fun <T> processTable(
+            type: TableType,
+            processRow: (List<String>) -> T,
+        ) = scope.async {
+            lineData
+                .getOrElse(type) {
+                    error("$type not found in the table $tab, available tables are: ${lineData.keys.joinToString()}")
+                }
+                .mapNotNull(processRow)
+        }
 
-    return data.map { (tab, lineData) ->
-        scope.async {
+        val fixedCodesA = processTable(TableType.Pevnykod) { row ->
+            row[0] to row[1]
+        }
 
-            @TimetableProcessing
-            fun <T> processTable(
-                type: TableType,
-                processRow: (List<String>) -> T,
-            ) = scope.async {
-                lineData
-                    .getOrElse(type) {
-                        error("$type not found in the table $tab, available tables are: ${lineData.keys.joinToString()}")
-                    }
-                    .mapNotNull(processRow)
+        val specialFixedCodes = mutableMapOf<BusName, MutableList<String>>()
+        val timeCodesA = processTable(TableType.Caskody) { row ->
+            val fixedCode = when (row[4]) {
+                "5", "7" -> "E"
+                "6", "8" -> "F"
+                else -> null
             }
-
-            val fixedCodesA = processTable(TableType.Pevnykod) { row ->
-                row[0] to row[1]
+            if (fixedCode != null)
+                specialFixedCodes.getOrPut(row[0].toLongLine() / row[1].toInt()) { mutableListOf() }.add(fixedCode)
+            val type = when (row[4]) {
+                "1" -> TimeCodeType.Runs
+                "2" -> TimeCodeType.RunsAlso
+                "3" -> TimeCodeType.RunsOnly
+                "4" -> TimeCodeType.DoesNotRun
+                "5" -> return@processTable null
+                "6" -> return@processTable null
+                "7" -> TimeCodeType.Runs
+                "8" -> TimeCodeType.Runs
+                else -> TimeCodeType.DoesNotRun
             }
+            TimeCode(
+                line = row[0].toLongLine(),
+                connNumber = row[1].toInt(),
+                code = row[3].toShortOrNull() ?: return@processTable null, // TODO? Některé časkódy se chovají jako návaznosti, viz 320142/30
+                termIndex = row[2].toShort(),
+                type = type,
+                validFrom = row[5].toDateWeirdly(),
+                validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
+                tab = tab,
+                runs2 = type.runs,
+            )
+        }
 
-            val timeCodesA = processTable(TableType.Caskody) { row ->
-                val type = TimeCodeType.entries.find { it.code.toString() == row[4] } ?: TimeCodeType.DoesNotRun
-                TimeCode(
-                    line = row[0].toLongLine(),
-                    connNumber = row[1].toInt(),
-                    code = row[3].toShort(),
-                    termIndex = row[2].toShort(),
-                    type = type,
-                    validFrom = row[5].toDateWeirdly(),
-                    validTo = row[6].ifEmpty { row[5] }.toDateWeirdly(),
-                    tab = tab,
-                    runs2 = type.runs,
-                )
-            }
+        val fareZonesA = processTable(TableType.Zaslinky) { row ->
+            row[3].toInt() to row[2]
+        }
 
-            val _ = processTable(TableType.Zaslinky) {}
+        val fixedCodes = fixedCodesA.await().toMap()
+        val timeCodes = timeCodesA.await()
 
-            val fixedCodes = fixedCodesA.await().toMap()
-            val timeCodes = timeCodesA.await()
+        val connStopsWithoutPlatformsA = processTable(TableType.Zasspoje) { row ->
+            ConnStop(
+                line = row[0].toLongLine(),
+                connNumber = row[1].toInt(),
+                stopIndexOnLine = row[2].toInt(),
+                stopNumber = row[3].toInt(),
+                kmFromStart = row[9].ifEmpty { return@processTable null }.toInt(),
+                arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
+                departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
+                tab = tab,
+                fixedCodes = (row.slice(6..7).filter { it.isNotEmpty() }.map { fixedCodes[it] ?: it }
+                        + specialFixedCodes.getOrElse(row[0].toLongLine() / row[1].toInt()) { emptyList() }).joinToString(" "),
+                platform = null,
+            )
+        }
 
-            val connStopsWithoutPlatformsA = processTable(TableType.Zasspoje) { row ->
-                ConnStop(
-                    line = row[0].toLongLine(),
-                    connNumber = row[1].toInt(),
-                    stopIndexOnLine = row[2].toInt(),
-                    stopNumber = row[3].toInt(),
-                    kmFromStart = row[9].ifEmpty { return@processTable null }.toInt(),
-                    arrival = row[10].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
-                    departure = row[11].takeIf { it != "<" }?.takeIf { it != "|" }?.ifEmpty { null }?.toTimeWeirdly(),
-                    tab = tab,
-                    fixedCodes = row.slice(6..7).filter { it.isNotEmpty() }.joinToString(" ") {
-                        fixedCodes[it] ?: it
+        val fareZones = fareZonesA.await().toMap()
+
+        val stopsWithoutCitiesA = processTable(TableType.Zastavky) { row ->
+            val (_, _, s1, s2, s3) = row
+            Stop(
+                line = row[0].toLongLine(),
+                stopNumber = row[1].toInt(),
+                stopName = StopName(s1, s2, s3),
+                fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                    fixedCodes[it] ?: it
+                },
+                tab = tab,
+                fareZone = fareZones[row[1].toInt()].let {
+                    if (it == "-") null
+                    else it?.toIntOrNull()
+                        ?: fareZoneOfCity(row[0].substring(0, 3).toInt())
+                }
+            )
+        }
+
+        val linesA = processTable(TableType.Linky) { row ->
+            val number = row[0].toLongLine()
+            Line(
+                number = number,
+                route = row[1],
+                vehicleType = Json.decodeFromString("\"${row[4]}\""),
+                lineType = Json.decodeFromString("\"${row[3]}\""),
+                hasRestriction = row[5] != "0",
+                validFrom = row[13].toDateWeirdly(),
+                validTo = row[14].toDateWeirdly(),
+                tab = tab,
+                shortNumber = number.toShortLine(),
+            )
+        }
+
+        val connStopsWithoutPlatforms = connStopsWithoutPlatformsA.await()
+
+        val connsA = processTable(TableType.Spoje) { row ->
+            val line = row[0].toLongLine()
+            val connNumber = row[1].toInt()
+            Conn(
+                line = line,
+                connNumber = connNumber,
+                fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
+                    fixedCodes[it] ?: it
+                },
+                direction = connStopsWithoutPlatforms
+                    .filter { it.connNumber == connNumber }
+                    .sortedBy { it.stopIndexOnLine }
+                    .filter { it.time != null }
+                    .let { stops ->
+                        (stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart).toDirection()
                     },
-                    platform = null,
-                )
-            }
+                tab = tab,
+                name = line / connNumber
+            )
+        }
 
-            val stopsA = processTable(TableType.Zastavky) { row ->
-                Stop(
-                    line = row[0].toLongLine(),
-                    stopNumber = row[1].toInt(),
-                    stopName = row[2],
-                    fixedCodes = row.slice(6..11).filter { it.isNotEmpty() }.joinToString(" ") {
-                        fixedCodes[it] ?: it
-                    },
-                    tab = tab,
-                )
-            }
+//        processTable(TableType.LinExt) {}
+        val _ = processTable(TableType.Dopravci) {}
+        val _ = processTable(TableType.Udaje) {}
+//        processTable(TableType.VerzeJDF) {}
 
-            val linesA = processTable(TableType.Linky) { row ->
-                val number = row[0].toLongLine()
-                Line(
-                    number = number,
-                    route = row[1],
-                    vehicleType = Json.decodeFromString("\"${row[4]}\""),
-                    lineType = Json.decodeFromString("\"${row[3]}\""),
-                    hasRestriction = row[5] != "0",
-                    validFrom = row[13].toDateWeirdly(),
-                    validTo = row[14].toDateWeirdly(),
-                    tab = tab,
-                    shortNumber = number.toShortLine(),
-                )
-            }
+        val conns = connsA.await()
 
-            val connStopsWithoutPlatforms = connStopsWithoutPlatformsA.await()
-
-            val connsA = processTable(TableType.Spoje) { row ->
-                val line = row[0].toLongLine()
-                val connNumber = row[1].toInt()
-                Conn(
-                    line = line,
-                    connNumber = connNumber,
-                    fixedCodes = row.slice(2..11).filter { it.isNotEmpty() }.joinToString(" ") {
-                        fixedCodes[it] ?: it
-                    },
-                    direction = connStopsWithoutPlatforms
-                        .filter { it.connNumber == connNumber }
-                        .sortedBy { it.stopIndexOnLine }
-                        .filter { it.time != null }
-                        .let { stops ->
-                            (stops.first().time!! <= stops.last().time!! && stops.first().kmFromStart <= stops.last().kmFromStart).toDirection()
-                        },
-                    tab = tab,
-                    name = line / connNumber
-                )
-            }
-
-            val _ = processTable(TableType.LinExt) {}
-            val _ = processTable(TableType.Dopravci) {}
-            val _ = processTable(TableType.Udaje) {}
-//            processTable(TableType.VerzeJDF) {}
-
-            val conns = connsA.await()
-
-            val connStopsA = scope.async {
-                connStopsWithoutPlatforms.groupBy { it.tab }.flatMap { (tab, stopsOfTab) ->
-                    val platformsOfLine = platforms[tab.line()]
-                    stopsOfTab.groupBy { it.line / it.connNumber }.flatMap { (connName, stops) ->
-                        val conn = conns.find { it.tab == tab && it.name == connName }
-                        val platformsOfConn = conn?.direction?.let { platformsOfLine?.get(it) }
-                        stops.map { stop ->
-                            stop.copy(
-                                platform = platformsOfConn?.get(stop.stopIndexOnLine)?.takeUnless { it.isEmpty() }
-                            )
-                        }
+        val connStopsA = scope.async {
+            connStopsWithoutPlatforms.groupBy { it.tab }.flatMap { (tab, stopsOfTab) ->
+                val platformsOfLine = platforms[tab.line()]
+                stopsOfTab.groupBy { it.line / it.connNumber }.flatMap { (connName, stops) ->
+                    val conn = conns.find { it.tab == tab && it.name == connName }
+                    val platformsOfConn = conn?.direction?.let { platformsOfLine?.get(it) }
+                    stops.map { stop ->
+                        stop.copy(
+                            platform = platformsOfConn?.get(stop.stopIndexOnLine)?.takeUnless { it.isEmpty() }
+                        )
                     }
                 }
             }
-
-            val blankTimeCodes = conns.map { conn ->
-                val type =
-                    if (timeCodes.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun
-                TimeCode(
-                    line = conn.line,
-                    connNumber = conn.connNumber,
-                    code = -1,
-                    termIndex = 0,
-                    type = type,
-                    validFrom = noCode,
-                    validTo = noCode,
-                    tab = conn.tab,
-                    runs2 = type.runs,
-                )
-            }
-
-            conns.forEach { conn ->
-                if (conn.name !in connsWithSequence) addConnToSequence(conn)
-            }
-
-            val stops = stopsA.await()
-            val lines = linesA.await()
-            val connStops = connStopsA.await()
-
-            Quintuple(connStops, timeCodes + blankTimeCodes, stops, lines, conns)
-//            Quintuple(listOf<ConnStop>(), listOf<TimeCode>(), listOf<Stop>(), listOf<Line>(), listOf<Conn>())
         }
+
+        val blankTimeCodes = conns.map { conn ->
+            val type =
+                if (timeCodes.any { it.type != TimeCodeType.DoesNotRun && it.connNumber == conn.connNumber }) TimeCodeType.Runs else TimeCodeType.DoesNotRun
+            TimeCode(
+                line = conn.line,
+                connNumber = conn.connNumber,
+                code = -1,
+                termIndex = 0,
+                type = type,
+                validFrom = noCode,
+                validTo = noCode,
+                tab = conn.tab,
+                runs2 = type.runs,
+            )
+        }
+
+        conns.forEach { conn ->
+            if (conn.name !in connsWithSequence) addConnToSequence(conn)
+        }
+
+        val stopsWithoutCities = stopsWithoutCitiesA.await()
+        val lines = linesA.await()
+        val connStops = connStopsA.await()
+
+        Quintuple(connStops, timeCodes + blankTimeCodes, stopsWithoutCities, lines, conns)
+//            Quintuple(listOf<ConnStop>(), listOf<TimeCode>(), listOf<Stop>(), listOf<Line>(), listOf<Conn>())
     }
-        .awaitAll()
+}.awaitAll().let { tables ->
+    val allStops = tables.flatMap { it.third }
+    val names = allStops.map { it.stopName }
+    val combined = names.filter { it.section.isNotEmpty() || it.stop.isNotEmpty() }
+    val cities = combined.groupBy({ it.city }, { it.section }).mapValues { it.value.toSet() }
+    val newNames = allStops
+        .groupBy({ it.fareZone }, { it.stopName })
+        .mapValues { (zone, stops) ->
+            stops.associateWith { (s1, s2, s3) ->
+                val (s1, s2, s3) = if (s2.isNotEmpty() || s3.isNotEmpty()) StopName(s1, s2, s3)
+                else s1.split(",").let { StopName(it[0], it.getOrElse(1) { "" }, it.getOrElse(2) { "" }) }
+
+                if (zone == null || !zone.isCityZone()) StopName(s1, s2, s3)
+                else {
+                    val (city, s2, s3) = if (s1 in cities) StopName(s1, s2, s3) else StopName(cityOfFareZone(zone), s1, s2)
+
+                    val sections = cities[city].orEmpty()
+                    val (section, name) = if (s2 in sections) s2 to s3 else
+                        if (s3.isEmpty()) "" to s2 else s2 to s3
+
+                    StopName(city, section, name)
+                }
+            }
+        }.work()
+    tables.map { (connStops, timeCodes, stopsWithoutCities, lines, conns) ->
+        val stops = stopsWithoutCities.map { stop ->
+            stop.copy(
+                stopName = newNames[stop.fareZone]!![stop.stopName]!!,
+            )
+        }
+        Quintuple(connStops, timeCodes, stops, lines, conns)
+    }
+}
+
+fun cityOfFareZone(zone: FareZone) = when (zone) {
+    100 -> "České Budějovice"
+    else -> "Tábor"
+}
+
+private fun fareZoneOfCity(cityCode: Int): FareZone = when (cityCode) {
+    325 -> 100
+    else -> 200
 }
 
 @TimetableProcessing

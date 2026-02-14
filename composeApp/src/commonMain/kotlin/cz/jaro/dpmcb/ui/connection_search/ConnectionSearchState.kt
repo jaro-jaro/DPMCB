@@ -29,8 +29,10 @@ infix fun StopName.to(other: StopName) = FavouriteRelation(this, other)
 
 class FavouriteRelationSerializer : KSerializer<FavouriteRelation> {
     override val descriptor = PrimitiveSerialDescriptor("FavouriteRelation", PrimitiveKind.STRING)
-    fun toString(value: FavouriteRelation) = "${value.start}~${value.destination}".replace(" ", "%20")
-    fun fromString(value: String) = value.replace("%20", " ").split("~").let { it[0] to it[1] }
+    fun toString(value: FavouriteRelation) =
+        listOf(value.start, value.destination).joinToString("~") { it.serialize() }.replace(" ", "%20")
+    fun fromString(value: String) =
+        value.replace("%20", " ").split("~").map(StopName::deserialize).let { it[0] to it[1] }
     override fun serialize(encoder: Encoder, value: FavouriteRelation) = encoder.encodeString(toString(value))
     override fun deserialize(decoder: Decoder) = fromString(decoder.decodeString())
 }

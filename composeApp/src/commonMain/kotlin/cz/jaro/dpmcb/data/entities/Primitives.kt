@@ -4,20 +4,73 @@ package cz.jaro.dpmcb.data.entities
 
 import cz.jaro.dpmcb.data.helperclasses.atLeastDigits
 import cz.jaro.dpmcb.data.helperclasses.toLastDigits
+import cz.jaro.dpmcb.ui.loading.cityOfFareZone
 import io.ktor.utils.io.InternalAPI
 import io.ktor.utils.io.JvmSerializable
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.jvm.JvmInline
 
 typealias StopNumber = Int
+typealias FareZone = Int
 typealias LineStopNumber = Int
 typealias SequenceGroup = Int
 typealias SequenceGroupCompanion = Int.Companion
-typealias StopName = String
+//typealias StopName = String
 typealias Platform = String
 typealias RegistrationPlate = String
+
+class StopNameSerializer : KSerializer<StopName> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("StopName", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: StopName) = encoder.encodeString(value.serialize())
+    override fun deserialize(decoder: Decoder) = StopName.deserialize(decoder.decodeString())
+}
+
+@Serializable(with = StopNameSerializer::class)
+data class StopName(
+    val city: String,
+    val section: String,
+    val stop: String,
+) : Comparable<StopName> {
+    val fullName = "$city,$section,$stop"
+    val printName = listOf(city, section, stop).filter { it.isNotEmpty() }.joinToString()
+    val printNameInCity = listOf(section, stop).filter { it.isNotEmpty() }.joinToString()
+
+    fun inZone(fareZone: FareZone?) =
+        if (fareZone != null && fareZone.isCityZone() && city == cityOfFareZone(fareZone)) printNameInCity else printName
+
+    companion object {
+        fun deserialize(fullName: String) = try {
+            StopName(
+                city = fullName.split(',')[0],
+                section = fullName.split(',')[1],
+                stop = fullName.split(',')[2],
+            )
+        } catch (e: Exception) {
+            throw IllegalArgumentException(fullName, e)
+        }
+
+        val Empty
+            get() = StopName(
+                city = "",
+                section = "",
+                stop = "",
+            )
+    }
+
+    override operator fun equals(other: Any?) = other is StopName && other.fullName == fullName
+    override fun hashCode() = fullName.hashCode()
+    override fun compareTo(other: StopName) = fullName.compareTo(other.fullName, ignoreCase = true)
+    override fun toString() = printName
+    fun serialize() = fullName
+}
 
 @Serializable
 @JvmInline
@@ -27,8 +80,9 @@ value class Table(val value: String) {
 
 @Serializable
 @JvmInline
-value class LongLine(val value: Int) {
+value class LongLine(val value: Int) : Comparable<LongLine> {
     override fun toString() = value.toString()
+    override fun compareTo(other: LongLine) = value.compareTo(other.value)
 }
 
 @Serializable
@@ -96,6 +150,7 @@ fun SequenceCode.withType(type: Char) = SequenceCode(
         else -> generic().value + '-' + type + modifiers().part()
     }
 )
+
 fun SequenceCode.withoutType() = SequenceCode(
     when {
         !hasModifiers() -> value
@@ -105,9 +160,9 @@ fun SequenceCode.withoutType() = SequenceCode(
     }
 )
 
-val ShortLine.Companion.invalid get() = ShortLine(-1)
-fun ShortLine.isInvalid() = this == ShortLine.invalid
-fun ShortLine?.isInvalid() = this == null || isInvalid()
+val LongLine.Companion.invalid get() = LongLine(-1)
+fun LongLine.isInvalid() = this == LongLine.invalid
+fun LongLine?.isInvalid() = this == null || isInvalid()
 val SequenceGroupCompanion.invalid: SequenceGroup get() = -1
 fun SequenceGroup.isInvalid() = this == SequenceGroup.invalid
 val SequenceCode.Companion.invalid get() = SequenceCode("0/0")
@@ -136,3 +191,4 @@ fun CharSequence.toRegNum() = RegistrationNumber(toString().toInt())
 fun CharSequence.toLongLine() = LongLine(toString().toInt())
 fun CharSequence.toShortLine() = ShortLine(toString().toInt())
 fun LongLine.toShortLine() = value.toLastDigits(3).toShortLine()
+fun FareZone.isCityZone() = toString().endsWith("0")

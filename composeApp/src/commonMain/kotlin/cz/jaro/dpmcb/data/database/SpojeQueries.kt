@@ -22,6 +22,7 @@ import cz.jaro.dpmcb.data.generated.PlatformOfStop
 import cz.jaro.dpmcb.data.generated.SeqGroup
 import cz.jaro.dpmcb.data.generated.SeqOfConn
 import cz.jaro.dpmcb.data.generated.Stop
+import cz.jaro.dpmcb.data.generated.StopNameAndZone
 import cz.jaro.dpmcb.data.generated.TimeCode
 import cz.jaro.dpmcb.data.realtions.connection.ConnectionBusInfo
 import cz.jaro.dpmcb.data.realtions.connection.GraphBus
@@ -34,21 +35,21 @@ import cz.jaro.dpmcb.data.realtions.now_running.StopOfNowRunning
 interface SpojeQueries {
     suspend fun findLongLine(line: ShortLine): LongLine
 
-    suspend fun stopNames(tabs: List<Table>): List<String>
+    suspend fun stopNamesAndZones(tabs: List<Table>): List<StopNameAndZone>
 
-    suspend fun lineNumbers(tabs: List<Table>): List<ShortLine>
+    suspend fun lineNumbers(tabs: List<Table>): List<LongLine>
 
-    suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String>
+    suspend fun nextStops(line: LongLine, thisStop: StopName, tab: Table): List<StopName>
 
-    suspend fun connStopsOnLineOnPlatformInDirection(stop: String, platform: Platform, direction: Direction, tab: Table): List<CoreBusInTimetable>
+    suspend fun connStopsOnLineOnPlatformInDirection(stop: StopName, platform: Platform, direction: Direction, tab: Table): List<CoreBusInTimetable>
 
-    suspend fun platformsAndDirections(stop: String, tab: Table): List<PlatformAndDirection>
+    suspend fun platformsAndDirections(stop: StopName, tab: Table): List<PlatformAndDirection>
 
-    suspend fun platformsOfStop(stop: String, tabs: List<Table>): List<PlatformOfStop>
+    suspend fun platformsOfStop(stop: StopName, tabs: List<Table>): List<PlatformOfStop>
 
     suspend fun stopNamesOnConns(tabs: List<Table>): Map<BusName, List<StopName>>
 
-    suspend fun stopNamesOfLine(tab: Table): List<String>
+    suspend fun stopNamesOfLine(tab: Table): List<StopName>
 
     suspend fun stopsOnConns(tabs: List<Table>): Map<GraphBus, List<StopNameTime>>
 
@@ -68,7 +69,7 @@ interface SpojeQueries {
 
     suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup, tabs: List<Table>): BusName
 
-    suspend fun departures(stop: String, tabs: List<Table>, groups: List<SequenceGroup>): List<CoreDeparture>
+    suspend fun departures(stop: StopName, tabs: List<Table>, groups: List<SequenceGroup>): List<CoreDeparture>
 
     suspend fun findSequences(sequence1: String, sequence2: String, sequence3: String, sequence4: String, sequence5: String, sequence6: String): List<SequenceCode>
 

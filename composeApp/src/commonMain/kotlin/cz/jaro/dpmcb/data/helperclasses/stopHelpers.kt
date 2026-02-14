@@ -2,21 +2,22 @@ package cz.jaro.dpmcb.data.helperclasses
 
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.realtions.MiddleStop
 import kotlin.math.roundToInt
 
 fun middleDestination(
     isOneWay: Boolean,
-    stops: List<String>,
+    stops: List<StopName>,
     thisStopIndex: Int,
-): String? {
+): StopName? {
     val middleStop = if (isOneWay) findMiddleStop(stops) else null
     return if (middleStop != null && thisStopIndex < (middleStop.index - 1))
         middleStop.name
     else null
 }
 
-fun findMiddleStop(stops: List<String>): MiddleStop? {
+fun findMiddleStop(stops: List<StopName>): MiddleStop? {
     val wi = stops.withIndex().toList()
 
     val lastCommonStop = wi.indexOfLast { (i, name) ->
@@ -38,6 +39,6 @@ fun findMiddleStop(stops: List<String>): MiddleStop? {
 
 suspend fun SpojeRepository.middleDestination(
     line: LongLine,
-    stops: List<String>,
+    stops: List<StopName>,
     thisStopIndex: Int,
 ) = middleDestination(isOneWay(line), stops, thisStopIndex)

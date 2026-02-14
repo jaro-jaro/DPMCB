@@ -120,6 +120,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.window.DialogProperties
+import cz.jaro.dpmcb.data.entities.FareZone
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.StopName
@@ -772,9 +773,9 @@ fun stopNameText(
     stopName: StopName,
     platform: Platform?,
     stopType: StopType = StopType.Normal,
-    tariffZone: Int = 100,
+    fareZone: FareZone?,
 ): AnnotatedString = buildAnnotatedString {
-    +stopName
+    +stopName.inZone(fareZone)
     +" "
     withStyle(SpanStyle(color = Colors.dimmedContent)) {
         +stopType(stopType)
@@ -785,6 +786,6 @@ fun stopNameText(
     ) {
         if (stopType != StopType.Normal) +" "
         if (platform != null) +"$platform "
-        +"$tariffZone"
+        if (fareZone != null) +"$fareZone"
     }
 }

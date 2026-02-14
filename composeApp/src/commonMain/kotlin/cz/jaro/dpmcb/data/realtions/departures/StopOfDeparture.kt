@@ -1,14 +1,12 @@
 package cz.jaro.dpmcb.data.realtions.departures
 
+import cz.jaro.dpmcb.data.entities.FareZone
+import cz.jaro.dpmcb.data.entities.StopName
 import kotlinx.datetime.LocalTime
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
-@Serializable
 data class StopOfDeparture(
-    val name: String,
-    @SerialName("time_")
+    val name: StopName,
     val time: LocalTime,
-    @SerialName("stopindexonline")
+    val fareZone: FareZone?,
     val stopIndexOnLine: Int,
 )

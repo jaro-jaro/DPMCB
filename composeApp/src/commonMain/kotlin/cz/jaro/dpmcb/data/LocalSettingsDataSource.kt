@@ -193,7 +193,7 @@ class MultiplatformSettingsDataSource(
 
     object Keys {
         const val DATA = "data"
-        const val SEARCH_HISTORY = "search_history"
+        const val SEARCH_HISTORY = "search_history2"
         const val FAVOURITES = "favourites"
         const val SETTINGS = "nastaveni"
         const val CARD = "prukazka"

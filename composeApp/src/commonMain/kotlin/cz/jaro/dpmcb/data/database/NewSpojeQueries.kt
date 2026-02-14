@@ -12,6 +12,7 @@ import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
 import cz.jaro.dpmcb.data.entities.SequenceGroup
 import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.Table
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.generated.CodesOfBus
@@ -65,22 +66,22 @@ class SpojeDataSourceImpl(
         override suspend fun findLongLine(line: ShortLine) =
             sq.findLongLine(line).awaitAsOne()
 
-        override suspend fun stopNames(tabs: List<Table>) =
-            sq.stopNames(tabs).awaitAsList()
+        override suspend fun stopNamesAndZones(tabs: List<Table>) =
+            sq.stopNameAndZone(tabs).awaitAsList()
 
         override suspend fun lineNumbers(tabs: List<Table>) =
             sq.lineNumbers(tabs).awaitAsList()
 
-        override suspend fun nextStops(line: LongLine, thisStop: String, tab: Table) =
+        override suspend fun nextStops(line: LongLine, thisStop: StopName, tab: Table) =
             sq.nextStops(thisStop, line, tab).awaitAsList()
 
-        override suspend fun connStopsOnLineOnPlatformInDirection(stop: String, platform: Platform, direction: Direction, tab: Table) =
+        override suspend fun connStopsOnLineOnPlatformInDirection(stop: StopName, platform: Platform, direction: Direction, tab: Table) =
             sq.coreBusInTimetable(tab, stop, platform, direction).awaitAsList()
 
-        override suspend fun platformsAndDirections(stop: String, tab: Table) =
+        override suspend fun platformsAndDirections(stop: StopName, tab: Table) =
             sq.platformAndDirection(tab, stop).awaitAsList()
 
-        override suspend fun platformsOfStop(stop: String, tabs: List<Table>) =
+        override suspend fun platformsOfStop(stop: StopName, tabs: List<Table>) =
             sq.platformOfStop(tabs, stop).awaitAsList()
 
         override suspend fun stopNamesOnConns(tabs: List<Table>) =
@@ -107,7 +108,7 @@ class SpojeDataSourceImpl(
         override suspend fun lastConnOfSeq(seq: SequenceCode, group: SequenceGroup, tabs: List<Table>) =
             sq.lastConnOfSeq(seq, group, tabs).awaitAsOne()
 
-        override suspend fun departures(stop: String, tabs: List<Table>, groups: List<SequenceGroup>) =
+        override suspend fun departures(stop: StopName, tabs: List<Table>, groups: List<SequenceGroup>) =
             sq.coreDeparture(stop, tabs, groups).awaitAsList()
 
         override suspend fun findSequences(
@@ -121,7 +122,7 @@ class SpojeDataSourceImpl(
         override suspend fun nowRunningBuses(connNames: List<BusName>, groups: List<SequenceGroup>, tabs: List<Table>) =
             sq.nowRunningBuses(connNames, groups, tabs).awaitGrouped(
                 { BusOfNowRunning(it.connName, it.line, it.direction, it.sequence, it.tab) },
-                { StopOfNowRunning(it.name, it.time!!) },
+                { StopOfNowRunning(it.name, it.fareZone, it.time!!) },
             )
 
         override suspend fun connectionResultBuses(connNames: Set<BusName>, groups: List<SequenceGroup>, tabs: List<Table>) =
@@ -138,7 +139,7 @@ class SpojeDataSourceImpl(
             sq.oneDirectionLines().awaitAsList()
 
         override suspend fun connStops(connNames: List<BusName>, tabs: List<Table>) =
-            sq.connStops(connNames, tabs).awaitGrouped({ it.connName }, { StopOfDeparture(it.name, it.time!!, it.stopIndexOnLine) })
+            sq.connStops(connNames, tabs).awaitGrouped({ it.connName }, { StopOfDeparture(it.name, it.time!!, it.fareZone, it.stopIndexOnLine) })
 
         override suspend fun hasRestriction(tab: Table) =
             sq.hasRestriction(tab).awaitAsOne()

@@ -6,13 +6,13 @@ import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.FareZone
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.toShortLine
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
-import cz.jaro.dpmcb.data.helperclasses.groupByPair
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.stateInViewModel
 import cz.jaro.dpmcb.data.helperclasses.timeHere
@@ -42,7 +42,7 @@ class NowRunningViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val filters: List<ShortLine>,
+        val filters: List<LongLine>,
         val type: NowRunningType,
     )
 
@@ -93,16 +93,20 @@ class NowRunningViewModel(
                 val bus = buses[onlineConn.name] ?: return@mapNotNull null
                 val indexOnLine = bus.stops.indexOfLast { it.time == onlineConn.nextStop }
                 val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
+                val middleDestination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine)
+                val destination = bus.stops.find { it.name == middleDestination } ?: bus.stops.last()
+                val nextStop = bus.stops.lastOrNull { it.time == onlineConn.nextStop }
                 RunningConnPlus(
                     busName = bus.busName,
-                    nextStopName = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.name ?: return@mapNotNull null,
-                    nextStopTime = bus.stops.lastOrNull { it.time == onlineConn.nextStop }?.time?.atDate(SystemClock.todayHere())
-                        ?: return@mapNotNull null,
+                    nextStopName = nextStop?.name ?: return@mapNotNull null,
+                    nextStopTime = nextStop.time.atDate(SystemClock.todayHere()),
+                    nextStopZone = nextStop.fareZone,
                     delay = onlineConn.delayMin?.toDouble()?.minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber.toShortLine(),
-                    destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
+                    lineNumber = bus.lineNumber,
+                    destination = destination.name,
+                    destinationZone = destination.fareZone,
                     vehicle = vehicle ?: onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
                 )
@@ -118,18 +122,22 @@ class NowRunningViewModel(
     private val offlineList = repo.nowRunning.combine(repo.vehicleNumbersOnSequences) { busNames, vehicles ->
         repo.nowRunningBusDetails(busNames, SystemClock.todayHere()).values
             .map { bus ->
-                val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time } ?: bus.stops.withIndex()
-                    .last()
+                val (indexOnLine, nextStop) = bus.stops.withIndex().find { SystemClock.timeHere() < it.value.time }
+                    ?: bus.stops.withIndex().last()
                 val vehicle = vehicles[SystemClock.todayHere()]?.get(bus.sequence)
+                val middleDestination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine)
+                val destination = bus.stops.find { it.name == middleDestination } ?: bus.stops.last()
                 RunningConnPlus(
                     busName = bus.busName,
                     nextStopName = nextStop.name,
                     nextStopTime = nextStop.time.atDate(SystemClock.todayHere()),
+                    nextStopZone = nextStop.fareZone,
                     delay = (-1).minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber.toShortLine(),
-                    destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
+                    lineNumber = bus.lineNumber,
+                    destination = destination.name,
+                    destinationZone = destination.fareZone,
                     vehicle = vehicle,
                     sequence = bus.sequence,
                 )
@@ -181,8 +189,10 @@ private fun resultListLine(list: List<RunningConnPlus>) = list
             .thenBy { it.indexOnLine }
             .thenByDescending { it.nextStopTime }
     )
-    .groupByPair({ it.lineNumber to it.destination }, RunningConnPlus::toRunningBus)
-    .map(::RunningLineInDirection)
+    .groupBy(::RunningLineInDirection, RunningConnPlus::toRunningBus)
+    .map { (it, buses) ->
+        it.copy(buses = buses)
+    }
 
 private fun resultListRegN(list: List<RunningConnPlus>) = list
     .sortedWith(
@@ -190,21 +200,24 @@ private fun resultListRegN(list: List<RunningConnPlus>) = list
     )
     .map(RunningConnPlus::toRunningVehicle)
 
-private fun RunningLineInDirection(it: Triple<ShortLine, String, List<RunningBus>>) = RunningLineInDirection(
-    lineNumber = it.first,
-    destination = it.second,
-    buses = it.third,
+private fun RunningLineInDirection(it: RunningConnPlus) = RunningLineInDirection(
+    lineNumber = it.lineNumber,
+    destination = it.destination,
+    destinationZone = it.destinationZone,
+    buses = emptyList(),
 )
 
 data class RunningConnPlus(
     val busName: BusName,
-    val nextStopName: String,
+    val nextStopName: StopName,
     val nextStopTime: LocalDateTime,
+    val nextStopZone: FareZone?,
     val delay: Duration?,
     val indexOnLine: Int,
     val direction: Direction,
-    val lineNumber: ShortLine,
-    val destination: String,
+    val lineNumber: LongLine,
+    val destination: StopName,
+    val destinationZone: FareZone?,
     val vehicle: RegistrationNumber?,
     val sequence: SequenceCode?,
 ) {
@@ -214,6 +227,7 @@ data class RunningConnPlus(
         lineNumber = lineNumber,
         destination = destination,
         sequence = sequence,
+        destinationZone = destinationZone,
     )
 
     fun toRunningVehicle() = RunningVehicle(
@@ -222,12 +236,14 @@ data class RunningConnPlus(
         destination = destination,
         vehicle = vehicle,
         sequence = sequence,
+        destinationZone = destinationZone,
     )
 
     fun toRunningBus() = RunningBus(
         busName = busName,
         nextStopName = nextStopName,
         nextStopTime = nextStopTime,
+        nextStopZone = nextStopZone,
         delay = delay,
         vehicle = vehicle,
         sequence = sequence,

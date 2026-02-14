@@ -68,7 +68,7 @@ class OnlineRepository(
         }
             ?.transmitters
             ?.filter {
-                it.cn?.startsWith("325") == true
+                it.cn?.startsWith("325") == true || it.cn?.startsWith("320") == true
             }
             ?.map { it.toOnlineConn() }
             ?: emptyList()

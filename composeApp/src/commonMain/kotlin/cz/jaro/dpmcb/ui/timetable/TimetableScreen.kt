@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.onSecondaryClick
 import cz.jaro.dpmcb.data.realtions.timetable.BusInTimetable
 import cz.jaro.dpmcb.data.viewModel
@@ -92,7 +93,7 @@ fun TimetableScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = state.lineNumber.toString(),
+                text = state.lineNumber.toShortLine().toString(),
                 fontSize = 30.sp,
                 color = MaterialTheme.colorScheme.primary,
             )

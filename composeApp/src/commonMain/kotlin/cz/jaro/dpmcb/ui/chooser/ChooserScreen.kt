@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.todayHere
 import cz.jaro.dpmcb.data.viewModel
@@ -233,7 +234,7 @@ fun ChooserScreen(
                 .fillMaxWidth(),
             contentPadding = WindowInsets.safeContent.only(WindowInsetsSides.Bottom).asPaddingValues(),
         ) {
-            itemsIndexed(state.list, key = { _, it -> it }) { i, item ->
+            itemsIndexed(state.list, key = { _, it -> it.textValue }) { i, item ->
                 Surface(
                     onClick = {
                         onEvent(ChooserEvent.ClickedOnListItem(item))
@@ -245,7 +246,7 @@ fun ChooserScreen(
                     color = if (i == 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surface,
                 ) {
                     DropdownMenuItem(
-                        text = { Text(item) },
+                        text = { Text(item.textValue) },
                         onClick = {
                             onEvent(ChooserEvent.ClickedOnListItem(item))
                         },
@@ -268,7 +269,7 @@ fun ChooserPreview() {
                     date = SystemClock.todayHere(),
                     type = ChooserType.LineStops,
                     search = TextFieldState("u k"),
-                    list = listOf("U Koníčka", "Dobrá Voda, U Kapličky", "Dobrá Voda, U Křížku"),
+                    list = listOf("U Koníčka", "Dobrá Voda, U Kapličky", "Dobrá Voda, U Křížku").map { ChooserViewModel.Item(it, StopName("", "", it)) },
                     info = "6: ? -> ?",
                 ),
                 onEvent = {},

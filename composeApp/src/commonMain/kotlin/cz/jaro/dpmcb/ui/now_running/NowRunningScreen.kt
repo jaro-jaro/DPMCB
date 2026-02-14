@@ -49,7 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.LongLine
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.plus
 import cz.jaro.dpmcb.data.helperclasses.textItem
@@ -185,7 +186,7 @@ private fun LazyListScope.busResult(
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
+                Text(text = "${bus.lineNumber.toShortLine()} -> ${bus.destination}", Modifier.weight(1F))
                 Text(text = "${bus.vehicle}")
             }
         }
@@ -198,7 +199,7 @@ private fun LazyListScope.busResult(
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
+                Text(text = "${bus.lineNumber.toShortLine()} -> ${bus.destination}", Modifier.weight(1F))
                 bus.delay?.let {
                     Text(
                         text = bus.delay.toDelay(),
@@ -216,12 +217,12 @@ private fun LazyListScope.line(
     onEvent: (NowRunningEvent) -> Unit,
     online: Boolean,
 ) {
-    stickyHeader(key = "${if (online) "OL" else "NL"} ${line.lineNumber.value} -> ${line.destination}") {
+    stickyHeader(key = "${if (online) "OL" else "NL"} ${line.lineNumber.toShortLine()} -> ${line.destination}") {
         Column(
             Modifier.background(MaterialTheme.colorScheme.surface)
         ) {
             Text(
-                text = "${line.lineNumber} -> ${line.destination}",
+                text = "${line.lineNumber.toShortLine()} -> ${line.destination.inZone(line.destinationZone)}",
                 style = MaterialTheme.typography.titleLarge,
                 color = if (online) MaterialTheme.colorScheme.primary else Color.Unspecified,
             )
@@ -254,10 +255,10 @@ private fun LazyListScope.line(
                 }
         ) {
             if (bus.vehicle != null)
-                Text(text = "${bus.vehicle}: ${bus.nextStopName}", Modifier.weight(1F))
+                Text(text = "${bus.vehicle}: ${bus.nextStopName.inZone(bus.nextStopZone)}", Modifier.weight(1F))
             else
-                Text(text = bus.nextStopName, Modifier.weight(1F))
-            Text(text = bus.nextStopTime.toString())
+                Text(text = bus.nextStopName.toString(), Modifier.weight(1F))
+            Text(text = bus.nextStopTime.time.toString())
             if (online) bus.delay?.let { delay ->
                 Text(
                     text = (bus.nextStopTime + delay.truncatedToSeconds()).time.toString(),
@@ -300,7 +301,7 @@ private fun LazyListScope.notRunning(
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
+                Text(text = "${bus.lineNumber.toShortLine()} -> ${bus.destination.inZone(bus.destinationZone)}", Modifier.weight(1F))
                 if (bus.vehicle != null) Text(text = "${bus.vehicle}")
             }
         }
@@ -313,7 +314,7 @@ private fun LazyListScope.notRunning(
                         onEvent(NavToBus(bus.busName))
                     }
             ) {
-                Text(text = "${bus.lineNumber} -> ${bus.destination}", Modifier.weight(1F))
+                Text(text = "${bus.lineNumber.toShortLine()} -> ${bus.destination.inZone(bus.destinationZone)}", Modifier.weight(1F))
             }
         }
     }
@@ -321,15 +322,15 @@ private fun LazyListScope.notRunning(
 
 @Composable
 fun Chip(
-    list: List<ShortLine>,
-    lineNumber: ShortLine,
+    list: List<LongLine>,
+    lineNumber: LongLine,
     onClick: (Boolean) -> Unit,
 ) = FilterChip(
     selected = lineNumber in list,
     onClick = {
         onClick(lineNumber !in list)
     },
-    label = { Text("$lineNumber") },
+    label = { Text("${lineNumber.toShortLine()}") },
     Modifier
         .padding(all = 4.dp),
 )

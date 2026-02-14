@@ -427,7 +427,7 @@ fun ColumnScope.PartOfBusChooser(
                         horizontalArrangement = Arrangement.Start,
                     ) {
                         Text(
-                            text = stop.name,
+                            text = stop.name.toString(),
                             Modifier
                                 .clickable(enabled = !isDisabled(i)) {
                                     click(i)

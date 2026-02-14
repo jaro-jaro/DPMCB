@@ -6,10 +6,9 @@ import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
-import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -18,6 +17,7 @@ import cz.jaro.dpmcb.data.helperclasses.combineStates
 import cz.jaro.dpmcb.data.helperclasses.compare
 import cz.jaro.dpmcb.data.helperclasses.dayPeriod
 import cz.jaro.dpmcb.data.helperclasses.exactDatetime
+import cz.jaro.dpmcb.data.helperclasses.fromJsonElement
 import cz.jaro.dpmcb.data.helperclasses.launch
 import cz.jaro.dpmcb.data.helperclasses.middleDestination
 import cz.jaro.dpmcb.data.helperclasses.nowFlow
@@ -74,7 +74,7 @@ class DeparturesViewModel(
         val stop: StopName,
         val time: LocalTime?,
         val date: LocalDate,
-        val line: ShortLine?,
+        val line: LongLine?,
         val via: StopName?,
         val platform: Platform?,
         val onlyDepartures: Boolean?,
@@ -141,22 +141,24 @@ class DeparturesViewModel(
                 val currentNextStop = onlineConn?.nextStop?.let { nextStop ->
                     busStops
                         .findLast { it.time == nextStop }
-                        ?.let { it.name to it.time.atDate(date) }
+                        ?.let { Triple(it.name, it.time.atDate(date), it.fareZone) }
                 } ?: busStops
                     .takeIf { date == SystemClock.todayHere() }
                     ?.find { SystemClock.timeHere() < it.time }
                     ?.takeIf { it.time > busStops.first().time }
-                    ?.let { it.name to it.time.atDate(date) }
+                    ?.let { Triple(it.name, it.time.atDate(date), it.fareZone) }
                 val lastIndexOfThisStop = stopNames.lastIndexOf(stop.name).let {
                     if (it == thisStopIndex) busStops.lastIndex else it
                 }
 
-                val destination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
+                val middleDestination = repo.middleDestination(stop.line, stopNames, thisStopIndex)
                 val lineTraction = repo.lineTraction(stop.line, stop.vehicleType)
                 val registrationNumber = vehicles[date]?.get(stop.sequence)
+                val destination = busStops.find { it.name == middleDestination } ?: busStops.last()
                 DepartureState(
-                    destination = destination ?: stopNames.last(),
-                    lineNumber = stop.line.toShortLine(),
+                    destination = destination.name,
+                    destinationZone = destination.fareZone,
+                    lineNumber = stop.line,
                     time = stop.time.atDate(date),
                     currentNextStop = currentNextStop,
                     busName = stop.busName,
@@ -167,7 +169,7 @@ class DeparturesViewModel(
                     platform = stop.platform,
                     isLastStop = thisStopIndex == busStops.lastIndex,
                     stopType = stop.stopType,
-                    direction = if (destination != null) Direction.NEGATIVE else stop.direction,
+                    direction = if (middleDestination != null) Direction.NEGATIVE else stop.direction,
                 )
             }
     }
@@ -293,10 +295,10 @@ class DeparturesViewModel(
             viewModelScope.launch(Dispatchers.Main) {
                 info.update { oldState ->
                     when (e.result.chooserType) {
-                        ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.toShortLine())
-                        ChooserType.ReturnStop -> oldState.copy(stop = e.result.value)
-                        ChooserType.ReturnStopVia -> oldState.copy(stopFilter = e.result.value)
-                        ChooserType.ReturnPlatform -> oldState.copy(platformFilter = e.result.value)
+                        ChooserType.ReturnLine -> oldState.copy(lineFilter = e.result.value.fromJsonElement())
+                        ChooserType.ReturnStop -> oldState.copy(stop = e.result.value.fromJsonElement())
+                        ChooserType.ReturnStopVia -> oldState.copy(stopFilter = e.result.value.fromJsonElement())
+                        ChooserType.ReturnPlatform -> oldState.copy(platformFilter = e.result.value.fromJsonElement())
                         else -> return@launch
                     }.also(::changeCurrentRoute)
                 }

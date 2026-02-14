@@ -2,6 +2,8 @@ import cz.jaro.dpmcb.data.entities.BusNumber;
 import cz.jaro.dpmcb.data.entities.LongLine;
 import cz.jaro.dpmcb.data.entities.ShortLine;
 import cz.jaro.dpmcb.data.entities.StopNumber;
+import cz.jaro.dpmcb.data.entities.StopName;
+import cz.jaro.dpmcb.data.entities.FareZone;
 import cz.jaro.dpmcb.data.entities.Table;
 import cz.jaro.dpmcb.data.entities.BusName;
 import cz.jaro.dpmcb.data.entities.Platform;
@@ -55,8 +57,9 @@ CREATE TABLE IF NOT EXISTS Stop (
     tab TEXT AS Table NOT NULL,
     stopNumber INTEGER AS StopNumber NOT NULL,
     line INTEGER AS LongLine NOT NULL,
-    stopName TEXT NOT NULL,
+    stopName TEXT AS StopName NOT NULL COLLATE NOCASE,
     fixedCodes TEXT NOT NULL,
+    fareZone INTEGER AS FareZone,
     PRIMARY KEY(tab, stopNumber)
 );
 CREATE TABLE IF NOT EXISTS ConnStop (

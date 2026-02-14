@@ -2,7 +2,7 @@ coreBus:
 SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, Conn.fixedCodes, Line.vehicleType, ConnStop.platform, CASE
     WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
     ELSE ConnStop.departure
-END time, ConnStop.arrival, Conn.direction, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom, TimeCode.validTo, SeqOfConn.seqGroup FROM ConnStop
+END time, ConnStop.arrival, Conn.direction, Stop.fareZone, Stop.fixedCodes stopFixedCodes, ConnStop.fixedCodes connStopFixedCodes, stopName name, SeqOfConn.sequence, Conn.name connName, TimeCode.type, TimeCode.validFrom, TimeCode.validTo, SeqOfConn.seqGroup FROM ConnStop
 JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
 JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
 JOIN Line ON Line.tab = ConnStop.tab
@@ -36,7 +36,7 @@ coreBusOfSequence:
 SELECT (Conn.fixedCodes LIKE '%{%') lowFloor, Conn.line, SeqOfConn.sequence, Line.vehicleType, Conn.fixedCodes, ConnStop.platform, CASE
    WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
    ELSE ConnStop.departure
-END time, ConnStop.arrival, Conn.direction, Stop.fixedCodes stopFixedCodes, Line.validFrom lineValidFrom, Line.validTo lineValidTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom, TimeCode.validTo FROM ConnStop
+END time, ConnStop.arrival, Conn.direction, Stop.fareZone, Stop.fixedCodes stopFixedCodes, Line.validFrom lineValidFrom, Line.validTo lineValidTo, ConnStop.fixedCodes connStopFixedCodes, stopName name, Conn.name connName, Conn.tab, TimeCode.type, TimeCode.validFrom, TimeCode.validTo FROM ConnStop
 JOIN Conn ON Conn.tab = ConnStop.tab AND Conn.connNumber = ConnStop.connNumber
 JOIN Stop ON Stop.tab = ConnStop.tab AND Stop.stopNumber = ConnStop.stopNumber
 JOIN Line ON Line.tab = Conn.tab AND Line.number = Conn.line
@@ -107,7 +107,7 @@ thisStopIndexes AS (
     ORDER BY ConnStop.stopIndexOnLine
 ),
 thisStop AS (
-    SELECT Stop.stopName name, Conn.fixedCodes, Line.vehicleType, Conn.direction, SeqOfConn.sequence, CASE
+    SELECT Stop.stopName name, Stop.fareZone, Conn.fixedCodes, Line.vehicleType, Conn.direction, SeqOfConn.sequence, CASE
         WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
         ELSE ConnStop.departure
     END time, ConnStop.stopIndexOnLine, ConnStop.platform, ConnStop.fixedCodes connStopFixedCodes, Conn.connNumber, Conn.line, Conn.tab, (Conn.fixedCodes LIKE '%{%') lowFloor
@@ -201,7 +201,7 @@ nowRunningBuses:
 SELECT Conn.name connName, Conn.line, Conn.direction, Conn.tab, CASE
     WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
     ELSE ConnStop.departure
-END time, Stop.stopName name, SeqOfConn.sequence FROM Conn
+END time, Stop.fareZone, Stop.stopName name, SeqOfConn.sequence FROM Conn
 JOIN ConnStop ON ConnStop.connNumber = Conn.connNumber AND ConnStop.tab = Conn.tab
 JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
 JOIN SeqOfConn ON SeqOfConn.connNumber = Conn.connNumber AND SeqOfConn.line = Conn.line
@@ -266,7 +266,7 @@ connStops:
 SELECT Conn.name connName, CASE
     WHEN ConnStop.departure IS NULL THEN ConnStop.arrival
     ELSE ConnStop.departure
-END time, Stop.stopName name, ConnStop.stopIndexOnLine FROM Conn
+END time, Stop.fareZone, Stop.stopName name, ConnStop.stopIndexOnLine FROM Conn
 JOIN ConnStop ON ConnStop.connNumber = Conn.connNumber AND ConnStop.tab = Conn.tab
 JOIN Stop ON Stop.stopNumber = ConnStop.stopNumber AND Stop.tab = ConnStop.tab
 WHERE (
@@ -371,12 +371,12 @@ WHERE shortNumber = :line
 LIMIT 1;
 
 lineNumbers:
-SELECT DISTINCT shortNumber FROM Line
+SELECT DISTINCT number FROM Line
 WHERE tab IN :tabs
 ORDER BY shortNumber;
 
-stopNames:
-SELECT DISTINCT stopName FROM Stop
+stopNameAndZone:
+SELECT DISTINCT stopName, fareZone FROM Stop
 WHERE tab IN :tabs
 ORDER BY stopName;
 

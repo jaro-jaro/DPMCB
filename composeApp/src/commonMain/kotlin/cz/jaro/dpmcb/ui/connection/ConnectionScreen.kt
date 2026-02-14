@@ -327,7 +327,7 @@ private fun BusDetails(
             Row(Modifier.onSizeChanged {
                 departureRowHeight.value = it.height
             }) {
-                Text(stopNameText(bus.startStop, bus.startStopPlatform))
+                Text(stopNameText(bus.startStop, bus.startStopPlatform, fareZone = 100 /* TODO */))
             }
             Row(Modifier.onSizeChanged {
                 busRowHeight.value = it.height
@@ -352,7 +352,7 @@ private fun BusDetails(
             Row(Modifier.onSizeChanged {
                 arrivalRowHeight.value = it.height
             }) {
-                Text(stopNameText(bus.endStop, bus.endStopPlatform))
+                Text(stopNameText(bus.endStop, bus.endStopPlatform, fareZone = 100 /* TODO */))
             }
         }
     }

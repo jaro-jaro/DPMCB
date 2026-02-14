@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.isInvalid
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.minus
@@ -109,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atDate
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.absoluteValue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -136,7 +138,7 @@ fun Departures(
     AppState.selected = DrawerAction.Departures
 
     LifecycleResumeEffect(Unit) {
-        val result = navigator.getResult<ChooserResult>()
+        val result = navigator.getResult<ChooserResult<JsonPrimitive>>()
 
         if (result != null) viewModel.onEvent(WentBack(result))
 
@@ -244,7 +246,7 @@ fun DeparturesScreen(
             Modifier
         ) {
             Text(
-                text = state.info.stop,
+                text = state.info.stop.toString(),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
@@ -571,7 +573,7 @@ private fun BusDeparture(
                 VehicleIcon(departureState.lineTraction, departureState.vehicleTraction)
                 Text(
                     modifier = Modifier.padding(start = 8.dp),
-                    text = departureState.lineNumber.toString(),
+                    text = departureState.lineNumber.toShortLine().toString(),
                     fontSize = 30.sp
                 )
                 Text(
@@ -582,7 +584,7 @@ private fun BusDeparture(
                 Text(
                     modifier = Modifier
                         .weight(1F),
-                    text = departureState.destination,
+                    text = departureState.destination.inZone(departureState.destinationZone),
                     fontSize = 20.sp
                 )
 
@@ -613,14 +615,14 @@ private fun BusDeparture(
                     Text(
                         modifier = Modifier
                             .weight(1F),
-                        text = nextStop.first,
+                        text = nextStop.first.inZone(nextStop.third),
                         fontSize = 20.sp
                     )
                     if (delay != null) Text(
-                        text = (nextStop.second + delay.truncatedToSeconds()).toString(),
+                        text = (nextStop.second + delay.truncatedToSeconds()).time.toString(),
                         color = colorOfDelayText(delay)
                     )
-                    else Text(nextStop.second.toString())
+                    else Text(nextStop.second.time.toString())
                 }
             }
         }

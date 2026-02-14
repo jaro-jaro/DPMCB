@@ -281,7 +281,7 @@ private fun ConnectionResult.ResultDetail() {
         }
         Line(transferRowHeight)
         Column(Modifier.weight(1F)) {
-            Text(startStop, Modifier.fillMaxWidth())
+            Text(startStop.toString(), Modifier.fillMaxWidth())
             if (transfers.isNotEmpty()) {
                 val transferCount = transfers.size
                 val transfers = when (transferCount) {
@@ -297,7 +297,7 @@ private fun ConnectionResult.ResultDetail() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(endStop, Modifier.fillMaxWidth())
+            Text(endStop.toString(), Modifier.fillMaxWidth())
         }
     }
 }
