@@ -46,7 +46,7 @@ class ConnectionSearchViewModel(
                 destination = args.destination ?: it.destination,
                 directOnly = args.directOnly ?: it.directOnly,
                 showInefficientConnections = args.showInefficientConnections ?: it.showInefficientConnections,
-                datetime = args.date.atTime(args.time?.toLocalTime() ?: it.datetime.time),
+                datetime = args.date.atTime(args.time?.toLocalTime() ?: it.datetime.time).truncatedToMinutes(),
             )
         })
 
@@ -89,7 +89,7 @@ class ConnectionSearchViewModel(
         is ConnectionSearchEvent.FillFromHistory -> {
             val s = history.value[e.i]
             if (e.includeDatetime) settings.value = s
-            else settings.update { s.copy(datetime = SystemClock.nowHere()) }
+            else settings.update { s.copy(datetime = SystemClock.nowHere().truncatedToMinutes()) }
             changeCurrentRoute(settings.value)
         }
 

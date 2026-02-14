@@ -83,6 +83,7 @@ fun LocalDate.asString() = "$day. ${month.number}. $year"
 fun LocalDate.asStringDM() = "$day. ${month.number}."
 
 fun LocalTime.truncatedToMinutes() = LocalTime(hour, minute)
+fun LocalDateTime.truncatedToMinutes() = LocalDateTime(year, month, day, hour, minute)
 
 fun String?.toTimeWeirdly() = (this?.run {
     LocalTime(slice(0..1).toInt(), slice(2..3).toInt())
