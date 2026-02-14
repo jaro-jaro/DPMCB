@@ -7,7 +7,6 @@ import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.async
 import cz.jaro.dpmcb.data.helperclasses.launch
@@ -198,7 +197,7 @@ class ConnectionViewModel(
             transferTight = transferTime != null &&
                     (samePlatforms && transferTime < 1.minutes || !samePlatforms && transferTime < 2.minutes),
             bus = busName,
-            line = busName.shortLine(),
+            line = busName.line(),
             isTrolleybus = repo.lineTraction(busName.line(), bus.vehicleType) == Traction.Trolleybus,
             date = date,
             startStop = start.name,

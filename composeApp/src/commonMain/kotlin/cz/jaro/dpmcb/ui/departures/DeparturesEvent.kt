@@ -4,13 +4,14 @@ import cz.jaro.dpmcb.ui.chooser.ChooserType
 import cz.jaro.dpmcb.ui.common.ChooserResult
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.json.JsonPrimitive
 
 sealed interface DeparturesEvent {
     data class GoToBus(val bus: DepartureState) : DeparturesEvent
     data class GoToTimetable(val bus: DepartureState) : DeparturesEvent
     data class ChangeTime(val time: LocalTime?) : DeparturesEvent
     data class Scroll(val i: Int) : DeparturesEvent
-    data class WentBack(val result: ChooserResult) : DeparturesEvent
+    data class WentBack(val result: ChooserResult<JsonPrimitive>) : DeparturesEvent
     data class Canceled(val chooserType: ChooserType) : DeparturesEvent
     data class ChangeDate(val date: LocalDate) : DeparturesEvent
     data object ChangeCompactMode : DeparturesEvent

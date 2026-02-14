@@ -15,7 +15,6 @@ import cz.jaro.dpmcb.data.entities.isInvalid
 import cz.jaro.dpmcb.data.entities.line
 import cz.jaro.dpmcb.data.entities.modifiers
 import cz.jaro.dpmcb.data.entities.part
-import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.entities.types.TimeCodeType.DoesNotRun
 import cz.jaro.dpmcb.data.entities.withPart
@@ -185,7 +184,7 @@ class SpojeRepository(
                         time = it.time!!.atDate(date),
                         arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                         name = it.name,
-                        line = it.line.toShortLine(),
+                        line = it.line,
                         connName = it.connName,
                         platform = it.platform,
                         type = StopType(it.connStopFixedCodes),
@@ -208,17 +207,17 @@ class SpojeRepository(
 
     suspend fun ShortLine.findLongLine() = q().findLongLine(this)
 
-    suspend fun stopNamesOfLine(line: ShortLine, date: LocalDate) =
-        q().stopNamesOfLine(nowUsedTable(date, line.findLongLine()).await()!!)
+    suspend fun stopNamesOfLine(line: LongLine, date: LocalDate) =
+        q().stopNamesOfLine(nowUsedTable(date, line).await()!!)
 
     val platformsAndDirections = withCache(scope) {
-            line: ShortLine,
+            line: LongLine,
             thisStop: String,
             date: LocalDate,
         ->
         q().platformsAndDirections(
             stop = thisStop,
-            tab = nowUsedTable(date, line.findLongLine()).await()!!,
+            tab = nowUsedTable(date, line).await()!!,
         )
             .groupBy {
                 it.connName
@@ -242,7 +241,7 @@ class SpojeRepository(
                         stop.platform != null
                     }
                     .map { (i, stop) ->
-                        val destination = middleDestination(line.findLongLine(), stopNames, i)
+                        val destination = middleDestination(line, stopNames, i)
                         Quadruple(
                             destination ?: stops.last().stopName,
                             stopNames.indexOf(destination ?: stops.last().stopName),
@@ -298,18 +297,18 @@ class SpojeRepository(
     }
 
     suspend fun timetable(
-        line: ShortLine,
+        line: LongLine,
         thisStop: String,
         platform: Platform,
         direction: Direction,
         date: LocalDate,
     ): Set<BusInTimetable> {
-        val isOneWay = isOneWay(line.findLongLine())
+        val isOneWay = isOneWay(line)
         return q().connStopsOnLineOnPlatformInDirection(
             stop = thisStop,
             platform = platform,
             direction = if (isOneWay) Direction.POSITIVE else direction,
-            tab = nowUsedTable(date, line.findLongLine()).await()!!
+            tab = nowUsedTable(date, line).await()!!
         )
             .groupBy {
                 it.connName
@@ -403,7 +402,7 @@ class SpojeRepository(
                             time = it.time!!.atDate(date),
                             arrival = it.arrival.takeIf { a -> a != it.time }?.atDate(date),
                             name = it.name,
-                            line = it.line.toShortLine(),
+                            line = it.line,
                             connName = it.connName,
                             platform = it.platform,
                             type = StopType(it.connStopFixedCodes),

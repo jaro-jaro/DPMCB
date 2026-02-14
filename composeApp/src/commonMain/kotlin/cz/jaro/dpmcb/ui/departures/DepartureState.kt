@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.ui.departures
 
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.realtions.StopType
@@ -16,7 +16,7 @@ data class DepartureState(
     val direction: Direction,
     val isLastStop: Boolean,
     val stopType: StopType,
-    val lineNumber: ShortLine,
+    val lineNumber: LongLine,
     val time: LocalDateTime,
     val busName: BusName,
     val lineTraction: Traction,

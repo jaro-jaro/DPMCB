@@ -27,8 +27,9 @@ value class Table(val value: String) {
 
 @Serializable
 @JvmInline
-value class LongLine(val value: Int) {
+value class LongLine(val value: Int) : Comparable<LongLine> {
     override fun toString() = value.toString()
+    override fun compareTo(other: LongLine) = value.compareTo(other.value)
 }
 
 @Serializable
@@ -105,9 +106,9 @@ fun SequenceCode.withoutType() = SequenceCode(
     }
 )
 
-val ShortLine.Companion.invalid get() = ShortLine(-1)
-fun ShortLine.isInvalid() = this == ShortLine.invalid
-fun ShortLine?.isInvalid() = this == null || isInvalid()
+val LongLine.Companion.invalid get() = LongLine(-1)
+fun LongLine.isInvalid() = this == LongLine.invalid
+fun LongLine?.isInvalid() = this == null || isInvalid()
 val SequenceGroupCompanion.invalid: SequenceGroup get() = -1
 fun SequenceGroup.isInvalid() = this == SequenceGroup.invalid
 val SequenceCode.Companion.invalid get() = SequenceCode("0/0")

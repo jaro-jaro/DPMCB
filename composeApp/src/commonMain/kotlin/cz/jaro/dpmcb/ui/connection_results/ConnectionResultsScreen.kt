@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.asString
 import cz.jaro.dpmcb.data.helperclasses.asStringDM
@@ -253,7 +254,7 @@ private fun ConnectionResult.ResultDetail() {
             ) {
                 InvertedVehicleIcon(bus.isTrolleybus)
                 Name(
-                    name = "${bus.line}",
+                    name = "${bus.line.toShortLine()}",
                     color = invertedIconColor(bus.isTrolleybus),
                 )
                 if (i != parts.lastIndex) {

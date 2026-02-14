@@ -74,6 +74,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.entities.isInvalid
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.colorOfDelayText
 import cz.jaro.dpmcb.data.helperclasses.minus
@@ -109,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atDate
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.absoluteValue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -136,7 +138,7 @@ fun Departures(
     AppState.selected = DrawerAction.Departures
 
     LifecycleResumeEffect(Unit) {
-        val result = navigator.getResult<ChooserResult>()
+        val result = navigator.getResult<ChooserResult<JsonPrimitive>>()
 
         if (result != null) viewModel.onEvent(WentBack(result))
 
@@ -571,7 +573,7 @@ private fun BusDeparture(
                 VehicleIcon(departureState.lineTraction, departureState.vehicleTraction)
                 Text(
                     modifier = Modifier.padding(start = 8.dp),
-                    text = departureState.lineNumber.toString(),
+                    text = departureState.lineNumber.toShortLine().toString(),
                     fontSize = 30.sp
                 )
                 Text(

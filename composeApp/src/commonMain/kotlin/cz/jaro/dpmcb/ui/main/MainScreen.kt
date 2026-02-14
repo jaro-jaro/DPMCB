@@ -92,7 +92,6 @@ import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
@@ -175,14 +174,14 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.Chooser::class -> mapOf(
         enumTypePair<ChooserType>(),
-        serializationTypePair<ShortLine>(),
+        serializationTypePair<LongLine>(),
         localDateTypePair,
     )
 
     Route.Departures::class -> mapOf(
         stringSerializationTypePair<SimpleTime>(),
         serializationTypePair<Boolean?>(),
-        serializationTypePair<ShortLine?>(),
+        serializationTypePair<LongLine?>(),
         localDateTypePair,
     )
 
@@ -212,7 +211,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
 
     Route.NowRunning::class -> mapOf(
         enumTypePair<NowRunningType>(),
-        serializationTypePair<List<ShortLine>>(),
+        serializationTypePair<List<LongLine>>(),
         localDateTypePair,
     )
 
@@ -222,7 +221,7 @@ inline fun <reified T : Route> typeMap() = when (T::class) {
     )
 
     Route.Timetable::class -> mapOf(
-        serializationTypePair<ShortLine>(),
+        serializationTypePair<LongLine>(),
         stringSerializationTypePair<Direction>(),
         localDateTypePair,
     )

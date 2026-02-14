@@ -1,8 +1,8 @@
 package cz.jaro.dpmcb.ui.connection
 
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -72,7 +72,7 @@ data class ConnectionBus(
     val transferTime: Duration?,
     val transferTight: Boolean,
     val bus: BusName,
-    val line: ShortLine,
+    val line: LongLine,
     val isTrolleybus: Boolean,
     val date: LocalDate,
     val startStop: StopName,

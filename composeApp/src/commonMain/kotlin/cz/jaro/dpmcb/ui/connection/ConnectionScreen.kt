@@ -52,6 +52,7 @@ import androidx.navigation.NavHostController
 import cz.jaro.dpmcb.data.AppState
 import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.entities.bus
+import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.helperclasses.Offset
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.asStringDM
@@ -333,7 +334,7 @@ private fun BusDetails(
                 busRowHeight.value = it.height
             }) {
                 Name(
-                    name = "${bus.line}",
+                    name = "${bus.line.toShortLine()}",
                     Modifier.padding(end = 8.dp),
                     suffix = "/" + bus.bus.bus(),
                     color = invertedIconColor(bus.isTrolleybus),

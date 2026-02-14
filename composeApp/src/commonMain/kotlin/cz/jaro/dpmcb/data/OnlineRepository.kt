@@ -149,14 +149,19 @@ class OnlineRepository(
                 .associate { it.name to it.vehicle!! }
                 .filterKeys { it !in pushed }
             val sequencePerBus = repo.seqOfConns(vehiclesPerBus.keys, date)
-            repo.pushVehicles(
-                date = date,
-                vehicles = sequencePerBus.map { (bus, seq) ->
-                    val vehicle = vehiclesPerBus[bus]!!
-                    seq to vehicle
-                }.toMap()
-            )
-            pushed += vehiclesPerBus.keys
+            try {
+                repo.pushVehicles(
+                    date = date,
+                    vehicles = sequencePerBus.map { (bus, seq) ->
+                        val vehicle = vehiclesPerBus[bus]!!
+                        seq to vehicle
+                    }.toMap()
+                )
+                pushed += vehiclesPerBus.keys
+            } catch (e: Exception) {
+                recordException(e)
+                logToCrashlytics(e)
+            }
         }.flowOn(Dispatchers.IO).launchIn(scope)
     }
 

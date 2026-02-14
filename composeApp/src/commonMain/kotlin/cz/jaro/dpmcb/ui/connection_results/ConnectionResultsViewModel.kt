@@ -7,7 +7,6 @@ import cz.jaro.dpmcb.data.DirectConnectionSearcher
 import cz.jaro.dpmcb.data.Logger
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.line
-import cz.jaro.dpmcb.data.entities.shortLine
 import cz.jaro.dpmcb.data.helperclasses.IO
 import cz.jaro.dpmcb.data.helperclasses.Traction
 import cz.jaro.dpmcb.data.helperclasses.async
@@ -172,7 +171,7 @@ class ConnectionResultsViewModel(
                     val transferTime = nextPart?.departure?.let { it - part.arrival }
                     val samePlatforms = nextPart?.departurePlatform == part.arrivalPlatform
                     ConnectionResultBus(
-                        line = part.bus.shortLine(),
+                        line = part.bus.line(),
                         isTrolleybus = lineTraction?.isTypeOf(Traction.Trolleybus) ?: false,
                         transferTime = transferTime,
                         length = part.arrival - part.departure,

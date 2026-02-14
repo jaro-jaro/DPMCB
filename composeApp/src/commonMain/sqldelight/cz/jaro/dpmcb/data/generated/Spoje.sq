@@ -371,7 +371,7 @@ WHERE shortNumber = :line
 LIMIT 1;
 
 lineNumbers:
-SELECT DISTINCT shortNumber FROM Line
+SELECT DISTINCT number FROM Line
 WHERE tab IN :tabs
 ORDER BY shortNumber;
 

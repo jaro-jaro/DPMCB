@@ -7,6 +7,6 @@ data class ChooserState(
     val type: ChooserType,
     val search: TextFieldState,
     val info: String,
-    val list: List<String>,
+    val list: List<ChooserViewModel.Item>,
     val date: LocalDate,
 )

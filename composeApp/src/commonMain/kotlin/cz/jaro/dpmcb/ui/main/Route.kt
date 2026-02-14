@@ -5,7 +5,6 @@ import cz.jaro.dpmcb.data.entities.BusNumber
 import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.Platform
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.data.entities.bus
 import cz.jaro.dpmcb.data.entities.div
@@ -76,8 +75,8 @@ sealed interface Route {
     data class Chooser(
         override val date: LocalDate,
         val type: ChooserType,
-        val lineNumber: ShortLine = ShortLine.invalid,
-        val stop: String? = null,
+        val lineNumber: LongLine = LongLine.invalid,
+        val stop: StopName? = null,
     ) : Route
 
     @Serializable
@@ -86,7 +85,7 @@ sealed interface Route {
         override val date: LocalDate,
         val stop: StopName,
         val time: SimpleTime = SimpleTime.invalid,
-        val line: ShortLine? = null,
+        val line: LongLine? = null,
         val via: StopName? = null,
         val platform: Platform? = null,
         val onlyDepartures: Boolean? = null,
@@ -139,7 +138,7 @@ sealed interface Route {
     @Serializable
     @SerialName("now_running")
     data class NowRunning(
-        val filters: List<ShortLine> = listOf(),
+        val filters: List<LongLine> = listOf(),
         val type: NowRunningType = NowRunningType.Line,
     ) : Route {
         override val date: LocalDate get() = SystemClock.todayHere()
@@ -163,8 +162,8 @@ sealed interface Route {
     @SerialName("timetable")
     data class Timetable(
         override val date: LocalDate,
-        val lineNumber: ShortLine,
-        val stop: String,
+        val lineNumber: LongLine,
+        val stop: StopName,
         val platform: Platform,
         val direction: Direction,
     ) : Route

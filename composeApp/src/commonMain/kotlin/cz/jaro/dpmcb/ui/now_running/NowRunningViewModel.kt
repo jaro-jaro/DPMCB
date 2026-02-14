@@ -6,10 +6,9 @@ import cz.jaro.dpmcb.data.OnlineModeManager
 import cz.jaro.dpmcb.data.OnlineRepository
 import cz.jaro.dpmcb.data.SpojeRepository
 import cz.jaro.dpmcb.data.entities.BusName
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.RegistrationNumber
 import cz.jaro.dpmcb.data.entities.SequenceCode
-import cz.jaro.dpmcb.data.entities.ShortLine
-import cz.jaro.dpmcb.data.entities.toShortLine
 import cz.jaro.dpmcb.data.entities.types.Direction
 import cz.jaro.dpmcb.data.helperclasses.SystemClock
 import cz.jaro.dpmcb.data.helperclasses.groupByPair
@@ -42,7 +41,7 @@ class NowRunningViewModel(
 ) : ViewModel() {
 
     data class Parameters(
-        val filters: List<ShortLine>,
+        val filters: List<LongLine>,
         val type: NowRunningType,
     )
 
@@ -101,7 +100,7 @@ class NowRunningViewModel(
                     delay = onlineConn.delayMin?.toDouble()?.minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber.toShortLine(),
+                    lineNumber = bus.lineNumber,
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
                     vehicle = vehicle ?: onlineConn.vehicle ?: return@mapNotNull null,
                     sequence = bus.sequence,
@@ -128,7 +127,7 @@ class NowRunningViewModel(
                     delay = (-1).minutes,
                     indexOnLine = indexOnLine,
                     direction = bus.direction,
-                    lineNumber = bus.lineNumber.toShortLine(),
+                    lineNumber = bus.lineNumber,
                     destination = repo.middleDestination(bus.lineNumber, bus.stops.map { it.name }, indexOnLine) ?: bus.stops.last().name,
                     vehicle = vehicle,
                     sequence = bus.sequence,
@@ -190,7 +189,7 @@ private fun resultListRegN(list: List<RunningConnPlus>) = list
     )
     .map(RunningConnPlus::toRunningVehicle)
 
-private fun RunningLineInDirection(it: Triple<ShortLine, String, List<RunningBus>>) = RunningLineInDirection(
+private fun RunningLineInDirection(it: Triple<LongLine, String, List<RunningBus>>) = RunningLineInDirection(
     lineNumber = it.first,
     destination = it.second,
     buses = it.third,
@@ -203,7 +202,7 @@ data class RunningConnPlus(
     val delay: Duration?,
     val indexOnLine: Int,
     val direction: Direction,
-    val lineNumber: ShortLine,
+    val lineNumber: LongLine,
     val destination: String,
     val vehicle: RegistrationNumber?,
     val sequence: SequenceCode?,

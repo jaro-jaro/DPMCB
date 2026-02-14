@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.now_running
 
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.LongLine
 
 sealed interface NowRunningState {
     val type: NowRunningType
@@ -14,8 +14,8 @@ sealed interface NowRunningState {
     }
 
     data class OK(
-        val lineNumbers: List<ShortLine>,
-        val filters: List<ShortLine>,
+        val lineNumbers: List<LongLine>,
+        val filters: List<LongLine>,
         override val type: NowRunningType,
         val result: NowRunningResults<*>,
         val isOnline: Boolean,

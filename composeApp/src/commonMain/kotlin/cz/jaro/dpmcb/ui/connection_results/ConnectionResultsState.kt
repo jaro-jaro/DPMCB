@@ -1,6 +1,6 @@
 package cz.jaro.dpmcb.ui.connection_results
 
-import cz.jaro.dpmcb.data.entities.ShortLine
+import cz.jaro.dpmcb.data.entities.LongLine
 import cz.jaro.dpmcb.data.entities.StopName
 import cz.jaro.dpmcb.ui.connection.ConnectionDefinition
 import cz.jaro.dpmcb.ui.connection_search.Favourite
@@ -36,7 +36,7 @@ data class ConnectionResult(
 
 @Serializable
 data class ConnectionResultBus(
-    val line: ShortLine,
+    val line: LongLine,
     val isTrolleybus: Boolean,
     val transferTime: Duration?,
     val transferTight: Boolean,

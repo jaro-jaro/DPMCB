@@ -36,7 +36,7 @@ interface SpojeQueries {
 
     suspend fun stopNames(tabs: List<Table>): List<String>
 
-    suspend fun lineNumbers(tabs: List<Table>): List<ShortLine>
+    suspend fun lineNumbers(tabs: List<Table>): List<LongLine>
 
     suspend fun nextStops(line: LongLine, thisStop: String, tab: Table): List<String>
 
