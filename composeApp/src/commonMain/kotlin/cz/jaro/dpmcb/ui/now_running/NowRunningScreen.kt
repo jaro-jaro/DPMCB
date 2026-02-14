@@ -257,7 +257,7 @@ private fun LazyListScope.line(
                 Text(text = "${bus.vehicle}: ${bus.nextStopName}", Modifier.weight(1F))
             else
                 Text(text = bus.nextStopName, Modifier.weight(1F))
-            Text(text = bus.nextStopTime.toString())
+            Text(text = bus.nextStopTime.time.toString())
             if (online) bus.delay?.let { delay ->
                 Text(
                     text = (bus.nextStopTime + delay.truncatedToSeconds()).time.toString(),

@@ -617,7 +617,7 @@ private fun BusDeparture(
                         fontSize = 20.sp
                     )
                     if (delay != null) Text(
-                        text = (nextStop.second + delay.truncatedToSeconds()).toString(),
+                        text = (nextStop.second + delay.truncatedToSeconds()).time.toString(),
                         color = colorOfDelayText(delay)
                     )
                     else Text(nextStop.second.toString())
